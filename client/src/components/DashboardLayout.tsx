@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, Tag, FileText, Upload, Camera } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, Tag, FileText, Upload, Camera, Cloud } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -34,6 +34,7 @@ const menuItems = [
   { icon: Tag, label: "Tags", path: "/tags" },
   { icon: Upload, label: "Upload", path: "/upload" },
   { icon: Camera, label: "Capture", path: "/capture" },
+  { icon: Cloud, label: "IPFS Storage", path: "/ipfs" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

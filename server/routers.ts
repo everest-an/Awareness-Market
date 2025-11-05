@@ -15,6 +15,8 @@ import {
   deleteDocument,
   getUserTags,
   createTag,
+  updateTag,
+  deleteTag,
   addDocumentTag,
   getUserContacts,
   getContactById,
@@ -171,6 +173,23 @@ export const appRouter = router({
           ...input,
         });
         return { tagId };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        color: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...updates } = input;
+        await updateTag(id, updates);
+        return { success: true };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteTag(input.id);
+        return { success: true };
       }),
     addToDocument: protectedProcedure
       .input(z.object({

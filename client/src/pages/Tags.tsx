@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Tag, Search, X } from "lucide-react";
+import { Plus, Tag, Search, X, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const TAG_COLORS = [
@@ -23,13 +23,39 @@ const TAG_COLORS = [
 export default function Tags() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [selectedColor, setSelectedColor] = useState(TAG_COLORS[0].value);
+  const [editingTag, setEditingTag] = useState<{ id: number; name: string; color: string | null } | null>(null);
 
   const utils = trpc.useUtils();
 
   // Fetch tags
   const { data: tags, isLoading } = trpc.tags.list.useQuery();
+
+  // Update tag mutation
+  const updateTagMutation = trpc.tags.update.useMutation({
+    onSuccess: () => {
+      utils.tags.list.invalidate();
+      setIsEditDialogOpen(false);
+      setEditingTag(null);
+      toast.success("Tag updated successfully");
+    },
+    onError: (error) => {
+      toast.error(`Failed to update tag: ${error.message}`);
+    },
+  });
+
+  // Delete tag mutation
+  const deleteTagMutation = trpc.tags.delete.useMutation({
+    onSuccess: () => {
+      utils.tags.list.invalidate();
+      toast.success("Tag deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete tag: ${error.message}`);
+    },
+  });
 
   // Create tag mutation
   const createTagMutation = trpc.tags.create.useMutation({
@@ -55,6 +81,32 @@ export default function Tags() {
       name: newTagName.trim(),
       color: selectedColor,
     });
+  };
+
+  const handleEditTag = (tag: { id: number; name: string; color: string | null }) => {
+    setEditingTag(tag);
+    setNewTagName(tag.name);
+    setSelectedColor(tag.color || TAG_COLORS[0].value);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateTag = () => {
+    if (!editingTag || !newTagName.trim()) {
+      toast.error("Tag name is required");
+      return;
+    }
+
+    updateTagMutation.mutate({
+      id: editingTag.id,
+      name: newTagName.trim(),
+      color: selectedColor,
+    });
+  };
+
+  const handleDeleteTag = (tagId: number, tagName: string) => {
+    if (confirm(`Are you sure you want to delete the tag "${tagName}"? This will remove it from all documents.`)) {
+      deleteTagMutation.mutate({ id: tagId });
+    }
   };
 
   // Filter tags based on search query
@@ -156,6 +208,84 @@ export default function Tags() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Tag Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Tag</DialogTitle>
+                <DialogDescription>
+                  Update tag name and color
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-tag-name">Tag Name</Label>
+                  <Input
+                    id="edit-tag-name"
+                    placeholder="Enter tag name..."
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleUpdateTag();
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Color</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {TAG_COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        type="button"
+                        className={`h-10 rounded-md border-2 transition-all ${
+                          selectedColor === color.value
+                            ? "border-foreground scale-105"
+                            : "border-transparent hover:border-muted-foreground"
+                        }`}
+                        style={{ backgroundColor: color.value }}
+                        onClick={() => setSelectedColor(color.value)}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Label>Preview</Label>
+                  <div className="mt-2">
+                    <Badge
+                      style={{
+                        backgroundColor: selectedColor,
+                        color: "#FFFFFF",
+                      }}
+                    >
+                      {newTagName || "Tag Name"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdateTag}
+                  disabled={updateTagMutation.isPending}
+                >
+                  {updateTagMutation.isPending ? "Updating..." : "Update Tag"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Search */}
@@ -198,10 +328,30 @@ export default function Tags() {
             {filteredTags.map((tag) => (
               <Card key={tag.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Tag className="h-5 w-5" style={{ color: tag.color || "#6B7280" }} />
-                    <span>{tag.name}</span>
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Tag className="h-5 w-5" style={{ color: tag.color || "#6B7280" }} />
+                      <span>{tag.name}</span>
+                    </CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditTag(tag)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteTag(tag.id, tag.name)}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <CardDescription>
                     Created {new Date(tag.createdAt).toLocaleDateString()}
                   </CardDescription>

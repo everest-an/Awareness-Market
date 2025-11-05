@@ -181,7 +181,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     currency: session.currency || 'usd',
   });
 
-  console.log(`Subscription created for user ${userId}, plan: ${planId}`);
+  console.log(`✅ Subscription created for user ${userId}, plan: ${planId}`);
+  console.log(`   Amount: ${(session.amount_total || 0) / 100} ${session.currency?.toUpperCase()}`);
+  console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
 }
 
 /**
@@ -235,6 +237,12 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     await updateSubscriptionByStripeId(subscriptionId, {
       status: 'past_due',
     });
-    console.log(`Payment failed for subscription: ${subscriptionId}`);
+    
+    console.log(`❌ Payment failed for subscription: ${subscriptionId}`);
+    console.log(`   Amount due: ${(invoice.amount_due || 0) / 100} ${invoice.currency?.toUpperCase()}`);
+    console.log(`   Attempt count: ${invoice.attempt_count}`);
+    
+    // TODO: Send notification to user about payment failure
+    // You can implement email notification or in-app notification here
   }
 }

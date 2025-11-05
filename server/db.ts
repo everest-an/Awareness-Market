@@ -224,6 +224,21 @@ export async function getUserTags(userId: number) {
   return await db.select().from(tags).where(eq(tags.userId, userId));
 }
 
+export async function updateTag(tagId: number, data: Partial<InsertTag>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(tags).set(data).where(eq(tags.id, tagId));
+}
+
+export async function deleteTag(tagId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // First delete all document-tag associations
+  await db.delete(documentTags).where(eq(documentTags.tagId, tagId));
+  // Then delete the tag itself
+  await db.delete(tags).where(eq(tags.id, tagId));
+}
+
 export async function addDocumentTag(documentId: number, tagId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
