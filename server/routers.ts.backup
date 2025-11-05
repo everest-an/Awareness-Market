@@ -3,9 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { subscriptionRouter } from "./subscription-router";
-import { ipfsRouter } from "./ipfs-router";
-import { z } from "zod";
-import {
+import { z } from "zoimport {
   getUserFiles,
   createFile,
   getUserDocuments,
@@ -15,22 +13,22 @@ import {
   deleteDocument,
   getUserTags,
   createTag,
-  addDocumentTag,
+  addTagToDocument,
   getUserContacts,
   getContactById,
   createContact,
   updateContact,
-  updateFileStatus,
-  updateFileR2Key,
-  getOrCreateCompany,
-  updateCompanyInfo,
 } from "./db";
 import {
   checkSubscriptionStatus,
   requireActiveSubscription,
   getStorageQuota,
   canUseIPFS,
-} from "./subscription-middleware";
+} from "./subscription-middleware";Status,
+  getOrCreateCompany,
+  updateCompanyInfo,
+  updateFileR2Key,
+} from "./db";
 import {
   performOCRFromFile,
   generateDocument as aiGenerateDocument,
@@ -43,15 +41,7 @@ import { storagePut } from "./storage";
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
-  
-  // Health check endpoint
-  health: publicProcedure.query(() => ({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'awareness-network-api',
-  })),
   subscription: subscriptionRouter,
-  ipfs: ipfsRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -66,6 +56,23 @@ export const appRouter = router({
   // File management routes
   files: router({
     list: protectedProcedure.query(({ ctx }) => getUserFiles(ctx.user.id)),
+    upload: protectedProcedure
+      .input(z.object({
+        fileName: z.string(),
+        fileType: z.string(),
+        fileSize: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Create file record with pending status
+        const fileId = await createFile({
+          userId: ctx.user.id,
+          fileName: input.fileName,
+          fileType: input.fileType,
+          fileSize: input.fileSize,
+          status: 'uploading',
+        });
+        return { fileId };
+      }),
     upload: protectedProcedure
       .input(z.object({
         fileName: z.string(),
@@ -87,8 +94,7 @@ export const appRouter = router({
         // Check if user can use IPFS
         if (input.useIPFS && !quota.canUseIPFS) {
           throw new Error('IPFS storage is only available for paid subscribers');
-        }
-        
+        } {
         // Decode base64 buffer
         const buffer = Buffer.from(input.fileBuffer, 'base64');
         
@@ -98,19 +104,12 @@ export const appRouter = router({
         const fileKey = `users/${ctx.user.id}/files/${timestamp}-${randomSuffix}-${input.fileName}`;
         
         // Upload to S3
-        const { url } = await storagePut(fileKey, buffer, input.fileType);
+        const { url } = await storagePut(fileKey, buffer, input.mimeType);
         
-        // Create file record
-        const fileId = await createFile({
-          userId: ctx.user.id,
-          fileName: input.fileName,
-          fileType: input.fileType,
-          fileSize: input.fileSize,
-          r2ObjectKey: fileKey,
-          status: 'uploading',
-        });
+        // Update file record with R2 object key
+        await updateFileR2Key(input.fileId, fileKey);
         
-        return { fileId, url };
+        return { fileId: input.fileId, url };
       }),
   }),
 

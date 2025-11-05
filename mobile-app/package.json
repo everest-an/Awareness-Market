@@ -1,0 +1,63 @@
+{
+  "name": "awareness-network-mobile",
+  "version": "2.0.0",
+  "description": "Awareness Network 2.0 Mobile App - AI-powered knowledge management",
+  "main": "index.js",
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "test": "jest",
+    "lint": "eslint .",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "build:ios": "cd ios && xcodebuild -workspace AwarenessNetwork.xcworkspace -scheme AwarenessNetwork -configuration Release"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-native": "^0.73.0",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/stack": "^6.3.20",
+    "@react-navigation/bottom-tabs": "^6.5.11",
+    "react-native-screens": "^3.29.0",
+    "react-native-safe-area-context": "^4.8.2",
+    "react-native-gesture-handler": "^2.14.1",
+    "@tanstack/react-query": "^5.17.9",
+    "@trpc/client": "^11.0.0-rc.332",
+    "@trpc/react-query": "^11.0.0-rc.332",
+    "react-native-camera": "^4.2.1",
+    "react-native-vision-camera": "^3.6.17",
+    "react-native-image-picker": "^7.1.0",
+    "react-native-document-picker": "^9.1.1",
+    "react-native-fs": "^2.20.0",
+    "react-native-async-storage": "^1.21.0",
+    "@react-native-async-storage/async-storage": "^1.21.0",
+    "react-native-keychain": "^8.1.2",
+    "react-native-webview": "^13.6.4",
+    "ethers": "^6.9.2",
+    "@walletconnect/react-native-compat": "^2.11.0",
+    "@walletconnect/modal-react-native": "^1.0.0-rc.8",
+    "axios": "^1.6.5",
+    "date-fns": "^3.0.6",
+    "react-native-svg": "^14.1.0",
+    "react-native-reanimated": "^3.6.1",
+    "react-native-vector-icons": "^10.0.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.7",
+    "@babel/preset-env": "^7.23.7",
+    "@babel/runtime": "^7.23.7",
+    "@react-native/babel-preset": "^0.73.19",
+    "@react-native/eslint-config": "^0.73.2",
+    "@react-native/metro-config": "^0.73.3",
+    "@react-native/typescript-config": "^0.73.1",
+    "@types/react": "^18.2.48",
+    "@types/react-native": "^0.73.0",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "metro-react-native-babel-preset": "^0.77.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

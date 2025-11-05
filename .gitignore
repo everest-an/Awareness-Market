@@ -105,3 +105,13 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
+
+# Python virtual environment and cache
+ai-service/venv/
+ai-service/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+__pycache__/
+.vercel

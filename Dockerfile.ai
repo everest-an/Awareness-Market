@@ -1,0 +1,30 @@
+# AI Service Dockerfile for Railway deployment
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies for PaddleOCR
+RUN apt-get update && apt-get install -y \
+    libgomp1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy AI service code
+COPY ai-service/requirements.txt ./
+COPY ai-service/main.py ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Download PaddleOCR models (this will cache them in the image)
+RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle_cls=True, lang='ch')"
+
+# Expose port
+EXPOSE 5000
+
+# Start AI service
+CMD ["python", "main.py"]
