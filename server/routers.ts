@@ -109,12 +109,18 @@ export const appRouter = router({
         maxPrice: z.number().optional(),
         minRating: z.number().optional(),
         searchTerm: z.string().optional(),
+        sortBy: z.enum(["newest", "oldest", "price_low", "price_high", "rating", "popular"]).default("newest"),
         limit: z.number().default(20),
         offset: z.number().default(0),
       }))
       .query(async ({ input }) => {
         return await db.searchLatentVectors(input);
       }),
+
+    // Get all categories
+    getCategories: publicProcedure.query(async () => {
+      return await db.getAllCategories();
+    }),
 
     // Update vector
     update: creatorProcedure

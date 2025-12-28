@@ -155,6 +155,7 @@ export async function searchLatentVectors(params: {
   maxPrice?: number;
   minRating?: number;
   searchTerm?: string;
+  sortBy?: "newest" | "oldest" | "price_low" | "price_high" | "rating" | "popular";
   status?: "active" | "inactive";
   limit?: number;
   offset?: number;
@@ -201,7 +202,28 @@ export async function searchLatentVectors(params: {
     query = query.where(and(...conditions)) as any;
   }
   
-  query = query.orderBy(desc(latentVectors.createdAt)) as any;
+  // Apply sorting
+  const sortBy = params.sortBy || "newest";
+  switch (sortBy) {
+    case "newest":
+      query = query.orderBy(desc(latentVectors.createdAt)) as any;
+      break;
+    case "oldest":
+      query = query.orderBy(latentVectors.createdAt) as any;
+      break;
+    case "price_low":
+      query = query.orderBy(latentVectors.basePrice) as any;
+      break;
+    case "price_high":
+      query = query.orderBy(desc(latentVectors.basePrice)) as any;
+      break;
+    case "rating":
+      query = query.orderBy(desc(latentVectors.averageRating)) as any;
+      break;
+    case "popular":
+      query = query.orderBy(desc(latentVectors.totalCalls)) as any;
+      break;
+  }
   
   if (params.limit) {
     query = query.limit(params.limit) as any;
@@ -212,6 +234,18 @@ export async function searchLatentVectors(params: {
   }
   
   return await query;
+}
+
+export async function getAllCategories() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const result = await db
+    .selectDistinct({ category: latentVectors.category })
+    .from(latentVectors)
+    .where(eq(latentVectors.status, "active"));
+  
+  return result.map(r => r.category);
 }
 
 export async function updateLatentVector(id: number, updates: Partial<typeof latentVectors.$inferInsert>) {
