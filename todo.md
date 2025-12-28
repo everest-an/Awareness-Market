@@ -125,3 +125,9 @@
 - [x] 添加交易完成通知监听
 - [x] 添加推荐更新通知监听
 - [x] 添加市场变化通知监听
+
+## 新增任务: 种子数据和API示例
+- [x] 运行pnpm seed填充示例数据
+- [x] 创建Python API使用示例
+- [x] 创建JavaScript/Node.js API使用示例
+- [x] 创建API示例文档README

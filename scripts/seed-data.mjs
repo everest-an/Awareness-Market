@@ -136,10 +136,10 @@ async function main() {
       const creator = creators[Math.floor(Math.random() * creators.length)];
       const result = await connection.execute(
         `INSERT INTO latent_vectors (
-          creatorId, name, description, category, price, dimension, 
-          vectorData, performanceMetrics, status, totalCalls, 
+          creator_id, title, description, category, base_price, vector_dimension, 
+          vector_file_key, vector_file_url, performance_metrics, status, total_calls, 
           createdAt, updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
         [
           creator.id,
           vectorInfo.name,
@@ -147,7 +147,8 @@ async function main() {
           vectorInfo.category,
           vectorInfo.price,
           vectorInfo.dimension,
-          `s3://awareness-network/vectors/${crypto.randomBytes(16).toString("hex")}.bin`,
+          `vectors/${crypto.randomBytes(16).toString("hex")}.bin`,
+          `https://s3.awareness-network.com/vectors/${crypto.randomBytes(16).toString("hex")}.bin`,
           vectorInfo.performanceMetrics,
           "active",
           Math.floor(Math.random() * 1000) + 100
@@ -170,17 +171,17 @@ async function main() {
       
       const result = await connection.execute(
         `INSERT INTO transactions (
-          buyerId, vectorId, amount, transactionFee, paymentMethod, 
-          paymentStatus, stripePaymentIntentId, createdAt, updatedAt
+          buyer_id, vector_id, amount, platform_fee, creator_earnings, 
+          stripe_payment_intent_id, status, createdAt, updatedAt
         ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
         [
           consumer.id,
           vector.id,
           vector.price,
           transactionFee,
-          "stripe",
-          "completed",
-          `pi_${crypto.randomBytes(12).toString("hex")}`
+          vector.price - transactionFee,
+          `pi_${crypto.randomBytes(12).toString("hex")}`,
+          "completed"
         ]
       );
       transactions.push({ id: Number(result[0].insertId), vectorId: vector.id, buyerId: consumer.id });
@@ -188,9 +189,9 @@ async function main() {
       // Grant access permission
       await connection.execute(
         `INSERT INTO access_permissions (
-          userId, vectorId, accessType, grantedAt, expiresAt, createdAt, updatedAt
-        ) VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR), NOW(), NOW())`,
-        [consumer.id, vector.id, "full"]
+          user_id, vector_id, transaction_id, access_token, expires_at, createdAt, updatedAt
+        ) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 YEAR), NOW(), NOW())`,
+        [consumer.id, vector.id, Number(result[0].insertId), `token_${crypto.randomBytes(16).toString("hex")}`]
       );
     }
     
@@ -216,9 +217,9 @@ async function main() {
         
         await connection.execute(
           `INSERT INTO reviews (
-            vectorId, userId, rating, comment, createdAt, updatedAt
+            user_id, vector_id, rating, comment, createdAt, updatedAt
           ) VALUES (?, ?, ?, ?, NOW(), NOW())`,
-          [transaction.vectorId, transaction.buyerId, rating, reviewText]
+          [transaction.buyerId, transaction.vectorId, rating, reviewText]
         );
       }
     }
@@ -229,12 +230,17 @@ async function main() {
     console.log("Calculating average ratings...");
     await connection.execute(`
       UPDATE latent_vectors lv
-      SET averageRating = (
+      SET average_rating = (
         SELECT AVG(rating)
         FROM reviews r
-        WHERE r.vectorId = lv.id
+        WHERE r.vector_id = lv.id
+      ),
+      review_count = (
+        SELECT COUNT(*)
+        FROM reviews r
+        WHERE r.vector_id = lv.id
       )
-      WHERE id IN (SELECT DISTINCT vectorId FROM reviews)
+      WHERE id IN (SELECT DISTINCT vector_id FROM reviews)
     `);
     
     console.log(`✓ Updated average ratings\n`);
@@ -247,14 +253,14 @@ async function main() {
       
       await connection.execute(
         `INSERT INTO api_call_logs (
-          userId, vectorId, endpoint, responseTime, statusCode, createdAt
+          user_id, vector_id, permission_id, response_time, success, createdAt
         ) VALUES (?, ?, ?, ?, ?, DATE_SUB(NOW(), INTERVAL ? DAY))`,
         [
           transaction.buyerId,
           transaction.vectorId,
-          "/api/mcp/invoke",
+          1, // dummy permission_id
           responseTime,
-          200,
+          true,
           Math.floor(Math.random() * 30)
         ]
       );
