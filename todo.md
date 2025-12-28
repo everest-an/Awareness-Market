@@ -115,3 +115,13 @@
 - [x] 添加市场变化通知WebSocket事件
 - [x] 创建测试数据种子脚本（向量、用户、交易）
 - [x] 添加种子数据执行命令到package.json
+
+## 新增功能: Socket.IO客户端实时通知
+- [x] 安装socket.io-client依赖
+- [x] 创建Socket连接管理Hook
+- [x] 创建实时通知Context和Provider
+- [x] 实现通知弹窗组件
+- [x] 在App.tsx中集成NotificationProvider
+- [x] 添加交易完成通知监听
+- [x] 添加推荐更新通知监听
+- [x] 添加市场变化通知监听
