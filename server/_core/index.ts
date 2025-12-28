@@ -8,6 +8,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { handleStripeWebhook } from "../stripe-webhook";
 import { serveStatic, setupVite } from "./vite";
+import mcpRouter from "../mcp-api";
+import latentmasRouter from "../latentmas-api";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -41,6 +43,12 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  // MCP Protocol API
+  app.use("/api/mcp", mcpRouter);
+  
+  // LatentMAS Transformer API
+  app.use("/api/latentmas", latentmasRouter);
+  
   // tRPC API
   app.use(
     "/api/trpc",

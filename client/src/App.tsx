@@ -7,6 +7,9 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Marketplace from "./pages/Marketplace";
 import VectorDetail from "./pages/VectorDetail";
+import CreatorDashboard from "./pages/CreatorDashboard";
+import UploadVector from "./pages/UploadVector";
+import ConsumerDashboard from "./pages/ConsumerDashboard";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -15,6 +18,9 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
+      <Route path={"/dashboard/creator"} component={CreatorDashboard} />
+      <Route path={"/upload"} component={UploadVector} />
+      <Route path={"/dashboard/consumer"} component={ConsumerDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
