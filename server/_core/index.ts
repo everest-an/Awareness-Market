@@ -12,6 +12,10 @@ import mcpRouter from "../mcp-api";
 import latentmasRouter from "../latentmas-api";
 import { aiAuthRouter } from "../ai-auth-api";
 import { aiMemoryRouter } from "../ai-memory-api";
+import swaggerUi from "swagger-ui-express";
+import { Server as SocketIOServer } from "socket.io";
+import fs from "fs";
+import path from "path";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -55,6 +59,21 @@ async function startServer() {
   app.use("/api/ai", aiAuthRouter);
   app.use("/api/ai", aiMemoryRouter);
   
+  // Swagger UI for API Documentation
+  try {
+    const openApiPath = path.join(process.cwd(), "client/public/openapi.json");
+    if (fs.existsSync(openApiPath)) {
+      const openApiDocument = JSON.parse(fs.readFileSync(openApiPath, "utf-8"));
+      app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument, {
+        customSiteTitle: "Awareness Network API Documentation",
+        customCss: ".swagger-ui .topbar { display: none }",
+      }));
+      console.log("[API Docs] Swagger UI available at /api-docs");
+    }
+  } catch (error) {
+    console.warn("[API Docs] Failed to load OpenAPI spec:", error);
+  }
+  
   // tRPC API
   app.use(
     "/api/trpc",
@@ -76,6 +95,32 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+  
+  // Socket.IO for real-time communication
+  const io = new SocketIOServer(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+    },
+  });
+  
+  // Socket.IO connection handler
+  io.on("connection", (socket) => {
+    console.log(`[Socket.IO] Client connected: ${socket.id}`);
+    
+    // Join user-specific room for targeted notifications
+    socket.on("join", (userId: string) => {
+      socket.join(`user_${userId}`);
+      console.log(`[Socket.IO] User ${userId} joined room`);
+    });
+    
+    socket.on("disconnect", () => {
+      console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
+    });
+  });
+  
+  // Attach io to app for use in other modules
+  (app as any).io = io;
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

@@ -105,3 +105,13 @@
 - [x] 添加元标签和Open Graph优化
 - [x] 创建AI发现端点（/.well-known/ai-plugin.json）
 - [ ] 实现多语言支持（i18n）
+
+## 新增功能: OpenAPI文档、WebSocket和测试数据
+- [x] 生成完整的OpenAPI 3.0规范文档
+- [x] 创建Swagger UI界面展示API文档
+- [x] 实现Socket.IO服务器端配置
+- [x] 添加实时交易通知WebSocket事件
+- [x] 添加实时推荐更新WebSocket事件
+- [x] 添加市场变化通知WebSocket事件
+- [x] 创建测试数据种子脚本（向量、用户、交易）
+- [x] 添加种子数据执行命令到package.json
