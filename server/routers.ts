@@ -8,6 +8,7 @@ import * as db from "./db";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import { invokeLLM } from "./_core/llm";
+import * as recommendationEngine from "./recommendation-engine";
 
 // Helper to ensure user is a creator
 const creatorProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -379,44 +380,27 @@ export const appRouter = router({
 
   // Recommendations
   recommendations: router({
-    // Get personalized recommendations
+    // Get personalized recommendations using LLM
     getRecommendations: protectedProcedure
-      .input(z.object({ limit: z.number().default(10) }))
+      .input(z.object({ limit: z.number().default(5) }))
       .query(async ({ ctx, input }) => {
-        // Get user preferences
-        const prefs = await db.getUserPreferences(ctx.user.id);
-        
-        // Get user's purchase history
-        const transactions = await db.getUserTransactions(ctx.user.id, "buyer");
-        const purchasedCategories = new Set<string>();
-        
-        for (const tx of transactions) {
-          const txData: any = 'vectorId' in tx ? tx : tx.transactions;
-          const vector = await db.getLatentVectorById(txData.vectorId);
-          if (vector) {
-            purchasedCategories.add(vector.category);
-          }
-        }
-
-        // Use LLM to analyze and recommend
-        let preferredCategories: string[] = [];
-        if (prefs?.preferredCategories) {
-          try {
-            preferredCategories = JSON.parse(prefs.preferredCategories);
-          } catch {}
-        }
-
-        // Combine purchased and preferred categories
-        const allCategories = [...Array.from(purchasedCategories), ...preferredCategories];
-
-        // Search for vectors in these categories
-        const recommendations = await db.searchLatentVectors({
-          category: allCategories.length > 0 ? allCategories[0] : undefined,
-          minRating: 4.0,
+        const recommendations = await recommendationEngine.generateRecommendations({
+          userId: ctx.user.id,
           limit: input.limit,
         });
-
         return recommendations;
+      }),
+
+    // Track browsing action
+    trackView: protectedProcedure
+      .input(z.object({ vectorId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await recommendationEngine.trackBrowsingAction(
+          ctx.user.id,
+          input.vectorId,
+          "view"
+        );
+        return { success: true };
       }),
 
     // Update user preferences

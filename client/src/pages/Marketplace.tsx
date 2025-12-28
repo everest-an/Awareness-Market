@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { RecommendationCard } from "@/components/RecommendationCard";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +27,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 type SortOption = "newest" | "oldest" | "price_low" | "price_high" | "rating" | "popular";
 
 export default function Marketplace() {
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
@@ -34,6 +38,12 @@ export default function Marketplace() {
 
   // Fetch categories
   const { data: categories } = trpc.vectors.getCategories.useQuery();
+
+  // Fetch AI recommendations if user is authenticated
+  const { data: recommendations } = trpc.recommendations.getRecommendations.useQuery(
+    { limit: 3 },
+    { enabled: isAuthenticated }
+  );
 
   // Fetch vectors with filters
   const { data: vectors, isLoading } = trpc.vectors.search.useQuery({
@@ -141,6 +151,27 @@ export default function Marketplace() {
       </div>
 
       <div className="container py-8">
+        {/* AI Recommendations Section */}
+        {isAuthenticated && recommendations && recommendations.length > 0 && (
+          <div className="mb-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-primary" />
+                Recommended for You
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                AI-powered suggestions based on your browsing history and preferences
+              </p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {recommendations.map((rec: any) => (
+                <RecommendationCard key={rec.vectorId} recommendation={rec} />
+              ))}
+            </div>
+            <div className="mt-6 border-t" />
+          </div>
+        )}
+
         <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
           {/* Desktop Filters Sidebar */}
           <aside className="hidden lg:block">

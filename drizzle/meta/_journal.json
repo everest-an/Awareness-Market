@@ -15,6 +15,13 @@
       "when": 1766955299148,
       "tag": "0001_hot_morgan_stark",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1766958146182,
+      "tag": "0002_nappy_gravity",
+      "breakpoints": true
     }
   ]
 }

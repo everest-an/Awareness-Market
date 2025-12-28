@@ -12,6 +12,7 @@ import {
   apiCallLogs,
   notifications,
   userPreferences,
+  browsingHistory,
   type LatentVector,
   type Transaction,
   type AccessPermission,
@@ -19,6 +20,9 @@ import {
   type SubscriptionPlan,
   type UserSubscription,
   type Notification,
+  type BrowsingHistory,
+  type InsertBrowsingHistory,
+  type UserPreference,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -497,4 +501,41 @@ export async function upsertUserPreferences(userId: number, prefs: Partial<typeo
   }
   
   return true;
+}
+
+// ===== Browsing History =====
+
+export async function insertBrowsingHistory(history: InsertBrowsingHistory) {
+  const db = await getDb();
+  if (!db) return;
+  
+  try {
+    await db.insert(browsingHistory).values(history);
+  } catch (error) {
+    console.error("[Database] Failed to insert browsing history:", error);
+  }
+}
+
+export async function getBrowsingHistory(userId: number, since?: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  try {
+    const conditions = [eq(browsingHistory.userId, userId)];
+    if (since) {
+      conditions.push(gte(browsingHistory.createdAt, since));
+    }
+    
+    const result = await db
+      .select()
+      .from(browsingHistory)
+      .where(and(...conditions))
+      .orderBy(desc(browsingHistory.createdAt))
+      .limit(100);
+    
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get browsing history:", error);
+    return [];
+  }
 }

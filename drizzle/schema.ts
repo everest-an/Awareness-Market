@@ -273,3 +273,22 @@ export type UserSubscription = typeof userSubscriptions.$inferSelect;
 export type ApiCallLog = typeof apiCallLogs.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type UserPreference = typeof userPreferences.$inferSelect;
+
+/**
+ * Browsing history table for tracking user interactions with vectors
+ */
+export const browsingHistory = mysqlTable("browsing_history", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  vectorId: int("vector_id").notNull(),
+  action: mysqlEnum("action", ["view", "click", "search"]).notNull(),
+  metadata: text("metadata"), // JSON string for additional context
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("user_idx").on(table.userId),
+  vectorIdx: index("vector_idx").on(table.vectorId),
+  createdAtIdx: index("created_at_idx").on(table.createdAt),
+}));
+
+export type BrowsingHistory = typeof browsingHistory.$inferSelect;
+export type InsertBrowsingHistory = typeof browsingHistory.$inferInsert;

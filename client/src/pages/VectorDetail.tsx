@@ -1,6 +1,7 @@
 import { useParams, Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,15 @@ export default function VectorDetail() {
   const { isAuthenticated, user } = useAuth();
   
   const vectorId = parseInt(id || "0");
+
+  // Track view for recommendations
+  const trackViewMutation = trpc.recommendations.trackView.useMutation();
+
+  useEffect(() => {
+    if (isAuthenticated && vectorId) {
+      trackViewMutation.mutate({ vectorId });
+    }
+  }, [vectorId, isAuthenticated]);
   
   const { data: vector, isLoading } = trpc.vectors.getById.useQuery(
     { id: vectorId },
