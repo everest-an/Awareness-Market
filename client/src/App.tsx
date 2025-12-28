@@ -11,6 +11,8 @@ import VectorDetail from "./pages/VectorDetail";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import UploadVector from "./pages/UploadVector";
 import ConsumerDashboard from "./pages/ConsumerDashboard";
+import Profile from "./pages/Profile";
+import Subscriptions from "./pages/Subscriptions";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -22,6 +24,8 @@ function Router() {
       <Route path={"/dashboard/creator"} component={CreatorDashboard} />
       <Route path={"/upload"} component={UploadVector} />
       <Route path={"/dashboard/consumer"} component={ConsumerDashboard} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/subscriptions" component={Subscriptions} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
