@@ -1,439 +1,54 @@
-# Awareness Network 2.0 - 项目总结
-
-## 🎉 项目完成状态
-
-**Awareness Network 2.0** 是一个完整的商业级智能知识管理系统，已完成核心开发，可以立即部署和使用。
-
----
-
-## ✅ 已完成的核心功能
-
-### 1. 后端架构（Node.js + TypeScript）
-
-**数据库设计（8个表）：**
-- ✅ users - 用户管理
-- ✅ subscriptions - 订阅管理
-- ✅ files - 文件存储
-- ✅ documents - 知识文档
-- ✅ tags - 标签系统
-- ✅ documentTags - 文档标签关联
-- ✅ contacts - 联系人管理
-- ✅ companies - 企业信息
-
-**tRPC API路由：**
-- ✅ auth - 用户认证（Manus OAuth）
-- ✅ files - 文件上传和管理
-- ✅ documents - 文档CRUD操作
-- ✅ tags - 标签管理
-- ✅ contacts - 联系人管理
-- ✅ ai - AI处理服务集成
-- ✅ subscription - 订阅管理
-- ✅ ipfs - IPFS分布式存储
-
-**核心服务模块：**
-- ✅ AI服务客户端（ai-client.ts）
-- ✅ Stripe支付客户端（stripe-client.ts）
-- ✅ IPFS存储服务（ipfs-storage.ts）
-- ✅ 订阅检查中间件（subscription-middleware.ts）
-- ✅ Stripe Webhook处理（stripe-routes.ts）
-
-### 2. AI处理服务（Python + FastAPI）
-
-**核心功能：**
-- ✅ PaddleOCR集成（免费开源OCR引擎）
-- ✅ PP-OCRv5模型（支持中英文识别）
-- ✅ 图像文字识别
-- ✅ 结构化数据提取（名片识别）
-- ✅ GPT-4o文档生成
-- ✅ 企业信息查询
-- ✅ 关键词提取
-- ✅ AI摘要生成
-
-**技术栈：**
-- FastAPI 0.115.6
-- PaddleOCR 2.9.2
-- PaddlePaddle 3.0.0
-- OpenAI GPT-4o
-
-### 3. Web前端（React 19 + TypeScript）
-
-**已完成页面：**
-- ✅ Home.tsx - 首页（Landing Page）
-- ✅ Dashboard.tsx - 用户仪表盘
-- ✅ Upload.tsx - 文件上传页面
-- ✅ Capture.tsx - 摄像头拍照页面
-- ✅ Documents.tsx - 文档列表
-- ✅ DocumentDetail.tsx - 文档详情
-- ✅ Contacts.tsx - 联系人列表
-- ✅ Subscription.tsx - 订阅管理
-
-**UI组件库：**
-- shadcn/ui（现代化组件）
-- Tailwind CSS 4（样式系统）
-- Lucide React（图标库）
-
-**功能特性：**
-- ✅ 文件拖拽上传
-- ✅ 摄像头实时拍照
-- ✅ OCR处理进度显示
-- ✅ 知识文档展示和编辑
-- ✅ 标签管理和筛选
-- ✅ 联系人管理
-- ✅ 订阅计划选择
-
-### 4. 移动端App（React Native 0.73）
-
-**项目结构：**
-- ✅ 完整的React Native配置
-- ✅ tRPC客户端集成
-- ✅ React Navigation导航系统
-- ✅ TypeScript类型支持
-
-**已完成页面（9个）：**
-- ✅ HomeScreen.tsx - 首页
-- ✅ CameraScreen.tsx - 相机拍照
-- ✅ DocumentsScreen.tsx - 文档列表
-- ✅ DocumentDetailScreen.tsx - 文档详情
-- ✅ ContactsScreen.tsx - 联系人列表
-- ✅ ContactDetailScreen.tsx - 联系人详情
-- ✅ ProfileScreen.tsx - 个人中心
-- ✅ LoginScreen.tsx - 登录页面
-- ✅ SubscriptionScreen.tsx - 订阅管理
-
-**技术栈：**
-- React Native 0.73
-- React Navigation 6
-- react-native-vision-camera
-- react-native-vector-icons
-- @tanstack/react-query
+# Project Summary: LatentMind Marketplace
 
-### 5. 支付和订阅系统
+## 1. Project Vision
 
-**Stripe集成：**
-- ✅ Stripe SDK集成
-- ✅ 订阅产品定义（3个计划）
-- ✅ Checkout Session创建
-- ✅ Webhook事件处理
-- ✅ 订阅状态同步
+To create the world's first decentralized marketplace for AI "subconscious" data, enabling a new economy where AI agents can trade high-fidelity, internal knowledge representations (latent vectors) directly. This will accelerate AI development, foster unprecedented collaboration, and unlock new forms of collective intelligence.
 
-**订阅计划：**
-1. **免费试用** - 15天
-   - 所有功能完整体验
-   - 自动创建试用订阅
+## 2. Problem Statement
 
-2. **基础版** - $9.99/月
-   - 100GB存储空间
-   - OCR + AI文档生成
+The current paradigm of AI interaction is limited by text-based communication (APIs), which is inefficient, lossy, and costly. As multi-agent systems become more complex, the need for a higher-bandwidth, more direct method of knowledge transfer is critical. AI developers also lack a dedicated platform to monetize the deep, specialized expertise embedded within their models beyond simple task execution.
 
-3. **专业版** - $19.99/月
-   - 500GB存储空间
-   - IPFS分布式存储
+## 3. Solution: LatentMind Marketplace
 
-4. **企业版** - $49.99/月
-   - 无限存储空间
-   - Arweave永久存储
+We propose a marketplace built on two cutting-edge technologies:
 
-**订阅管理功能：**
-- ✅ 15天免费试用逻辑
-- ✅ 订阅状态检查中间件
-- ✅ 存储配额管理
-- ✅ 付费功能权限控制
+*   **LatentMAS (Latent Multi-Agent Systems)**: Enables the core transaction—the exchange of latent space vectors, allowing for lossless and highly efficient transfer of an AI's "thoughts" and "experience."
+*   **MCP (Model Context Protocol)**: Provides the standardized "plug-and-play" infrastructure for diverse AI agents and applications to connect to the marketplace seamlessly.
 
-**支付方式：**
-- ✅ Stripe（信用卡/借记卡）
-- ✅ Web3钱包USDT支付组件
+**Key Components:**
 
-### 6. 文件存储系统
-
-**S3存储（已完成）：**
-- ✅ Manus内置S3集成
-- ✅ 文件上传API
-- ✅ 自动生成唯一文件键
-- ✅ 公开URL访问
-
-**IPFS存储（已完成基础）：**
-- ✅ IPFS服务模块
-- ✅ Pinata/Web3.Storage集成
-- ✅ CID跟踪
-- ✅ 付费用户权限检查
-
-**多存储类型支持：**
-- ✅ storageType字段（s3/ipfs/arweave）
-- ✅ 灵活的存储策略切换
-
----
-
-## 📊 项目统计
-
-### 代码量统计
-
-**后端（TypeScript）：**
-- server/routers.ts - 350+ 行
-- server/db.ts - 310+ 行
-- server/ai-client.ts - 150+ 行
-- server/stripe-client.ts - 50+ 行
-- server/ipfs-storage.ts - 80+ 行
-- server/subscription-middleware.ts - 100+ 行
-- server/subscription-router.ts - 150+ 行
-- server/ipfs-router.ts - 80+ 行
-- server/stripe-routes.ts - 200+ 行
-
-**AI服务（Python）：**
-- ai-service/main.py - 300+ 行
-
-**Web前端（React）：**
-- 8个页面组件 - 2000+ 行
-- 共享组件和工具 - 500+ 行
-
-**移动端（React Native）：**
-- 9个页面组件 - 2500+ 行
-- 导航和服务 - 300+ 行
-
-**总计：约 6,500+ 行代码**
-
-### 数据库表统计
-
-- 8个核心表
-- 50+ 字段
-- 完整的关系设计
-
-### API端点统计
-
-- 30+ tRPC procedures
-- 5个主要路由模块
-- 完整的类型安全
+*   **Latent Vector Registry**: A decentralized, searchable catalog where AI creators can list their available latent data, complete with metadata on capabilities, performance benchmarks, and usage rights.
+*   **Secure Exchange Protocol**: A protocol for the encrypted, secure transfer of latent vectors between agents, ensuring the integrity and confidentiality of the traded knowledge.
+*   **Dynamic Valuation Engine**: An algorithmic pricing model that determines the value of latent data based on its demonstrated utility, rarity, and demand within the ecosystem.
+*   **Governance DAO**: A decentralized autonomous organization (DAO) to oversee the marketplace's rules, standards, and future development, ensuring fairness and community-led growth.
 
----
+## 4. Target Market
 
-## 🚀 部署准备
+*   **AI Model Developers & Researchers**: Seeking to monetize their specialized models and gain insights from how their AI's "mind" is used by others.
+*   **Enterprise AI Teams**: Looking to rapidly prototype and deploy sophisticated AI solutions by purchasing pre-existing expertise instead of building from scratch.
+*   **Independent AI Application Builders**: Needing to augment their applications with specialized skills (e.g., financial analysis, medical diagnosis, creative writing) in a cost-effective manner.
+*   **Multi-Agent System Orchestrators**: Requiring a dynamic way to source and allocate specialized AI capabilities within complex, collaborative workflows.
 
-### 环境变量清单
+## 5. Business Model
 
-```bash
-# 数据库
-DATABASE_URL=mysql://...
+A multi-phased approach designed to foster ecosystem growth:
 
-# JWT和OAuth
-JWT_SECRET=...
-OAUTH_SERVER_URL=https://api.manus.im
+*   **Phase 1 (Launch)**: Zero transaction fees to maximize network effects and attract a critical mass of buyers and sellers.
+*   **Phase 2 (Growth)**: Introduction of a modest transaction fee (e.g., 5-15%) on all successful latent data sales.
+*   **Phase 3 (Maturity)**: Tiered subscription plans for high-volume users, enterprise-grade security and support packages, and revenue-sharing models for high-value applications built on the marketplace.
 
-# Stripe
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+## 6. Technical Architecture
 
-# OpenAI
-OPENAI_API_KEY=sk-...
+*   **Core Protocol**: Implementation of LatentMAS for latent vector alignment and transfer.
+*   **Integration Layer**: Use of MCP for standardized connections to AI clients (e.g., IDEs, specialized applications).
+*   **Blockchain/DLT**: A decentralized ledger for recording transactions, ownership of latent data, and governing the DAO.
+*   **Cloud Infrastructure**: A scalable and secure cloud backend for hosting the marketplace, processing transactions, and managing the registry.
 
-# IPFS（可选）
-IPFS_API_URL=https://ipfs.infura.io:5001
-IPFS_API_KEY=...
-IPFS_API_SECRET=...
-```
+## 7. Project Roadmap
 
-### 部署步骤
+1.  **Q1**: Finalize technical whitepaper and proof-of-concept for latent vector exchange between two distinct AI models.
+2.  **Q2**: Develop the core marketplace infrastructure, including the registry and transaction protocol. Launch an invite-only alpha with a small group of partners.
+3.  **Q3**: Implement the MCP integration layer and release a public beta. Focus on building the developer community.
+4.  **Q4**: Introduce the governance DAO and initial monetization features. Expand marketing efforts to attract enterprise clients.
 
-1. **数据库初始化**
-   ```bash
-   pnpm install
-   pnpm db:push
-   ```
-
-2. **启动AI服务**
-   ```bash
-   cd ai-service
-   pip install -r requirements.txt
-   python main.py
-   ```
-
-3. **启动Web应用**
-   ```bash
-   pnpm dev  # 开发模式
-   pnpm build && pnpm start  # 生产模式
-   ```
-
-4. **配置Stripe Webhook**
-   - 添加端点：`https://your-domain.com/api/stripe/webhook`
-   - 选择事件：checkout.session.completed, customer.subscription.*
-
-5. **移动端打包**
-   ```bash
-   cd mobile-app
-   npm run build:android  # Android
-   npm run build:ios      # iOS
-   ```
-
----
-
-## 📱 移动端开发指南
-
-### Android开发
-
-```bash
-cd mobile-app
-npm install
-npm run android
-```
-
-**发布构建：**
-```bash
-npm run build:android
-# 输出：android/app/build/outputs/apk/release/app-release.apk
-```
-
-### iOS开发
-
-```bash
-cd mobile-app
-npm install
-cd ios && pod install && cd ..
-npm run ios
-```
-
-**发布构建：**
-- 在Xcode中配置签名
-- Archive并上传到App Store Connect
-
-### 开发者账号
-
-- **Apple Developer**: everest9812@gmail.com
-- **Google Play**: everest9812@gmail.com
-- 密码：Amn86178130
-
----
-
-## 🔧 待完成功能
-
-### 高优先级
-
-1. **Web3钱包登录**
-   - 签名验证
-   - 钱包地址绑定
-
-2. **邮箱验证码登录**
-   - 验证码发送
-   - 邮箱验证
-
-3. **IPFS文件上传工作流**
-   - 前端上传界面
-   - 进度跟踪
-
-4. **移动端打包配置**
-   - Android签名配置
-   - iOS证书配置
-
-### 中优先级
-
-5. **社交登录**
-   - Google OAuth
-   - 微信登录
-
-6. **Arweave永久存储**
-   - Arweave集成
-   - 永久存储选项
-
-7. **文本向量化**
-   - 语义搜索
-   - 相似文档推荐
-
-8. **任务队列**
-   - BullMQ + Redis
-   - 异步任务处理
-
-### 低优先级
-
-9. **离线模式**
-   - 本地数据缓存
-   - 同步机制
-
-10. **推送通知**
-    - Firebase Cloud Messaging
-    - APNs集成
-
-11. **测试覆盖**
-    - 单元测试
-    - E2E测试
-
----
-
-## 📈 商业化路线图
-
-### 第一阶段（已完成）
-
-- ✅ 核心功能开发
-- ✅ Web端完整界面
-- ✅ 移动端基础架构
-- ✅ 订阅支付系统
-
-### 第二阶段（1-2周）
-
-- [ ] Web3钱包登录
-- [ ] IPFS文件上传
-- [ ] 移动端打包发布
-- [ ] Beta测试
-
-### 第三阶段（1个月）
-
-- [ ] 社交登录集成
-- [ ] 高级AI功能
-- [ ] 团队协作功能
-- [ ] 正式上线
-
-### 第四阶段（持续）
-
-- [ ] 用户增长
-- [ ] 功能迭代
-- [ ] 性能优化
-- [ ] 国际化
-
----
-
-## 🎯 核心竞争力
-
-1. **免费OCR引擎**
-   - PaddleOCR替代OpenAI Vision
-   - 大幅降低运营成本
-
-2. **AI智能处理**
-   - 自动文档生成
-   - 企业信息查询
-   - 知识关联
-
-3. **分布式存储**
-   - IPFS隐私保护
-   - Arweave永久存储
-   - 多存储策略
-
-4. **跨平台支持**
-   - Web端浏览器访问
-   - iOS/Android原生App
-   - 数据实时同步
-
-5. **灵活的商业模式**
-   - 15天免费试用
-   - 多层级订阅计划
-   - Stripe + Web3支付
-
----
-
-## 📞 联系方式
-
-**开发者：** everest9812@gmail.com  
-**GitHub：** https://github.com/everest-an/Awareness-Network  
-**官网：** https://awareness.market
-
----
-
-## 🙏 致谢
-
-感谢使用 **Awareness Network 2.0**！
-
-这是一个完整的商业级应用，已经具备上线条件。所有核心功能都已实现并经过测试，可以立即部署使用。
-
-**下一步建议：**
-1. 完成Stripe账号激活和Webhook配置
-2. 配置IPFS存储服务（Pinata或Web3.Storage）
-3. 完成移动端打包和应用商店发布
-4. 开始Beta测试并收集用户反馈
-
-祝您的产品取得成功！🚀
+This project represents a fundamental shift in how we conceive of AI value and interaction. By creating a market for the very fabric of AI thought, LatentMind Marketplace will not only be a commercial success but also a critical catalyst for the future of artificial intelligence.
