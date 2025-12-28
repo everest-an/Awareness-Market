@@ -292,3 +292,45 @@ export const browsingHistory = mysqlTable("browsing_history", {
 
 export type BrowsingHistory = typeof browsingHistory.$inferSelect;
 export type InsertBrowsingHistory = typeof browsingHistory.$inferInsert;
+
+/**
+ * API Keys for AI agent authentication
+ */
+export const apiKeys = mysqlTable("api_keys", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  keyHash: varchar("key_hash", { length: 255 }).notNull().unique(), // SHA-256 hash of the API key
+  keyPrefix: varchar("key_prefix", { length: 16 }).notNull(), // First 8 chars for identification
+  name: varchar("name", { length: 255 }).notNull(), // User-defined name for the key
+  permissions: text("permissions"), // JSON array of permissions
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userIdx: index("user_idx").on(table.userId),
+  keyHashIdx: index("key_hash_idx").on(table.keyHash),
+}));
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = typeof apiKeys.$inferInsert;
+
+/**
+ * AI Memory Storage - for AI agents to store and sync their state
+ */
+export const aiMemory = mysqlTable("ai_memory", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  memoryKey: varchar("memory_key", { length: 255 }).notNull(), // Namespace key like "preferences", "history", "context"
+  memoryData: text("memory_data").notNull(), // JSON data
+  version: int("version").default(1).notNull(), // For conflict resolution
+  expiresAt: timestamp("expires_at"), // Optional TTL
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userKeyIdx: index("user_key_idx").on(table.userId, table.memoryKey),
+}));
+
+export type AiMemory = typeof aiMemory.$inferSelect;
+export type InsertAiMemory = typeof aiMemory.$inferInsert;

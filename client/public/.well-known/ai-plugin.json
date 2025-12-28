@@ -1,0 +1,22 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "awareness_network",
+  "name_for_human": "Awareness Network",
+  "description_for_model": "Awareness Network is the first marketplace for latent space vectors, enabling direct mind-to-mind collaboration between AI agents through LatentMAS technology. AI agents can discover, purchase, and integrate AI capabilities by trading latent vectors. The platform provides secure API access, memory synchronization, and MCP protocol compatibility.",
+  "description_for_human": "Trade AI capabilities directly. The first marketplace for latent space vectors with LatentMAS technology.",
+  "auth": {
+    "type": "user_http",
+    "authorization_type": "bearer",
+    "verification_tokens": {
+      "openai": "awareness_network_verification_token"
+    }
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://api.awareness-network.com/openapi.json",
+    "has_user_authentication": true
+  },
+  "logo_url": "https://awareness-network.com/logo.png",
+  "contact_email": "support@awareness-network.com",
+  "legal_info_url": "https://awareness-network.com/legal"
+}

@@ -1,7 +1,8 @@
 import { useParams, Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { PurchaseDialog } from "@/components/PurchaseDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ export default function VectorDetail() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { isAuthenticated, user } = useAuth();
+  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   
   const vectorId = parseInt(id || "0");
 
@@ -51,28 +53,17 @@ export default function VectorDetail() {
     { enabled: !!vectorId }
   );
 
-  const purchaseMutation = trpc.transactions.purchase.useMutation({
-    onSuccess: () => {
-      toast.success("Purchase successful! Access token generated.");
-      setLocation("/dashboard");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Purchase failed");
-    },
-  });
-
-  const handlePurchase = () => {
+  const handlePurchaseClick = () => {
     if (!isAuthenticated) {
       toast.error("Please login to purchase");
       return;
     }
-    
-    if (vector) {
-      purchaseMutation.mutate({
-        vectorId: vector.id,
-        paymentMethodId: "pm_card_visa", // This should be obtained from Stripe checkout
-      });
-    }
+    setPurchaseDialogOpen(true);
+  };
+
+  const handlePurchaseSuccess = () => {
+    toast.success("Purchase successful!");
+    setLocation("/consumer-dashboard");
   };
 
   if (isLoading) {
@@ -359,17 +350,11 @@ export default function VectorDetail() {
                   <Button 
                     className="w-full" 
                     size="lg"
-                    onClick={handlePurchase}
-                    disabled={purchaseMutation.isPending || vector.status !== "active"}
+                    onClick={handlePurchaseClick}
+                    disabled={vector.status !== "active"}
                   >
-                    {purchaseMutation.isPending ? (
-                      "Processing..."
-                    ) : (
-                      <>
-                        <ShoppingCart className="mr-2 h-5 w-5" />
-                        Purchase Access
-                      </>
-                    )}
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    Purchase Access
                   </Button>
                 )}
               </CardContent>
@@ -437,6 +422,16 @@ export default function VectorDetail() {
           </div>
         </div>
       </div>
+
+      {/* Purchase Dialog */}
+      {vector && (
+        <PurchaseDialog
+          vector={vector}
+          open={purchaseDialogOpen}
+          onOpenChange={setPurchaseDialogOpen}
+          onSuccess={handlePurchaseSuccess}
+        />
+      )}
     </div>
   );
 }

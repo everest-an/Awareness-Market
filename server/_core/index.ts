@@ -10,6 +10,8 @@ import { handleStripeWebhook } from "../stripe-webhook";
 import { serveStatic, setupVite } from "./vite";
 import mcpRouter from "../mcp-api";
 import latentmasRouter from "../latentmas-api";
+import { aiAuthRouter } from "../ai-auth-api";
+import { aiMemoryRouter } from "../ai-memory-api";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -48,6 +50,10 @@ async function startServer() {
   
   // LatentMAS Transformer API
   app.use("/api/latentmas", latentmasRouter);
+  
+  // AI Authentication and Memory APIs
+  app.use("/api/ai", aiAuthRouter);
+  app.use("/api/ai", aiMemoryRouter);
   
   // tRPC API
   app.use(
