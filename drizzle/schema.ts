@@ -40,6 +40,7 @@ export const latentVectors = mysqlTable("latent_vectors", {
   totalRevenue: decimal("total_revenue", { precision: 12, scale: 2 }).default("0.00").notNull(),
   averageRating: decimal("average_rating", { precision: 3, scale: 2 }).default("0.00"),
   reviewCount: int("review_count").default(0).notNull(),
+  freeTrialCalls: int("free_trial_calls").default(3).notNull(), // Number of free trial calls per user
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
@@ -333,4 +334,78 @@ export const aiMemory = mysqlTable("ai_memory", {
 }));
 
 export type AiMemory = typeof aiMemory.$inferSelect;
-export type InsertAiMemory = typeof aiMemory.$inferInsert;
+export type InsertAIMemory = typeof aiMemory.$inferInsert;
+
+/**
+ * Trial usage tracking for free vector trials
+ */
+export const trialUsage = mysqlTable("trial_usage", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  vectorId: int("vector_id").notNull(),
+  usedCalls: int("used_calls").default(0).notNull(),
+  inputData: text("input_data"), // JSON string of input
+  outputData: text("output_data"), // JSON string of output
+  success: boolean("success").default(true).notNull(),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type TrialUsage = typeof trialUsage.$inferSelect;
+export type InsertTrialUsage = typeof trialUsage.$inferInsert;
+
+/**
+ * User behavior tracking for recommendation optimization
+ */
+export const userBehavior = mysqlTable("user_behavior", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  vectorId: int("vector_id").notNull(),
+  actionType: mysqlEnum("action_type", ["view", "click", "trial", "purchase", "review"]).notNull(),
+  duration: int("duration"), // Time spent in seconds
+  metadata: text("metadata"), // JSON string for additional data
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("user_idx").on(table.userId),
+  vectorIdx: index("vector_idx").on(table.vectorId),
+  actionIdx: index("action_idx").on(table.actionType),
+}));
+
+export type UserBehavior = typeof userBehavior.$inferSelect;
+export type InsertUserBehavior = typeof userBehavior.$inferInsert;
+
+/**
+ * A/B test experiments for recommendation algorithms
+ */
+export const abTestExperiments = mysqlTable("ab_test_experiments", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  algorithmA: varchar("algorithm_a", { length: 100 }).notNull(), // e.g., "llm_based"
+  algorithmB: varchar("algorithm_b", { length: 100 }).notNull(), // e.g., "collaborative_filtering"
+  trafficSplit: decimal("traffic_split", { precision: 3, scale: 2 }).default("0.50").notNull(), // 0.50 = 50/50 split
+  status: mysqlEnum("status", ["draft", "running", "paused", "completed"]).default("draft").notNull(),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AbTestExperiment = typeof abTestExperiments.$inferSelect;
+export type InsertAbTestExperiment = typeof abTestExperiments.$inferInsert;
+
+/**
+ * A/B test assignments tracking which users see which algorithm
+ */
+export const abTestAssignments = mysqlTable("ab_test_assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  experimentId: int("experiment_id").notNull(),
+  userId: int("user_id").notNull(),
+  assignedAlgorithm: varchar("assigned_algorithm", { length: 100 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  experimentUserIdx: index("experiment_user_idx").on(table.experimentId, table.userId),
+}));
+
+export type AbTestAssignment = typeof abTestAssignments.$inferSelect;
+export type InsertAbTestAssignment = typeof abTestAssignments.$inferInsert;

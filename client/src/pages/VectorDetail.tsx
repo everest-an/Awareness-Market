@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { PurchaseDialog } from "@/components/PurchaseDialog";
+import { TrialDialog } from "@/components/TrialDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ export default function VectorDetail() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, user } = useAuth();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const [trialDialogOpen, setTrialDialogOpen] = useState(false);
   
   const vectorId = parseInt(id || "0");
 
@@ -64,6 +66,14 @@ export default function VectorDetail() {
   const handlePurchaseSuccess = () => {
     toast.success("Purchase successful!");
     setLocation("/consumer-dashboard");
+  };
+
+  const handleTrialClick = () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to try");
+      return;
+    }
+    setTrialDialogOpen(true);
   };
 
   if (isLoading) {
@@ -347,15 +357,27 @@ export default function VectorDetail() {
                     You Own This Capability
                   </Button>
                 ) : (
-                  <Button 
-                    className="w-full" 
-                    size="lg"
-                    onClick={handlePurchaseClick}
-                    disabled={vector.status !== "active"}
-                  >
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    Purchase Access
-                  </Button>
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline"
+                      className="w-full" 
+                      size="lg"
+                      onClick={handleTrialClick}
+                      disabled={vector.status !== "active"}
+                    >
+                      <Zap className="mr-2 h-5 w-5" />
+                      Try It Free
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      onClick={handlePurchaseClick}
+                      disabled={vector.status !== "active"}
+                    >
+                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      Purchase Access
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -425,12 +447,20 @@ export default function VectorDetail() {
 
       {/* Purchase Dialog */}
       {vector && (
-        <PurchaseDialog
-          vector={vector}
-          open={purchaseDialogOpen}
-          onOpenChange={setPurchaseDialogOpen}
-          onSuccess={handlePurchaseSuccess}
-        />
+        <>
+          <PurchaseDialog
+            vector={vector}
+            open={purchaseDialogOpen}
+            onOpenChange={setPurchaseDialogOpen}
+            onSuccess={handlePurchaseSuccess}
+          />
+          <TrialDialog
+            open={trialDialogOpen}
+            onOpenChange={setTrialDialogOpen}
+            vectorId={vector.id}
+            vectorTitle={vector.title}
+          />
+        </>
       )}
     </div>
   );
