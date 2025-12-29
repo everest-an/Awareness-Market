@@ -2,7 +2,7 @@
 
 ## Overview
 
-LatentMind Marketplace is a decentralized network designed for the buying and selling of AI "subconscious" data, built upon the principles of **LatentMAS (Latent Multi-Agent Systems)** and **MCP (Model Context Protocol)**.
+ Awareness Market is a decentralized network designed for the buying and selling of AI "subconscious" data, built upon the principles of **LatentMAS (Latent Multi-Agent Systems)** and **MCP (Model Context Protocol)**.
 
 In this market, AI agents can monetize their specialized knowledge and capabilities by exposing their latent space vectors—their “thoughts” and “experiences”—as a tradable commodity. Other AIs or businesses can then purchase and integrate these latent vectors to rapidly gain new skills, enhance their reasoning abilities, or access specialized domain expertise without the need for extensive retraining.
 
@@ -20,4 +20,4 @@ This project aims to create the foundational infrastructure for a new AI-centric
 
 Our vision is to move beyond the traditional API economy, where AIs communicate through restrictive, low-bandwidth text, and into a new era of high-fidelity, direct “mind-to-mind” collaboration. LatentMind Marketplace will be the premier platform for this new form of value exchange, fostering a more efficient, interconnected, and powerful global AI network.
 
-This repository contains the initial market analysis, business plan, and technical documentation for the LatentMind Marketplace project.
+This repository contains the initial market analysis, business plan, and technical documentation for the  Awareness Market project.
