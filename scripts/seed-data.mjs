@@ -24,7 +24,7 @@ async function main() {
     // Create sample users
     console.log("Creating sample users...");
     const users = [];
-    
+
     // AI Agent users
     for (let i = 1; i <= 5; i++) {
       const result = await connection.execute(
@@ -40,23 +40,24 @@ async function main() {
       );
       users.push({ id: Number(result[0].insertId), role: i <= 2 ? "creator" : "consumer" });
     }
-    
+
     // Human users
     for (let i = 1; i <= 3; i++) {
+      const email = i === 1 ? "everest9812@gmail.com" : `user${i}@example.com`;
       const result = await connection.execute(
         `INSERT INTO users (openId, name, email, loginMethod, role, createdAt, updatedAt, lastSignedIn)
          VALUES (?, ?, ?, ?, ?, NOW(), NOW(), NOW())`,
         [
           `human_${crypto.randomBytes(8).toString("hex")}`,
-          `Human User ${i}`,
-          `user${i}@example.com`,
+          `EverestAn`, // Use the user's name for the first user
+          email,
           "manus",
           i === 1 ? "creator" : "consumer"
         ]
       );
       users.push({ id: Number(result[0].insertId), role: i === 1 ? "creator" : "consumer" });
     }
-    
+
     console.log(`✓ Created ${users.length} users\n`);
 
     // Create sample latent vectors
@@ -131,7 +132,7 @@ async function main() {
     ];
 
     const creators = users.filter(u => u.role === "creator");
-    
+
     for (const vectorInfo of vectorData) {
       const creator = creators[Math.floor(Math.random() * creators.length)];
       const result = await connection.execute(
@@ -156,19 +157,19 @@ async function main() {
       );
       vectors.push({ id: Number(result[0].insertId), creatorId: creator.id, price: vectorInfo.price });
     }
-    
+
     console.log(`✓ Created ${vectors.length} latent vectors\n`);
 
     // Create sample transactions
     console.log("Creating sample transactions...");
     const consumers = users.filter(u => u.role === "consumer");
     const transactions = [];
-    
+
     for (let i = 0; i < 15; i++) {
       const vector = vectors[Math.floor(Math.random() * vectors.length)];
       const consumer = consumers[Math.floor(Math.random() * consumers.length)];
       const transactionFee = vector.price * 0.20; // 20% platform fee
-      
+
       const result = await connection.execute(
         `INSERT INTO transactions (
           buyer_id, vector_id, amount, platform_fee, creator_earnings, 
@@ -185,7 +186,7 @@ async function main() {
         ]
       );
       transactions.push({ id: Number(result[0].insertId), vectorId: vector.id, buyerId: consumer.id });
-      
+
       // Grant access permission
       await connection.execute(
         `INSERT INTO access_permissions (
@@ -194,7 +195,7 @@ async function main() {
         [consumer.id, vector.id, Number(result[0].insertId), `token_${crypto.randomBytes(16).toString("hex")}`]
       );
     }
-    
+
     console.log(`✓ Created ${transactions.length} transactions\n`);
 
     // Create sample reviews
@@ -209,12 +210,12 @@ async function main() {
       "Reliable and efficient. Our team is very satisfied.",
       "Perfect for our needs. Integration was seamless."
     ];
-    
+
     for (const transaction of transactions) {
       if (Math.random() > 0.3) { // 70% chance of review
         const rating = Math.floor(Math.random() * 2) + 4; // 4-5 stars
         const reviewText = reviewTexts[Math.floor(Math.random() * reviewTexts.length)];
-        
+
         await connection.execute(
           `INSERT INTO reviews (
             user_id, vector_id, rating, comment, createdAt, updatedAt
@@ -223,7 +224,7 @@ async function main() {
         );
       }
     }
-    
+
     console.log(`✓ Created sample reviews\n`);
 
     // Update vector average ratings
@@ -242,7 +243,7 @@ async function main() {
       )
       WHERE id IN (SELECT DISTINCT vector_id FROM reviews)
     `);
-    
+
     console.log(`✓ Updated average ratings\n`);
 
     // Create sample API call logs
@@ -250,7 +251,7 @@ async function main() {
     for (let i = 0; i < 50; i++) {
       const transaction = transactions[Math.floor(Math.random() * transactions.length)];
       const responseTime = Math.floor(Math.random() * 300) + 50;
-      
+
       await connection.execute(
         `INSERT INTO api_call_logs (
           user_id, vector_id, permission_id, response_time, success, createdAt
@@ -265,7 +266,7 @@ async function main() {
         ]
       );
     }
-    
+
     console.log(`✓ Created 50 API call logs\n`);
 
     console.log("✅ Data seeding completed successfully!");
@@ -275,7 +276,7 @@ async function main() {
     console.log(`   - ${transactions.length} transactions`);
     console.log(`   - ~${Math.floor(transactions.length * 0.7)} reviews`);
     console.log(`   - 50 API call logs`);
-    
+
   } catch (error) {
     console.error("❌ Error seeding data:", error);
     throw error;

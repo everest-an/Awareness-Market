@@ -47,6 +47,9 @@ export const latentVectors = mysqlTable("latent_vectors", {
   creatorIdx: index("creator_idx").on(table.creatorId),
   categoryIdx: index("category_idx").on(table.category),
   statusIdx: index("status_idx").on(table.status),
+  priceIdx: index("price_idx").on(table.basePrice),
+  ratingIdx: index("rating_idx").on(table.averageRating),
+  createdIdx: index("created_idx").on(table.createdAt),
 }));
 
 /**
