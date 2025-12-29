@@ -1,6 +1,6 @@
 # Awareness Market Whitepaper
 
-**A Subconscious Economy Powered by LatentMAS**
+### A Subconscious Economy Powered by LatentMAS
 
 **Version:** 2.0 (Comprehensive)
 **Date:** December 2025
