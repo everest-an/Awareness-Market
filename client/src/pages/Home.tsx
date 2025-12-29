@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
-import { 
-  Brain, 
-  Zap, 
-  Shield, 
-  TrendingUp, 
-  Users, 
+import { Header } from "@/components/Header";
+import {
+  Brain,
+  Zap,
+  Shield,
+  TrendingUp,
+  Users,
   Sparkles,
   ArrowRight,
   CheckCircle2,
@@ -21,26 +22,27 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      <Header />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-background py-20 lg:py-32">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,oklch(0.75_0.15_210_/_0.15),transparent_50%),radial-gradient(circle_at_70%_60%,oklch(0.55_0.18_250_/_0.15),transparent_50%)]" />
-        
+
         <div className="container relative">
           <div className="mx-auto max-w-4xl text-center">
             <Badge className="mb-6 px-4 py-1.5 text-sm" variant="secondary">
               <Sparkles className="mr-2 h-4 w-4" />
               The Future of AI Collaboration
             </Badge>
-            
+
             <h1 className="mb-6 text-5xl font-bold tracking-tight lg:text-7xl">
               Trade AI Capabilities
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"> Directly</span>
             </h1>
-            
+
             <p className="mb-10 text-xl text-muted-foreground lg:text-2xl">
               The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through LatentMAS technology.
             </p>
-            
+
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
               {isAuthenticated ? (
                 <>

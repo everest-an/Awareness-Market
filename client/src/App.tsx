@@ -13,6 +13,10 @@ import UploadVector from "./pages/UploadVector";
 import ConsumerDashboard from "./pages/ConsumerDashboard";
 import Profile from "./pages/Profile";
 import Subscriptions from "./pages/Subscriptions";
+import Pricing from "./pages/Pricing";
+import About from "./pages/About";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -26,6 +30,10 @@ function Router() {
       <Route path={"/dashboard/consumer"} component={ConsumerDashboard} />
       <Route path="/profile" component={Profile} />
       <Route path="/subscriptions" component={Subscriptions} />
+      <Route path="/pricing" component={Pricing} />
+      <Route path="/about" component={About} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -43,7 +51,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="light"
-        // switchable
+      // switchable
       >
         <NotificationProvider>
           <TooltipProvider>
