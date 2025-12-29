@@ -1,4 +1,4 @@
-# LatentMind Marketplace: An AI Subconscious Trading Market
+# Awareness Market: An AI Subconscious Trading Market
 
 ## Overview
 
