@@ -76,7 +76,7 @@ export async function handleStripeWebhook(req: Request, res: Response) {
   }
 }
 
-async function handleCheckoutCompleted(session: any) {
+export async function handleCheckoutCompleted(session: any) {
   const userId = parseInt(session.metadata?.user_id || session.client_reference_id);
   const purchaseType = session.metadata?.purchase_type;
 
@@ -124,7 +124,7 @@ async function handleCheckoutCompleted(session: any) {
   }
 }
 
-async function handleSubscriptionUpdated(subscription: any) {
+export async function handleSubscriptionUpdated(subscription: any) {
   const customerId = subscription.customer;
   const subscriptionId = subscription.id;
   const status = subscription.status;
@@ -202,7 +202,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   }
 }
 
-async function handleSubscriptionDeleted(subscription: any) {
+export async function handleSubscriptionDeleted(subscription: any) {
   const subscriptionId = subscription.id;
 
   // Find subscription in database
@@ -247,7 +247,7 @@ async function handleInvoicePaid(invoice: any) {
   // Additional invoice handling if needed
 }
 
-async function handleInvoicePaymentFailed(invoice: any) {
+export async function handleInvoicePaymentFailed(invoice: any) {
   const customerId = invoice.customer;
   const customer = await stripe.customers.retrieve(customerId);
   if (!customer || customer.deleted) return;
