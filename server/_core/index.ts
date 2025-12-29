@@ -37,33 +37,25 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-async function startServer() {
+// Export app creation for Vercel or other serverless envs
+export async function createExpressApp() {
   const app = express();
   const server = createServer(app);
-  
+
   // Stripe webhook MUST be registered BEFORE express.json() middleware
-  // to preserve raw body for signature verification
   app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
-  
-  // Configure body parser with larger size limit for file uploads
+
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  // OAuth callback under /api/oauth/callback
+
   registerOAuthRoutes(app);
-  // MCP Protocol API
   app.use("/api/mcp", mcpRouter);
-  
-  // LatentMAS Transformer API
   app.use("/api/latentmas", latentmasRouter);
-  
-  // AI Authentication and Memory APIs
   app.use("/api/ai", aiAuthRouter);
   app.use("/api/ai", aiMemoryRouter);
-  
-  // Trial API
   app.use("/api/trial", trialRouter);
-  
-  // Swagger UI for API Documentation
+
+  // Swagger UI
   try {
     const openApiPath = path.join(process.cwd(), "client/public/openapi.json");
     if (fs.existsSync(openApiPath)) {
@@ -72,13 +64,11 @@ async function startServer() {
         customSiteTitle: "Awareness Network API Documentation",
         customCss: ".swagger-ui .topbar { display: none }",
       }));
-      console.log("[API Docs] Swagger UI available at /api-docs");
     }
   } catch (error) {
     console.warn("[API Docs] Failed to load OpenAPI spec:", error);
   }
-  
-  // tRPC API
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -86,7 +76,23 @@ async function startServer() {
       createContext,
     })
   );
-  // development mode uses Vite, production mode uses static files
+
+  // Socket.IO
+  const io = new SocketIOServer(server, {
+    cors: { origin: "*", methods: ["GET", "POST"] },
+  });
+  io.on("connection", (socket) => {
+    socket.on("join", (userId: string) => socket.join(`user_${userId}`));
+  });
+  (app as any).io = io;
+
+  return { app, server };
+}
+
+async function startServer() {
+  const { app, server } = await createExpressApp();
+
+  // Only setup Vite/Static serving in standalone mode
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
@@ -99,36 +105,16 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
-  
-  // Socket.IO for real-time communication
-  const io = new SocketIOServer(server, {
-    cors: {
-      origin: "*",
-      methods: ["GET", "POST"],
-    },
-  });
-  
-  // Socket.IO connection handler
-  io.on("connection", (socket) => {
-    console.log(`[Socket.IO] Client connected: ${socket.id}`);
-    
-    // Join user-specific room for targeted notifications
-    socket.on("join", (userId: string) => {
-      socket.join(`user_${userId}`);
-      console.log(`[Socket.IO] User ${userId} joined room`);
-    });
-    
-    socket.on("disconnect", () => {
-      console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
-    });
-  });
-  
-  // Attach io to app for use in other modules
-  (app as any).io = io;
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
 }
 
-startServer().catch(console.error);
+// Only start server if run directly (not imported as module)
+// In ES modules we check import.meta.url
+// But for simplicty we just call it if we are in the main execution context 
+// (Checking if this file is the entry point in ESM is tricky without specific flags)
+if (process.argv[1] === import.meta.filename || process.argv[1].endsWith('index.ts')) {
+  startServer().catch(console.error);
+}
