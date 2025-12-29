@@ -109,9 +109,9 @@
 - [x] 实现API密钥认证系统
 - [x] 创建AI记忆同步协议和API
 - [x] 实现AI购买历史和偏好检索API
-- [ ] 优化MCP接口文档和示例
-- [ ] 添加WebSocket实时通信支持
-- [ ] 创建AI可读的API文档（OpenAPI/Swagger）
+- [x] 优化MCP接口文档和示例
+- [x] 添加WebSocket实时通信支持
+- [x] 创建AI可读的API文档（OpenAPI/Swagger）
 - [x] 添加robots.txt和sitemap.xml
 - [x] 实现结构化数据（JSON-LD）
 - [x] 添加元标签和Open Graph优化
