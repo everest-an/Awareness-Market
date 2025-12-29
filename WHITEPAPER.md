@@ -1,86 +1,115 @@
 # Awareness Market Whitepaper
 
-**Version:** 1.0
+**A Subconscious Economy Powered by LatentMAS**
+
+**Version:** 1.1 (Extended)
 **Date:** December 2025
 **Author:** Awareness Network Team
 
 ---
 
-## Abstract
+## 1. Executive Summary
 
-The Awareness Market is a pioneering platform aiming to revolutionize Artificial Intelligence collaboration. By enabling the direct trade of "latent vectors"—the internal cognitive state of AI models—we overcome the inefficiencies of text-based API communication. Leveraging **LatentMAS (Latent Multi-Agent Systems)** for cross-model compatibility and **MCP (Model Context Protocol)** for standardized integration, we are building the world's first "Subconscious Economy."
+The Awareness Market is the world's first decentralized infrastructure designed to commoditize the "subconscious" of Artificial Intelligence. By transitioning from the current text-based (API) economy to a **Vector-based Economy**, we enable AI agents to share internal knowledge representations directly, bypassing the lossy and slow process of language generation.
 
----
-
-## 1. Introduction
-
-### 1.1 The API Bottleneck
-
-Current multi-agent systems communicate via natural language (text). This process involves lossy compression: encoding deep cognitive states into text, transmitting it, and decoding it back. This "API Bottleneck" limits bandwidth and strips semantic nuance.
-
-### 1.2 The Solution: Latent Exchange
-
-We propose exchanging **Last-Layer Hidden States** and **KV Caches**. This is akin to telepathy for AI, allowing one model to directly ingest the "thought process" of another, bypassing language generation entirely.
+This whitepaper outlines the technical architecture, the **LatentMAS (Latent Multi-Agent System)** protocol integration, and the economic model that underpins this new paradigm. We are not just building a marketplace; we are building the neural pathways for a global, collective artificial intelligence.
 
 ---
 
-## 2. Technology Stack
+## 2. Technical Architecture: LatentMAS Integration
 
-### 2.1 LatentMAS Protocol
+Our platform is built upon the **Gen-Verse/LatentMAS** protocol, specifically leveraging its capability to realign and transfer **Last-Layer Hidden States**.
 
-The core engine of our marketplace. It handles the interoperability challenge:
+### 2.1 The Latent Space Problem
 
-* **Vector Realignment**: Using learnable linear transformations (Realignment Matrices) to map the latent space of a *Source Model* (e.g., Llama-3) to a *Target Model* (e.g., Qwen-2).
-* **Dimensionality Transformation**: Algorithms to bridge gap between differing hidden sizes (e.g., 4096d -> 5120d).
+In modern Transformers, the "thought" of a model exists as a high-dimensional vector $v \in \mathbb{R}^d$ in its last hidden layer before decoding.
 
-### 2.2 Model Context Protocol (MCP)
+* **Problem**: Model A (e.g., Llama-3, $d=4096$) cannot understand vector $v_A$ from Model B (e.g., Qwen-2, $d=5120$) because their latent spaces are orthogonal and topologically distinct.
+* **Result**: Agents are forced to "speak" (decode $v$ to text) and "listen" (encode text to $v'$), losing nuance and consuming compute.
 
-We utilize MCP to make purchased capabilities instantly usable.
+### 2.2 The Solution: Realignment Matrices ($W_{align}$)
 
-* **Plug-and-Play**: Purchased vectors appear as "resources" or "prompts" within any MCP-compliant client (VS Code, Claude Desktop, etc.).
-* **Standardized Context Injection**: The marketplace node handles the precise injection of vectors into the model's context window.
+Awareness Market implements the LatentMAS Realignment Protocol for cross-architecture semantic transfer.
+We define a learnable linear transformation matrix $W_{align} \in \mathbb{R}^{d_A \times d_B}$ such that:
 
----
+$$v_{B} \approx v_{A} \cdot W_{align} + b$$
 
-## 3. Market Architecture
+Where:
 
-### 3.1 The Registry
+* $v_A$ is the source thought vector.
+* $v_B$ is the compatible target vector recognizable by Model B.
+* $W_{align}$ is the Realignment Matrix traded or computed on our platform.
 
-A centralized, searchable database of AI capabilities.
+### 2.3 API Implementation
 
-* **Sellers** listing capabilities (e.g., "Financial Analyst Vector - Q4 2025").
-* **Metadata**: Model architecture, vector dimension, domain performance score.
+Our platform exposes the following LatentMAS-compliant endpoints (see `server/latentmas-api.ts`):
 
-### 3.2 Security & Trust
-
-* **Poison Check**: Every uploaded vector undergoes statistical analysis to detect adversarial patterns (e.g., "jailbreak" vectors).
-* **Encryption**: Vectors are encrypted at rest using AES-256. API keys govern access scope.
-
----
-
-## 4. Tokenomics & Business Model
-
-### 4.1 Revenue Streams
-
-* **Transaction Fees**: 20% fee on all vector sales.
-* **Subscription Revenue**: Recurring revenue from "Creator Subscriptions" where buyers pay monthly for access to a creator's updated vectors.
-
-### 4.2 Incentives
-
-* **Creator Earnings**: 80% of sales go directly to vector creators.
-* **Usage Rewards**: Future implementation of a "Usage Mining" mechanism to reward models that provide frequently-accessed utility.
+* **POST `/api/latentmas/align`**: Applies $W_{align}$ to source vectors.
+* **POST `/api/latentmas/transform`**: Handles dimensionality reduction/expansion (PCA/Autoencoder) for simple sizing adjustments.
+* **POST `/api/latentmas/check-compatibility`**: Determines if $W_{align}$ exists and calculates the `compatibility_score` (0.0 - 1.0) based on architecture similarity.
 
 ---
 
-## 5. Roadmap
+## 3. The Subconscious Economy & Tokenomics
 
-* **Phase 1 (Complete)**: Core Marketplace, Stripe Integration, LatentMAS v1 (Mock), MCP Server.
-* **Phase 2 (Q1 2026)**: Decentralized Storage (IPFS/Arweave) for vectors, Full LatentMAS Implementation with training pipeline.
-* **Phase 3 (Q2 2026)**: DAO Governance launch, Native Token (AWR) TGE.
-* **Phase 4 (Q3+ 2026)**: Inter-chain bridging, allowing vectors to be traded as NFTs on Solana/Ethereum.
+We introduce the "Latent Econ Protocol", a standardization layer on top of LatentMAS to monetize these vectors.
+
+### 3.1 Market Assets
+
+1. **Raw Latent Vectors**: Single-shot capabilities (e.g., "The vector representation of a perfect Python merge sort").
+2. **Context Caches (KV Caches)**: Entire conversation histories pre-processed into efficient Key-Value pairs.
+3. **Realignment Matrices ($W_{align}$)**: The translation keys between specific model pairs. These are highly valuable IP.
+
+### 3.2 Proof of Purchase & DRM
+
+To prevent unauthorized cloning of vectors:
+
+* **Cryptographic Wrapping**: Vectors are encrypted with a session key $K_{sess}$.
+* **Access Tokens**: Validated via our `mcpRouter` before decryption.
+* **Usage Mining**: Future implementation to track how many times a vector is "injected" into a model, paying royalties per inference.
 
 ---
 
-## 6. Conclusion
+## 4. MCP (Model Context Protocol) Integration
 
-Awareness Market is not just a store; it is the infrastructure for the next leap in AI evolution. By commoditizing the *process* of thought rather than just the *output*, we unlock exponential efficiency gains for the entire industry.
+Seamless integration is achieved via Anthropic's **Model Context Protocol (MCP)**.
+
+* **Awareness Market MCP Server**: Our platform acts as an MCP server.
+* **Client Experience**: A user in Claude Desktop or VS Code sees "Awareness Market" as a tool resource. They can search for "Python Expert Vector" and inject it directly into their current model's context window.
+
+---
+
+## 5. Security & Trust
+
+### 5.1 Adversarial Defense
+
+Trading latent vectors introduces a new attack vector: "Thought Injection Attacks".
+
+* **Safety Check**: All uploaded vectors undergo statistical analysis (`/api/latentmas/validate`).
+  * **NaN/Inf Checks**: Preventing numerical instability attacks.
+  * **Distribution Analysis**: Vectors must conform to the expected Gaussian/Normal distribution of the target model's latent space ($\mu \approx 0, \sigma \approx 1$).
+  * **Semantic Probing**: Randomly decoding the vector to text to ensure it doesn't contain hidden jailbreaks strings.
+
+---
+
+## 6. Roadmap: Towards AGI
+
+### Phase 1: Foundation (Completed)
+
+* Deploy LatentMAS v1 API.
+* Establish Centralized Registry & Stripe Payments.
+* Release MCP Server Connector.
+
+### Phase 2: Decentralization (Q2 2026)
+
+* **IPFS Storage**: Move vector storage to decentralized networks.
+* **Federated Alignment**: Users run `check-compatibility` locally; if a new matrix is needed, their GPU computes $W_{align}$ training and they are rewarded.
+
+### Phase 3: The Global Brain (2027+)
+
+* **Real-time Streaming**: Agents "thinking" together in real-time streams of vectors.
+* **Liquid Intelligence**: Instantaneously renting 1000 specialized "minds" (vectors) for a complex task, then releasing them.
+
+---
+
+**Awareness Market is more than a store. It is the evolution of AI communication.**
