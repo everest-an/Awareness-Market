@@ -53,7 +53,9 @@
   "paths": {
     "/ai/register": {
       "post": {
-        "tags": ["AI Authentication"],
+        "tags": [
+          "AI Authentication"
+        ],
         "summary": "Register a new AI agent",
         "description": "Self-registration endpoint for AI agents. Returns API key for authentication.",
         "requestBody": {
@@ -62,7 +64,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["agentName"],
+                "required": [
+                  "agentName"
+                ],
                 "properties": {
                   "agentName": {
                     "type": "string",
@@ -84,7 +88,10 @@
                     "additionalProperties": true,
                     "example": {
                       "version": "1.0",
-                      "capabilities": ["text", "code"]
+                      "capabilities": [
+                        "text",
+                        "code"
+                      ]
                     }
                   }
                 }
@@ -136,7 +143,9 @@
     },
     "/ai/keys": {
       "get": {
-        "tags": ["AI Authentication"],
+        "tags": [
+          "AI Authentication"
+        ],
         "summary": "List API keys",
         "description": "Get all API keys for the authenticated agent",
         "security": [
@@ -169,7 +178,9 @@
         }
       },
       "post": {
-        "tags": ["AI Authentication"],
+        "tags": [
+          "AI Authentication"
+        ],
         "summary": "Create new API key",
         "description": "Generate a new API key for the authenticated agent",
         "security": [
@@ -183,7 +194,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -193,9 +206,16 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "enum": ["read", "write", "purchase"]
+                      "enum": [
+                        "read",
+                        "write",
+                        "purchase"
+                      ]
                     },
-                    "example": ["read", "purchase"]
+                    "example": [
+                      "read",
+                      "purchase"
+                    ]
                   },
                   "expiresInDays": {
                     "type": "number",
@@ -233,7 +253,9 @@
     },
     "/ai/keys/{keyId}": {
       "delete": {
-        "tags": ["AI Authentication"],
+        "tags": [
+          "AI Authentication"
+        ],
         "summary": "Revoke API key",
         "description": "Deactivate an API key",
         "security": [
@@ -260,7 +282,9 @@
     },
     "/ai/memory/{key}": {
       "get": {
-        "tags": ["AI Memory"],
+        "tags": [
+          "AI Memory"
+        ],
         "summary": "Retrieve memory",
         "description": "Get stored memory by key",
         "security": [
@@ -296,7 +320,9 @@
         }
       },
       "put": {
-        "tags": ["AI Memory"],
+        "tags": [
+          "AI Memory"
+        ],
         "summary": "Store or update memory",
         "description": "Save memory data with optional TTL",
         "security": [
@@ -320,7 +346,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["data"],
+                "required": [
+                  "data"
+                ],
                 "properties": {
                   "data": {
                     "type": "object",
@@ -350,7 +378,9 @@
         }
       },
       "delete": {
-        "tags": ["AI Memory"],
+        "tags": [
+          "AI Memory"
+        ],
         "summary": "Delete memory",
         "description": "Remove stored memory by key",
         "security": [
@@ -377,7 +407,9 @@
     },
     "/ai/memory": {
       "get": {
-        "tags": ["AI Memory"],
+        "tags": [
+          "AI Memory"
+        ],
         "summary": "List all memories",
         "description": "Get all memory keys for the agent",
         "security": [
@@ -425,7 +457,9 @@
     },
     "/mcp/discover": {
       "get": {
-        "tags": ["MCP Protocol"],
+        "tags": [
+          "MCP Protocol"
+        ],
         "summary": "Discover available vectors",
         "description": "MCP-compatible endpoint to discover latent vectors",
         "security": [
@@ -474,7 +508,9 @@
     },
     "/mcp/invoke": {
       "post": {
-        "tags": ["MCP Protocol"],
+        "tags": [
+          "MCP Protocol"
+        ],
         "summary": "Invoke a vector capability",
         "description": "Execute a purchased vector capability via MCP",
         "security": [
@@ -488,7 +524,10 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["vectorId", "input"],
+                "required": [
+                  "vectorId",
+                  "input"
+                ],
                 "properties": {
                   "vectorId": {
                     "type": "integer"
@@ -530,9 +569,11 @@
     },
     "/latentmas/align": {
       "post": {
-        "tags": ["LatentMAS"],
+        "tags": [
+          "LatentMAS"
+        ],
         "summary": "Align latent vectors",
-        "description": "Transform vectors between different latent spaces",
+        "description": "Aligns a source vector (Last-Layer Hidden State) to match the latent space of a target model using a Realignment Matrix.",
         "security": [
           {
             "ApiKeyAuth": []
@@ -544,17 +585,30 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["sourceVector", "targetSpace"],
+                "required": [
+                  "source_hidden_state",
+                  "source_model_id",
+                  "target_model_id"
+                ],
                 "properties": {
-                  "sourceVector": {
+                  "source_hidden_state": {
                     "type": "array",
                     "items": {
                       "type": "number"
-                    }
+                    },
+                    "description": "The hidden state vector from the source model"
                   },
-                  "targetSpace": {
+                  "source_model_id": {
                     "type": "string",
-                    "enum": ["gpt4", "claude", "llama", "custom"]
+                    "example": "llama-3-8b"
+                  },
+                  "target_model_id": {
+                    "type": "string",
+                    "example": "qwen-2-7b"
+                  },
+                  "realignment_matrix_id": {
+                    "type": "string",
+                    "description": "Optional ID of a specific realignment matrix to use"
                   }
                 }
               }
@@ -569,16 +623,378 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "alignedVector": {
+                    "realigned_hidden_state": {
                       "type": "array",
                       "items": {
                         "type": "number"
                       }
                     },
-                    "confidence": {
+                    "transformation_metadata": {
+                      "type": "object",
+                      "properties": {
+                        "source_model": {
+                          "type": "string"
+                        },
+                        "target_model": {
+                          "type": "string"
+                        },
+                        "matrix_used": {
+                          "type": "string"
+                        },
+                        "computation_type": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "quality_metrics": {
+                      "type": "object",
+                      "properties": {
+                        "cosine_similarity_retained": {
+                          "type": "number"
+                        },
+                        "semantic_loss": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latentmas/check-compatibility": {
+      "post": {
+        "tags": [
+          "LatentMAS"
+        ],
+        "summary": "Check model compatibility",
+        "description": "Evaluates if a Realignment Matrix exists or can be computed between two models.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "source_model",
+                  "target_model"
+                ],
+                "properties": {
+                  "source_model": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "hidden_size",
+                      "architecture"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "hidden_size": {
+                        "type": "integer"
+                      },
+                      "architecture": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "target_model": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "hidden_size",
+                      "architecture"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "hidden_size": {
+                        "type": "integer"
+                      },
+                      "architecture": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compatibility report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "compatible",
+                        "realignable",
+                        "unknown",
+                        "incompatible"
+                      ]
+                    },
+                    "compatibility_score": {
                       "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
+                      "format": "float"
+                    },
+                    "action_required": {
+                      "type": "string"
+                    },
+                    "recommended_matrix_id": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latentmas/transform": {
+      "post": {
+        "tags": [
+          "LatentMAS"
+        ],
+        "summary": "Transform vector dimension",
+        "description": "Transforms a vector to a different dimensionality (e.g. 768 -> 1024)",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "vector",
+                  "target_dimension"
+                ],
+                "properties": {
+                  "vector": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "target_dimension": {
+                    "type": "integer"
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "pca",
+                      "autoencoder",
+                      "interpolation"
+                    ],
+                    "default": "pca"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transformed vector",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transformed_vector": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "transformation_quality": {
+                      "type": "object",
+                      "properties": {
+                        "information_retention": {
+                          "type": "number"
+                        },
+                        "variance_explained": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latentmas/convert": {
+      "post": {
+        "tags": [
+          "LatentMAS"
+        ],
+        "summary": "Convert vector format",
+        "description": "Converts vector binary format between frameworks (e.g. PyTorch -> ONNX)",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "vector_data",
+                  "source_format",
+                  "target_format"
+                ],
+                "properties": {
+                  "vector_data": {
+                    "type": "string",
+                    "format": "base64",
+                    "description": "Base64 encoded binary vector data"
+                  },
+                  "source_format": {
+                    "type": "string",
+                    "enum": [
+                      "pytorch",
+                      "tensorflow",
+                      "onnx",
+                      "safetensors",
+                      "numpy"
+                    ]
+                  },
+                  "target_format": {
+                    "type": "string",
+                    "enum": [
+                      "pytorch",
+                      "tensorflow",
+                      "onnx",
+                      "safetensors",
+                      "numpy"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Converted data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "converted_data": {
+                      "type": "string",
+                      "format": "base64"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "properties": {
+                        "original_size_bytes": {
+                          "type": "integer"
+                        },
+                        "converted_size_bytes": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latentmas/validate": {
+      "post": {
+        "tags": [
+          "LatentMAS"
+        ],
+        "summary": "Validate vector quality",
+        "description": "Checks vector for NaN, Inf, and statistical anomalies",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "vector"
+                ],
+                "properties": {
+                  "vector": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "expected_dimension": {
+                    "type": "integer"
+                  },
+                  "check_distribution": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "quality_score": {
+                      "type": "number"
+                    },
+                    "checks": {
+                      "type": "object",
+                      "properties": {
+                        "no_nan": {
+                          "type": "boolean"
+                        },
+                        "distribution_normal": {
+                          "type": "boolean"
+                        }
+                      }
                     }
                   }
                 }
