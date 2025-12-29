@@ -9,6 +9,8 @@ import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import { invokeLLM } from "./_core/llm";
 import * as recommendationEngine from "./recommendation-engine";
+import { sendEmail } from "./_core/email";
+import { calculateTransactionFees } from "./utils/economics";
 
 // Helper to ensure user is a creator
 const creatorProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -28,7 +30,7 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 export const appRouter = router({
   system: systemRouter,
-  
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -158,7 +160,7 @@ export const appRouter = router({
         }
 
         const callLogs = await db.getVectorCallStats(input.vectorId, input.days);
-        
+
         return {
           totalCalls: vector.totalCalls,
           totalRevenue: vector.totalRevenue,
@@ -185,9 +187,7 @@ export const appRouter = router({
         }
 
         const amount = parseFloat(vector.basePrice);
-        const platformFeeRate = 0.20; // 20% platform fee
-        const platformFee = amount * platformFeeRate;
-        const creatorEarnings = amount - platformFee;
+        const { platformFee, creatorEarnings } = calculateTransactionFees(amount);
 
         // Create transaction record
         const result = await db.createTransaction({
@@ -227,6 +227,23 @@ export const appRouter = router({
             title: "New Purchase",
             message: `${ctx.user.name || "Someone"} purchased your AI capability "${vector.title}"`,
             relatedEntityId: transactionId,
+          });
+
+          if (creator.email) {
+            await sendEmail({
+              to: creator.email,
+              subject: "Awareness Market - New Sale",
+              text: `Great news! ${ctx.user.name || "A user"} just purchased your AI capability "${vector.title}". You earned $${creatorEarnings.toFixed(2)}.`,
+            });
+          }
+        }
+
+        // Notify buyer
+        if (ctx.user.email) {
+          await sendEmail({
+            to: ctx.user.email,
+            subject: "Awareness Market - Purchase Confirmation",
+            text: `Thank you for your purchase! You now have access to "${vector.title}". Transaction ID: ${transactionId}.`,
           });
         }
 
@@ -347,6 +364,16 @@ export const appRouter = router({
             message: `${ctx.user.name || "Someone"} left a ${input.rating}-star review on "${vector.title}"`,
             relatedEntityId: input.vectorId,
           });
+
+          // Send email to creator
+          const creator = await db.getUserById(vector.creatorId);
+          if (creator && creator.email) {
+            await sendEmail({
+              to: creator.email,
+              subject: "Awareness Market - New Review",
+              text: `${ctx.user.name || "A user"} left a ${input.rating}-star review on your AI capability "${vector.title}": "${input.comment || "No comment provided."}"`,
+            });
+          }
         }
 
         return { success: true };
@@ -411,11 +438,11 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const updates: any = {};
-        
+
         if (input.preferredCategories) {
           updates.preferredCategories = JSON.stringify(input.preferredCategories);
         }
-        
+
         if (input.priceRange) {
           updates.priceRange = JSON.stringify(input.priceRange);
         }

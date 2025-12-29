@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { stripe } from "./stripe-client";
 import * as db from "./db";
+import { sendEmail } from "./_core/email";
 
 export async function handleStripeWebhook(req: Request, res: Response) {
   const sig = req.headers["stripe-signature"];
@@ -95,7 +96,7 @@ async function handleCheckoutCompleted(session: any) {
     // Transaction should already be created by the purchase API
     // Just update the payment intent ID
     console.log(`[Webhook] Vector purchase completed for user ${userId}, vector ${vectorId}`);
-    
+
     // Create notification
     await db.createNotification({
       userId,
@@ -104,11 +105,21 @@ async function handleCheckoutCompleted(session: any) {
       message: "Your AI capability purchase has been completed successfully",
       relatedEntityId: vectorId,
     });
+
+    // Send email
+    const user = await db.getUserById(userId);
+    if (user?.email) {
+      await sendEmail({
+        to: user.email,
+        subject: "Awareness Market - Purchase Successful",
+        text: `Your purchase of vector #${vectorId} was successful. You can now access this capability in your dashboard.`,
+      });
+    }
   } else if (session.mode === "subscription") {
     // Handle subscription purchase
     const subscriptionId = session.subscription;
     console.log(`[Webhook] Subscription created for user ${userId}: ${subscriptionId}`);
-    
+
     // Subscription will be handled by subscription.created event
   }
 }
@@ -156,9 +167,9 @@ async function handleSubscriptionUpdated(subscription: any) {
     userId,
     planId: matchingPlan.id,
     stripeSubscriptionId: subscriptionId,
-    status: status === "active" ? "active" as const : 
-            status === "past_due" ? "past_due" as const :
-            status === "canceled" ? "cancelled" as const : "expired" as const,
+    status: status === "active" ? "active" as const :
+      status === "past_due" ? "past_due" as const :
+        status === "canceled" ? "cancelled" as const : "expired" as const,
     currentPeriodStart: new Date(subscription.current_period_start * 1000),
     currentPeriodEnd: new Date(subscription.current_period_end * 1000),
     cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
@@ -171,7 +182,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   }
 
   console.log(`[Webhook] Subscription updated for user ${userId}: ${status}`);
-  
+
   // Create notification
   await db.createNotification({
     userId,
@@ -179,6 +190,16 @@ async function handleSubscriptionUpdated(subscription: any) {
     title: "Subscription Updated",
     message: `Your subscription status is now: ${status}`,
   });
+
+  // Send email
+  const user = await db.getUserById(userId);
+  if (user?.email) {
+    await sendEmail({
+      to: user.email,
+      subject: `Awareness Market - Subscription ${status}`,
+      text: `Your subscription status has been updated to: ${status}.`,
+    });
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: any) {
@@ -200,7 +221,7 @@ async function handleSubscriptionDeleted(subscription: any) {
     });
 
     console.log(`[Webhook] Subscription deleted for user ${userId}`);
-    
+
     // Create notification
     await db.createNotification({
       userId,
@@ -208,6 +229,16 @@ async function handleSubscriptionDeleted(subscription: any) {
       title: "Subscription Cancelled",
       message: "Your subscription has been cancelled",
     });
+
+    // Send email
+    const user = await db.getUserById(userId);
+    if (user?.email) {
+      await sendEmail({
+        to: user.email,
+        subject: "Awareness Market - Subscription Cancelled",
+        text: "Your subscription has been cancelled. You will retain access until the end of the billing period.",
+      });
+    }
   }
 }
 
@@ -225,7 +256,7 @@ async function handleInvoicePaymentFailed(invoice: any) {
   if (!userId) return;
 
   console.log(`[Webhook] Invoice payment failed for user ${userId}`);
-  
+
   // Create notification
   await db.createNotification({
     userId,
@@ -233,4 +264,14 @@ async function handleInvoicePaymentFailed(invoice: any) {
     title: "Payment Failed",
     message: "Your recent payment failed. Please update your payment method.",
   });
+
+  // Send email
+  const user = await db.getUserById(userId);
+  if (user?.email) {
+    await sendEmail({
+      to: user.email,
+      subject: "Awareness Market - Payment Failed",
+      text: "Your recent payment failed. Please update your payment method to avoid service interruption.",
+    });
+  }
 }
