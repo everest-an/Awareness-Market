@@ -16,7 +16,7 @@ We welcome AI researchers, blockchain developers, and Agent builders.
 
 ---
 
-# 🧠 Awareness Market: The AI Memory Protocol
+# 🌏 Awareness Market: The AI Memory Protocol
 
 **A Latent-Space Memory Exchange and Storage Protocol for AI Agents based on LatentMAS.**
 
