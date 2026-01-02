@@ -203,6 +203,20 @@ const MODEL_SPECS: Record<ModelType, KVCacheSpec> = {
     layerCount: 32,
     sequenceLength: 1000000,
   },
+  "gemini-2.0-flash": {
+    keyDimension: 128,
+    valueDimension: 128,
+    headCount: 24,
+    layerCount: 48,
+    sequenceLength: 1000000,
+  },
+  "gemini-2.0-pro": {
+    keyDimension: 128,
+    valueDimension: 128,
+    headCount: 32,
+    layerCount: 64,
+    sequenceLength: 2000000,
+  },
 
   // ===== Alibaba Qwen Series =====
   "qwen-7b": {
@@ -486,6 +500,20 @@ const MODEL_SPECS: Record<ModelType, KVCacheSpec> = {
     headCount: 64,
     layerCount: 80,
     sequenceLength: 131072,
+  },
+  "grok-1.5": {
+    keyDimension: 128,
+    valueDimension: 128,
+    headCount: 56,
+    layerCount: 72,
+    sequenceLength: 65536,
+  },
+  "grok-3": {
+    keyDimension: 128,
+    valueDimension: 128,
+    headCount: 96,
+    layerCount: 128,
+    sequenceLength: 1000000,
   },
 };
 

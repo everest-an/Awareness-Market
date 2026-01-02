@@ -25,6 +25,7 @@ import WMatrixProtocol from "./pages/WMatrixProtocol";
 import ReasoningChainPublish from "./pages/ReasoningChainPublish";
 import WMatrixTester from "./pages/WMatrixTester";
 import AgentRegistry from "./pages/AgentRegistry";
+import SDKPage from "./pages/SDKPage";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -53,6 +54,8 @@ function Router() {
       <Route path="/w-matrix/tester" component={WMatrixTester} />
       <Route path="/agents" component={AgentRegistry} />
       <Route path="/semantic-index" component={AgentRegistry} />
+      <Route path="/sdk" component={SDKPage} />
+      <Route path="/docs" component={SDKPage} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

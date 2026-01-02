@@ -38,6 +38,8 @@ export type ModelType =
   | "gemini-ultra"
   | "gemini-1.5-pro"
   | "gemini-1.5-flash"
+  | "gemini-2.0-flash"
+  | "gemini-2.0-pro"
   // Alibaba Qwen Series
   | "qwen-7b"
   | "qwen-14b"
@@ -84,7 +86,9 @@ export type ModelType =
   | "command-r-plus"
   // xAI Grok Series
   | "grok-1"
-  | "grok-2";
+  | "grok-1.5"
+  | "grok-2"
+  | "grok-3";
 
 /**
  * W-Matrix generation method

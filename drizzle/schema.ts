@@ -706,3 +706,4 @@ export const wMatrixVersions = mysqlTable("w_matrix_versions", {
 
 export type WMatrixVersion = typeof wMatrixVersions.$inferSelect;
 export type InsertWMatrixVersion = typeof wMatrixVersions.$inferInsert;
+// Force recompile Fri Jan  2 15:07:12 EST 2026

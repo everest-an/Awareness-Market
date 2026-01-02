@@ -34,13 +34,13 @@ export default function UploadVector() {
   const createMutation = trpc.vectors.create.useMutation({
     onSuccess: () => {
       setCurrentStep("complete");
-      toast.success("向量发布成功！");
+      toast.success("Vector published successfully!");
       setTimeout(() => {
         setLocation("/dashboard/creator");
       }, 2000);
     },
     onError: (error) => {
-      toast.error(error.message || "上传失败");
+      toast.error(error.message || "Upload failed");
       setCurrentStep("form");
     },
   });
@@ -50,22 +50,22 @@ export default function UploadVector() {
     if (file) {
       // Check file size (max 100MB for LatentMAS vectors)
       if (file.size > 100 * 1024 * 1024) {
-        toast.error("文件大小不能超过100MB");
+        toast.error("File size cannot exceed 100MB");
         return;
       }
       setVectorFile(file);
-      toast.success("文件已选择");
+      toast.success("File selected");
     }
   };
 
   const validateVector = async () => {
     if (!vectorFile) {
-      toast.error("请选择向量文件");
+      toast.error("Please select a vector file");
       return;
     }
 
     if (!formData.modelArchitecture || !formData.vectorDimension) {
-      toast.error("请填写模型架构和向量维度");
+      toast.error("Please fill in model architecture and vector dimension");
       return;
     }
 
@@ -84,10 +84,10 @@ export default function UploadVector() {
 
       // Add warnings if needed
       if (!formData.alignmentQuality) {
-        validation.warnings.push("未提供对齐质量指标");
+        validation.warnings.push("Alignment quality score not provided");
       }
       if (!formData.performanceMetrics) {
-        validation.warnings.push("未提供性能指标");
+        validation.warnings.push("Performance metrics not provided");
       }
 
       setValidationResult(validation);
@@ -97,7 +97,7 @@ export default function UploadVector() {
 
   const handleSubmit = async () => {
     if (!vectorFile || !validationResult?.isValid) {
-      toast.error("请先验证向量文件");
+      toast.error("Please validate the vector file first");
       return;
     }
 
@@ -133,10 +133,10 @@ export default function UploadVector() {
 
   const renderStepIndicator = () => {
     const steps = [
-      { key: "form", label: "基本信息" },
-      { key: "validation", label: "格式验证" },
-      { key: "preview", label: "预览确认" },
-      { key: "uploading", label: "上传中" },
+      { key: "form", label: "Basic Info" },
+      { key: "validation", label: "Validation" },
+      { key: "preview", label: "Preview" },
+      { key: "uploading", label: "Uploading" },
     ];
 
     const currentIndex = steps.findIndex(s => s.key === currentStep);
@@ -184,12 +184,12 @@ export default function UploadVector() {
           <Button variant="ghost" asChild className="mb-4">
             <Link href="/dashboard/creator">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              返回创作者仪表板
+              Back to Creator Dashboard
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">发布LatentMAS向量</h1>
+          <h1 className="text-3xl font-bold">Publish LatentMAS Vector</h1>
           <p className="mt-2 text-muted-foreground">
-            上传符合LatentMAS/1.0协议的向量数据到市场
+            Upload LatentMAS/1.0 protocol compliant vector data to the marketplace
           </p>
         </div>
       </div>
@@ -201,65 +201,65 @@ export default function UploadVector() {
         {currentStep === "form" && (
           <Card className="mx-auto max-w-3xl">
             <CardHeader>
-              <CardTitle>基本信息</CardTitle>
+              <CardTitle>Basic Information</CardTitle>
               <CardDescription>
-                填写向量的基本信息和LatentMAS元数据
+                Fill in the vector's basic information and LatentMAS metadata
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">向量标题 *</Label>
+                <Label htmlFor="title">Vector Title *</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="例如：财务风险分析专家向量"
+                  placeholder="e.g., Financial Risk Analysis Expert Vector"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">描述 *</Label>
+                <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="详细描述向量的功能和应用场景"
+                  placeholder="Describe the vector's capabilities and use cases in detail"
                   rows={4}
                 />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="category">类别 *</Label>
+                  <Label htmlFor="category">Category *</Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) => setFormData({ ...formData, category: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="选择类别" />
+                      <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="finance">财务分析</SelectItem>
-                      <SelectItem value="management">管理SOP</SelectItem>
-                      <SelectItem value="customer-service">客户服务</SelectItem>
-                      <SelectItem value="supply-chain">供应链</SelectItem>
-                      <SelectItem value="hr">人力资源</SelectItem>
-                      <SelectItem value="legal">法律合规</SelectItem>
-                      <SelectItem value="marketing">营销优化</SelectItem>
-                      <SelectItem value="security">网络安全</SelectItem>
-                      <SelectItem value="other">其他</SelectItem>
+                      <SelectItem value="finance">Financial Analysis</SelectItem>
+                      <SelectItem value="management">Management SOP</SelectItem>
+                      <SelectItem value="customer-service">Customer Service</SelectItem>
+                      <SelectItem value="supply-chain">Supply Chain</SelectItem>
+                      <SelectItem value="hr">Human Resources</SelectItem>
+                      <SelectItem value="legal">Legal Compliance</SelectItem>
+                      <SelectItem value="marketing">Marketing Optimization</SelectItem>
+                      <SelectItem value="security">Cybersecurity</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="modelArchitecture">模型架构 *</Label>
+                  <Label htmlFor="modelArchitecture">Model Architecture *</Label>
                   <Select
                     value={formData.modelArchitecture}
                     onValueChange={(value) => setFormData({ ...formData, modelArchitecture: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="选择模型" />
+                      <SelectValue placeholder="Select model" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="gpt-4">GPT-4</SelectItem>
@@ -268,7 +268,7 @@ export default function UploadVector() {
                       <SelectItem value="claude-2">Claude-2</SelectItem>
                       <SelectItem value="bert">BERT</SelectItem>
                       <SelectItem value="llama-2">LLaMA-2</SelectItem>
-                      <SelectItem value="custom">自定义</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -276,13 +276,13 @@ export default function UploadVector() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="vectorDimension">向量维度 *</Label>
+                  <Label htmlFor="vectorDimension">Vector Dimension *</Label>
                   <Select
                     value={formData.vectorDimension}
                     onValueChange={(value) => setFormData({ ...formData, vectorDimension: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="选择维度" />
+                      <SelectValue placeholder="Select dimension" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="768">768 (BERT)</SelectItem>
@@ -295,7 +295,7 @@ export default function UploadVector() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="alignmentQuality">对齐质量分数</Label>
+                  <Label htmlFor="alignmentQuality">Alignment Quality Score</Label>
                   <Input
                     id="alignmentQuality"
                     type="number"
@@ -310,7 +310,7 @@ export default function UploadVector() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="performanceMetrics">性能指标 (JSON格式)</Label>
+                <Label htmlFor="performanceMetrics">Performance Metrics (JSON format)</Label>
                 <Textarea
                   id="performanceMetrics"
                   value={formData.performanceMetrics}
@@ -323,7 +323,7 @@ export default function UploadVector() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="basePrice">基础价格 (USD) *</Label>
+                  <Label htmlFor="basePrice">Base Price (USD) *</Label>
                   <Input
                     id="basePrice"
                     type="number"
@@ -336,7 +336,7 @@ export default function UploadVector() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="pricingModel">定价模式 *</Label>
+                  <Label htmlFor="pricingModel">Pricing Model *</Label>
                   <Select
                     value={formData.pricingModel}
                     onValueChange={(value: any) => setFormData({ ...formData, pricingModel: value })}
@@ -345,16 +345,16 @@ export default function UploadVector() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="per-call">按调用次数</SelectItem>
-                      <SelectItem value="subscription">订阅制</SelectItem>
-                      <SelectItem value="usage-based">按使用量</SelectItem>
+                      <SelectItem value="per-call">Per Call</SelectItem>
+                      <SelectItem value="subscription">Subscription</SelectItem>
+                      <SelectItem value="usage-based">Usage Based</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="vectorFile">向量文件 *</Label>
+                <Label htmlFor="vectorFile">Vector File *</Label>
                 <div className="flex items-center gap-4">
                   <Input
                     id="vectorFile"
@@ -369,7 +369,7 @@ export default function UploadVector() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  支持格式: .bin, .npy, .pt, .safetensors (最大100MB)
+                  Supported formats: .bin, .npy, .pt, .safetensors (max 100MB)
                 </p>
               </div>
 
@@ -388,7 +388,7 @@ export default function UploadVector() {
                 }
               >
                 <FileCheck className="mr-2 h-5 w-5" />
-                验证并继续
+                Validate & Continue
               </Button>
             </CardContent>
           </Card>
@@ -400,9 +400,9 @@ export default function UploadVector() {
             <CardContent className="py-12">
               <div className="flex flex-col items-center text-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-                <h3 className="text-xl font-semibold mb-2">验证LatentMAS格式</h3>
+                <h3 className="text-xl font-semibold mb-2">Validating LatentMAS Format</h3>
                 <p className="text-muted-foreground">
-                  正在检查向量文件格式、维度和数据完整性...
+                  Checking vector file format, dimensions, and data integrity...
                 </p>
                 <Progress value={66} className="w-64 mt-6" />
               </div>
@@ -419,17 +419,17 @@ export default function UploadVector() {
                   {validationResult.isValid ? (
                     <>
                       <CheckCircle2 className="h-6 w-6 text-green-600" />
-                      验证通过
+                      Validation Passed
                     </>
                   ) : (
                     <>
                       <AlertCircle className="h-6 w-6 text-red-600" />
-                      验证失败
+                      Validation Failed
                     </>
                   )}
                 </CardTitle>
                 <CardDescription>
-                  LatentMAS格式验证结果
+                  LatentMAS Format Validation Results
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -437,7 +437,7 @@ export default function UploadVector() {
                   <div className="flex items-center gap-3">
                     <Brain className="h-5 w-5 text-primary" />
                     <div>
-                      <div className="text-sm font-medium">协议版本</div>
+                      <div className="text-sm font-medium">Protocol Version</div>
                       <div className="text-sm text-muted-foreground">{validationResult.format}</div>
                     </div>
                   </div>
@@ -445,7 +445,7 @@ export default function UploadVector() {
                   <div className="flex items-center gap-3">
                     <Zap className="h-5 w-5 text-accent" />
                     <div>
-                      <div className="text-sm font-medium">检测到的维度</div>
+                      <div className="text-sm font-medium">Detected Dimension</div>
                       <div className="text-sm text-muted-foreground">{validationResult.detectedDimension}</div>
                     </div>
                   </div>
@@ -453,7 +453,7 @@ export default function UploadVector() {
                   <div className="flex items-center gap-3">
                     <Upload className="h-5 w-5 text-primary" />
                     <div>
-                      <div className="text-sm font-medium">文件大小</div>
+                      <div className="text-sm font-medium">File Size</div>
                       <div className="text-sm text-muted-foreground">
                         {(validationResult.fileSize / (1024 * 1024)).toFixed(2)} MB
                       </div>
@@ -463,7 +463,7 @@ export default function UploadVector() {
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
                     <div>
-                      <div className="text-sm font-medium">预估质量</div>
+                      <div className="text-sm font-medium">Estimated Quality</div>
                       <div className="text-sm text-muted-foreground">
                         {(validationResult.estimatedQuality * 100).toFixed(0)}%
                       </div>
@@ -475,7 +475,7 @@ export default function UploadVector() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      <div className="font-medium mb-2">警告:</div>
+                      <div className="font-medium mb-2">Warnings:</div>
                       <ul className="list-disc list-inside space-y-1">
                         {validationResult.warnings.map((warning: string, i: number) => (
                           <li key={i} className="text-sm">{warning}</li>
@@ -489,34 +489,34 @@ export default function UploadVector() {
 
             <Card>
               <CardHeader>
-                <CardTitle>预览信息</CardTitle>
+                <CardTitle>Preview Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <div className="text-sm font-medium">标题</div>
+                  <div className="text-sm font-medium">Title</div>
                   <div className="text-sm text-muted-foreground">{formData.title}</div>
                 </div>
                 <div>
-                  <div className="text-sm font-medium">描述</div>
+                  <div className="text-sm font-medium">Description</div>
                   <div className="text-sm text-muted-foreground">{formData.description}</div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
-                    <div className="text-sm font-medium">类别</div>
+                    <div className="text-sm font-medium">Category</div>
                     <div className="text-sm text-muted-foreground">{formData.category}</div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium">模型架构</div>
+                    <div className="text-sm font-medium">Model Architecture</div>
                     <div className="text-sm text-muted-foreground">{formData.modelArchitecture}</div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium">价格</div>
+                    <div className="text-sm font-medium">Price</div>
                     <div className="text-sm text-muted-foreground">
                       ${formData.basePrice} ({formData.pricingModel})
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium">向量维度</div>
+                    <div className="text-sm font-medium">Vector Dimension</div>
                     <div className="text-sm text-muted-foreground">{formData.vectorDimension}</div>
                   </div>
                 </div>
@@ -529,7 +529,7 @@ export default function UploadVector() {
                 onClick={() => setCurrentStep("form")}
                 className="flex-1"
               >
-                返回修改
+                Back to Edit
               </Button>
               <Button
                 onClick={handleSubmit}
@@ -538,7 +538,7 @@ export default function UploadVector() {
                 disabled={!validationResult.isValid}
               >
                 <Upload className="mr-2 h-5 w-5" />
-                确认发布
+                Confirm & Publish
               </Button>
             </div>
           </div>
@@ -550,9 +550,9 @@ export default function UploadVector() {
             <CardContent className="py-12">
               <div className="flex flex-col items-center text-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-                <h3 className="text-xl font-semibold mb-2">上传中</h3>
+                <h3 className="text-xl font-semibold mb-2">Uploading</h3>
                 <p className="text-muted-foreground">
-                  正在将向量文件上传到S3并创建市场列表...
+                  Uploading vector file to S3 and creating marketplace listing...
                 </p>
                 <Progress value={45} className="w-64 mt-6" />
               </div>
@@ -566,13 +566,13 @@ export default function UploadVector() {
             <CardContent className="py-12">
               <div className="flex flex-col items-center text-center">
                 <CheckCircle2 className="h-16 w-16 text-green-600 mb-4" />
-                <h3 className="text-2xl font-bold mb-2">发布成功！</h3>
+                <h3 className="text-2xl font-bold mb-2">Published Successfully!</h3>
                 <p className="text-muted-foreground mb-6">
-                  您的LatentMAS向量已成功发布到市场
+                  Your LatentMAS vector has been successfully published to the marketplace
                 </p>
                 <Button asChild size="lg">
                   <Link href="/dashboard/creator">
-                    前往创作者仪表板
+                    Go to Creator Dashboard
                   </Link>
                 </Button>
               </div>

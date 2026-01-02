@@ -1233,6 +1233,35 @@ export const appRouter = router({
           limit: input.limit
         });
       }),
+
+    // Get recently registered agents
+    recent: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(50).default(10) }))
+      .query(({ input }) => {
+        return semanticIndex.getRecentAgents(input.limit);
+      }),
+
+    // Get top agents by reputation
+    top: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(50).default(10) }))
+      .query(({ input }) => {
+        return semanticIndex.getTopAgents(input.limit);
+      }),
+
+    // Search agents by capability
+    search: publicProcedure
+      .input(z.object({
+        query: z.string().min(1),
+        limit: z.number().min(1).max(50).default(20)
+      }))
+      .query(({ input }) => {
+        return semanticIndex.searchAgentsByCapability(input.query, input.limit);
+      }),
+
+    // Get agent activity timeline
+    activityTimeline: publicProcedure.query(() => {
+      return semanticIndex.getAgentActivityTimeline();
+    }),
   }),
 });
 

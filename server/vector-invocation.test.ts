@@ -24,40 +24,39 @@ describe("Vector Invocation System", () => {
 
     // Create test vector
     const vectorResult = await db.insert(latentVectors).values({
-      creator_id: testUserId,
+      creatorId: testUserId,
       title: "Test Invocation Vector",
       description: "A test vector for invocation testing",
       category: "test",
-      vector_file_key: "test/invocation-vector.bin",
-      vector_file_url: "https://example.com/test.bin",
-      model_architecture: "gpt-4",
-      vector_dimension: 1536,
-      base_price: "10.00",
-      pricing_model: "per-call",
+      vectorFileKey: "test/invocation-vector.bin",
+      vectorFileUrl: "https://example.com/test.bin",
+      modelArchitecture: "gpt-4",
+      vectorDimension: 1536,
+      basePrice: "10.00",
+      pricingModel: "per-call",
       status: "active",
     });
     testVectorId = (vectorResult as any).insertId;
 
     // Create test transaction
     const txResult = await db.insert(transactions).values({
-      buyer_id: testUserId,
-      vector_id: testVectorId,
+      buyerId: testUserId,
+      vectorId: testVectorId,
       amount: "10.00",
-      platform_fee: "2.00",
-      creator_earnings: "8.00",
+      platformFee: "2.00",
+      creatorEarnings: "8.00",
       status: "completed",
-      payment_method: "test",
     });
     const txId = (txResult as any).insertId;
 
     // Create access permission
     const permResult = await db.insert(accessPermissions).values({
-      user_id: testUserId,
-      vector_id: testVectorId,
-      transaction_id: txId,
-      access_token: `test-token-${Date.now()}`,
-      calls_remaining: 100,
-      is_active: true,
+      userId: testUserId,
+      vectorId: testVectorId,
+      transactionId: txId,
+      accessToken: `test-token-${Date.now()}`,
+      callsRemaining: 100,
+      isActive: true,
     });
     testPermissionId = (permResult as any).insertId;
   });

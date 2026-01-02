@@ -287,21 +287,42 @@ export function getNetworkStats(): {
   total_memories: number;
   public_memories: number;
   total_agents: number;
+  active_agents_24h: number;
+  new_agents_7d: number;
   total_domains: number;
   total_task_types: number;
   supported_models: number;
+  total_memory_calls: number;
+  avg_quality_score: number;
 } {
   const domains = new Set(GENESIS_MEMORIES.map(m => m.semantic_context.domain));
   const taskTypes = new Set(GENESIS_MEMORIES.map(m => m.semantic_context.task_type));
   const models = new Set(GENESIS_MEMORIES.map(m => m.technical_spec.model_origin));
   
+  // Calculate active agents in last 24 hours
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  const agents = Array.from(agentRegistry.values());
+  const activeAgents24h = agents.filter(a => new Date(a.last_active) > oneDayAgo).length;
+  const newAgents7d = agents.filter(a => new Date(a.registered_at) > sevenDaysAgo).length;
+  
+  // Calculate total memory calls and average quality
+  const totalCalls = GENESIS_MEMORIES.reduce((sum, m) => sum + m.provenance.usage_count, 0);
+  const avgQuality = GENESIS_MEMORIES.reduce((sum, m) => sum + (m.provenance.average_rating || 0), 0) / GENESIS_MEMORIES.length;
+  
   return {
     total_memories: GENESIS_MEMORIES.length,
     public_memories: GENESIS_MEMORIES.filter(m => m.access_control.is_public).length,
     total_agents: agentRegistry.size,
+    active_agents_24h: activeAgents24h,
+    new_agents_7d: newAgents7d,
     total_domains: domains.size,
     total_task_types: taskTypes.size,
-    supported_models: models.size
+    supported_models: models.size,
+    total_memory_calls: totalCalls,
+    avg_quality_score: avgQuality
   };
 }
 
@@ -344,4 +365,82 @@ export function getAvailableTaskTypes(): TaskType[] {
     'data_extraction',
     'planning_and_execution'
   ];
+}
+
+/**
+ * Get recently registered agents
+ */
+export function getRecentAgents(limit: number = 10): RegisteredAgent[] {
+  return Array.from(agentRegistry.values())
+    .sort((a, b) => new Date(b.registered_at).getTime() - new Date(a.registered_at).getTime())
+    .slice(0, limit);
+}
+
+/**
+ * Get top agents by reputation
+ */
+export function getTopAgents(limit: number = 10): RegisteredAgent[] {
+  return Array.from(agentRegistry.values())
+    .sort((a, b) => b.reputation_score - a.reputation_score)
+    .slice(0, limit);
+}
+
+/**
+ * Search agents by capability
+ */
+export function searchAgentsByCapability(capability: string, limit: number = 20): RegisteredAgent[] {
+  const lowerCap = capability.toLowerCase();
+  return Array.from(agentRegistry.values())
+    .filter(a => 
+      a.capabilities.some(c => c.toLowerCase().includes(lowerCap)) ||
+      a.name.toLowerCase().includes(lowerCap) ||
+      a.description.toLowerCase().includes(lowerCap)
+    )
+    .sort((a, b) => b.reputation_score - a.reputation_score)
+    .slice(0, limit);
+}
+
+/**
+ * Get agent activity timeline (last 7 days)
+ */
+export function getAgentActivityTimeline(): { date: string; registrations: number; active: number }[] {
+  const timeline: { date: string; registrations: number; active: number }[] = [];
+  const agents = Array.from(agentRegistry.values());
+  
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    const registrations = agents.filter(a => 
+      a.registered_at.startsWith(dateStr)
+    ).length;
+    
+    const active = agents.filter(a => 
+      a.last_active.startsWith(dateStr)
+    ).length;
+    
+    timeline.push({ date: dateStr, registrations, active });
+  }
+  
+  return timeline;
+}
+
+/**
+ * Get memory usage by domain
+ */
+export function getMemoryUsageByDomain(): { domain: string; count: number; totalCalls: number }[] {
+  const domainStats = new Map<string, { count: number; totalCalls: number }>();
+  
+  for (const memory of GENESIS_MEMORIES) {
+    const domain = memory.semantic_context.domain;
+    const existing = domainStats.get(domain) || { count: 0, totalCalls: 0 };
+    existing.count++;
+    existing.totalCalls += memory.provenance.usage_count;
+    domainStats.set(domain, existing);
+  }
+  
+  return Array.from(domainStats.entries())
+    .map(([domain, stats]) => ({ domain, ...stats }))
+    .sort((a, b) => b.totalCalls - a.totalCalls);
 }

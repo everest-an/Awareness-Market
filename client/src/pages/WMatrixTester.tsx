@@ -70,6 +70,8 @@ const MODEL_FAMILIES = {
     { id: "gemini-ultra", name: "Gemini Ultra", dim: 16384 },
     { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", dim: 8192 },
     { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", dim: 4096 },
+    { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", dim: 8192 },
+    { id: "gemini-2.0-pro", name: "Gemini 2.0 Pro", dim: 16384 },
   ],
   Mistral: [
     { id: "mistral-7b", name: "Mistral 7B", dim: 4096 },
@@ -94,7 +96,9 @@ const MODEL_FAMILIES = {
   ],
   xAI: [
     { id: "grok-1", name: "Grok-1", dim: 8192 },
+    { id: "grok-1.5", name: "Grok-1.5", dim: 8192 },
     { id: "grok-2", name: "Grok-2", dim: 8192 },
+    { id: "grok-3", name: "Grok-3", dim: 16384 },
   ],
 };
 

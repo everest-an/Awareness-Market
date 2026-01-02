@@ -27,7 +27,7 @@ export function VectorTestPanel({ vectorId, hasAccess, pricingModel, basePrice }
 
   const handleTest = async () => {
     if (!inputData.trim()) {
-      setError("请输入测试数据");
+      setError("Please enter test data");
       return;
     }
 
@@ -45,7 +45,7 @@ export function VectorTestPanel({ vectorId, hasAccess, pricingModel, basePrice }
       setResult(response);
       refetchHistory();
     } catch (err: any) {
-      setError(err.message || "调用失败");
+      setError(err.message || "Invocation failed");
     } finally {
       setIsExecuting(false);
     }
@@ -55,13 +55,13 @@ export function VectorTestPanel({ vectorId, hasAccess, pricingModel, basePrice }
     return (
       <Card>
         <CardHeader>
-          <CardTitle>测试向量</CardTitle>
-          <CardDescription>购买此向量后即可进行测试</CardDescription>
+          <CardTitle>Test Vector</CardTitle>
+          <CardDescription>Purchase this vector to test it</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert>
             <AlertDescription>
-              您需要先购买此向量才能使用测试功能。价格：{basePrice} ({pricingModel})
+              You need to purchase this vector to use the test feature. Price: {basePrice} ({pricingModel})
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -73,18 +73,18 @@ export function VectorTestPanel({ vectorId, hasAccess, pricingModel, basePrice }
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>测试向量</CardTitle>
+          <CardTitle>Test Vector</CardTitle>
           <CardDescription>
-            输入JSON格式的测试数据，实时调用向量并查看结果
+            Enter JSON-formatted test data to invoke the vector and view results in real-time
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">输入数据 (JSON格式)</label>
+            <label className="text-sm font-medium mb-2 block">Input Data (JSON format)</label>
             <Textarea
               value={inputData}
               onChange={(e) => setInputData(e.target.value)}
-              placeholder='{"prompt": "你的输入数据", "parameters": {...}}'
+              placeholder='{"prompt": "Your input data", "parameters": {...}}'
               rows={6}
               className="font-mono text-sm"
             />
@@ -98,12 +98,12 @@ export function VectorTestPanel({ vectorId, hasAccess, pricingModel, basePrice }
             {isExecuting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                执行中...
+                Executing...
               </>
             ) : (
               <>
                 <Play className="mr-2 h-4 w-4" />
-                运行测试
+                Run Test
               </>
             )}
           </Button>
@@ -119,22 +119,22 @@ export function VectorTestPanel({ vectorId, hasAccess, pricingModel, basePrice }
             <div className="space-y-4 pt-4 border-t">
               <div className="flex items-center gap-2 text-green-600">
                 <CheckCircle2 className="h-5 w-5" />
-                <span className="font-medium">执行成功</span>
+                <span className="font-medium">Execution Successful</span>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>执行时间: {result.executionTime}ms</span>
+                  <span>Execution Time: {result.executionTime}ms</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <span>成本: ${result.cost}</span>
+                  <span>Cost: ${result.cost}</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">输出结果</label>
+                <label className="text-sm font-medium mb-2 block">Output Result</label>
                 <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm font-mono max-h-64">
                   {JSON.stringify(result.output, null, 2)}
                 </pre>
@@ -147,8 +147,8 @@ export function VectorTestPanel({ vectorId, hasAccess, pricingModel, basePrice }
       {history && history.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>调用历史</CardTitle>
-            <CardDescription>最近5次调用记录</CardDescription>
+            <CardTitle>Invocation History</CardTitle>
+            <CardDescription>Last 5 invocation records</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -160,9 +160,9 @@ export function VectorTestPanel({ vectorId, hasAccess, pricingModel, basePrice }
                   <div className="flex-1">
                     <div className="text-sm font-medium">
                       {record.status === "success" ? (
-                        <span className="text-green-600">成功</span>
+                        <span className="text-green-600">Success</span>
                       ) : (
-                        <span className="text-red-600">失败</span>
+                        <span className="text-red-600">Failed</span>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">

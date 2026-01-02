@@ -592,3 +592,51 @@
 - [x] 实现Agent注册表API
 - [x] 创建Agent注册表前端页面（AgentRegistry.tsx）
 - [x] 添加/agents和/semantic-index路由
+
+## 新功能开发（用户需求）
+
+### Phase 1: Genesis Memories数据库种子
+- [x] 创建genesis-memories-seed.mjs脚本
+- [x] 将100个黄金记忆胶囊写入latent_vectors表
+- [x] 运行种子脚本填充数据库
+- [ ] 验证Marketplace中可以浏览Genesis Memories
+
+### Phase 2: SDK下载页面
+- [x] 创建/sdk页面（SDKPage.tsx）
+- [x] 展示Python SDK安装和使用示例
+- [x] 展示JavaScript SDK安装和使用示例
+- [x] 展示Rust SDK安装和使用示例
+- [x] 添加交互式代码演示（代码高亮、复制按钮）
+- [x] 添加到App.tsx路由
+
+### Phase 3: Agent注册表页面优化
+- [x] 添加实时Agent活动统计（总数、活跃、新注册）
+- [x] 添加最近注册的Agent列表
+- [x] 添加Agent能力搜索功能
+- [x] 优化UI布局和样式
+- [x] 添加Top Agents排行榜
+- [x] 添加7天活动时间线图表
+
+### 新增需求: 模型支持扩展
+- [x] 添加Gemini模型支持（gemini-pro, gemini-ultra, gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash, gemini-2.0-pro）
+- [x] 添加Grok模型支持（grok-1, grok-1.5, grok-2, grok-3）
+- [x] 更新W矩阵兼容性配置
+- [x] 更新WMatrixTester热力图
+
+
+### 新增需求: 博客文章与界面检查 (2026-01-03)
+- [x] 添加新博客文章: LatentMAS与智能体通信的演进
+- [x] 添加新博客文章: What is the Medium of Communication in LatentMAS
+- [x] 检查所有界面Aeonik字体使用情况 (字体文件完整，CSS配置正确)
+- [x] 端到端功能检查确保正式版可用 (网站正常运行)
+- [x] 修复发现的任何问题 (中文已翻译为英文)
+- [x] 添加新博客文章: LatentMAS 的载体是什么
+- [x] 修复marketplace详情页中文问题，确保默认语言为英文
+
+### 代码清理与规范化 (2026-01-03)
+- [x] 清除所有TypeScript和构建缓存
+- [x] 检查并修复memory-exchange.ts导入问题 (导入正确，健康检查显示缓存错误)
+- [x] 验证TypeScript编译无错误 (npx tsc --noEmit 通过)
+- [x] 文件解耦整理 (schema.ts导出38个表，全部正确)
+- [x] 修复浏览器标签品牌名称：LatentMind Marketplace -> Awareness (用户已手动更新)
+- [x] 修复/docs页面404错误，确保SDK文档页面可访问
