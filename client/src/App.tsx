@@ -24,6 +24,7 @@ import ReasoningChainMarket from "./pages/ReasoningChainMarket";
 import WMatrixProtocol from "./pages/WMatrixProtocol";
 import ReasoningChainPublish from "./pages/ReasoningChainPublish";
 import WMatrixTester from "./pages/WMatrixTester";
+import AgentRegistry from "./pages/AgentRegistry";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -50,6 +51,8 @@ function Router() {
       <Route path="/reasoning-chains/publish" component={ReasoningChainPublish} />
       <Route path="/w-matrix" component={WMatrixProtocol} />
       <Route path="/w-matrix/tester" component={WMatrixTester} />
+      <Route path="/agents" component={AgentRegistry} />
+      <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

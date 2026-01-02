@@ -15,6 +15,8 @@ import * as blogDb from "./blog-db";
 import { getDb } from "./db";
 import { reviews, latentVectors } from "../drizzle/schema";
 import * as latentmas from "./latentmas";
+import * as semanticIndex from "./semantic-index";
+import { GENESIS_MEMORIES } from "../shared/genesis-memories";
 
 // Helper to ensure user is a creator
 const creatorProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -1103,6 +1105,133 @@ export const appRouter = router({
           // Note: Full KV-cache data would be returned in production
           // Omitted here for response size
         };
+      }),
+  }),
+
+  // Semantic Index API - For AI Agent Discovery
+  semanticIndex: router({
+    // Search memories by topic/keyword
+    findByTopic: publicProcedure
+      .input(z.object({
+        topic: z.string().min(1),
+        limit: z.number().min(1).max(50).default(10)
+      }))
+      .query(({ input }) => {
+        return semanticIndex.findMemoryByTopic(input.topic, input.limit);
+      }),
+
+    // Search memories by domain
+    findByDomain: publicProcedure
+      .input(z.object({
+        domain: z.string(),
+        limit: z.number().min(1).max(50).default(10)
+      }))
+      .query(({ input }) => {
+        return semanticIndex.findMemoryByDomain(input.domain as any, input.limit);
+      }),
+
+    // Search memories by task type
+    findByTask: publicProcedure
+      .input(z.object({
+        taskType: z.string(),
+        limit: z.number().min(1).max(50).default(10)
+      }))
+      .query(({ input }) => {
+        return semanticIndex.findMemoryByTask(input.taskType as any, input.limit);
+      }),
+
+    // Combined semantic search
+    search: publicProcedure
+      .input(z.object({
+        query: z.string().optional(),
+        domain: z.string().optional(),
+        taskType: z.string().optional(),
+        modelOrigin: z.string().optional(),
+        isPublic: z.boolean().optional(),
+        limit: z.number().min(1).max(50).default(20)
+      }))
+      .query(({ input }) => {
+        return semanticIndex.semanticSearch({
+          query: input.query,
+          domain: input.domain as any,
+          task_type: input.taskType as any,
+          model_origin: input.modelOrigin,
+          is_public: input.isPublic,
+          limit: input.limit
+        });
+      }),
+
+    // Get memory leaderboard
+    leaderboard: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(10) }))
+      .query(({ input }) => {
+        return semanticIndex.getMemoryLeaderboard(input.limit);
+      }),
+
+    // Get network statistics
+    stats: publicProcedure.query(() => {
+      return semanticIndex.getNetworkStats();
+    }),
+
+    // Get available domains
+    domains: publicProcedure.query(() => {
+      return semanticIndex.getAvailableDomains();
+    }),
+
+    // Get available task types
+    taskTypes: publicProcedure.query(() => {
+      return semanticIndex.getAvailableTaskTypes();
+    }),
+
+    // Get all genesis memories
+    genesisMemories: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(100) }))
+      .query(({ input }) => {
+        return GENESIS_MEMORIES.slice(0, input.limit);
+      }),
+  }),
+
+  // Agent Registry API
+  agentRegistry: router({
+    // Register a new agent
+    register: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        description: z.string().min(1),
+        modelType: z.string().min(1),
+        capabilities: z.array(z.string()),
+        tbaAddress: z.string().min(1)
+      }))
+      .mutation(({ input }) => {
+        return semanticIndex.registerAgent({
+          name: input.name,
+          description: input.description,
+          model_type: input.modelType,
+          capabilities: input.capabilities,
+          tba_address: input.tbaAddress
+        });
+      }),
+
+    // Get agent by ID
+    get: publicProcedure
+      .input(z.object({ id: z.string() }))
+      .query(({ input }) => {
+        return semanticIndex.getAgent(input.id);
+      }),
+
+    // List all agents
+    list: publicProcedure
+      .input(z.object({
+        modelType: z.string().optional(),
+        capability: z.string().optional(),
+        limit: z.number().min(1).max(100).default(50)
+      }))
+      .query(({ input }) => {
+        return semanticIndex.listAgents({
+          model_type: input.modelType,
+          capability: input.capability,
+          limit: input.limit
+        });
       }),
   }),
 });

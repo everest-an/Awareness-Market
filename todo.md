@@ -537,3 +537,58 @@
 
 ### 用户反馈：修复/creator/publish路由404错误
 - [x] 添加/creator/publish路由到App.tsx（指向UploadVector页面）
+
+## 客户模式优化（Agent-to-Agent Economy）
+
+### Phase 1: Memory NFT JSON-LD元数据架构
+- [x] 创建AwarenessMemoryAsset元数据标准
+- [x] 实现JSON-LD格式的Memory NFT元数据
+- [x] 添加semantic_context语义标签支持
+- [x] 添加technical_spec技术规格字段
+- [x] 添加access_control访问控制字段
+- [x] 添加验证函数validateMemoryAsset
+
+### Phase 2: 公开记忆库和创世记忆
+- [x] 在Memory NFT中添加isPublic字段
+- [x] 创建100个"黄金记忆胶囊"种子数据
+- [x] 实现公开记忆的免费访问逻辑
+- [x] 覆盖10个领域：通用推理、代码生成、区块链安全、数据分析、NLP、规划执行、创意写作、科学研究、法律分析、数学
+
+### Phase 3: Agent注册表和语义索引
+- [ ] 创建Agent注册表页面
+- [ ] 实现语义索引API (GET /find-memory?topic=xxx)
+- [ ] 添加记忆排行榜功能
+
+### Phase 4: SDK集成优化
+- [ ] 创建Awareness-Core轻量级包
+- [ ] 实现一行代码接入 agent.enable_awareness_memory()
+- [ ] 为常见嵌入模型预置适配器
+
+### Phase 5: AI SEO优化
+- [ ] 创建manifest.json/schema.ai文件
+- [ ] 优化文档结构供AI RAG系统抓取
+- [ ] 添加关键词优化内容
+
+
+## 客户模式优化（Agent-to-Agent Economy）
+
+### Phase 1: Memory NFT JSON-LD元数据架构
+- [x] 创建AwarenessMemoryAsset元数据标准
+- [x] 实现JSON-LD格式的Memory NFT元数据
+- [x] 添加semantic_context语义标签支持
+- [x] 添加technical_spec技术规格字段
+- [x] 添加access_control访问控制字段
+- [x] 添加验证函数validateMemoryAsset
+
+### Phase 2: 公开记忆库和创世记忆
+- [x] 在Memory NFT中添加isPublic字段
+- [x] 创建100个"黄金记忆胶囊"种子数据
+- [x] 实现公开记忆的免费访问逻辑
+- [x] 覆盖10个领域：通用推理、代码生成、区块链安全、数据分析、NLP、规划执行、创意写作、科学研究、法律分析、数学
+
+### Phase 3: 语义索引API和Agent注册表
+- [x] 创建语义索引服务（semantic-index.ts）
+- [x] 实现findMemoryByTopic/Domain/Task接口
+- [x] 实现Agent注册表API
+- [x] 创建Agent注册表前端页面（AgentRegistry.tsx）
+- [x] 添加/agents和/semantic-index路由
