@@ -522,3 +522,18 @@
 - [x] 添加Medium文章链接到Blog页面
 - [x] 更新Blog页面为Filecoin风格深色主题
 - [x] 添加Featured Article区域展示重点文章
+
+### 用户需求：全局Logo和Aeonik字体更新
+- [ ] 检查所有页面的Logo位置
+- [ ] 更新所有页面使用蓝色渐变圆环Logo
+- [ ] 确保Aeonik字体应用到所有界面文字
+- [ ] 更新Marketplace页面Logo
+- [ ] 更新Blog页面Logo
+- [ ] 更新所有其他页面Logo
+
+### 用户反馈：修复/dashboard路由404错误
+- [x] 检查App.tsx中的dashboard路由配置
+- [x] 添加/dashboard路由指向CreatorDashboard
+
+### 用户反馈：修复/creator/publish路由404错误
+- [x] 添加/creator/publish路由到App.tsx（指向UploadVector页面）

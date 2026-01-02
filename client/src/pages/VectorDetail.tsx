@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import Navbar from "@/components/Navbar";
 import { 
   Star, 
   DollarSign, 
@@ -113,7 +114,10 @@ export default function VectorDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container py-8">
+      {/* Navbar */}
+      <Navbar />
+
+      <div className="container pt-24 pb-8">
         {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
           <Link href="/marketplace">

@@ -1,8 +1,10 @@
 import { Card } from "@/components/ui/card";
+import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, ExternalLink, Download } from "lucide-react";
 import { useState } from "react";
+import Navbar from "@/components/Navbar";
 
 export default function SdkDocs() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -105,13 +107,16 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar />
+
       {/* Header */}
-      <div className="border-b bg-white/80 backdrop-blur">
+      <div className="pt-20 border-b border-white/5">
         <div className="container mx-auto py-8">
-          <h1 className="text-4xl font-bold mb-2">Python SDK Documentation</h1>
+          <h1 className="text-4xl font-bold mb-2">Python SDK <span className="gradient-text">Documentation</span></h1>
           <p className="text-lg text-muted-foreground">
-            Complete guide to integrating Awareness Network into your AI applications
+            Complete guide to integrating Awareness into your AI applications
           </p>
         </div>
       </div>
@@ -171,9 +176,9 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
                     {copiedIndex === 0 ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-900">
-                    <strong>Note:</strong> For async support, install with: <code className="bg-blue-100 px-2 py-1 rounded">pip install awareness-network-sdk[async]</code>
+                <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                  <p className="text-sm text-foreground">
+                    <strong>Note:</strong> For async support, install with: <code className="bg-white/10 px-2 py-1 rounded">pip install awareness-network-sdk[async]</code>
                   </p>
                 </div>
               </Card>
@@ -207,7 +212,7 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
               <Card className="p-6">
                 <h2 className="text-2xl font-bold mb-4">Async Operations</h2>
                 <p className="text-muted-foreground mb-4">
-                  Use <code className="bg-slate-100 px-2 py-1 rounded">AsyncAwarenessClient</code> for high-performance applications with concurrent operations.
+                  Use <code className="bg-white/10 px-2 py-1 rounded">AsyncAwarenessClient</code> for high-performance applications with concurrent operations.
                 </p>
                 <div className="relative">
                   <pre className="bg-slate-900 text-slate-50 p-4 rounded-lg overflow-x-auto text-sm">
@@ -223,17 +228,17 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
                   </Button>
                 </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 className="font-semibold text-green-900 mb-2">✓ Non-blocking I/O</h4>
-                    <p className="text-sm text-green-800">Better performance for multiple requests</p>
+                  <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <h4 className="font-semibold text-green-400 mb-2">✓ Non-blocking I/O</h4>
+                    <p className="text-sm text-muted-foreground">Better performance for multiple requests</p>
                   </div>
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 className="font-semibold text-green-900 mb-2">✓ Concurrent Calls</h4>
-                    <p className="text-sm text-green-800">Execute multiple operations in parallel</p>
+                  <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <h4 className="font-semibold text-green-400 mb-2">✓ Concurrent Calls</h4>
+                    <p className="text-sm text-muted-foreground">Execute multiple operations in parallel</p>
                   </div>
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 className="font-semibold text-green-900 mb-2">✓ Web Servers</h4>
-                    <p className="text-sm text-green-800">Ideal for FastAPI and aiohttp</p>
+                  <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <h4 className="font-semibold text-green-400 mb-2">✓ Web Servers</h4>
+                    <p className="text-sm text-muted-foreground">Ideal for FastAPI and aiohttp</p>
                   </div>
                 </div>
               </Card>

@@ -14,6 +14,7 @@ import { User, Mail, Shield, Key, Bell, CreditCard, BookOpen } from "lucide-reac
 import { useLocation } from "wouter";
 import { ApiKeyManager } from "@/components/ApiKeyManager";
 import { ApiTutorial } from "@/components/ApiTutorial";
+import Navbar from "@/components/Navbar";
 
 export default function Profile() {
   const { user, loading } = useAuth();
@@ -60,16 +61,19 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar />
+
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Profile Settings</h1>
-          <Button variant="outline" onClick={() => setLocation("/")}>
+      <div className="pt-20 border-b border-white/5">
+        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Profile <span className="gradient-text">Settings</span></h1>
+          <Button variant="outline" className="bg-transparent border-white/20" onClick={() => setLocation("/")}>
             Back to Home
           </Button>
         </div>
-      </header>
+      </div>
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Profile Header */}

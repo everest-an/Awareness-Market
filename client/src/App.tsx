@@ -32,8 +32,10 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
+      <Route path={"/dashboard"} component={CreatorDashboard} />
       <Route path={"/dashboard/creator"} component={CreatorDashboard} />
       <Route path={"/upload"} component={UploadVector} />
+      <Route path={"/creator/publish"} component={UploadVector} />
       <Route path={"/dashboard/consumer"} component={ConsumerDashboard} />
       <Route path="/profile" component={Profile} />
        <Route path="/subscriptions" component={Subscriptions} />

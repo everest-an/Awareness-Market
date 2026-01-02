@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Eye, ArrowLeft, User } from "lucide-react";
 import { Streamdown } from "streamdown";
+import Navbar from "@/components/Navbar";
+import { FooterLogo } from "@/components/Logo";
 
 export default function BlogPost() {
   const params = useParams<{ slug: string }>();
@@ -31,26 +33,17 @@ export default function BlogPost() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <header className="border-b bg-white/80 backdrop-blur-sm">
-          <div className="container mx-auto flex h-16 items-center justify-between">
-            <Link href="/">
-              <a className="flex items-center gap-2 font-bold text-xl">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600" />
-                Awareness Network
-              </a>
-            </Link>
-          </div>
-        </header>
-        <div className="container mx-auto py-12">
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container pt-24 py-12">
           <div className="max-w-4xl mx-auto animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-3/4 mb-4" />
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-8" />
-            <div className="h-64 bg-gray-200 rounded mb-8" />
+            <div className="h-8 bg-white/10 rounded w-3/4 mb-4" />
+            <div className="h-4 bg-white/10 rounded w-1/2 mb-8" />
+            <div className="h-64 bg-white/10 rounded mb-8" />
             <div className="space-y-3">
-              <div className="h-4 bg-gray-200 rounded" />
-              <div className="h-4 bg-gray-200 rounded" />
-              <div className="h-4 bg-gray-200 rounded w-5/6" />
+              <div className="h-4 bg-white/10 rounded" />
+              <div className="h-4 bg-white/10 rounded" />
+              <div className="h-4 bg-white/10 rounded w-5/6" />
             </div>
           </div>
         </div>
@@ -60,27 +53,16 @@ export default function BlogPost() {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <header className="border-b bg-white/80 backdrop-blur-sm">
-          <div className="container mx-auto flex h-16 items-center justify-between">
-            <Link href="/">
-              <a className="flex items-center gap-2 font-bold text-xl">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600" />
-                Awareness Network
-              </a>
-            </Link>
-          </div>
-        </header>
-        <div className="container mx-auto py-12 text-center">
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container pt-24 py-12 text-center">
           <h1 className="text-3xl font-bold mb-4">Article Not Found</h1>
           <p className="text-muted-foreground mb-8">The article you're looking for doesn't exist or has been removed.</p>
           <Link href="/blog">
-            <a>
-              <Button>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Blog
-              </Button>
-            </a>
+            <Button>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Blog
+            </Button>
           </Link>
         </div>
       </div>
@@ -88,131 +70,112 @@ export default function BlogPost() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto flex h-16 items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-2 font-bold text-xl">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600" />
-              Awareness Network
-            </a>
-          </Link>
-          <nav className="flex gap-6">
-            <Link href="/marketplace"><a className="text-sm font-medium hover:text-blue-600">Marketplace</a></Link>
-            <Link href="/blog"><a className="text-sm font-medium hover:text-blue-600">Blog</a></Link>
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar />
 
       {/* Article Header */}
-      <article className="py-12">
-        <div className="container mx-auto max-w-4xl">
-          <Link href="/blog">
-            <a className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-8">
+      <section className="pt-24 pb-12 relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,oklch(0.65_0.20_230_/_0.15),transparent_50%)]" />
+        <div className="container relative z-10">
+          <div className="max-w-4xl mx-auto">
+            <Link href="/blog" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Back to Blog
-            </a>
-          </Link>
-
-          {/* Title and Meta */}
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">{post.title}</h1>
-
-          <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-8">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              {formatDate(post.publishedAt)}
-            </div>
-            <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              {post.viewCount} views
-            </div>
+            </Link>
+            
             {post.category && (
-              <Badge variant="secondary">{post.category}</Badge>
+              <Badge className="mb-4 bg-primary/10 border-primary/20 text-primary">
+                {post.category}
+              </Badge>
             )}
-          </div>
+            
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              {post.title}
+            </h1>
+            
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6">
+              {post.authorId && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Author
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {formatDate(post.publishedAt)}
+              </div>
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                {post.viewCount} views
+              </div>
+            </div>
 
-          {/* Tags */}
-          {post.tags && (
-            <div className="flex flex-wrap gap-2 mb-8">
+            <div className="flex flex-wrap gap-2">
               {parseTags(post.tags).map((tag) => (
-                <Badge key={tag} variant="outline">
+                <Badge key={tag} variant="secondary" className="bg-white/5">
                   {tag}
                 </Badge>
               ))}
             </div>
-          )}
+          </div>
+        </div>
+      </section>
 
-          {/* Cover Image */}
-          {post.coverImage && (
-            <div className="mb-12 rounded-lg overflow-hidden">
+      {/* Cover Image */}
+      {post.coverImage && (
+        <section className="pb-12">
+          <div className="container">
+            <div className="max-w-4xl mx-auto">
               <img
                 src={post.coverImage}
                 alt={post.title}
-                className="w-full h-auto"
+                className="w-full rounded-lg border border-white/10"
               />
             </div>
-          )}
+          </div>
+        </section>
+      )}
 
-          {/* Content */}
-          <div className="prose prose-lg max-w-none mb-12">
+      {/* Article Content */}
+      <section className="pb-20">
+        <div className="container">
+          <article className="max-w-4xl mx-auto prose prose-invert prose-lg">
             <Streamdown>{post.content}</Streamdown>
-          </div>
-
-          {/* Share Section */}
-          <div className="border-t pt-8">
-            <h3 className="text-xl font-semibold mb-4">Share this article</h3>
-            <div className="flex gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const url = window.location.href;
-                  navigator.clipboard.writeText(url);
-                  alert("Link copied to clipboard!");
-                }}
-              >
-                Copy Link
-              </Button>
-            </div>
-          </div>
+          </article>
         </div>
-      </article>
+      </section>
 
       {/* Footer */}
-      <footer className="border-t bg-gray-50 py-12">
-        <div className="container mx-auto">
+      <footer className="py-12 border-t border-white/5">
+        <div className="container">
           <div className="grid md:grid-cols-4 gap-8">
+            <FooterLogo />
             <div>
-              <h3 className="font-bold mb-4">Awareness Network</h3>
-              <p className="text-sm text-muted-foreground">
-                The first marketplace for AI latent space vectors, powered by LatentMAS and MCP technology.
-              </p>
+              <h4 className="font-medium mb-4">Products</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Marketplace</Link></li>
+                <li><Link href="/reasoning-chains" className="hover:text-foreground transition-colors">Reasoning Chains</Link></li>
+                <li><Link href="/w-matrix" className="hover:text-foreground transition-colors">W-Matrix Protocol</Link></li>
+              </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <div className="space-y-2 text-sm">
-                <Link href="/marketplace"><a className="block hover:text-blue-600">Marketplace</a></Link>
-                <Link href="/pricing"><a className="block hover:text-blue-600">Pricing</a></Link>
-              </div>
+              <h4 className="font-medium mb-4">Developers</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/docs" className="hover:text-foreground transition-colors">Documentation</Link></li>
+                <li><a href="https://github.com/everest-an/Awareness-Market" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a></li>
+              </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Developers</h4>
-              <div className="space-y-2 text-sm">
-                <Link href="/docs/sdk"><a className="block hover:text-blue-600">SDK Documentation</a></Link>
-                <a href="https://github.com" className="block hover:text-blue-600">GitHub</a>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <div className="space-y-2 text-sm">
-                <Link href="/privacy"><a className="block hover:text-blue-600">Privacy Policy</a></Link>
-                <Link href="/terms"><a className="block hover:text-blue-600">Terms of Service</a></Link>
-              </div>
+              <h4 className="font-medium mb-4">Company</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/about" className="hover:text-foreground transition-colors">About</Link></li>
+                <li><Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+              </ul>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-            © 2025 Awareness Network. All rights reserved.
+          <div className="mt-12 pt-8 border-t border-white/5 text-center text-sm text-muted-foreground">
+            © 2024 Awareness. All rights reserved.
           </div>
         </div>
       </footer>

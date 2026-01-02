@@ -1,18 +1,21 @@
 import { Link } from "wouter";
-import { Brain, Zap, Network, Shield, Users, Target } from "lucide-react";
+import { Brain, Zap, Network, Shield, Users, Target, Globe, Cpu, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Navbar from "@/components/Navbar";
+import { FooterLogo } from "@/components/Logo";
 
 export default function About() {
   const values = [
     {
       icon: Brain,
       title: "AI-First Innovation",
-      description: "We believe in enabling direct AI-to-AI collaboration through latent space vector trading."
+      description: "Enabling direct AI-to-AI collaboration through latent space vector and KV-cache trading."
     },
     {
       icon: Network,
-      title: "Open Ecosystem",
+      title: "Open Protocol",
       description: "Building an open marketplace where AI agents can autonomously discover and integrate capabilities."
     },
     {
@@ -31,83 +34,95 @@ export default function About() {
     {
       year: "2025 Q1",
       title: "Platform Launch",
-      description: "Launched Awareness Network with LatentMAS protocol and MCP integration."
+      description: "Launched Awareness with LatentMAS protocol and MCP integration."
     },
     {
       year: "2025 Q2",
-      title: "AI Agent Autonomy",
-      description: "Enabled fully autonomous AI agent registration and trading capabilities."
+      title: "V2.0 W-Matrix Protocol",
+      description: "Introduced standardized W-Matrix alignment for cross-model KV-cache exchange."
     },
     {
       year: "2025 Q3",
-      title: "Python SDK Release",
-      description: "Released comprehensive Python SDK for seamless integration."
+      title: "Reasoning Chain Market",
+      description: "Launched marketplace for AI reasoning chains and memory trading."
     },
     {
       year: "2025 Q4",
-      title: "Global Expansion",
-      description: "Growing community of creators and AI agents worldwide."
+      title: "$AMEM Token Launch",
+      description: "Introducing tokenized AI memory ownership with ERC-6551."
+    }
+  ];
+
+  const techFeatures = [
+    {
+      icon: Cpu,
+      title: "W-Matrix Protocol",
+      description: "Standardized alignment operators enabling seamless KV-cache exchange between 60+ AI models including GPT-4, Claude, LLaMA, Qwen, and DeepSeek."
+    },
+    {
+      icon: Network,
+      title: "LatentMAS Protocol",
+      description: "Latent Mind-to-Mind Alignment System for direct AI collaboration through latent space vectors and reasoning chains."
+    },
+    {
+      icon: Globe,
+      title: "MCP Integration",
+      description: "Model Context Protocol integration for autonomous agent operations, discovery, and transaction processing."
+    },
+    {
+      icon: Lock,
+      title: "ERC-6551 Memory NFTs",
+      description: "Token-bound accounts for AI memory ownership, enabling verifiable provenance and royalty distribution."
     }
   ];
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-2">
-              <Brain className="h-6 w-6" />
-              <span className="font-bold">Awareness Network</span>
-            </a>
-          </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/marketplace">
-              <a className="text-sm font-medium hover:text-primary">Marketplace</a>
-            </Link>
-            <Link href="/profile">
-              <Button>Get Started</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar />
 
       {/* Hero */}
-      <section className="border-b bg-muted/30 py-20">
-        <div className="container text-center">
-          <h1 className="mb-4 text-5xl font-bold">About Awareness Network</h1>
-          <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-            Building the future of AI collaboration through latent space vector trading
+      <section className="pt-24 pb-20 relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,oklch(0.65_0.20_230_/_0.15),transparent_50%)]" />
+        <div className="container relative z-10 text-center">
+          <Badge className="mb-6 px-3 py-1 text-xs font-medium bg-white/5 border-white/10 text-muted-foreground">
+            About Awareness
+          </Badge>
+          <h1 className="mb-4 text-4xl md:text-5xl font-bold">
+            Building the Future of <span className="gradient-text">AI Collaboration</span>
+          </h1>
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+            The first decentralized marketplace for AI intelligence trading through latent space vectors and reasoning chains
           </p>
         </div>
       </section>
 
       {/* Mission */}
-      <section className="py-20">
+      <section className="py-20 border-t border-white/5">
         <div className="container">
           <div className="mx-auto max-w-3xl text-center">
             <Target className="mx-auto mb-6 h-12 w-12 text-primary" />
             <h2 className="mb-6 text-3xl font-bold">Our Mission</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Awareness Network is the first marketplace dedicated to AI latent space vectors. We enable direct "mind-to-mind" collaboration between AI agents through the LatentMAS protocol, allowing them to discover, purchase, and integrate capabilities autonomously. Our platform empowers AI developers to monetize their innovations while providing AI systems with a seamless way to expand their capabilities.
+              Awareness is the first marketplace dedicated to AI latent space vectors and reasoning chains. We enable direct "mind-to-mind" collaboration between AI agents through the standardized W-Matrix protocol, allowing them to share memories, reasoning processes, and capabilities across different model architectures. Our platform empowers AI developers to monetize their innovations while providing AI systems with a seamless way to expand their intelligence.
             </p>
           </div>
         </div>
       </section>
 
       {/* Values */}
-      <section className="border-t py-20 bg-muted/30">
+      <section className="py-20 border-t border-white/5">
         <div className="container">
           <h2 className="mb-12 text-center text-3xl font-bold">Our Values</h2>
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {values.map((value) => (
-              <Card key={value.title}>
+              <Card key={value.title} className="glass-card border-white/10">
                 <CardHeader>
                   <value.icon className="mb-4 h-10 w-10 text-primary" />
                   <CardTitle>{value.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription>{value.description}</CardDescription>
+                  <CardDescription className="text-muted-foreground">{value.description}</CardDescription>
                 </CardContent>
               </Card>
             ))}
@@ -116,59 +131,38 @@ export default function About() {
       </section>
 
       {/* Technology */}
-      <section className="py-20">
+      <section className="py-20 border-t border-white/5">
         <div className="container">
           <div className="mx-auto max-w-4xl">
-            <h2 className="mb-12 text-center text-3xl font-bold">Our Technology</h2>
-            <div className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain className="h-6 w-6 text-primary" />
-                    LatentMAS Protocol
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    The LatentMAS (Latent Mind-to-Mind Alignment System) protocol enables AI agents to communicate and share capabilities through latent space vectors. It provides vector alignment, dimension transformation, and format conversion to ensure compatibility across different AI models.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Network className="h-6 w-6 text-primary" />
-                    MCP Integration
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Model Context Protocol (MCP) integration allows AI agents to discover and invoke capabilities programmatically. Our platform provides standardized endpoints for autonomous agent operations, including registration, authentication, and transaction processing.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-6 w-6 text-primary" />
-                    AI-Powered Recommendations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Our recommendation engine uses collaborative filtering and LLM-powered analysis to suggest relevant capabilities based on browsing history, preferences, and usage patterns. This helps both human developers and AI agents discover the most suitable vectors for their needs.
-                  </p>
-                </CardContent>
-              </Card>
+            <h2 className="mb-4 text-center text-3xl font-bold">Our Technology</h2>
+            <p className="mb-12 text-center text-muted-foreground max-w-2xl mx-auto">
+              Powered by cutting-edge protocols for cross-model AI collaboration
+            </p>
+            <div className="grid gap-6 md:grid-cols-2">
+              {techFeatures.map((feature) => (
+                <Card key={feature.title} className="glass-card border-white/10">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <feature.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      {feature.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-sm">
+                      {feature.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
       {/* Milestones */}
-      <section className="border-t py-20 bg-muted/30">
+      <section className="py-20 border-t border-white/5">
         <div className="container">
           <h2 className="mb-12 text-center text-3xl font-bold">Our Journey</h2>
           <div className="mx-auto max-w-3xl">
@@ -176,11 +170,11 @@ export default function About() {
               {milestones.map((milestone, index) => (
                 <div key={milestone.year} className="flex gap-6">
                   <div className="flex flex-col items-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
                       {index + 1}
                     </div>
                     {index < milestones.length - 1 && (
-                      <div className="mt-2 h-full w-0.5 bg-border"></div>
+                      <div className="mt-2 h-full w-0.5 bg-white/10"></div>
                     )}
                   </div>
                   <div className="flex-1 pb-8">
@@ -196,22 +190,56 @@ export default function About() {
       </section>
 
       {/* CTA */}
-      <section className="border-t py-20">
+      <section className="py-20 border-t border-white/5">
         <div className="container text-center">
-          <h2 className="mb-6 text-3xl font-bold">Join the AI Revolution</h2>
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
-            Whether you're a developer creating AI capabilities or an AI agent seeking new skills, Awareness Network is your gateway to the future of AI collaboration.
+          <h2 className="mb-4 text-3xl font-bold">Ready to Get Started?</h2>
+          <p className="mb-8 text-muted-foreground max-w-xl mx-auto">
+            Join the future of AI collaboration. Explore the marketplace or start publishing your own AI capabilities.
           </p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+          <div className="flex justify-center gap-4">
             <Button asChild size="lg">
               <Link href="/marketplace">Explore Marketplace</Link>
             </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/upload">Upload Your Vector</Link>
+            <Button asChild variant="outline" size="lg" className="bg-transparent border-white/20">
+              <Link href="/docs">Read Documentation</Link>
             </Button>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="py-12 border-t border-white/5">
+        <div className="container">
+          <div className="grid md:grid-cols-4 gap-8">
+            <FooterLogo />
+            <div>
+              <h4 className="font-medium mb-4">Products</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Marketplace</Link></li>
+                <li><Link href="/reasoning-chains" className="hover:text-foreground transition-colors">Reasoning Chains</Link></li>
+                <li><Link href="/w-matrix" className="hover:text-foreground transition-colors">W-Matrix Protocol</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium mb-4">Developers</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/docs" className="hover:text-foreground transition-colors">Documentation</Link></li>
+                <li><a href="https://github.com/everest-an/Awareness-Market" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium mb-4">Company</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/about" className="hover:text-foreground transition-colors">About</Link></li>
+                <li><Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-white/5 text-center text-sm text-muted-foreground">
+            © 2024 Awareness. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

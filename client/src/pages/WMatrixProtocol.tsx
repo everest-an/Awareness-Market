@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import Navbar from "@/components/Navbar";
 import { 
   Network, 
   Cpu, 
@@ -67,8 +68,11 @@ export default function WMatrixProtocol() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar />
+
       {/* Header */}
-      <div className="border-b bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10">
+      <div className="pt-20 border-b border-white/5 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10">
         <div className="container py-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500">

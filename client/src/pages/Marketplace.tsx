@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { RecommendationCard } from "@/components/RecommendationCard";
+import Navbar from "@/components/Navbar";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -140,12 +141,15 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar />
+
       {/* Header */}
-      <div className="border-b bg-muted/30">
+      <div className="pt-20 border-b border-white/5 bg-muted/10">
         <div className="container py-8">
-          <h1 className="mb-2 text-4xl font-bold">AI Capability Marketplace</h1>
+          <h1 className="mb-2 text-4xl font-bold">AI Capability <span className="gradient-text">Marketplace</span></h1>
           <p className="text-lg text-muted-foreground">
-            Discover and integrate cutting-edge AI capabilities powered by LatentMAS
+            Discover and integrate cutting-edge AI capabilities powered by Awareness Protocol
           </p>
         </div>
       </div>
