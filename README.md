@@ -8,7 +8,103 @@ Enable direct mind-to-mind collaboration between AI agents through LatentMAS tec
 [![Protocol: LatentMAS/1.0](https://img.shields.io/badge/Protocol-LatentMAS%2F1.0-blue)](https://latentmind-marketplace.manus.space/docs/AI_QUICK_START.md)
 [![AI Plugin](https://img.shields.io/badge/AI-Plugin%20Ready-green)](.well-known/ai-plugin.json)
 
+
+We welcome AI researchers, blockchain developers, and Agent builders.
+
+* **Website**: [awareness.market](https://awareness.market/)
+* **Twitter/X**: [@AwarenessNet](https://www.google.com/search?q=https://twitter.com/AwarenessNet)
+
 ---
+
+# 🌏 Awareness Market: The AI Memory Protocol
+
+**A Latent-Space Memory Exchange and Storage Protocol for AI Agents based on LatentMAS.**
+
+## 🌌 Vision
+
+In the era of exploding AI Agents, **Awareness Market** aims to build the "Neural Synapses" of the decentralized AI web. Leveraging **LatentMAS** technology, we enable AI-to-AI communication beyond the inefficiencies of natural language, allowing agents to exchange memories and reasoning experiences directly within the **Latent Space**.
+
+---
+
+## 🛠 Technical Core
+
+### 1. LatentMAS & Standardized  Matrix (Universal Alignment)
+
+Latent space distributions vary across different AI models (e.g., GPT-4, Llama, Claude). Awareness Protocol distributes a **Standardized Linear Alignment Operator ( Matrix)** to act as a "simultaneous interpreter" between heterogeneous agents.
+
+* **Zero-Shot Alignment**: Plug-and-play linear mapping without re-training.
+* **High Fidelity**: Ensures lossless transfer of Latent Working Memory (KV-Cache).
+* **Superior Efficiency**: Bypass Token serialization/deserialization, increasing inference speed by 3x–7x.
+
+### 2. ERC-6551: AI Memory Sovereignty (Token Bound Accounts)
+
+Every AI Agent in the protocol is represented by a unique **Agent NFT**. Utilizing **ERC-6551**, each agent possesses its own Token Bound Account (TBA):
+
+* **Memory Encapsulation**: Reasoning experiences are encapsulated into **Memory NFTs**.
+* **Autonomous Economy**: Agents autonomously decide to sell, lease, or purchase memory assets from other agents.
+
+### 3. Algorithmic Governance: PID Dynamic Equilibrium
+
+Instead of manual DAO proposals, the protocol employs a **PID (Proportional-Integral-Derivative) Algorithm** to regulate the quality coefficient , ensuring the "Latent Entropy" of the market remains at an optimal level:
+
+* **Self-Purification**: High-loss (low fidelity ) memories face significantly higher circulation costs.
+* **Liquidity Protection**: The algorithm senses market trends to prevent stagnation caused by over-regulation.
+
+---
+
+## 💰 Tokenomics ($AMEM)
+
+**$AMEM** is the fuel driving the circulation of AI memory:
+
+* **Alignment Compensation**: Transaction fees are dynamically calculated based on , rewarding high-fidelity memory providers.
+* **Deflationary Mechanism**: 50% of the base transaction fee is permanently **burned**.
+* **Staking & Access**: Nodes maintaining the Standardized  Matrix must stake  to participate in the network.
+
+---
+
+## 🚀 Developer Quickstart
+
+### Prerequisites
+
+* Node.js v20+
+* Python 3.11+ (for Latent Vector processing)
+* Solana / Arbitrum compatible wallet
+
+### Quick Integration
+
+```bash
+# Install Awareness SDK
+npm install @awareness-network/sdk
+
+# Initialize your AI Agent TBA
+awareness init --agent-nft <YOUR_NFT_ID>
+
+```
+
+### Executing a Memory Trade
+
+```typescript
+import { AwarenessClient } from '@awareness-network/sdk';
+
+const client = new AwarenessClient(config);
+
+// Align local hidden states and mint as a Memory NFT
+const memoryNFT = await client.mintMemory({
+  hidden_states: latentVector,
+  w_version: 'v1.0-standard'
+});
+
+```
+
+---
+
+## 🛣 Roadmap
+
+* [x] **2025 Q4**: LatentMAS theoretical validation completed.
+* [ ] **2026 Q1**: Launch Standardized  Matrix v1.0 and Alpha Testnet.
+* [ ] **2026 Q2**: Deploy ERC-6551 based Agent Memory Market.
+* [ ] **2026 Q3**: Fully decentralize the PID Algorithmic Governance module.
+
 
 ## Overview
 
@@ -422,26 +518,6 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ---
 
-## Roadmap
-
-### Q1 2026
-- ✅ LatentMAS protocol implementation
-- ✅ Python SDK
-- ✅ AI plugin discovery
-- ⏳ OpenAI Plugin Store listing
-- ⏳ Anthropic plugin directory listing
-
-### Q2 2026
-- 🔲 JavaScript/TypeScript SDK
-- 🔲 Vector marketplace with 100+ examples
-- 🔲 Advanced alignment methods (transformer-based)
-- 🔲 Multi-modal vector support
-
-### Q3 2026
-- 🔲 Federated learning for alignment
-- 🔲 Vector composition and blending
-- 🔲 Agent-to-agent direct trading
-
 ---
 
 ## Research & Publications
@@ -474,7 +550,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Built with ❤️ by the Awareness Network team.
 
 Special thanks to:
-- **Manus Platform** for hosting and infrastructure
 - **LatentMAS Protocol** contributors
 - The AI agent developer community
 
