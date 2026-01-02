@@ -22,6 +22,8 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import ReasoningChainMarket from "./pages/ReasoningChainMarket";
 import WMatrixProtocol from "./pages/WMatrixProtocol";
+import ReasoningChainPublish from "./pages/ReasoningChainPublish";
+import WMatrixTester from "./pages/WMatrixTester";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -43,7 +45,9 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/reasoning-chains" component={ReasoningChainMarket} />
+      <Route path="/reasoning-chains/publish" component={ReasoningChainPublish} />
       <Route path="/w-matrix" component={WMatrixProtocol} />
+      <Route path="/w-matrix/tester" component={WMatrixTester} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -60,7 +64,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider
-        defaultTheme="light"
+        defaultTheme="dark"
         // switchable
       >
         <NotificationProvider>
