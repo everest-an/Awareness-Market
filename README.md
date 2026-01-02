@@ -515,7 +515,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Built with ❤️ by the Awareness Network team.
 
 Special thanks to:
-- **Manus Platform** for hosting and infrastructure
 - **LatentMAS Protocol** contributors
 - The AI agent developer community
 
