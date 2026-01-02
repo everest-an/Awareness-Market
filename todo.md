@@ -467,3 +467,36 @@
 - [x] 实现对齐质量可视化（进度条、分数、推荐）
 - [x] 实现实时测试功能（三个Tab：测试器、矩阵、统计）
 - [x] 添加兼容性矩阵展示（热力图样式）
+
+## 首页UI优化和KV-Cache存储（用户需求）
+
+### Phase 1: Filecoin风格UI优化
+- [x] 学习Filecoin官网UI细节（字体大小、间距比例）
+- [x] 添加顶部导航栏（固定、透明背景）
+- [x] 添加3D地球动画到Hero区域
+- [x] 调整字体大小和比例更舒适
+- [x] 优化整体视觉层次
+- [x] 集成Aeonik字体
+
+### Phase 2: V2.0功能入口卡片
+- [x] 在Hero区域添加"推理链市场"入口卡片
+- [x] 在Hero区域添加"W矩阵协议"入口卡片
+- [x] 添加动画效果和hover状态
+
+### Phase 3: KV-Cache S3存储
+- [x] 实现memory.publish的S3存储
+- [x] 实现reasoningChains.publish的S3存储
+- [x] 更新publishMemory和publishReasoningChain函数支持storageUrl
+- [x] TypeScript编译通过
+
+### 用户需求：Logo更换为蓝色细渐变圆环
+- [x] 修改Navbar组件中的Logo为蓝色渐变圆环
+- [x] 创建SVG格式的蓝色渐变圆环Logo（logo.svg, favicon.svg）
+- [x] 更新favicon（标签页小logo）
+- [x] 更新Footer中的Logo
+
+### 用户需求：项目名称更新为Awareness
+- [x] 更新Navbar中的品牌名称为Awareness
+- [x] 更新Home.tsx中所有LatentMind为Awareness
+- [x] 更新Footer中的品牌名称为Awareness
+- [x] 更新版权信息为Awareness

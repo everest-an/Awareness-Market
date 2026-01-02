@@ -854,7 +854,7 @@ export const appRouter = router({
         });
       }),
 
-    // Publish a memory for sale
+    // Publish a memory for sale (with S3 storage)
     publish: creatorProcedure
       .input(z.object({
         memoryType: z.enum(["kv_cache", "reasoning_chain", "long_term_memory"]),
@@ -875,12 +875,18 @@ export const appRouter = router({
         description: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Store KV-cache data in S3
+        const kvCacheJson = JSON.stringify(input.kvCacheData);
+        const fileKey = `kv-cache/${ctx.user.id}/${nanoid()}-${Date.now()}.json`;
+        const { url: storageUrl } = await storagePut(fileKey, kvCacheJson, "application/json");
+        
         return await latentmas.publishMemory({
           sellerId: ctx.user.id,
           memoryType: input.memoryType,
           kvCacheData: input.kvCacheData as latentmas.KVCache,
           price: input.price,
           description: input.description,
+          storageUrl, // Pass S3 URL for persistence
         });
       }),
 
@@ -941,7 +947,7 @@ export const appRouter = router({
         });
       }),
 
-    // Publish a reasoning chain
+    // Publish a reasoning chain (with S3 storage)
     publish: creatorProcedure
       .input(z.object({
         chainName: z.string().min(1),
@@ -965,6 +971,11 @@ export const appRouter = router({
         pricePerUse: z.number().positive(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Store KV-cache snapshot in S3
+        const kvCacheJson = JSON.stringify(input.kvCacheSnapshot);
+        const fileKey = `reasoning-chains/${ctx.user.id}/${nanoid()}-${Date.now()}.json`;
+        const { url: storageUrl } = await storagePut(fileKey, kvCacheJson, "application/json");
+        
         return await latentmas.publishReasoningChain({
           creatorId: ctx.user.id,
           chainName: input.chainName,
@@ -974,6 +985,7 @@ export const appRouter = router({
           outputExample: input.outputExample,
           kvCacheSnapshot: input.kvCacheSnapshot as latentmas.KVCache,
           pricePerUse: input.pricePerUse,
+          storageUrl, // Pass S3 URL for persistence
         });
       }),
 

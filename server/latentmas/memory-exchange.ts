@@ -27,11 +27,12 @@ export async function publishMemory(params: {
   kvCacheData: KVCache;
   price: number;
   description?: string;
+  storageUrl?: string; // S3 URL for persisted KV-cache data
 }): Promise<{ id: number; success: boolean }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
-  const { sellerId, memoryType, kvCacheData, price } = params;
+  const { sellerId, memoryType, kvCacheData, price, storageUrl } = params;
 
   // Validate KV-cache data
   if (!kvCacheData.sourceModel || !kvCacheData.keys || !kvCacheData.values) {
@@ -189,6 +190,7 @@ export async function publishReasoningChain(params: {
   outputExample: any;
   kvCacheSnapshot: KVCache;
   pricePerUse: number;
+  storageUrl?: string; // S3 URL for persisted KV-cache data
 }): Promise<{ id: number; success: boolean }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -202,6 +204,7 @@ export async function publishReasoningChain(params: {
     outputExample,
     kvCacheSnapshot,
     pricePerUse,
+    storageUrl,
   } = params;
 
   const stepCount = kvCacheSnapshot.keys.length || 1;
