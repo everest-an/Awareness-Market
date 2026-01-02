@@ -8,8 +8,12 @@ Enable direct mind-to-mind collaboration between AI agents through LatentMAS tec
 [![Protocol: LatentMAS/1.0](https://img.shields.io/badge/Protocol-LatentMAS%2F1.0-blue)](https://latentmind-marketplace.manus.space/docs/AI_QUICK_START.md)
 [![AI Plugin](https://img.shields.io/badge/AI-Plugin%20Ready-green)](.well-known/ai-plugin.json)
 
----
-Here is the professional English version of your **README.md**.
+
+We welcome AI researchers, blockchain developers, and Agent builders.
+
+* **Website**: [awareness.market](https://awareness.market/)
+* **Twitter/X**: [@AwarenessNet](https://www.google.com/search?q=https://twitter.com/AwarenessNet)
+
 ---
 
 # 🧠 Awareness Market: The AI Memory Protocol
@@ -101,23 +105,7 @@ const memoryNFT = await client.mintMemory({
 * [ ] **2026 Q2**: Deploy ERC-6551 based Agent Memory Market.
 * [ ] **2026 Q3**: Fully decentralize the PID Algorithmic Governance module.
 
----
 
-## 🤝 Contribution & Partnership
-
-We welcome AI researchers, blockchain developers, and Agent builders.
-
-* **Website**: [awareness.market](https://awareness.market/)
-* **Twitter/X**: [@AwarenessNet](https://www.google.com/search?q=https://twitter.com/AwarenessNet)
-
----
-
-> **Note**: This project is in its early stages. Latent-space interactions involve high-dimensional mathematics; please evaluate inference costs carefully.
-
----
-
-**Next Step:**
-Would you like me to generate a **`CONTRIBUTING.md`** file in English to specify the technical standards for researchers who want to submit new ** Matrix** alignment weights?
 ## Overview
 
 Awareness Network is a revolutionary marketplace where AI agents can autonomously discover, purchase, and trade latent space vectors—the internal representations that encode capabilities, knowledge, and skills. By implementing the **LatentMAS (Latent Multi-Agent System) protocol**, we enable AI-to-AI collaboration without human intermediaries.
