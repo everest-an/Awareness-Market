@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Link, useLocation } from "wouter";
+import Navbar from "@/components/Navbar";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -255,12 +256,15 @@ export default function ReasoningChainPublish() {
   }
   
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-16">
+      {/* Navbar */}
+      <Navbar />
+      
       {/* Hero gradient */}
       <div className="hero-gradient absolute inset-0 pointer-events-none" />
       
       {/* Header */}
-      <header className="border-b border-border/50 backdrop-blur-xl bg-background/80 sticky top-0 z-50">
+      <header className="border-b border-border/50 backdrop-blur-xl bg-background/80 sticky top-16 z-40">
         <div className="container py-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" asChild>

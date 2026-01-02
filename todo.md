@@ -655,3 +655,27 @@
 ### OG图片 (2026-01-03)
 - [x] 创建og-image.png用于社交媒体分享预览
 - [x] 创建twitter-image.png用于Twitter分享
+
+### Vercel迁移 (2026-01-03)
+- [ ] 分析当前项目Manus依赖
+- [ ] 创建vercel.json配置文件
+- [ ] 重构认证系统（替换Manus OAuth为NextAuth/Clerk）
+- [ ] 配置外部数据库（PlanetScale）
+- [ ] 重构LLM服务调用（使用OpenAI API直接调用）
+- [ ] 重构存储服务（使用S3/Cloudflare R2）
+- [ ] 创建部署文档
+- [ ] 推送代码到GitHub
+- [ ] 部署到Vercel
+- [ ] 测试验证
+
+
+## Bug修复（用户反馈 2026-01-03）
+- [ ] 修复SDK文档页面404错误（首页开发者链接）
+- [ ] 修复Publish Reasoning Chain页面缺少顶部导航栏
+
+
+## Bug修复（用户反馈 2026-01-03）
+- [x] 修复SDK文档页面404错误（/docs/whitepaper链接改为/w-matrix）
+- [x] 修复Publish Reasoning Chain页面缺少顶部导航栏
+- [x] 修复Publish Reasoning Chain页面内容被导航栏遮挡（添加pt-16）
+- [x] 修复SDK页面Footer中的/docs/api链接改为/api-docs

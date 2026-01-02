@@ -386,7 +386,7 @@ export default function SDKPage() {
                 View on GitHub
               </Button>
             </a>
-            <Link href="/docs/whitepaper">
+            <Link href="/w-matrix">
               <Button variant="outline" className="border-gray-700 hover:bg-gray-800">
                 <BookOpen className="mr-2 h-4 w-4" />
                 Read Documentation
@@ -702,12 +702,12 @@ export default function SDKPage() {
             <a href="https://github.com/everest-an/Awareness-Market" className="hover:text-white transition-colors">
               GitHub
             </a>
-            <Link href="/docs/whitepaper" className="hover:text-white transition-colors">
-              Whitepaper
+            <Link href="/about" className="hover:text-white transition-colors">
+              About
             </Link>
-            <Link href="/docs/api" className="hover:text-white transition-colors">
+            <a href="/api-docs" className="hover:text-white transition-colors">
               API Reference
-            </Link>
+            </a>
           </div>
         </div>
       </footer>
