@@ -640,3 +640,8 @@
 - [x] 文件解耦整理 (schema.ts导出38个表，全部正确)
 - [x] 修复浏览器标签品牌名称：LatentMind Marketplace -> Awareness (用户已手动更新)
 - [x] 修复/docs页面404错误，确保SDK文档页面可访问
+- [x] 修复/reasoning-chains页面缺少导航栏问题
+
+### 新增需求 (2026-01-03 15:20)
+- [x] 运行Genesis Memories种子脚本填充100个黄金记忆胶囊 (已存在100条记录)
+- [x] 完善Agent Registry页面添加真实数据和搜索功能 (创建seed-agents.mjs种子脚本)

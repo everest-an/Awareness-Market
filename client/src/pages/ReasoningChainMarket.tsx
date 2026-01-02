@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
+import Navbar from "@/components/Navbar";
 import { 
   Search, 
   SlidersHorizontal, 
@@ -184,8 +185,11 @@ export default function ReasoningChainMarket() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar />
+      
       {/* Header */}
-      <div className="border-b bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10">
+      <div className="border-b bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10 pt-16">
         <div className="container py-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500">
