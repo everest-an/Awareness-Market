@@ -651,3 +651,7 @@
 - [x] 优化标题长度（从9字符增加到49字符）
 - [x] 缩短描述长度（从187字符减少到107字符）
 - [x] 更新域名为awareness.market
+
+### OG图片 (2026-01-03)
+- [x] 创建og-image.png用于社交媒体分享预览
+- [x] 创建twitter-image.png用于Twitter分享
