@@ -176,13 +176,13 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
-                  href={getLoginUrl()}
+                  href="/auth"
                   className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Sign In
                 </Link>
                 <Button asChild size="sm" className="rounded-full px-4">
-                  <a href={getLoginUrl()}>Get Started</a>
+                  <Link href="/auth">Get Started</Link>
                 </Button>
               </>
             )}

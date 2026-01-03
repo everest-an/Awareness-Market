@@ -7,16 +7,18 @@ import { relations } from "drizzle-orm";
  */
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  openId: varchar("openId", { length: 64 }).unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  password: varchar("password", { length: 255 }), // bcrypt hashed password
+  emailVerified: boolean("email_verified").default(false),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin", "creator", "consumer"]).default("consumer").notNull(),
   bio: text("bio"),
   avatar: text("avatar"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  lastSignedIn: timestamp("lastSignedIn").defaultNow(),
 });
 
 /**

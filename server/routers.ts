@@ -17,6 +17,7 @@ import { reviews, latentVectors } from "../drizzle/schema";
 import * as latentmas from "./latentmas";
 import * as semanticIndex from "./semantic-index";
 import { GENESIS_MEMORIES } from "../shared/genesis-memories";
+import * as authStandalone from "./auth-standalone";
 
 // Helper to ensure user is a creator
 const creatorProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -44,6 +45,33 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    
+    // Email/Password Authentication
+    registerEmail: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(8),
+        name: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await authStandalone.registerWithEmail(input);
+      }),
+    
+    loginEmail: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const result = await authStandalone.loginWithEmail(input);
+        if (result.success && result.accessToken) {
+          // Set JWT token in HTTP-only cookie
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie('jwt_token', result.accessToken, cookieOptions);
+          ctx.res.cookie('jwt_refresh', result.refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
+        }
+        return result;
+      }),
     updateRole: protectedProcedure
       .input(z.object({ role: z.enum(["creator", "consumer"]) }))
       .mutation(async ({ ctx, input }) => {

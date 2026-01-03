@@ -702,9 +702,9 @@ export default function SDKPage() {
             <a href="https://github.com/everest-an/Awareness-Market" className="hover:text-white transition-colors">
               GitHub
             </a>
-            <Link href="/about" className="hover:text-white transition-colors">
-              About
-            </Link>
+            <a href="https://github.com/everest-an/Awareness-Market/blob/main/docs/WHITEPAPER_COMPLETE.md" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              Whitepaper
+            </a>
             <a href="/api-docs" className="hover:text-white transition-colors">
               API Reference
             </a>

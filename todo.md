@@ -679,3 +679,36 @@
 - [x] 修复Publish Reasoning Chain页面缺少顶部导航栏
 - [x] 修复Publish Reasoning Chain页面内容被导航栏遮挡（添加pt-16）
 - [x] 修复SDK页面Footer中的/docs/api链接改为/api-docs
+
+
+## AWS独立部署优化（2026-01-03）
+- [ ] 实现邮箱/密码注册功能
+- [ ] 实现邮箱/密码登录功能
+- [ ] 添加密码加密存储（bcrypt）
+- [ ] 实现GitHub OAuth登录
+- [ ] 实现Hugging Face OAuth登录
+- [ ] 实现Google OAuth登录（可选）
+- [ ] 创建统一的登录/注册页面UI
+- [ ] 更新导航栏登录链接
+- [ ] 移除Manus OAuth依赖
+- [ ] 配置Cloudflare CDN加速
+- [ ] 测试中国地区访问速度
+- [ ] 部署更新到EC2生产环境
+
+
+## 认证系统全面改造（2026-01-03 用户需求）
+- [x] 移除所有Manus OAuth引用（后端）
+- [x] 移除所有Manus OAuth引用（前端）
+- [x] 实现JWT令牌生成功能
+- [x] 实现JWT令牌验证中间件
+- [x] 更新useAuth hook使用JWT
+- [x] 更新所有受保护路由使用JWT认证
+- [x] 添加令牌刷新机制
+- [x] 测试注册流程
+- [x] 测试登录流程
+- [x] 测试受保护路由JWT验证
+- [x] 创建EC2部署包
+- [x] 编写部署文档
+- [x] 直接部署到AWS EC2
+- [x] 配置环境变量
+- [x] 验证生产环境运行

@@ -257,13 +257,28 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<User> {
-    // Regular authentication flow
     const cookies = this.parseCookies(req.headers.cookie);
+    
+    // Try JWT token first (new auth system)
+    const jwtToken = cookies.get('jwt_token');
+    if (jwtToken) {
+      try {
+        const authStandalone = await import('../auth-standalone');
+        const result = await authStandalone.getUserFromToken(jwtToken);
+        if (result.success && result.user) {
+          return result.user as User;
+        }
+      } catch (error) {
+        console.error("[Auth] JWT token validation failed:", error);
+      }
+    }
+
+    // Fallback to old Manus OAuth session (for backward compatibility during migration)
     const sessionCookie = cookies.get(COOKIE_NAME);
     const session = await this.verifySession(sessionCookie);
 
     if (!session) {
-      throw ForbiddenError("Invalid session cookie");
+      throw ForbiddenError("Invalid session or token");
     }
 
     const sessionUserId = session.openId;

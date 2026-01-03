@@ -26,12 +26,14 @@ import ReasoningChainPublish from "./pages/ReasoningChainPublish";
 import WMatrixTester from "./pages/WMatrixTester";
 import AgentRegistry from "./pages/AgentRegistry";
 import SDKPage from "./pages/SDKPage";
+import AuthPage from "./pages/AuthPage";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/auth"} component={AuthPage} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
       <Route path={"/dashboard"} component={CreatorDashboard} />
