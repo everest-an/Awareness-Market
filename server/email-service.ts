@@ -1,7 +1,9 @@
 /**
  * Email Service for sending verification codes and notifications
- * Uses AWS SES or SMTP for email delivery
+ * Uses Resend for email delivery
  */
+
+import { Resend } from 'resend';
 
 interface EmailOptions {
   to: string;
@@ -10,14 +12,20 @@ interface EmailOptions {
   text?: string;
 }
 
+// Initialize Resend client
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Email configuration
+const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@awareness.market';
+const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Awareness Market';
+
 /**
- * Send an email using console.log (development) or AWS SES (production)
- * TODO: Integrate with AWS SES or SendGrid for production
+ * Send an email using Resend
  */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
     // In development, just log the email
-    if (process.env.NODE_ENV !== "production") {
+    if (process.env.NODE_ENV !== "production" && !process.env.RESEND_API_KEY) {
       console.log("\n=== EMAIL SENT (DEV MODE) ===");
       console.log(`To: ${options.to}`);
       console.log(`Subject: ${options.subject}`);
@@ -26,10 +34,21 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       return true;
     }
 
-    // TODO: Implement AWS SES integration for production
-    // For now, log in production too
-    console.log(`[Email] Sending to ${options.to}: ${options.subject}`);
-    
+    // Send email via Resend
+    const { data, error } = await resend.emails.send({
+      from: `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`,
+      to: [options.to],
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+    });
+
+    if (error) {
+      console.error('[Email] Resend error:', error);
+      return false;
+    }
+
+    console.log(`[Email] Successfully sent to ${options.to} (ID: ${data?.id})`);
     return true;
   } catch (error) {
     console.error("[Email] Failed to send email:", error);

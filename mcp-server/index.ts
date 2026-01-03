@@ -76,7 +76,7 @@ async function fetchMemories(params: {
     throw new Error(`API request failed: ${response.statusText}`);
   }
   
-  const data = await response.json();
+  const data = await response.json() as any;
   return data.result?.data?.vectors || [];
 }
 
@@ -105,7 +105,7 @@ async function calculateAlignment(params: {
     throw new Error(`Alignment calculation failed: ${response.statusText}`);
   }
   
-  const data = await response.json();
+  const data = await response.json() as any;
   return data.result?.data || {
     sourceModel: params.sourceModel,
     targetModel: params.targetModel,
@@ -142,7 +142,7 @@ async function purchaseMemory(params: {
     };
   }
   
-  const data = await response.json();
+  const data = await response.json() as any;
   return {
     success: true,
     accessToken: data.result?.data?.accessToken,
@@ -382,7 +382,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     throw new Error(`Failed to fetch memory: ${response.statusText}`);
   }
   
-  const data = await response.json();
+  const data = await response.json() as any;
   const memory = data.result?.data;
   
   if (!memory) {
