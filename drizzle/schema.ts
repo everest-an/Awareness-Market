@@ -780,3 +780,48 @@ export type AlignmentCalculation = typeof alignmentCalculations.$inferSelect;
 export type InsertAlignmentCalculation = typeof alignmentCalculations.$inferInsert;
 
 // Force recompile Fri Jan  3 00:00:00 EST 2026
+
+/**
+ * W-Matrix storage for cross-model vector alignment
+ * Stores serialized W-Matrix data for reuse across sessions
+ */
+export const wMatrices = mysqlTable("w_matrices", {
+  id: int("id").autoincrement().primaryKey(),
+  matrixId: varchar("matrix_id", { length: 255 }).unique().notNull(), // e.g., "user123-1704268800000"
+  userId: int("user_id").notNull(), // Owner of the matrix
+  sourceModel: varchar("source_model", { length: 100 }).notNull(), // e.g., "gpt-3.5-turbo"
+  targetModel: varchar("target_model", { length: 100 }).notNull(), // e.g., "gpt-4"
+  sourceDim: int("source_dim").notNull(), // e.g., 1536
+  targetDim: int("target_dim").notNull(), // e.g., 3072
+  architecture: text("architecture").notNull(), // e.g., "1536 → 1920 → 2688 → 3072"
+  serializedData: longtext("serialized_data").notNull(), // JSON serialized matrix weights
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  usageCount: int("usage_count").default(0).notNull(), // Number of times used
+  lastUsedAt: timestamp("last_used_at"),
+});
+
+/**
+ * Anti-poisoning verification challenges
+ * Stores active challenges for vector verification
+ */
+export const challenges = mysqlTable("challenges", {
+  id: int("id").autoincrement().primaryKey(),
+  challengeId: varchar("challenge_id", { length: 255 }).unique().notNull(), // Hex string
+  nonce: varchar("nonce", { length: 255 }).notNull(), // Cryptographic nonce
+  testPrompts: longtext("test_prompts").notNull(), // JSON array of prompts
+  expectedPatterns: longtext("expected_patterns").notNull(), // JSON array of patterns
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(), // Challenge expiration
+  config: text("config"), // JSON: {fidelityThreshold, anomalyThreshold, challengeSize, timeoutMs}
+  status: mysqlEnum("status", ["active", "completed", "expired"]).default("active").notNull(),
+  verificationResult: text("verification_result"), // JSON: stored after verification
+});
+
+// Relations for wMatrices
+export const wMatricesRelations = relations(wMatrices, ({ one }) => ({
+  user: one(users, {
+    fields: [wMatrices.userId],
+    references: [users.id],
+  }),
+}));

@@ -28,6 +28,7 @@ import AgentRegistry from "./pages/AgentRegistry";
 import SDKPage from "./pages/SDKPage";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
+import LatentMASv2Demo from "./pages/LatentMASv2Demo";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/reasoning-chains/publish" component={ReasoningChainPublish} />
       <Route path="/w-matrix" component={WMatrixProtocol} />
       <Route path="/w-matrix/tester" component={WMatrixTester} />
+      <Route path="/latentmas-v2-demo" component={LatentMASv2Demo} />
       <Route path="/agents" component={AgentRegistry} />
       <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/sdk" component={SDKPage} />
