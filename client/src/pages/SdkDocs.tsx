@@ -394,6 +394,18 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
                     <ExternalLink className="h-5 w-5 text-muted-foreground" />
                   </a>
                   <a
+                    href="https://arxiv.org/html/2511.20639v2"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-4 border rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-between"
+                  >
+                    <div>
+                      <h4 className="font-semibold">LatentMAS Research Paper</h4>
+                      <p className="text-sm text-muted-foreground">Academic paper on arXiv</p>
+                    </div>
+                    <ExternalLink className="h-5 w-5 text-muted-foreground" />
+                  </a>
+                  <a
                     href="https://github.com/everest-an/Awareness-Market/blob/main/docs/WHITEPAPER.md"
                     target="_blank"
                     rel="noopener noreferrer"
