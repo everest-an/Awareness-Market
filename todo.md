@@ -737,3 +737,43 @@
 - [x] 实现数据加载状态
 - [x] 测试仪表板所有功能
 - [x] 部署到生产环境
+
+
+## Phase 2: W-Matrix对齐引擎开发（2026-01-03）
+
+### 数据库Schema扩展
+- [x] 扩展latent_vectors表（添加w_matrix_version, alignment_loss, fidelity_score等字段）
+- [x] 创建w_matrix_versions表（存储W矩阵版本和元数据）
+- [x] 创建alignment_calculations表（记录对齐计算历史）
+- [x] 运行数据库迁移（pnpm db:push）
+- [x] 验证新表结构
+
+### W-Matrix对齐引擎
+- [x] 创建server/alignment/目录结构
+- [x] 实现WMatrixAlignmentEngine类（Python）
+- [x] 实现Orthogonal Procrustes算法
+- [x] 实现LoRA低秩修正
+- [x] 实现epsilon值计算
+- [x] 实现fidelity boost估算
+- [x] 编写单元测试
+
+### API端点实现
+- [ ] 添加alignment.calculate tRPC端点
+- [ ] 添加alignment.getWMatrix tRPC端点
+- [ ] 添加数据库操作函数（db.ts）
+- [ ] 实现W矩阵文件存储逻辑
+- [ ] 测试API端点
+
+### 创世记忆生成
+- [ ] 编写数据生成脚本（generate_genesis_memories.py）
+- [ ] 定义10个核心领域和主题
+- [ ] 使用GPT-4生成100个高质量记忆
+- [ ] 计算对齐指标并过滤
+- [ ] 导入到数据库
+- [ ] 验证数据质量
+
+### 部署和测试
+- [ ] 本地测试完整流程
+- [ ] 构建生产版本
+- [ ] 部署到EC2
+- [ ] 验证生产环境功能

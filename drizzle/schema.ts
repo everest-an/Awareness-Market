@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, index } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, longtext, timestamp, varchar, decimal, boolean, bigint, index } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -46,7 +46,21 @@ export const latentVectors = mysqlTable("latent_vectors", {
   // V2.0: KV-cache support
   vectorType: mysqlEnum("vector_type", ["embedding", "kv_cache", "reasoning_chain"]).default("embedding").notNull(),
   kvCacheMetadata: text("kv_cache_metadata"), // JSON: {sourceModel, sequenceLength, tokenCount, contextDescription}
-  wMatrixVersion: varchar("w_matrix_version", { length: 20 }), // e.g., "1.0.0"
+  wMatrixVersion: varchar("w_matrix_version", { length: 20 }).default("v1.0.0"), // e.g., "v1.0.0"
+  wMatrixStandard: mysqlEnum("w_matrix_standard", ["4096", "8192"]).default("8192").notNull(),
+  alignmentLoss: decimal("alignment_loss", { precision: 10, scale: 8 }).default("0.0").notNull(), // ε value
+  fidelityScore: decimal("fidelity_score", { precision: 5, scale: 4 }).default("0.0").notNull(), // 0.0000-1.0000
+  sourceModel: varchar("source_model", { length: 50 }).default("unknown").notNull(), // "llama-3-70b"
+  sourceArchitecture: varchar("source_architecture", { length: 30 }), // "transformer"
+  hiddenDim: int("hidden_dim"), // Original model dimension
+  memoryType: mysqlEnum("memory_type", ["kv_cache", "reasoning_chain", "latent_vector", "expert_knowledge"]).default("latent_vector").notNull(),
+  nftTokenId: bigint("nft_token_id", { mode: "number", unsigned: true }), // ERC-6551 NFT ID
+  tbaAddress: varchar("tba_address", { length: 42 }), // Token Bound Account
+  memoryNftUri: text("memory_nft_uri"), // IPFS/Arweave CID
+  usageCount: int("usage_count").default(0).notNull(),
+  avgUserRating: decimal("avg_user_rating", { precision: 3, scale: 2 }), // 0.00-5.00
+  lastAccessedAt: timestamp("last_accessed_at"),
+  dynamicKFactor: decimal("dynamic_k_factor", { precision: 6, scale: 4 }).default("1.0000").notNull(), // PID-adjusted multiplier
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
@@ -690,19 +704,31 @@ export type InsertReasoningChain = typeof reasoningChains.$inferInsert;
  */
 export const wMatrixVersions = mysqlTable("w_matrix_versions", {
   id: int("id").autoincrement().primaryKey(),
-  version: varchar("version", { length: 20 }).notNull().unique(), // e.g., "1.0.0"
-  sourceModel: varchar("source_model", { length: 50 }).notNull(),
-  targetModel: varchar("target_model", { length: 50 }).notNull(),
-  method: mysqlEnum("method", ["orthogonal", "learned", "hybrid"]).notNull(),
-  unifiedDimension: int("unified_dimension").notNull(),
-  qualityMetrics: text("quality_metrics"), // JSON: {expectedQuality, informationRetention, computationalCost}
-  transformationRules: text("transformation_rules"), // JSON: serialized transformation rules
+  version: varchar("version", { length: 20 }).notNull().unique(), // e.g., "v1.0.0"
+  standardDim: int("standard_dim").notNull(), // 4096 or 8192
+  
+  // Matrix Storage (compressed)
+  matrixData: longtext("matrix_data"), // Serialized numpy array or safetensors
+  matrixFormat: mysqlEnum("matrix_format", ["numpy", "safetensors"]).default("safetensors").notNull(),
+  
+  // Metadata
+  sourceModels: text("source_models"), // JSON array: ["llama-3-70b", "mistral-7b"]
+  alignmentPairsCount: int("alignment_pairs_count"), // Number of anchor points used
+  avgReconstructionError: decimal("avg_reconstruction_error", { precision: 10, scale: 8 }),
+  
+  // Versioning
   isActive: boolean("is_active").default(true).notNull(),
-  description: text("description"),
+  deprecatedAt: timestamp("deprecated_at"),
+  
+  // Governance
+  maintainerAddress: varchar("maintainer_address", { length: 42 }), // Node operator TBA
+  totalUsageCount: bigint("total_usage_count", { mode: "number", unsigned: true }).default(0),
+  totalRewardsEarned: decimal("total_rewards_earned", { precision: 18, scale: 8 }).default("0.0"),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   versionIdx: index("version_idx").on(table.version),
-  modelPairIdx: index("model_pair_idx").on(table.sourceModel, table.targetModel),
+  standardDimIdx: index("standard_dim_idx").on(table.standardDim),
   isActiveIdx: index("is_active_idx").on(table.isActive),
 }));
 
@@ -728,4 +754,29 @@ export const passwordResetCodes = mysqlTable("password_reset_codes", {
 export type PasswordResetCode = typeof passwordResetCodes.$inferSelect;
 export type InsertPasswordResetCode = typeof passwordResetCodes.$inferInsert;
 
-// Force recompile Fri Jan  2 15:07:12 EST 2026
+/**
+ * Alignment calculations history
+ * Records each W-matrix alignment computation for auditing and analytics
+ */
+export const alignmentCalculations = mysqlTable("alignment_calculations", {
+  id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  vectorId: int("vector_id").notNull(),
+  wMatrixVersion: varchar("w_matrix_version", { length: 20 }).notNull(),
+  
+  // Calculation Results
+  epsilonValue: decimal("epsilon_value", { precision: 10, scale: 8 }).notNull(), // ||ω·z_A - z̄_std||²
+  fidelityBoostEstimate: decimal("fidelity_boost_estimate", { precision: 5, scale: 2 }), // Predicted improvement %
+  
+  // Computation Metadata
+  computedAt: timestamp("computed_at").defaultNow().notNull(),
+  computationTimeMs: int("computation_time_ms"),
+  gpuUsed: varchar("gpu_used", { length: 50 }),
+}, (table) => ({
+  vectorVersionIdx: index("vector_version_idx").on(table.vectorId, table.wMatrixVersion),
+  computedAtIdx: index("computed_at_idx").on(table.computedAt),
+}));
+
+export type AlignmentCalculation = typeof alignmentCalculations.$inferSelect;
+export type InsertAlignmentCalculation = typeof alignmentCalculations.$inferInsert;
+
+// Force recompile Fri Jan  3 00:00:00 EST 2026
