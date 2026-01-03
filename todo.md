@@ -906,3 +906,37 @@
 - [x] 验证生产环境正常运行
 - [ ] 编写MCP集成文档
 - [ ] 创建开发者指南
+
+
+## MCP服务器原型开发（2026-01-03）
+
+### Phase 1: MCP服务器基础架构
+- [x] 创建mcp-server目录结构
+- [x] 安装@modelcontextprotocol/sdk依赖
+- [x] 创建MCP服务器主文件（index.ts）
+- [x] 实现服务器初始化和配置
+- [x] 定义awareness://协议URI方案
+
+### Phase 2: 核心MCP工具和资源
+- [x] 实现search_latent_memory工具
+- [x] 实现calculate_alignment_gap工具
+- [x] 实现purchase_memory工具
+- [x] 实现awareness://memory/[domain]/[topic]资源
+- [x] 实现资源元数据API
+
+### Phase 3: 测试MCP服务器
+- [x] 创建MCP服务器测试脚本
+- [x] 测试工具调用
+- [x] 测试资源访问
+- [x] 测试错误处理
+
+### Phase 4: MCP客户端示例
+- [x] 创建TypeScript MCP测试客户端
+- [x] 编写客户端使用文档
+
+### Phase 5: 部署和文档
+- [x] 编写MCP集成指南
+- [x] 创建MCP服务器README
+- [x] 更新开发者文档
+- [ ] 部署MCP服务器到npm注册表
+- [ ] 创建MCP示例视频/GIF

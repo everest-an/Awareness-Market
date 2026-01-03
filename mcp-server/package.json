@@ -1,0 +1,29 @@
+{
+  "name": "awareness-mcp-server",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for Awareness Market",
+  "type": "module",
+  "main": "index.ts",
+  "bin": {
+    "awareness-mcp-server": "./index.ts"
+  },
+  "scripts": {
+    "start": "tsx index.ts",
+    "build": "tsc",
+    "test": "tsx test-client.ts"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "latent-vectors",
+    "awareness"
+  ],
+  "author": "Awareness Market",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
