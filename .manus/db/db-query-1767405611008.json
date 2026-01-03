@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, title, category, base_price, status FROM latent_vectors LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user BJCg398T6oWYDPo.root --database 7tmxppdWkaaTHYjCYTzpBr --execute SELECT id, title, category, base_price, status FROM latent_vectors LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "title": "GPT-4 Text Understanding",
+      "category": "text-generation",
+      "base_price": "49.99",
+      "status": "active"
+    },
+    {
+      "id": "2",
+      "title": "Claude Code Optimizer",
+      "category": "code-generation",
+      "base_price": "79.99",
+      "status": "active"
+    },
+    {
+      "id": "3",
+      "title": "Vision Transformer Embeddings",
+      "category": "image-analysis",
+      "base_price": "99.99",
+      "status": "active"
+    },
+    {
+      "id": "4",
+      "title": "LLaMA Reasoning Engine",
+      "category": "reasoning",
+      "base_price": "129.99",
+      "status": "active"
+    },
+    {
+      "id": "5",
+      "title": "Pandas Data Processor",
+      "category": "data-processing",
+      "base_price": "39.99",
+      "status": "active"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tcategory\tbase_price\tstatus\n1\tGPT-4 Text Understanding\ttext-generation\t49.99\tactive\n2\tClaude Code Optimizer\tcode-generation\t79.99\tactive\n3\tVision Transformer Embeddings\timage-analysis\t99.99\tactive\n4\tLLaMA Reasoning Engine\treasoning\t129.99\tactive\n5\tPandas Data Processor\tdata-processing\t39.99\tactive\n",
+  "stderr": "",
+  "execution_time_ms": 1533
+}

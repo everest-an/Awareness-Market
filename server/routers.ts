@@ -13,7 +13,7 @@ import * as recommendationEngine from "./recommendation-engine";
 import { createApiKey, listApiKeys, revokeApiKey, deleteApiKey } from "./api-key-manager.js";
 import * as blogDb from "./blog-db";
 import { getDb } from "./db";
-import { reviews, latentVectors } from "../drizzle/schema";
+import { reviews, latentVectors, wMatrixVersions, alignmentCalculations } from "../drizzle/schema";
 import * as latentmas from "./latentmas";
 import * as semanticIndex from "./semantic-index";
 import { GENESIS_MEMORIES } from "../shared/genesis-memories";
@@ -1318,6 +1318,136 @@ export const appRouter = router({
     activityTimeline: publicProcedure.query(() => {
       return semanticIndex.getAgentActivityTimeline();
     }),
+  }),
+
+  // W-Matrix Alignment System
+  alignment: router({
+    // Calculate alignment for a vector
+    calculate: publicProcedure
+      .input(z.object({
+        vectorData: z.array(z.number()),
+        wMatrixVersion: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const { alignmentService } = await import('./alignment/alignment-service');
+        const result = await alignmentService.computeAlignment(
+          JSON.stringify(input.vectorData),
+          input.wMatrixVersion
+        );
+        
+        // Log to database
+        const database = getDb();
+        await database.insert(alignmentCalculations).values({
+          vectorId: null, // Will be set if vector exists in DB
+          wMatrixVersion: input.wMatrixVersion,
+          epsilonValue: result.epsilon.toString(),
+          fidelityBoostEstimate: result.improvementPct.toString(),
+          computationTimeMs: result.computationTimeMs,
+        });
+        
+        return result;
+      }),
+
+    // Train new W-matrix
+    trainMatrix: adminProcedure
+      .input(z.object({
+        sourceVectors: z.array(z.array(z.number())),
+        targetVectors: z.array(z.array(z.number())),
+        standardDim: z.enum(['4096', '8192']),
+        version: z.string(),
+        sourceModels: z.array(z.string()),
+        useLora: z.boolean().default(true),
+        loraRank: z.number().default(64),
+      }))
+      .mutation(async ({ input }) => {
+        const { alignmentService } = await import('./alignment/alignment-service');
+        const result = await alignmentService.trainWMatrix(
+          input.sourceVectors,
+          input.targetVectors,
+          parseInt(input.standardDim) as 4096 | 8192,
+          { useLora: input.useLora, loraRank: input.loraRank }
+        );
+        
+        // Save to database
+        const database = getDb();
+        await database.insert(wMatrixVersions).values({
+          version: input.version,
+          standardDim: parseInt(input.standardDim),
+          matrixData: result.serializedMatrix,
+          matrixFormat: 'numpy',
+          sourceModels: JSON.stringify(input.sourceModels),
+          alignmentPairsCount: input.sourceVectors.length,
+          avgReconstructionError: result.metrics.epsilon.toString(),
+          isActive: true,
+        });
+        
+        return result;
+      }),
+
+    // Get W-matrix versions
+    listVersions: publicProcedure.query(async () => {
+      const database = getDb();
+      const versions = await database
+        .select()
+        .from(wMatrixVersions)
+        .where(eq(wMatrixVersions.isActive, true))
+        .orderBy(desc(wMatrixVersions.createdAt));
+      return versions;
+    }),
+
+    // Get specific W-matrix version
+    getVersion: publicProcedure
+      .input(z.object({ version: z.string() }))
+      .query(async ({ input }) => {
+        const database = getDb();
+        const [version] = await database
+          .select()
+          .from(wMatrixVersions)
+          .where(eq(wMatrixVersions.version, input.version))
+          .limit(1);
+        
+        if (!version) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'W-matrix version not found' });
+        }
+        
+        return version;
+      }),
+
+    // Transform vector using W-matrix
+    transform: publicProcedure
+      .input(z.object({
+        vectorData: z.array(z.number()),
+        wMatrixVersion: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const { alignmentService } = await import('./alignment/alignment-service');
+        const transformed = await alignmentService.transformVector(
+          input.vectorData,
+          input.wMatrixVersion
+        );
+        return { transformedVector: transformed };
+      }),
+
+    // Get alignment calculation history
+    getHistory: protectedProcedure
+      .input(z.object({
+        vectorId: z.number().optional(),
+        limit: z.number().min(1).max(100).default(50),
+      }))
+      .query(async ({ input }) => {
+        const database = getDb();
+        let query = database
+          .select()
+          .from(alignmentCalculations)
+          .orderBy(desc(alignmentCalculations.computedAt))
+          .limit(input.limit);
+        
+        if (input.vectorId) {
+          query = query.where(eq(alignmentCalculations.vectorId, input.vectorId));
+        }
+        
+        return await query;
+      }),
   }),
 });
 

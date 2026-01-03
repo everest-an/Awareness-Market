@@ -777,3 +777,132 @@
 - [ ] 构建生产版本
 - [ ] 部署到EC2
 - [ ] 验证生产环境功能
+
+
+## Phase 3-5: MCP集成准备（2026-01-03继续）
+
+### tRPC API端点
+- [x] 添加alignment.calculate端点（计算向量对齐度）
+- [x] 添加alignment.trainMatrix端点（训练新W矩阵）
+- [x] 添加alignment.getWMatrix端点（获取W矩阵版本信息）
+- [x] 添加alignment.transformVector端点（应用W矩阵变换）
+- [x] 实现数据库CRUD操作（w_matrix_versions表）
+- [x] 实现alignment_calculations日志记录
+- [ ] 编写API单元测试
+
+### 创世记忆生成
+- [ ] 定义10个核心领域（Solidity, ZKP, DeFi, ML等）
+- [ ] 使用GPT-4生成100个高质量记忆
+- [ ] 为每个记忆计算对齐指标
+- [ ] 按质量阈值过滤（ε < 0.05）
+- [ ] 导入数据库并设置元数据
+- [ ] 验证记忆质量和可搜索性
+
+### MCP服务器原型
+- [ ] 创建awareness-mcp-server项目结构
+- [ ] 实现MCP协议处理器
+- [ ] 定义URI方案：awareness://memory/[domain]/[topic]
+- [ ] 实现search_latent_memory工具
+- [ ] 实现calculate_alignment_gap工具
+- [ ] 编写MCP服务器文档
+- [ ] 测试与LangChain/Manus集成
+
+### 测试和部署
+- [ ] 端到端集成测试
+- [ ] 性能基准测试
+- [ ] 部署到EC2生产环境
+- [ ] 监控对齐质量指标
+- [ ] 准备开发者文档
+
+
+## 认证系统全面改造（2026-01-03 用户需求）
+- [x] 移除所有Manus OAuth引用（后端）
+- [x] 移除所有Manus OAuth引用（前端）
+- [x] 实现JWT令牌生成功能
+- [x] 实现JWT令牌验证中间件
+- [x] 更新useAuth hook使用JWT
+- [x] 更新所有受保护路由使用JWT认证
+- [x] 添加令牌刷新机制
+- [x] 测试注册流程
+- [x] 测试登录流程
+- [x] 测试受保护路由JWT验证
+- [x] 创建EC2部署包
+- [x] 编写部署文档
+- [x] 直接部署到AWS EC2
+- [x] 配置环境变量
+- [x] 验证生产环境运行
+
+## 认证体验完善（2026-01-03）
+- [x] 实现邮箱验证码生成和存储
+- [x] 实现邮箱验证码发送功能
+- [x] 添加"忘记密码"API端点
+- [x] 添加"验证验证码"API端点
+- [x] 添加"重置密码"API端点
+- [x] 在AuthPage添加"忘记密码"UI
+- [x] 创建重置密码表单组件
+- [x] 测试完整的密码重置流程
+- [x] 部署到生产环境
+- [x] 添加15个测试产品数据
+- [x] 部署W-Matrix对齐引擎和API端点（2026-01-03 02:09）
+
+## 用户仪表板（2026-01-03）
+- [x] 设计用户仪表板布局
+- [x] 创建Dashboard页面组件
+- [x] 实现用户信息展示卡片
+- [x] 实现latent vectors列表展示
+- [x] 实现交易历史列表
+- [x] 实现钱包余额展示
+- [x] 添加统计数据卡片（总收入、总支出等）
+- [x] 添加快速操作按钮
+- [x] 实现数据加载状态
+- [x] 测试仪表板所有功能
+- [x] 部署到生产环境
+
+## Phase 2: W-Matrix对齐引擎开发（2026-01-03）
+
+### 数据库Schema扩展
+- [x] 扩展latent_vectors表（添加w_matrix_version, alignment_loss, fidelity_score等字段）
+- [x] 创建w_matrix_versions表（存储W矩阵版本和元数据）
+- [x] 创建alignment_calculations表（记录对齐计算历史）
+- [x] 运行数据库迁移（pnpm db:push）
+- [x] 验证新表结构
+
+### W-Matrix对齐引擎
+- [x] 创建server/alignment/目录结构
+- [x] 实现WMatrixAlignmentEngine类（Python）
+- [x] 实现Orthogonal Procrustes算法
+- [x] 实现LoRA低秩修正
+- [x] 实现epsilon值计算
+- [x] 实现fidelity boost估算
+- [x] 编写单元测试
+
+### tRPC API端点
+- [x] 添加alignment.calculate端点（计算向量对齐度）
+- [x] 添加alignment.trainMatrix端点（训练W矩阵）
+- [x] 添加alignment.getWMatrix端点（获取W矩阵版本信息）
+- [x] 添加alignment.transformVector端点（应用W矩阵变换）
+- [x] 实现数据库CRUD操作（w_matrix_versions表）
+- [x] 实现alignment_calculations日志记录
+- [ ] 编写API单元测试
+
+## Phase 3-5: MCP集成准备（2026-01-03）
+
+### 创世记忆数据生成
+- [x] 创建15个高质量测试产品（Solidity、ZKP、DeFi等领域）
+- [x] 添加到开发环境数据库
+- [x] 验证marketplace页面显示
+- [ ] 生成100个完整创世记忆（可选）
+
+### MCP服务器开发
+- [ ] 实现awareness://memory/[domain]/[topic] URI方案
+- [ ] 实现search_latent_memory工具
+- [ ] 实现calculate_alignment_gap工具
+- [ ] 创建MCP服务器原型
+- [ ] 测试Agent-to-Agent交互
+
+### 部署和文档
+- [x] 构建生产版本（2026-01-03 02:07）
+- [x] 部署到EC2（2026-01-03 02:09）
+- [x] 验证生产环境正常运行
+- [ ] 编写MCP集成文档
+- [ ] 创建开发者指南
