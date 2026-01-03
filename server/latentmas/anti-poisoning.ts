@@ -15,6 +15,7 @@ export interface Challenge {
   nonce: string;
   testPrompts: string[];
   expectedPatterns: string[];
+  expiresAt: number;
 }
 
 export interface ChallengeResponse {
@@ -82,6 +83,7 @@ export class AntiPoisoningVerifier {
       nonce,
       testPrompts,
       expectedPatterns,
+      expiresAt: timestamp + this.config.timeoutMs,
     };
 
     this.challenges.set(id, challenge);

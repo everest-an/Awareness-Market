@@ -1027,3 +1027,30 @@
 - [x] 所有测试通过（64/64）
 - [ ] 集成所有v2功能到API端点（留待未来）
 - [ ] 部署到生产环境（留待未来）
+
+## Phase 4: LatentMAS v2 API端点集成（2026-01-03）
+- [x] 创建latentmas tRPC路由器
+- [x] 实现KV-Cache压缩API端点
+  - [x] compress mutation - 压缩KV-Cache
+  - [x] decompress mutation - 解压KV-Cache
+  - [x] estimateBandwidth query - 估算带宽节省
+- [x] 实现Dynamic W-Matrix API端点
+  - [x] create mutation - 创建W-Matrix
+  - [x] align mutation - 对齐向量
+  - [x] serialize query - 序列化矩阵
+  - [x] deserialize mutation - 反序列化矩阵
+- [x] 实现Anti-Poisoning API端点
+  - [x] generateChallenge mutation - 生成挑战
+  - [x] verify mutation - 验证响应
+  - [x] getChallenge query - 获取挑战详情
+- [x] 实现Semantic Anchors API端点
+  - [x] getAll query - 获取所有锚点
+  - [x] getByCategory query - 按类别获取锚点
+  - [x] findNearest mutation - 查找最近锚点
+  - [x] calibrate mutation - 校准对齐
+  - [x] storeAnchorVector mutation - 存储锚点向量
+  - [x] getCategories query - 获取类别列表
+  - [x] getStatistics query - 获取统计信息
+- [x] 集成到主路由器 (appRouter.latentmasV2)
+- [ ] 编写API端点测试
+- [x] TypeScript类型检查通过
