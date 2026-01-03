@@ -257,3 +257,119 @@ export async function getUserFromToken(token: string): Promise<{ success: boolea
   const { password, ...userWithoutPassword } = userList[0];
   return { success: true, user: userWithoutPassword };
 }
+
+/**
+ * Request password reset - send verification code to email
+ */
+export async function requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if user exists
+  const userList = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (userList.length === 0) {
+    // Don't reveal if email exists for security
+    return { success: true };
+  }
+
+  const { generateVerificationCode, sendPasswordResetEmail } = await import("./email-service");
+  const { passwordResetCodes } = await import("../drizzle/schema");
+
+  // Generate 6-digit code
+  const code = generateVerificationCode();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  // Store code in database
+  await db.insert(passwordResetCodes).values({
+    email,
+    code,
+    expiresAt,
+  });
+
+  // Send email
+  const emailSent = await sendPasswordResetEmail(email, code, 10);
+  
+  if (!emailSent) {
+    return { success: false, error: "Failed to send email" };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Verify reset code
+ */
+export async function verifyResetCode(email: string, code: string): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { passwordResetCodes } = await import("../drizzle/schema");
+  const { and, isNull } = await import("drizzle-orm");
+
+  // Find unused code for this email
+  const codeList = await db
+    .select()
+    .from(passwordResetCodes)
+    .where(
+      and(
+        eq(passwordResetCodes.email, email),
+        eq(passwordResetCodes.code, code),
+        isNull(passwordResetCodes.used)
+      )
+    )
+    .limit(1);
+
+  if (codeList.length === 0) {
+    return { success: false, error: "Invalid or expired code" };
+  }
+
+  const resetCode = codeList[0];
+
+  // Check if expired
+  if (new Date() > new Date(resetCode.expiresAt)) {
+    return { success: false, error: "Code has expired" };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Reset password using verification code
+ */
+export async function resetPassword(
+  email: string,
+  code: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Verify code first
+  const verifyResult = await verifyResetCode(email, code);
+  if (!verifyResult.success) {
+    return verifyResult;
+  }
+
+  // Hash new password
+  const passwordHash = await hashPassword(newPassword);
+
+  // Update user password
+  await db.update(users).set({ password: passwordHash }).where(eq(users.email, email));
+
+  // Mark code as used
+  const { passwordResetCodes } = await import("../drizzle/schema");
+  const { and, isNull } = await import("drizzle-orm");
+  
+  await db
+    .update(passwordResetCodes)
+    .set({ used: new Date() })
+    .where(
+      and(
+        eq(passwordResetCodes.email, email),
+        eq(passwordResetCodes.code, code),
+        isNull(passwordResetCodes.used)
+      )
+    );
+
+  return { success: true };
+}

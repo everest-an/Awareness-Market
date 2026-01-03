@@ -708,4 +708,24 @@ export const wMatrixVersions = mysqlTable("w_matrix_versions", {
 
 export type WMatrixVersion = typeof wMatrixVersions.$inferSelect;
 export type InsertWMatrixVersion = typeof wMatrixVersions.$inferInsert;
+
+/**
+ * Password reset verification codes
+ * Stores temporary codes sent via email for password reset
+ */
+export const passwordResetCodes = mysqlTable("password_reset_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  code: varchar("code", { length: 6 }).notNull(), // 6-digit verification code
+  expiresAt: timestamp("expires_at").notNull(), // Expires after 10 minutes
+  used: timestamp("used"), // NULL if not used yet
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  emailIdx: index("email_idx").on(table.email),
+  codeIdx: index("code_idx").on(table.code),
+}));
+
+export type PasswordResetCode = typeof passwordResetCodes.$inferSelect;
+export type InsertPasswordResetCode = typeof passwordResetCodes.$inferInsert;
+
 // Force recompile Fri Jan  2 15:07:12 EST 2026

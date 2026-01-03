@@ -27,6 +27,7 @@ import WMatrixTester from "./pages/WMatrixTester";
 import AgentRegistry from "./pages/AgentRegistry";
 import SDKPage from "./pages/SDKPage";
 import AuthPage from "./pages/AuthPage";
+import Dashboard from "./pages/Dashboard";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -36,7 +37,7 @@ function Router() {
       <Route path={"/auth"} component={AuthPage} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
-      <Route path={"/dashboard"} component={CreatorDashboard} />
+      <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/dashboard/creator"} component={CreatorDashboard} />
       <Route path={"/upload"} component={UploadVector} />
       <Route path={"/creator/publish"} component={UploadVector} />

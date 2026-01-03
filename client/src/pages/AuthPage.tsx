@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
+import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
@@ -22,6 +23,9 @@ export default function AuthPage() {
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerName, setRegisterName] = useState("");
+  
+  // Forgot password dialog
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const loginMutation = trpc.auth.loginEmail.useMutation({
     onSuccess: (data) => {
@@ -118,6 +122,17 @@ export default function AuthPage() {
                   >
                     {loginMutation.isPending ? "Signing in..." : "Sign In"}
                   </Button>
+                  
+                  <div className="text-center mt-2">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="text-sm text-muted-foreground"
+                      onClick={() => setForgotPasswordOpen(true)}
+                    >
+                      Forgot password?
+                    </Button>
+                  </div>
                 </form>
 
                 <div className="mt-6">
@@ -221,6 +236,11 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
+      
+      <ForgotPasswordDialog 
+        open={forgotPasswordOpen} 
+        onOpenChange={setForgotPasswordOpen} 
+      />
     </div>
   );
 }

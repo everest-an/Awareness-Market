@@ -78,6 +78,34 @@ export const appRouter = router({
         await db.updateUserRole(ctx.user.id, input.role);
         return { success: true };
       }),
+    
+    // Password Reset Flow
+    requestPasswordReset: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        return await authStandalone.requestPasswordReset(input.email);
+      }),
+    
+    verifyResetCode: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+      }))
+      .mutation(async ({ input }) => {
+        return await authStandalone.verifyResetCode(input.email, input.code);
+      }),
+    
+    resetPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+        newPassword: z.string().min(8),
+      }))
+      .mutation(async ({ input }) => {
+        return await authStandalone.resetPassword(input.email, input.code, input.newPassword);
+      }),
   }),
 
   // API Key Management
