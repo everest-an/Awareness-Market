@@ -33,19 +33,19 @@ export default function Dashboard() {
   }
 
   // Fetch user's vectors
-  const { data: myVectors, isLoading: vectorsLoading } = trpc.vectors.getMyVectors.useQuery(
+  const { data: myVectors, isLoading: vectorsLoading } = trpc.vectors.myVectors.useQuery(
     undefined,
     { enabled: !!user }
   );
 
   // Fetch user's transactions
-  const { data: transactions, isLoading: transactionsLoading } = trpc.transactions.getMyTransactions.useQuery(
+  const { data: transactions, isLoading: transactionsLoading } = trpc.transactions.myTransactions.useQuery(
     undefined,
     { enabled: !!user }
   );
 
   // Fetch user's purchases
-  const { data: purchases, isLoading: purchasesLoading } = trpc.transactions.getMyPurchases.useQuery(
+  const { data: purchases, isLoading: purchasesLoading } = trpc.transactions.myTransactions.useQuery(
     undefined,
     { enabled: !!user }
   );

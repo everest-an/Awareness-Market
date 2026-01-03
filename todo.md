@@ -1096,4 +1096,37 @@
   - [x] 创建W-Matrix市场前端页面 (/w-matrix-marketplace)
   - [x] 实现搜索和筛选功能（sourceModel, targetModel, sortBy）
   - [x] 集成到主路由器 (appRouter.wMatrixMarketplace)
-  - [ ] 集成Stripe支付流程（待实现）
+  - [ ] 完善W-Matrix市场功能（延后处理）
+    - [ ] 矩阵文件上传/下载功能（S3存储）
+    - [ ] 购买验证（防止重复购买）
+    - [ ] 评分系统（买家评价）
+    - [ ] 集成Stripe支付流程
+
+## Phase 7: 多接口支持与n8n集成（2026-01-04）
+- [ ] 用Go重写Memory Exchange服务
+  - [ ] 创建Go项目结构
+  - [ ] 实现数据库模型和连接
+  - [ ] 实现Memory Exchange业务逻辑
+  - [ ] 实现RESTful API端点
+  - [ ] 实现API Key认证
+  - [ ] 编写测试
+  - [ ] 集成到主应用
+- [ ] 用Go实现W-Matrix Marketplace API
+  - [ ] 创建Go服务
+  - [ ] 实现RESTful API
+  - [ ] S3文件上传/下载
+  - [ ] 购买验证逻辑
+- [ ] 生成OpenAPI文档
+  - [ ] 安装@asteasolutions/zod-to-openapi
+  - [ ] 从Zod schema生成OpenAPI规范
+  - [ ] 集成Swagger UI到/api/docs
+- [ ] 发布MCP Server到npm
+  - [ ] 准备npm发布配置
+  - [ ] 创建发布文档
+  - [ ] 等待用户npm账号发布
+- [ ] 开发Python SDK
+  - [ ] 创建python-sdk目录
+  - [ ] 实现AwarenessClient类
+  - [ ] 封装所有REST API调用
+  - [ ] 准备PyPI发布配置
+  - [ ] 编写Python SDK文档和示例

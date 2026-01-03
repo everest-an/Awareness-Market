@@ -15,16 +15,16 @@ export {
   getSupportedModels,
 } from "./w-matrix-generator";
 
-// Memory Exchange
-export {
-  publishMemory,
-  purchaseMemory,
-  browseMemories,
-  publishReasoningChain,
-  useReasoningChain,
-  browseReasoningChains,
-  getWMatrixVersions,
-  registerWMatrixVersion,
-  getUserMemoryHistory,
-  getMemoryExchangeStats,
-} from "./memory-exchange";
+// Memory Exchange - Moved to Go microservice
+// export {
+//   publishMemory,
+//   purchaseMemory,
+//   browseMemories,
+//   publishReasoningChain,
+//   useReasoningChain,
+//   browseReasoningChains,
+//   getWMatrixVersions,
+//   registerWMatrixVersion,
+//   getUserMemoryHistory,
+//   getMemoryExchangeStats,
+// } from "./memory-exchange";
