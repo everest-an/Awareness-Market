@@ -29,6 +29,8 @@ import SDKPage from "./pages/SDKPage";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import LatentMASv2Demo from "./pages/LatentMASv2Demo";
+import BlogLatentMASPaper from "./pages/BlogLatentMASPaper";
+import WMatrixMarketplace from "./pages/WMatrixMarketplace";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -51,12 +53,14 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/about" component={About} />
       <Route path="/blog" component={Blog} />
+      <Route path="/blog/latentmas-research-paper" component={BlogLatentMASPaper} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/reasoning-chains" component={ReasoningChainMarket} />
       <Route path="/reasoning-chains/publish" component={ReasoningChainPublish} />
       <Route path="/w-matrix" component={WMatrixProtocol} />
       <Route path="/w-matrix/tester" component={WMatrixTester} />
       <Route path="/latentmas-v2-demo" component={LatentMASv2Demo} />
+      <Route path="/w-matrix-marketplace" component={WMatrixMarketplace} />
       <Route path="/agents" component={AgentRegistry} />
       <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/sdk" component={SDKPage} />

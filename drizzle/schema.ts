@@ -825,3 +825,72 @@ export const wMatricesRelations = relations(wMatrices, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+/**
+ * W-Matrix Marketplace Listings
+ * Pre-trained W-Matrices for popular model pairs that can be bought and sold
+ */
+export const wMatrixListings = mysqlTable("w_matrix_listings", {
+  id: int("id").autoincrement().primaryKey(),
+  sellerId: int("seller_id").notNull(), // Creator who trained the matrix
+  title: varchar("title", { length: 255 }).notNull(), // e.g., "GPT-3.5 → GPT-4 Alignment Matrix"
+  description: text("description").notNull(),
+  sourceModel: varchar("source_model", { length: 100 }).notNull(), // e.g., "gpt-3.5-turbo"
+  targetModel: varchar("target_model", { length: 100 }).notNull(), // e.g., "gpt-4"
+  sourceDim: int("source_dim").notNull(),
+  targetDim: int("target_dim").notNull(),
+  matrixId: varchar("matrix_id", { length: 255 }).notNull(), // Reference to wMatrices table
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(), // One-time purchase price
+  alignmentLoss: decimal("alignment_loss", { precision: 10, scale: 8 }).notNull(), // Quality metric
+  trainingDataSize: int("training_data_size"), // Number of training samples
+  performanceMetrics: text("performance_metrics"), // JSON: {accuracy, latency, etc.}
+  status: mysqlEnum("status", ["draft", "active", "inactive", "suspended"]).default("draft").notNull(),
+  totalSales: int("total_sales").default(0).notNull(),
+  totalRevenue: decimal("total_revenue", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  averageRating: decimal("average_rating", { precision: 3, scale: 2 }).default("0.00"),
+  reviewCount: int("review_count").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  sellerIdx: index("seller_idx").on(table.sellerId),
+  modelPairIdx: index("model_pair_idx").on(table.sourceModel, table.targetModel),
+  statusIdx: index("status_idx").on(table.status),
+}));
+
+/**
+ * W-Matrix Purchases
+ * Track user purchases of W-Matrix listings
+ */
+export const wMatrixPurchases = mysqlTable("w_matrix_purchases", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: int("listing_id").notNull(),
+  buyerId: int("buyer_id").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
+  status: mysqlEnum("status", ["pending", "completed", "failed", "refunded"]).default("pending").notNull(),
+  purchasedAt: timestamp("purchasedAt").defaultNow().notNull(),
+}, (table) => ({
+  listingIdx: index("listing_idx").on(table.listingId),
+  buyerIdx: index("buyer_idx").on(table.buyerId),
+}));
+
+// Relations for wMatrixListings
+export const wMatrixListingsRelations = relations(wMatrixListings, ({ one, many }) => ({
+  seller: one(users, {
+    fields: [wMatrixListings.sellerId],
+    references: [users.id],
+  }),
+  purchases: many(wMatrixPurchases),
+}));
+
+// Relations for wMatrixPurchases
+export const wMatrixPurchasesRelations = relations(wMatrixPurchases, ({ one }) => ({
+  listing: one(wMatrixListings, {
+    fields: [wMatrixPurchases.listingId],
+    references: [wMatrixListings.id],
+  }),
+  buyer: one(users, {
+    fields: [wMatrixPurchases.buyerId],
+    references: [users.id],
+  }),
+}));

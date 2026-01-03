@@ -19,6 +19,7 @@ import * as semanticIndex from "./semantic-index";
 import { GENESIS_MEMORIES } from "../shared/genesis-memories";
 import * as authStandalone from "./auth-standalone";
 import { latentmasRouter } from "./routers/latentmas";
+import { wMatrixMarketplaceRouter } from "./routers/w-matrix-marketplace";
 
 // Helper to ensure user is a creator
 const creatorProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -1453,6 +1454,7 @@ export const appRouter = router({
 
   // LatentMAS v2 API Endpoints
   latentmasV2: latentmasRouter,
+  wMatrixMarketplace: wMatrixMarketplaceRouter,
 });
 
 export type AppRouter = typeof appRouter;

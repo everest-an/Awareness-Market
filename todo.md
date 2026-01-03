@@ -1077,3 +1077,23 @@
   - [x] 创建ChallengeDB持久化类
   - [x] 创建HybridStorage混合存储管理器
   - [x] 实现内存缓存+数据库持久化架构
+
+## Phase 6: 创世记忆生成、论文链接和W-Matrix市场（2026-01-04）
+- [x] 生成10个创世记忆样本数据
+  - [x] 使用v2 KV-Cache压缩功能生成样本
+  - [x] 使用v2语义锚点标准化
+  - [x] 创建10个多样化类别（finance, code-generation, medical, legal, creative-writing, data-science, customer-support, education, cybersecurity, translation）
+  - [x] 生成mock S3存储路径
+  - [x] 插入到数据库latent_vectors表（IDs: 210001-210010）
+- [x] 添加LatentMAS论文链接
+  - [x] 在文档页面添加论文引用（已存在）
+  - [x] 在博客页面创建论文介绍文章 (/blog/latentmas-research-paper)
+  - [x] 添加arxiv链接：https://arxiv.org/html/2511.20639v2
+- [x] 实现W-Matrix市场功能
+  - [x] 设计wMatrixListings和wMatrixPurchases数据库表
+  - [x] 创建W-Matrix发布API端点 (createListing, updateListing)
+  - [x] 创建W-Matrix购买API端点 (purchaseListing, myPurchases)
+  - [x] 创建W-Matrix市场前端页面 (/w-matrix-marketplace)
+  - [x] 实现搜索和筛选功能（sourceModel, targetModel, sortBy）
+  - [x] 集成到主路由器 (appRouter.wMatrixMarketplace)
+  - [ ] 集成Stripe支付流程（待实现）
