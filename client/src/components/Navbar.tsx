@@ -21,7 +21,9 @@ import {
   BookOpen,
   User,
   LogOut,
-  LayoutDashboard
+  LayoutDashboard,
+  Key,
+  Upload
 } from "lucide-react";
 
 const navLinks = [
@@ -38,6 +40,7 @@ const navLinks = [
     children: [
       { label: "Documentation", href: "/docs", icon: FileCode, description: "API & SDK guides" },
       { label: "W-Matrix Tester", href: "/w-matrix/tester", icon: Cpu, description: "Test model compatibility" },
+      { label: "S3 Storage Tester", href: "/s3-tester", icon: Upload, description: "Test file upload/download" },
       { label: "Publish Tools", href: "/reasoning-chains/publish", icon: Network, description: "Create reasoning chains" },
     ]
   },
@@ -161,6 +164,12 @@ export default function Navbar() {
                     <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
                       <User className="w-4 h-4" />
                       Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/api-keys" className="flex items-center gap-2 cursor-pointer">
+                      <Key className="w-4 h-4" />
+                      API Keys
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-white/10" />

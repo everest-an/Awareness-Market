@@ -31,6 +31,8 @@ import Dashboard from "./pages/Dashboard";
 import LatentMASv2Demo from "./pages/LatentMASv2Demo";
 import BlogLatentMASPaper from "./pages/BlogLatentMASPaper";
 import WMatrixMarketplace from "./pages/WMatrixMarketplace";
+import ApiKeys from "./pages/ApiKeys";
+import S3Tester from "./pages/S3Tester";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -65,6 +67,8 @@ function Router() {
       <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/sdk" component={SDKPage} />
       <Route path="/docs" component={SDKPage} />
+      <Route path="/api-keys" component={ApiKeys} />
+      <Route path="/s3-tester" component={S3Tester} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
