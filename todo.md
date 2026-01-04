@@ -1168,3 +1168,15 @@
   - [ ] 封装所有REST API调用
   - [ ] 准备PyPI发布配置
   - [ ] 编写Python SDK文档和示例
+
+## PyPI Publishing and AWS S3 Configuration (2026-01-04)
+- [x] Register PyPI account
+- [x] Configure PyPI API token
+- [x] Build Python SDK package (python-sdk/)
+- [x] Publish awareness-sdk to PyPI
+- [x] Test pip install awareness-sdk
+- [x] Configure AWS credentials using SSH key
+- [x] Set S3 environment variables for Go services
+- [x] Test S3 file upload functionality (W-Matrix)
+- [x] Test S3 file download functionality
+- [x] Update documentation with S3 setup instructions

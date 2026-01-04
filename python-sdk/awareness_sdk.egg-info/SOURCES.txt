@@ -1,0 +1,12 @@
+README.md
+setup.py
+awareness_sdk/__init__.py
+awareness_sdk/client.py
+awareness_sdk/exceptions.py
+awareness_sdk/memory_exchange.py
+awareness_sdk/w_matrix.py
+awareness_sdk.egg-info/PKG-INFO
+awareness_sdk.egg-info/SOURCES.txt
+awareness_sdk.egg-info/dependency_links.txt
+awareness_sdk.egg-info/requires.txt
+awareness_sdk.egg-info/top_level.txt
