@@ -971,11 +971,17 @@
   - [x] 验证所有8个API端点正常工作
   - [x] 验证API Key认证中间件正常工作
   - [ ] 集成到主应用
-- [ ] 用Go实现W-Matrix Marketplace API
-  - [ ] 创建Go服务
-  - [ ] 实现RESTful API
-  - [ ] S3文件上传/下载
-  - [ ] 购买验证逻辑
+- [x] 用Go实现W-Matrix Marketplace API
+  - [x] 创建Go项目结构
+  - [x] 实现数据模型 (models.go)
+  - [x] 实现数据库连接 (database.go)
+  - [x] 实现S3存储辅助函数 (storage/s3.go)
+  - [x] 实现API Key认证中间件 (middleware/auth.go)
+  - [x] 实现RESTful API handlers (CreateListing, BrowseListings, PurchaseListing)
+  - [x] 实现购买验证逻辑（防止重复购买）
+  - [x] 实现S3下载链接生成（7天有效期）
+  - [x] 创建主入口文件 (cmd/main.go)
+  - [ ] 编译和测试服务
 - [x] 准备MCP服务器npm包配置
 - [x] 修复TypeScript类型错误
 - [x] 构建MCP服务器dist文件
@@ -1137,11 +1143,17 @@
   - [ ] 实现API Key认证
   - [ ] 编写测试
   - [ ] 集成到主应用
-- [ ] 用Go实现W-Matrix Marketplace API
-  - [ ] 创建Go服务
-  - [ ] 实现RESTful API
-  - [ ] S3文件上传/下载
-  - [ ] 购买验证逻辑
+- [x] 用Go实现W-Matrix Marketplace API
+  - [x] 创建Go项目结构
+  - [x] 实现数据模型 (models.go)
+  - [x] 实现数据库连接 (database.go)
+  - [x] 实现S3存储辅助函数 (storage/s3.go)
+  - [x] 实现API Key认证中间件 (middleware/auth.go)
+  - [x] 实现RESTful API handlers (CreateListing, BrowseListings, PurchaseListing)
+  - [x] 实现购买验证逻辑（防止重复购买）
+  - [x] 实现S3下载链接生成（7天有效期）
+  - [x] 创建主入口文件 (cmd/main.go)
+  - [ ] 编译和测试服务
 - [ ] 生成OpenAPI文档
   - [ ] 安装@asteasolutions/zod-to-openapi
   - [ ] 从Zod schema生成OpenAPI规范
