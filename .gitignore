@@ -121,3 +121,8 @@ __pycache__/
 
 # Ignore pnpm local tools
 .local/
+
+# Go compiled binaries
+go-services/*/memory-exchange
+go-services/*/w-matrix-marketplace
+go-services/*/*.exe
