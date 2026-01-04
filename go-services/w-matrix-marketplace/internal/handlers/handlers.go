@@ -14,7 +14,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateListing creates a new W-Matrix listing
+// CreateListing godoc
+// @Summary Create a new W-Matrix listing
+// @Description Create a new W-Matrix alignment tool listing for trading
+// @Tags listings
+// @Accept json
+// @Produce json
+// @Param request body models.CreateListingRequest true "Listing details"
+// @Success 200 {object} map[string]interface{} "Listing created successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Security ApiKeyAuth
+// @Router /listings [post]
 func CreateListing(c *gin.Context) {
 	userID := c.GetInt("user_id")
 	
@@ -59,7 +70,24 @@ func CreateListing(c *gin.Context) {
 	})
 }
 
-// BrowseListings retrieves listings based on filters
+// BrowseListings godoc
+// @Summary Browse W-Matrix listings
+// @Description Get a list of W-Matrix listings with optional filtering and sorting
+// @Tags listings
+// @Accept json
+// @Produce json
+// @Param source_model query string false "Filter by source model"
+// @Param target_model query string false "Filter by target model"
+// @Param min_price query number false "Minimum price filter"
+// @Param max_price query number false "Maximum price filter"
+// @Param sort_by query string false "Sort by: newest, price_asc, price_desc, rating, sales"
+// @Param limit query int false "Number of results" default(20)
+// @Param offset query int false "Pagination offset" default(0)
+// @Success 200 {object} map[string]interface{} "List of W-Matrix listings"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Security ApiKeyAuth
+// @Router /listings [get]
 func BrowseListings(c *gin.Context) {
 	var req models.BrowseListingsRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -161,7 +189,19 @@ func BrowseListings(c *gin.Context) {
 	})
 }
 
-// PurchaseListing handles purchasing a W-Matrix
+// PurchaseListing godoc
+// @Summary Purchase a W-Matrix
+// @Description Purchase access to a W-Matrix and get a 7-day download URL
+// @Tags purchases
+// @Accept json
+// @Produce json
+// @Param request body models.PurchaseListingRequest true "Purchase details"
+// @Success 200 {object} map[string]interface{} "Purchase successful with download URL"
+// @Failure 400 {object} map[string]interface{} "Invalid request or already purchased"
+// @Failure 404 {object} map[string]interface{} "Listing not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Security ApiKeyAuth
+// @Router /purchase [post]
 func PurchaseListing(c *gin.Context) {
 	userID := c.GetInt("user_id")
 	

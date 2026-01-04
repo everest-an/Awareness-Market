@@ -9,7 +9,30 @@ import (
 	"github.com/awareness/w-matrix-marketplace/internal/middleware"
 	"github.com/awareness/w-matrix-marketplace/internal/storage"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	_ "github.com/awareness/w-matrix-marketplace/docs" // Import generated docs
 )
+
+// @title W-Matrix Marketplace API
+// @version 1.0
+// @description RESTful API for trading W-Matrix alignment tools and cross-model transformation matrices
+// @termsOfService https://awareness.market/terms
+
+// @contact.name Awareness Market Support
+// @contact.url https://awareness.market/support
+// @contact.email support@awareness.market
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8081
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+// @description Enter your API key in the format: Bearer {your_api_key}
 
 func main() {
 	// Initialize database
@@ -25,6 +48,9 @@ func main() {
 
 	// Create Gin router
 	router := gin.Default()
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -51,6 +77,7 @@ func main() {
 	}
 
 	log.Printf("🚀 W-Matrix Marketplace service starting on port %s", port)
+	log.Printf("📖 Swagger documentation available at http://localhost:%s/swagger/index.html", port)
 	if err := router.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

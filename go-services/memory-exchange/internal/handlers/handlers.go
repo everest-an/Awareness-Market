@@ -4,14 +4,26 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/awareness/memory-exchange/internal/database"
 	"github.com/awareness/memory-exchange/internal/models"
 
 	"github.com/gin-gonic/gin"
 )
-// PublishMemory handles publishing a new memory to the exchange
+
+// PublishMemory godoc
+// @Summary Publish a new memory to the exchange
+// @Description Publish a KV-Cache memory for trading on the marketplace
+// @Tags memory
+// @Accept json
+// @Produce json
+// @Param request body models.PublishMemoryRequest true "Memory details"
+// @Success 200 {object} models.APIResponse "Memory published successfully"
+// @Failure 400 {object} models.APIResponse "Invalid request"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Security ApiKeyAuth
+// @Router /memory/publish [post]
 func PublishMemory(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -68,7 +80,20 @@ func PublishMemory(c *gin.Context) {
 	})
 }
 
-// PurchaseMemory handles purchasing a memory from the exchange
+// PurchaseMemory godoc
+// @Summary Purchase a memory from the exchange
+// @Description Purchase access to a KV-Cache memory
+// @Tags memory
+// @Accept json
+// @Produce json
+// @Param request body models.PurchaseMemoryRequest true "Purchase details"
+// @Success 200 {object} models.APIResponse "Memory purchased successfully"
+// @Failure 400 {object} models.APIResponse "Invalid request"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 404 {object} models.APIResponse "Memory not found"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Security ApiKeyAuth
+// @Router /memory/purchase [post]
 func PurchaseMemory(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -111,15 +136,17 @@ func PurchaseMemory(c *gin.Context) {
 			Error:   stringPtr("Memory not found"),
 		})
 		return
-	} else if err != nil {
+	}
+
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{
 			Success: false,
-			Error:   stringPtr("Database error"),
+			Error:   stringPtr("Database error: " + err.Error()),
 		})
 		return
 	}
 
-	if memory.Status != "pending" {
+	if memory.Status != "available" {
 		c.JSON(http.StatusBadRequest, models.APIResponse{
 			Success: false,
 			Error:   stringPtr("Memory is not available for purchase"),
@@ -127,86 +154,93 @@ func PurchaseMemory(c *gin.Context) {
 		return
 	}
 
-	// Update memory exchange with buyer info
-	updateQuery := `
-		UPDATE memory_exchanges
-		SET buyer_id = ?, target_model = ?, status = 'completed'
-		WHERE id = ?
+	// Create transaction record
+	txQuery := `
+		INSERT INTO memory_exchanges (
+			seller_id, buyer_id, memory_type, kv_cache_data, price, status, created_at
+		) VALUES (?, ?, ?, ?, ?, 'completed', NOW())
 	`
 
-	_, err = database.DB.Exec(updateQuery, userID, req.TargetModel, req.MemoryID)
+	result, err := database.DB.Exec(txQuery, memory.SellerID, userID, memory.MemoryType, memory.KVCacheData, memory.Price)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{
 			Success: false,
-			Error:   stringPtr("Failed to complete purchase"),
+			Error:   stringPtr("Failed to create transaction: " + err.Error()),
 		})
 		return
 	}
+
+	transactionID, _ := result.LastInsertId()
 
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Data: map[string]interface{}{
-			"memory_id":     memory.ID,
-			"kv_cache_data": memory.KVCacheData,
-			"price":         memory.Price,
-			"message":       "Memory purchased successfully",
+			"transaction_id": transactionID,
+			"memory":         memory,
+			"message":        "Memory purchased successfully",
 		},
 	})
 }
 
-// BrowseMemories handles browsing available memories
+// BrowseMemories godoc
+// @Summary Browse available memories
+// @Description Get a list of available memories for purchase with optional filtering
+// @Tags memory
+// @Accept json
+// @Produce json
+// @Param memory_type query string false "Filter by memory type"
+// @Param min_price query number false "Minimum price filter"
+// @Param max_price query number false "Maximum price filter"
+// @Param limit query int false "Number of results to return" default(20)
+// @Param offset query int false "Offset for pagination" default(0)
+// @Success 200 {object} models.APIResponse "List of memories"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Security ApiKeyAuth
+// @Router /memory/browse [get]
 func BrowseMemories(c *gin.Context) {
-	var req models.BrowseMemoriesRequest
-	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.APIResponse{
-			Success: false,
-			Error:   stringPtr("Invalid query parameters"),
-		})
-		return
-	}
+	memoryType := c.Query("memory_type")
+	minPrice := c.Query("min_price")
+	maxPrice := c.Query("max_price")
+	limit := c.DefaultQuery("limit", "20")
+	offset := c.DefaultQuery("offset", "0")
 
-	// Build query
 	query := `
 		SELECT id, seller_id, memory_type, price, status, created_at
 		FROM memory_exchanges
-		WHERE status = 'pending'
+		WHERE status = 'available'
 	`
-	args := []interface{}{}
 
-	if req.MemoryType != nil {
+	var args []interface{}
+
+	if memoryType != "" {
 		query += " AND memory_type = ?"
-		args = append(args, *req.MemoryType)
+		args = append(args, memoryType)
 	}
 
-	if req.SourceModel != nil {
-		query += " AND source_model = ?"
-		args = append(args, *req.SourceModel)
-	}
-
-	if req.MinPrice != nil {
+	if minPrice != "" {
 		query += " AND price >= ?"
-		args = append(args, *req.MinPrice)
+		args = append(args, minPrice)
 	}
 
-	if req.MaxPrice != nil {
+	if maxPrice != "" {
 		query += " AND price <= ?"
-		args = append(args, *req.MaxPrice)
+		args = append(args, maxPrice)
 	}
 
 	query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
-	args = append(args, req.Limit, req.Offset)
+	args = append(args, limit, offset)
 
 	rows, err := database.DB.Query(query, args...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{
 			Success: false,
-			Error:   stringPtr("Database error"),
+			Error:   stringPtr("Database error: " + err.Error()),
 		})
 		return
 	}
 	defer rows.Close()
 
-	memories := []models.MemoryExchange{}
+	var memories []models.MemoryExchange
 	for rows.Next() {
 		var memory models.MemoryExchange
 		err := rows.Scan(
@@ -227,12 +261,95 @@ func BrowseMemories(c *gin.Context) {
 		Success: true,
 		Data: map[string]interface{}{
 			"memories": memories,
-			"total":    len(memories),
+			"count":    len(memories),
 		},
 	})
 }
 
-// PublishReasoningChain handles publishing a reasoning chain
+// GetMyHistory godoc
+// @Summary Get user's transaction history
+// @Description Get all transactions (purchases and sales) for the authenticated user
+// @Tags memory
+// @Accept json
+// @Produce json
+// @Param limit query int false "Number of results to return" default(20)
+// @Param offset query int false "Offset for pagination" default(0)
+// @Success 200 {object} models.APIResponse "Transaction history"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Security ApiKeyAuth
+// @Router /memory/my-history [get]
+func GetMyHistory(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.APIResponse{
+			Success: false,
+			Error:   stringPtr("User not authenticated"),
+		})
+		return
+	}
+
+	limit := c.DefaultQuery("limit", "20")
+	offset := c.DefaultQuery("offset", "0")
+
+	query := `
+		SELECT id, seller_id, buyer_id, memory_type, price, status, created_at
+		FROM memory_exchanges
+		WHERE seller_id = ? OR buyer_id = ?
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`
+
+	rows, err := database.DB.Query(query, userID, userID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{
+			Success: false,
+			Error:   stringPtr("Database error: " + err.Error()),
+		})
+		return
+	}
+	defer rows.Close()
+
+	var transactions []models.MemoryExchange
+	for rows.Next() {
+		var tx models.MemoryExchange
+		err := rows.Scan(
+			&tx.ID,
+			&tx.SellerID,
+			&tx.BuyerID,
+			&tx.MemoryType,
+			&tx.Price,
+			&tx.Status,
+			&tx.CreatedAt,
+		)
+		if err != nil {
+			continue
+		}
+		transactions = append(transactions, tx)
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"transactions": transactions,
+			"count":        len(transactions),
+		},
+	})
+}
+
+// PublishReasoningChain godoc
+// @Summary Publish a reasoning chain
+// @Description Publish a reasoning chain (sequence of thoughts) for trading
+// @Tags reasoning-chain
+// @Accept json
+// @Produce json
+// @Param request body models.PublishReasoningChainRequest true "Reasoning chain details"
+// @Success 200 {object} models.APIResponse "Reasoning chain published successfully"
+// @Failure 400 {object} models.APIResponse "Invalid request"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Security ApiKeyAuth
+// @Router /reasoning-chain/publish [post]
 func PublishReasoningChain(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -252,37 +369,24 @@ func PublishReasoningChain(c *gin.Context) {
 		return
 	}
 
-	// Serialize JSON fields
-	kvCacheJSON, _ := json.Marshal(req.KVCacheSnapshot)
-	var inputExampleJSON, outputExampleJSON *string
-	if req.InputExample != nil {
-		data, _ := json.Marshal(req.InputExample)
-		str := string(data)
-		inputExampleJSON = &str
-	}
-	if req.OutputExample != nil {
-		data, _ := json.Marshal(req.OutputExample)
-		str := string(data)
-		outputExampleJSON = &str
+	// Serialize chain data
+	chainDataJSON, err := json.Marshal(req.KVCacheSnapshot)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{
+			Success: false,
+			Error:   stringPtr("Failed to serialize chain data"),
+		})
+		return
 	}
 
 	// Insert into database
 	query := `
 		INSERT INTO reasoning_chains (
-			creator_id, chain_name, description, category,
-			input_example, output_example, kv_cache_snapshot,
-			source_model, step_count, price_per_use,
-			avg_quality, review_count, usage_count, total_revenue,
-			status, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 'active', NOW(), NOW())
+			creator_id, chain_type, chain_data, price, status, created_at
+		) VALUES (?, ?, ?, ?, 'available', NOW())
 	`
 
-	result, err := database.DB.Exec(query,
-		userID, req.ChainName, req.Description, req.Category,
-		inputExampleJSON, outputExampleJSON, string(kvCacheJSON),
-		req.SourceModel, req.StepCount, req.PricePerUse,
-	)
-
+	result, err := database.DB.Exec(query, userID, req.Category, string(chainDataJSON), req.PricePerUse)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{
 			Success: false,
@@ -302,9 +406,23 @@ func PublishReasoningChain(c *gin.Context) {
 	})
 }
 
-// UseReasoningChain handles using a reasoning chain
+// UseReasoningChain godoc
+// @Summary Use a reasoning chain
+// @Description Access and use a reasoning chain (requires purchase or ownership)
+// @Tags reasoning-chain
+// @Accept json
+// @Produce json
+// @Param request body models.UseReasoningChainRequest true "Chain usage details"
+// @Success 200 {object} models.APIResponse "Reasoning chain data"
+// @Failure 400 {object} models.APIResponse "Invalid request"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 403 {object} models.APIResponse "Access denied"
+// @Failure 404 {object} models.APIResponse "Chain not found"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Security ApiKeyAuth
+// @Router /reasoning-chain/use [post]
 func UseReasoningChain(c *gin.Context) {
-	_, exists := c.Get("user_id")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, models.APIResponse{
 			Success: false,
@@ -322,22 +440,27 @@ func UseReasoningChain(c *gin.Context) {
 		return
 	}
 
-	// Get reasoning chain
+	// Check if chain exists and user has access
 	var chain models.ReasoningChain
 	query := `
-		SELECT id, creator_id, kv_cache_snapshot, price_per_use, usage_count, total_revenue
+		SELECT id, creator_id, category, kv_cache_snapshot, price_per_use, status
 		FROM reasoning_chains
-		WHERE id = ? AND status = 'active'
+		WHERE id = ?
 	`
 
+	var kvCacheSnapshot sql.NullString
 	err := database.DB.QueryRow(query, req.ChainID).Scan(
 		&chain.ID,
 		&chain.CreatorID,
-		&chain.KVCacheSnapshot,
+		&chain.Category,
+		&kvCacheSnapshot,
 		&chain.PricePerUse,
-		&chain.UsageCount,
-		&chain.TotalRevenue,
+		&chain.Status,
 	)
+
+	if kvCacheSnapshot.Valid {
+		chain.KVCacheSnapshot = &kvCacheSnapshot.String
+	}
 
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, models.APIResponse{
@@ -345,28 +468,23 @@ func UseReasoningChain(c *gin.Context) {
 			Error:   stringPtr("Reasoning chain not found"),
 		})
 		return
-	} else if err != nil {
+	}
+
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{
 			Success: false,
-			Error:   stringPtr("Database error"),
+			Error:   stringPtr("Database error: " + err.Error()),
 		})
 		return
 	}
 
-	// Update usage stats
-	updateQuery := `
-		UPDATE reasoning_chains
-		SET usage_count = usage_count + 1,
-		    total_revenue = total_revenue + ?,
-		    updated_at = NOW()
-		WHERE id = ?
-	`
-
-	_, err = database.DB.Exec(updateQuery, chain.PricePerUse, req.ChainID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.APIResponse{
+	// Check access (owner or purchased)
+	userIDInt, _ := userID.(int)
+	if chain.CreatorID != userIDInt {
+		// TODO: Check if user has purchased access
+		c.JSON(http.StatusForbidden, models.APIResponse{
 			Success: false,
-			Error:   stringPtr("Failed to update usage stats"),
+			Error:   stringPtr("Access denied: You must purchase this reasoning chain"),
 		})
 		return
 	}
@@ -374,84 +492,77 @@ func UseReasoningChain(c *gin.Context) {
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Data: map[string]interface{}{
-			"chain_id":          chain.ID,
-			"kv_cache_snapshot": chain.KVCacheSnapshot,
-			"price_charged":     chain.PricePerUse,
-			"message":           "Reasoning chain executed successfully",
+			"chain": chain,
 		},
 	})
 }
 
-// BrowseReasoningChains handles browsing reasoning chains
+// BrowseReasoningChains godoc
+// @Summary Browse reasoning chains
+// @Description Get a list of available reasoning chains with optional filtering
+// @Tags reasoning-chain
+// @Accept json
+// @Produce json
+// @Param chain_type query string false "Filter by chain type"
+// @Param min_price query number false "Minimum price filter"
+// @Param max_price query number false "Maximum price filter"
+// @Param limit query int false "Number of results to return" default(20)
+// @Param offset query int false "Offset for pagination" default(0)
+// @Success 200 {object} models.APIResponse "List of reasoning chains"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Security ApiKeyAuth
+// @Router /reasoning-chain/browse [get]
 func BrowseReasoningChains(c *gin.Context) {
-	var req models.BrowseReasoningChainsRequest
-	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.APIResponse{
-			Success: false,
-			Error:   stringPtr("Invalid query parameters"),
-		})
-		return
-	}
+	chainType := c.Query("chain_type")
+	minPrice := c.Query("min_price")
+	maxPrice := c.Query("max_price")
+	limit := c.DefaultQuery("limit", "20")
+	offset := c.DefaultQuery("offset", "0")
 
-	// Build query
 	query := `
-		SELECT id, creator_id, chain_name, description, category,
-		       source_model, step_count, avg_quality, review_count,
-		       price_per_use, usage_count, total_revenue, status, created_at
+		SELECT id, creator_id, category, price_per_use, status, created_at
 		FROM reasoning_chains
 		WHERE status = 'active'
 	`
-	args := []interface{}{}
 
-	if req.Category != nil {
+	var args []interface{}
+
+	if chainType != "" {
 		query += " AND category = ?"
-		args = append(args, *req.Category)
+		args = append(args, chainType)
 	}
 
-	if req.SourceModel != nil {
-		query += " AND source_model = ?"
-		args = append(args, *req.SourceModel)
+	if minPrice != "" {
+		query += " AND price >= ?"
+		args = append(args, minPrice)
 	}
 
-	if req.MinPrice != nil {
-		query += " AND price_per_use >= ?"
-		args = append(args, *req.MinPrice)
-	}
-
-	if req.MaxPrice != nil {
-		query += " AND price_per_use <= ?"
-		args = append(args, *req.MaxPrice)
+	if maxPrice != "" {
+		query += " AND price <= ?"
+		args = append(args, maxPrice)
 	}
 
 	query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
-	args = append(args, req.Limit, req.Offset)
+	args = append(args, limit, offset)
 
 	rows, err := database.DB.Query(query, args...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{
 			Success: false,
-			Error:   stringPtr("Database error"),
+			Error:   stringPtr("Database error: " + err.Error()),
 		})
 		return
 	}
 	defer rows.Close()
 
-	chains := []models.ReasoningChain{}
+	var chains []models.ReasoningChain
 	for rows.Next() {
 		var chain models.ReasoningChain
 		err := rows.Scan(
 			&chain.ID,
 			&chain.CreatorID,
-			&chain.ChainName,
-			&chain.Description,
 			&chain.Category,
-			&chain.SourceModel,
-			&chain.StepCount,
-			&chain.AvgQuality,
-			&chain.ReviewCount,
 			&chain.PricePerUse,
-			&chain.UsageCount,
-			&chain.TotalRevenue,
 			&chain.Status,
 			&chain.CreatedAt,
 		)
@@ -465,134 +576,48 @@ func BrowseReasoningChains(c *gin.Context) {
 		Success: true,
 		Data: map[string]interface{}{
 			"chains": chains,
-			"total":  len(chains),
+			"count":  len(chains),
 		},
 	})
 }
 
-// GetStats returns memory exchange statistics
+// GetStats godoc
+// @Summary Get marketplace statistics
+// @Description Get overall statistics for the memory exchange marketplace
+// @Tags system
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.APIResponse "Marketplace statistics"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Security ApiKeyAuth
+// @Router /stats [get]
 func GetStats(c *gin.Context) {
 	var stats struct {
-		TotalMemories       int     `json:"total_memories"`
-		TotalChains         int     `json:"total_chains"`
-		TotalTransactions   int     `json:"total_transactions"`
-		TotalVolume         float64 `json:"total_volume"`
-		AvgMemoryPrice      float64 `json:"avg_memory_price"`
-		AvgChainPrice       float64 `json:"avg_chain_price"`
-		ActiveMemories      int     `json:"active_memories"`
-		ActiveChains        int     `json:"active_chains"`
+		TotalMemories      int     `json:"total_memories"`
+		AvailableMemories  int     `json:"available_memories"`
+		TotalTransactions  int     `json:"total_transactions"`
+		TotalReasoningChains int   `json:"total_reasoning_chains"`
+		TotalVolume        float64 `json:"total_volume"`
 	}
 
-	// Get memory stats
-	database.DB.QueryRow(`
-		SELECT COUNT(*), COALESCE(AVG(price), 0)
-		FROM memory_exchanges
-	`).Scan(&stats.TotalMemories, &stats.AvgMemoryPrice)
+	// Count total memories
+	database.DB.QueryRow("SELECT COUNT(*) FROM memory_exchanges").Scan(&stats.TotalMemories)
 
-	database.DB.QueryRow(`
-		SELECT COUNT(*)
-		FROM memory_exchanges
-		WHERE status = 'pending'
-	`).Scan(&stats.ActiveMemories)
+	// Count available memories
+	database.DB.QueryRow("SELECT COUNT(*) FROM memory_exchanges WHERE status = 'available'").Scan(&stats.AvailableMemories)
 
-	// Get chain stats
-	database.DB.QueryRow(`
-		SELECT COUNT(*), COALESCE(AVG(price_per_use), 0)
-		FROM reasoning_chains
-	`).Scan(&stats.TotalChains, &stats.AvgChainPrice)
+	// Count completed transactions
+	database.DB.QueryRow("SELECT COUNT(*) FROM memory_exchanges WHERE status = 'completed'").Scan(&stats.TotalTransactions)
 
-	database.DB.QueryRow(`
-		SELECT COUNT(*)
-		FROM reasoning_chains
-		WHERE status = 'active'
-	`).Scan(&stats.ActiveChains)
+	// Count reasoning chains
+	database.DB.QueryRow("SELECT COUNT(*) FROM reasoning_chains").Scan(&stats.TotalReasoningChains)
 
-	// Get transaction stats
-	database.DB.QueryRow(`
-		SELECT COUNT(*), COALESCE(SUM(price), 0)
-		FROM memory_exchanges
-		WHERE status = 'completed'
-	`).Scan(&stats.TotalTransactions, &stats.TotalVolume)
+	// Calculate total volume
+	database.DB.QueryRow("SELECT COALESCE(SUM(price), 0) FROM memory_exchanges WHERE status = 'completed'").Scan(&stats.TotalVolume)
 
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Data:    stats,
-	})
-}
-
-// GetMyHistory returns user's memory exchange history
-func GetMyHistory(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, models.APIResponse{
-			Success: false,
-			Error:   stringPtr("User not authenticated"),
-		})
-		return
-	}
-
-	role := c.DefaultQuery("role", "both")
-	limitStr := c.DefaultQuery("limit", "50")
-	limit, _ := strconv.Atoi(limitStr)
-
-	query := `
-		SELECT id, seller_id, buyer_id, memory_type, price, status, created_at
-		FROM memory_exchanges
-		WHERE 1=1
-	`
-	args := []interface{}{}
-
-	if role == "seller" || role == "both" {
-		query += " AND seller_id = ?"
-		args = append(args, userID)
-	}
-
-	if role == "buyer" || role == "both" {
-		if role == "both" {
-			query += " OR buyer_id = ?"
-		} else {
-			query += " AND buyer_id = ?"
-		}
-		args = append(args, userID)
-	}
-
-	query += " ORDER BY created_at DESC LIMIT ?"
-	args = append(args, limit)
-
-	rows, err := database.DB.Query(query, args...)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.APIResponse{
-			Success: false,
-			Error:   stringPtr("Database error"),
-		})
-		return
-	}
-	defer rows.Close()
-
-	history := []models.MemoryExchange{}
-	for rows.Next() {
-		var memory models.MemoryExchange
-		err := rows.Scan(
-			&memory.ID,
-			&memory.SellerID,
-			&memory.BuyerID,
-			&memory.MemoryType,
-			&memory.Price,
-			&memory.Status,
-			&memory.CreatedAt,
-		)
-		if err != nil {
-			continue
-		}
-		history = append(history, memory)
-	}
-
-	c.JSON(http.StatusOK, models.APIResponse{
-		Success: true,
-		Data: map[string]interface{}{
-			"history": history,
-			"total":   len(history),
-		},
 	})
 }
 

@@ -1,0 +1,203 @@
+basePath: /api/v1
+definitions:
+  models.CreateListingRequest:
+    properties:
+      alignment_loss:
+        minimum: 0
+        type: number
+      description:
+        type: string
+      price:
+        minimum: 0
+        type: number
+      source_dim:
+        minimum: 1
+        type: integer
+      source_model:
+        type: string
+      target_dim:
+        minimum: 1
+        type: integer
+      target_model:
+        type: string
+      title:
+        type: string
+      training_data_size:
+        minimum: 1
+        type: integer
+    required:
+    - alignment_loss
+    - description
+    - price
+    - source_dim
+    - source_model
+    - target_dim
+    - target_model
+    - title
+    - training_data_size
+    type: object
+  models.PurchaseListingRequest:
+    properties:
+      listing_id:
+        type: integer
+      stripe_payment_intent_id:
+        type: string
+    required:
+    - listing_id
+    - stripe_payment_intent_id
+    type: object
+host: localhost:8081
+info:
+  contact:
+    email: support@awareness.market
+    name: Awareness Market Support
+    url: https://awareness.market/support
+  description: RESTful API for trading W-Matrix alignment tools and cross-model transformation
+    matrices
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://awareness.market/terms
+  title: W-Matrix Marketplace API
+  version: "1.0"
+paths:
+  /listings:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of W-Matrix listings with optional filtering and sorting
+      parameters:
+      - description: Filter by source model
+        in: query
+        name: source_model
+        type: string
+      - description: Filter by target model
+        in: query
+        name: target_model
+        type: string
+      - description: Minimum price filter
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price filter
+        in: query
+        name: max_price
+        type: number
+      - description: 'Sort by: newest, price_asc, price_desc, rating, sales'
+        in: query
+        name: sort_by
+        type: string
+      - default: 20
+        description: Number of results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of W-Matrix listings
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Browse W-Matrix listings
+      tags:
+      - listings
+    post:
+      consumes:
+      - application/json
+      description: Create a new W-Matrix alignment tool listing for trading
+      parameters:
+      - description: Listing details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateListingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Listing created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new W-Matrix listing
+      tags:
+      - listings
+  /purchase:
+    post:
+      consumes:
+      - application/json
+      description: Purchase access to a W-Matrix and get a 7-day download URL
+      parameters:
+      - description: Purchase details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.PurchaseListingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Purchase successful with download URL
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or already purchased
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Listing not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Purchase a W-Matrix
+      tags:
+      - purchases
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'Enter your API key in the format: Bearer {your_api_key}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
