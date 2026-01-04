@@ -1227,13 +1227,12 @@
 ## Go Microservices Migration Plan (2026-01-05)
 
 ### Phase 1: Admin Analytics Service (Port 8082)
-- [ ] Create admin-analytics-service directory structure
-- [ ] Implement database connection and models
-- [ ] Migrate API usage stats queries
-- [ ] Migrate usage timeline queries
-- [ ] Migrate top users queries
-- [ ] Migrate API keys management queries
-- [ ] Migrate rate limit configuration
+- [x] Create admin-analytics-service directory structure
+- [x] Implement database connection and model- [x] Migrate API usage stats queries
+- [x] Migrate usage timeline queries
+- [x] Migrate top users queries
+- [x] Add Swagger documentation
+- [x] Compile and test service limit configuration
 - [ ] Add Swagger documentation
 - [ ] Update frontend to use HTTP API
 
@@ -1246,8 +1245,14 @@
 - [ ] Add Swagger documentation
 - [ ] Update frontend integration
 
-### Phase 3: Semantic Index Search (Port 8084)
-- [ ] Create semantic-index-service directory structure
+### Phase 3: Service Health Dashboard
+- [x] Create ServiceHealth.tsx page
+- [x] Add service status monitoring
+- [x] Add route to App.tsx
+- [x] Add link in Navbar
+
+### Phase 4: Semantic Index Search Service (Port 8084)
+- [ ] Create semantic-index-service directoryre
 - [ ] Implement embedding generation
 - [ ] Migrate semantic search
 - [ ] Migrate agent registry

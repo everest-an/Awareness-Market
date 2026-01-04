@@ -24,7 +24,8 @@ import {
   LayoutDashboard,
   Key,
   Upload,
-  Settings
+  Settings,
+  Server
 } from "lucide-react";
 
 const navLinks = [
@@ -174,12 +175,20 @@ export default function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   {user?.role === "admin" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="flex items-center gap-2 cursor-pointer">
-                        <Settings className="w-4 h-4" />
-                        Admin Panel
-                      </Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="flex items-center gap-2 cursor-pointer">
+                          <Settings className="w-4 h-4" />
+                          Admin Panel
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/service-health" className="flex items-center gap-2 cursor-pointer">
+                          <Server className="w-4 h-4" />
+                          Service Health
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuSeparator className="bg-white/10" />
                   <DropdownMenuItem 

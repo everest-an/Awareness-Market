@@ -1,0 +1,191 @@
+basePath: /
+definitions:
+  models.APIKeyInfo:
+    properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      key_prefix:
+        type: string
+      last_used_at:
+        type: string
+      name:
+        type: string
+      request_count:
+        type: integer
+      user_id:
+        type: integer
+      user_name:
+        type: string
+    type: object
+  models.APIUsageStats:
+    properties:
+      avg_response_time:
+        type: number
+      error_rate:
+        type: number
+      requests_today:
+        type: integer
+      total_requests:
+        type: integer
+      total_users:
+        type: integer
+    type: object
+  models.ServiceHealth:
+    properties:
+      last_check:
+        type: string
+      port:
+        type: integer
+      service_name:
+        type: string
+      status:
+        description: '"running", "stopped", "error"'
+        type: string
+      uptime:
+        type: string
+    type: object
+  models.TopUser:
+    properties:
+      email:
+        type: string
+      last_active:
+        type: string
+      request_count:
+        type: integer
+      user_id:
+        type: integer
+      user_name:
+        type: string
+    type: object
+  models.UsageTimelinePoint:
+    properties:
+      date:
+        type: string
+      errors:
+        type: integer
+      requests:
+        type: integer
+    type: object
+host: localhost:8082
+info:
+  contact: {}
+  description: Admin analytics and monitoring service for Awareness Market
+  title: Admin Analytics API
+  version: "1.0"
+paths:
+  /api/v1/analytics/stats:
+    get:
+      description: Get aggregated API usage statistics for admin dashboard
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIUsageStats'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get API usage statistics
+      tags:
+      - Analytics
+  /api/v1/analytics/timeline:
+    get:
+      description: Get daily API usage timeline for the past 30 days
+      parameters:
+      - default: 30
+        description: Number of days
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UsageTimelinePoint'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get usage timeline
+      tags:
+      - Analytics
+  /api/v1/analytics/top-users:
+    get:
+      description: Get list of users with highest API usage
+      parameters:
+      - default: 10
+        description: Number of users to return
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.TopUser'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get top users by API usage
+      tags:
+      - Analytics
+  /api/v1/api-keys:
+    get:
+      description: Get list of all API keys with usage information (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.APIKeyInfo'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all API keys
+      tags:
+      - API Keys
+  /api/v1/health/services:
+    get:
+      description: Get health status of all microservices
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ServiceHealth'
+            type: array
+      summary: Get microservices health status
+      tags:
+      - Health
+swagger: "2.0"
