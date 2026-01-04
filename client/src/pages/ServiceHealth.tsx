@@ -34,6 +34,13 @@ const services: ServiceStatus[] = [
     url: "http://localhost:8082",
     swagger: "http://localhost:8082/swagger/index.html",
   },
+  {
+    name: "Vector Operations",
+    port: 8083,
+    status: "running",
+    url: "http://localhost:8083",
+    swagger: "http://localhost:8083/swagger/index.html",
+  },
 ];
 
 export default function ServiceHealth() {
