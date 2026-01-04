@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/awareness/memory-exchange/internal/database"
 	"github.com/awareness/memory-exchange/internal/models"
+
 	"github.com/gin-gonic/gin"
 )
-
 // PublishMemory handles publishing a new memory to the exchange
 func PublishMemory(c *gin.Context) {
 	userID, exists := c.Get("user_id")
@@ -305,7 +304,7 @@ func PublishReasoningChain(c *gin.Context) {
 
 // UseReasoningChain handles using a reasoning chain
 func UseReasoningChain(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	_, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, models.APIResponse{
 			Success: false,
