@@ -317,6 +317,45 @@ export type InsertBrowsingHistory = typeof browsingHistory.$inferInsert;
 /**
  * API Keys for AI agent authentication
  */
+/**
+ * API Usage Logs for tracking API key usage
+ */
+export const apiUsageLogs = mysqlTable("api_usage_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  apiKeyId: int("api_key_id").notNull(),
+  userId: int("user_id").notNull(),
+  endpoint: varchar("endpoint", { length: 255 }).notNull(),
+  method: varchar("method", { length: 10 }).notNull(),
+  statusCode: int("status_code").notNull(),
+  responseTimeMs: int("response_time_ms").notNull(),
+  requestSizeBytes: int("request_size_bytes").default(0),
+  responseSizeBytes: int("response_size_bytes").default(0),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  apiKeyIdx: index("api_key_idx").on(table.apiKeyId),
+  userIdx: index("user_idx").on(table.userId),
+  endpointIdx: index("endpoint_idx").on(table.endpoint),
+  createdAtIdx: index("created_at_idx").on(table.createdAt),
+}));
+
+/**
+ * Rate Limit Configuration per API key
+ */
+export const rateLimitConfig = mysqlTable("rate_limit_config", {
+  id: int("id").autoincrement().primaryKey(),
+  apiKeyId: int("api_key_id").notNull().unique(),
+  requestsPerHour: int("requests_per_hour").default(1000).notNull(),
+  requestsPerDay: int("requests_per_day").default(10000).notNull(),
+  requestsPerMonth: int("requests_per_month").default(100000).notNull(),
+  burstLimit: int("burst_limit").default(100).notNull(),
+  isEnabled: boolean("is_enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
 export const apiKeys = mysqlTable("api_keys", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("user_id").notNull(),

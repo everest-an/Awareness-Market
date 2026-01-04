@@ -23,7 +23,8 @@ import {
   LogOut,
   LayoutDashboard,
   Key,
-  Upload
+  Upload,
+  Settings
 } from "lucide-react";
 
 const navLinks = [
@@ -172,6 +173,14 @@ export default function Navbar() {
                       API Keys
                     </Link>
                   </DropdownMenuItem>
+                  {user?.role === "admin" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="flex items-center gap-2 cursor-pointer">
+                        <Settings className="w-4 h-4" />
+                        Admin Panel
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator className="bg-white/10" />
                   <DropdownMenuItem 
                     onClick={() => logout()}

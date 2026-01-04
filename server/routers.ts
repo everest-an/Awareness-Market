@@ -18,6 +18,7 @@ import * as latentmas from "./latentmas";
 import * as semanticIndex from "./semantic-index";
 import { GENESIS_MEMORIES } from "../shared/genesis-memories";
 import * as authStandalone from "./auth-standalone";
+import * as adminAnalytics from "./admin-analytics";
 import { latentmasRouter } from "./routers/latentmas";
 import { wMatrixMarketplaceRouter } from "./routers/w-matrix-marketplace";
 // Memory Exchange moved to Go microservice
@@ -1389,7 +1390,8 @@ export const appRouter = router({
 
     // Get W-matrix versions
     listVersions: publicProcedure.query(async () => {
-      const database = getDb();
+      const database = await getDb();
+      if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       const versions = await database
         .select()
         .from(wMatrixVersions)
@@ -1402,7 +1404,8 @@ export const appRouter = router({
     getVersion: publicProcedure
       .input(z.object({ version: z.string() }))
       .query(async ({ input }) => {
-        const database = getDb();
+        const database = await getDb();
+        if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
         const [version] = await database
           .select()
           .from(wMatrixVersions)
@@ -1438,7 +1441,8 @@ export const appRouter = router({
         limit: z.number().min(1).max(100).default(50),
       }))
       .query(async ({ input }) => {
-        const database = getDb();
+        const database = await getDb();
+        if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
         let query = database
           .select()
           .from(alignmentCalculations)
@@ -1457,6 +1461,58 @@ export const appRouter = router({
   latentmasV2: latentmasRouter,
   wMatrixMarketplace: wMatrixMarketplaceRouter,
   // memoryExchange: Go microservice at :8080
+
+  // Admin Analytics (admin-only)
+  adminAnalytics: router({
+    getUsageStats: adminProcedure
+      .input(z.object({ days: z.number().min(1).max(365).default(7) }))
+      .query(async ({ input }) => {
+        return await adminAnalytics.getApiUsageStats(input.days);
+      }),
+
+    getUsageTimeline: adminProcedure
+      .input(z.object({ days: z.number().min(1).max(365).default(30) }))
+      .query(async ({ input }) => {
+        return await adminAnalytics.getApiUsageTimeline(input.days);
+      }),
+
+    getTopUsers: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(10) }))
+      .query(async ({ input }) => {
+        return await adminAnalytics.getTopApiKeyUsers(input.limit);
+      }),
+
+    getAllApiKeys: adminProcedure.query(async () => {
+      return await adminAnalytics.getAllApiKeysWithStats();
+    }),
+
+    getSystemHealth: adminProcedure.query(async () => {
+      return await adminAnalytics.getSystemHealthMetrics();
+    }),
+
+    getRateLimitConfig: adminProcedure
+      .input(z.object({ apiKeyId: z.number() }))
+      .query(async ({ input }) => {
+        return await adminAnalytics.getRateLimitConfig(input.apiKeyId);
+      }),
+
+    updateRateLimitConfig: adminProcedure
+      .input(
+        z.object({
+          apiKeyId: z.number(),
+          requestsPerHour: z.number().optional(),
+          requestsPerDay: z.number().optional(),
+          requestsPerMonth: z.number().optional(),
+          burstLimit: z.number().optional(),
+          isEnabled: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { apiKeyId, ...config } = input;
+        await adminAnalytics.updateRateLimitConfig(apiKeyId, config);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

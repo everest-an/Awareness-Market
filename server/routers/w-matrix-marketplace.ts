@@ -3,7 +3,7 @@ import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 
-const db = getDb();
+// db is async, must await in each procedure
 import { wMatrixListings, wMatrixPurchases } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
@@ -22,9 +22,10 @@ export const wMatrixMarketplaceRouter = router({
       offset: z.number().min(0).default(0),
     }))
     .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
       const { sourceModel, targetModel, minPrice, maxPrice, sortBy, limit, offset } = input;
-
-      let query = db.select().from(wMatrixListings).where(eq(wMatrixListings.status, "active"));
 
       // Apply filters
       const conditions = [eq(wMatrixListings.status, "active")];
@@ -33,26 +34,31 @@ export const wMatrixMarketplaceRouter = router({
       if (minPrice !== undefined) conditions.push(sql`${wMatrixListings.price} >= ${minPrice}`);
       if (maxPrice !== undefined) conditions.push(sql`${wMatrixListings.price} <= ${maxPrice}`);
 
-      query = db.select().from(wMatrixListings).where(and(...conditions));
-
-      // Apply sorting
+      // Determine sort order
+      let orderByClause;
       switch (sortBy) {
         case "price":
-          query = query.orderBy(wMatrixListings.price);
+          orderByClause = wMatrixListings.price;
           break;
         case "sales":
-          query = query.orderBy(desc(wMatrixListings.totalSales));
+          orderByClause = desc(wMatrixListings.totalSales);
           break;
         case "rating":
-          query = query.orderBy(desc(wMatrixListings.averageRating));
+          orderByClause = desc(wMatrixListings.averageRating);
           break;
         case "recent":
         default:
-          query = query.orderBy(desc(wMatrixListings.createdAt));
+          orderByClause = desc(wMatrixListings.createdAt);
           break;
       }
 
-      const listings = await query.limit(limit).offset(offset);
+      const listings = await db
+        .select()
+        .from(wMatrixListings)
+        .where(and(...conditions))
+        .orderBy(orderByClause)
+        .limit(limit)
+        .offset(offset);
       return listings;
     }),
 
@@ -62,6 +68,9 @@ export const wMatrixMarketplaceRouter = router({
   getListing: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
       const [listing] = await db
         .select()
         .from(wMatrixListings)
@@ -95,6 +104,9 @@ export const wMatrixMarketplaceRouter = router({
       performanceMetrics: z.record(z.any()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
       const [result] = await db.insert(wMatrixListings).values({
         sellerId: ctx.user.id,
         title: input.title,
@@ -129,6 +141,9 @@ export const wMatrixMarketplaceRouter = router({
       status: z.enum(["draft", "active", "inactive", "suspended"]).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
       // Verify ownership
       const [listing] = await db
         .select()
@@ -172,6 +187,9 @@ export const wMatrixMarketplaceRouter = router({
       stripePaymentIntentId: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
       // Get listing details
       const [listing] = await db
         .select()
@@ -241,6 +259,9 @@ export const wMatrixMarketplaceRouter = router({
    */
   myPurchases: protectedProcedure
     .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
       const purchases = await db
         .select({
           purchase: wMatrixPurchases,
@@ -264,6 +285,9 @@ export const wMatrixMarketplaceRouter = router({
    */
   myListings: protectedProcedure
     .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
       const listings = await db
         .select()
         .from(wMatrixListings)
@@ -278,6 +302,9 @@ export const wMatrixMarketplaceRouter = router({
    */
   getPopularModelPairs: publicProcedure
     .query(async () => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      
       const pairs = await db
         .select({
           sourceModel: wMatrixListings.sourceModel,
