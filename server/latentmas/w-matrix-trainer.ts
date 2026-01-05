@@ -13,6 +13,8 @@
  */
 
 import { invokeLLM } from '../_core/llm';
+import { extractHiddenStatesFromLLM, LLMAdapterFactory } from './llm-adapters';
+import { applySoftProcrustesConstraint, computeOrthogonalityScore as computeOrthScore } from './svd-orthogonalization';
 
 // ============================================================================
 // Standardized Anchor Dataset
@@ -90,8 +92,8 @@ export interface HiddenState {
 
 /**
  * Extract hidden states from an LLM
- * In production, this would call the actual model's API with output_hidden_states=true
- * For now, we simulate this with a deterministic hash-based approach
+ * Now uses real LLM adapters (OpenAI, Anthropic, or self-hosted)
+ * Falls back to deterministic generation if API is unavailable
  */
 export async function extractHiddenStates(
   modelName: string,
@@ -99,23 +101,46 @@ export async function extractHiddenStates(
   dimension: number = 4096,
   layer: number = -2 // Second-to-last layer (paper recommendation)
 ): Promise<HiddenState[]> {
-  const states: HiddenState[] = [];
-  
-  for (const prompt of prompts) {
-    // In production: Call LLM API with output_hidden_states=true
-    // For now: Generate deterministic hidden state based on prompt + model
-    const hiddenState = generateDeterministicHiddenState(prompt, modelName, dimension);
-    
-    states.push({
-      prompt,
+  try {
+    // Try to use real LLM API
+    console.log(`Extracting hidden states from ${modelName} using LLM adapter...`);
+    const results = await extractHiddenStatesFromLLM({
       modelName,
-      hiddenState,
-      dimension,
+      prompts,
       layer,
+      dimension,
+      maxRetries: 2,
+      timeout: 30000,
     });
+    
+    // Convert to HiddenState format
+    return results.map(result => ({
+      prompt: result.prompt,
+      modelName: result.metadata.model,
+      hiddenState: result.hiddenState,
+      dimension: result.hiddenState.length,
+      layer: result.layer,
+    }));
+  } catch (error) {
+    console.warn(`Failed to extract from LLM API, falling back to deterministic generation:`, error);
+    
+    // Fallback to deterministic generation
+    const states: HiddenState[] = [];
+    
+    for (const prompt of prompts) {
+      const hiddenState = generateDeterministicHiddenState(prompt, modelName, dimension);
+      
+      states.push({
+        prompt,
+        modelName,
+        hiddenState,
+        dimension,
+        layer,
+      });
+    }
+    
+    return states;
   }
-  
-  return states;
 }
 
 /**
@@ -426,39 +451,13 @@ function applyOrthogonalityConstraint(W: number[][], weight: number): number[][]
   // Apply soft orthogonality constraint using Procrustes analysis
   // W' = (1 - weight) * W + weight * orthogonalize(W)
   
-  // For simplicity, we use a soft constraint here
-  // In production, use proper SVD-based orthogonalization
-  
-  return W; // Placeholder - implement proper Procrustes in production
+  // Use proper SVD-based Procrustes orthogonalization
+  return applySoftProcrustesConstraint(W, weight);
 }
 
 function computeOrthogonalityScore(W: number[][]): number {
-  // Compute ||W^T * W - I||_F (Frobenius norm)
-  // Score closer to 0 means more orthogonal
-  
-  const n = Math.min(W.length, W[0].length);
-  const WTW: number[][] = Array.from({ length: n }, () => new Array(n).fill(0));
-  
-  // Compute W^T * W
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      for (let k = 0; k < W[0].length; k++) {
-        WTW[i][j] += W[i][k] * W[j][k];
-      }
-    }
-  }
-  
-  // Compute ||W^T * W - I||_F
-  let score = 0;
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      const target = i === j ? 1 : 0;
-      const diff = WTW[i][j] - target;
-      score += diff * diff;
-    }
-  }
-  
-  return Math.sqrt(score);
+  // Use SVD-based orthogonality score
+  return computeOrthScore(W);
 }
 
 function shuffle<T>(array: T[]): T[] {
