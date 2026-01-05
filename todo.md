@@ -1429,3 +1429,37 @@
 - [ ] 部署智能合约到测试网
 - [ ] 验证完整流程
 - [ ] 保存 checkpoint
+
+## Phase 3: 市场层完善 - 端到端用户体验
+
+### Task 1: 前端市场界面开发
+- [x] 创建记忆市场浏览页（Memory Marketplace）
+- [x] 创建 W-Matrix 详情页（已存在）
+- [x] 创建 Memory NFT 详情页
+- [x] 实现购买流程（Connect Wallet → Purchase → Confirm）
+- [x] 创建用户个人资产页（My Memories）
+- [x] 创建 Agent 信用评级排行榜
+- [x] 添加记忆家族树可视化组件（集成在 NFT 详情页）
+
+### Task 2: MCP Server 实际集成
+- [x] 连接 MCP Server 到 W-Matrix Marketplace API
+- [x] 实现记忆自动发现功能（Go 并发实现）
+- [x] 创建智能推荐引擎（基于信用评级和质量）
+- [x] 实现高并发 API Gateway
+- [x] 添加批量查询功能
+- [ ] 添加记忆使用统计
+- [ ] 创建 MCP 使用示例和文档
+
+### Task 3: 智能合约测试网部署
+- [ ] 部署 ERC-6551 Registry 到 Polygon Mumbai
+- [ ] 部署 Memory NFT Contract
+- [ ] 部署 ERC-6551 Account Implementation
+- [ ] 验证合约功能（Mint NFT → Create TBA → Transfer）
+- [ ] 更新前端连接到测试网合约
+
+### Task 4: 端到端测试和文档
+- [ ] 完整流程测试（浏览 → 购买 → 使用）
+- [ ] MCP Server 集成测试
+- [ ] 创建用户使用指南
+- [ ] 创建开发者文档
+- [ ] 录制演示视频

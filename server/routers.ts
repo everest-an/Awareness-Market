@@ -24,6 +24,8 @@ import { latentmasRouter } from "./routers/latentmas";
 import { wMatrixMarketplaceRouter } from "./routers/w-matrix-marketplace";
 import { kvCacheApiRouter } from "./routers/kv-cache-api";
 import { wMatrixMarketplaceV2Router } from "./routers/w-matrix-marketplace-v2";
+import { memoryNFTRouter } from "./routers/memory-nft-api";
+import { agentCreditRouter } from "./routers/agent-credit-api";
 // Memory Exchange moved to Go microservice
 
 // Helper to ensure user is a creator
@@ -1489,6 +1491,8 @@ export const appRouter = router({
   wMatrixMarketplace: wMatrixMarketplaceRouter,
   wMatrixMarketplaceV2: wMatrixMarketplaceV2Router,
   kvCacheApi: kvCacheApiRouter,
+  memoryNFT: memoryNFTRouter,
+  agentCredit: agentCreditRouter,
   // memoryExchange: Go microservice at :8080
 
   // Admin Analytics (admin-only)

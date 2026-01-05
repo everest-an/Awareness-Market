@@ -31,6 +31,10 @@ import Dashboard from "./pages/Dashboard";
 import LatentMASv2Demo from "./pages/LatentMASv2Demo";
 import BlogLatentMASPaper from "./pages/BlogLatentMASPaper";
 import WMatrixMarketplace from "./pages/WMatrixMarketplace";
+import MemoryMarketplace from "./pages/MemoryMarketplace";
+import MemoryNFTDetail from "./pages/MemoryNFTDetail";
+import AgentLeaderboard from "./pages/AgentLeaderboard";
+import MyMemories from "./pages/MyMemories";
 import ApiKeys from "./pages/ApiKeys";
 import S3Tester from "./pages/S3Tester";
 import AdminPanel from "./pages/AdminPanel";
@@ -67,6 +71,10 @@ function Router() {
       <Route path="/w-matrix/tester" component={WMatrixTester} />
       <Route path="/latentmas-v2-demo" component={LatentMASv2Demo} />
       <Route path="/w-matrix-marketplace" component={WMatrixMarketplace} />
+      <Route path="/memory-marketplace" component={MemoryMarketplace} />
+      <Route path="/memory/:id" component={MemoryNFTDetail} />
+      <Route path="/leaderboard" component={AgentLeaderboard} />
+      <Route path="/my-memories" component={MyMemories} />
       <Route path="/agents" component={AgentRegistry} />
       <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/sdk" component={SDKPage} />
