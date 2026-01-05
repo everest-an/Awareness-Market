@@ -1,0 +1,240 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "AI-powered recommendation engine for Awareness Marketplace",
+        "title": "Recommendation Engine API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8085",
+    "basePath": "/",
+    "paths": {
+        "/api/v1/recommendations": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get personalized recommendations for a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "recommendations"
+                ],
+                "summary": "Get personalized recommendations",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of recommendations",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by type (reasoning_chain or w_matrix)",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RecommendationResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/recommendations/similar": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Find items similar to the given item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "recommendations"
+                ],
+                "summary": "Get similar items",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "item_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Number of similar items",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RecommendationResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/recommendations/track": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Record a user's interaction with an item for future recommendations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "recommendations"
+                ],
+                "summary": "Track user interaction",
+                "parameters": [
+                    {
+                        "description": "User interaction data",
+                        "name": "interaction",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UserInteraction"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Check if the service is running",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.Recommendation": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "item_id": {
+                    "type": "string"
+                },
+                "item_type": {
+                    "description": "\"reasoning_chain\" or \"w_matrix\"",
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "number"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.RecommendationResponse": {
+            "type": "object",
+            "properties": {
+                "generated_at": {
+                    "type": "string"
+                },
+                "recommendations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Recommendation"
+                    }
+                }
+            }
+        },
+        "models.UserInteraction": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "description": "\"view\", \"purchase\", \"like\"",
+                    "type": "string"
+                },
+                "item_id": {
+                    "type": "string"
+                },
+                "item_type": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "X-API-Key",
+            "in": "header"
+        }
+    }
+}

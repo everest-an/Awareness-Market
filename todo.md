@@ -1307,3 +1307,31 @@
 - [ ] Add caching layer for recommendations
 - [ ] Add Swagger documentation
 - [ ] Update frontend integration
+
+## Advanced Features Implementation (2026-01-05)
+
+### Recommendation Engine Service (Port 8085)
+- [x] Create recommendation-engine-service directory structure
+- [x] Implement collaborative filtering algorithm
+- [x] Add content-based filtering
+- [x] Build user interaction tracking
+- [x] Create recommendation API endpoints
+- [x] Add Swagger documentation
+- [x] Compile and test service
+
+### WebSocket Real-Time Updates
+- [ ] Add WebSocket support to Go services
+- [ ] Implement pub/sub pattern for notifications
+- [ ] Create WebSocket handlers for reasoning chain updates
+- [ ] Add vector search completion notifications
+- [ ] Build frontend WebSocket client
+- [ ] Test real-time message delivery
+
+### Developer Onboarding Flow
+- [x] Create onboarding page component
+- [x] Add step-by-step tutorial UI
+- [x] Implement API key generation guide
+- [x] Add code examples for Python SDK
+- [x] Create interactive API testing interface
+- [x] Add progress tracking
+- [x] Link from dashboard/navbar

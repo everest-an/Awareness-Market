@@ -41,6 +41,13 @@ const services: ServiceStatus[] = [
     url: "http://localhost:8083",
     swagger: "http://localhost:8083/swagger/index.html",
   },
+  {
+    name: "Recommendation Engine",
+    port: 8085,
+    status: "running",
+    url: "http://localhost:8085",
+    swagger: "http://localhost:8085/swagger/index.html",
+  },
 ];
 
 export default function ServiceHealth() {

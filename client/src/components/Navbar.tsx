@@ -25,7 +25,8 @@ import {
   Key,
   Upload,
   Settings,
-  Server
+  Server,
+  Rocket
 } from "lucide-react";
 
 const navLinks = [
@@ -40,6 +41,7 @@ const navLinks = [
   {
     label: "Developers",
     children: [
+      { label: "Get Started", href: "/developer-onboarding", icon: Rocket, description: "Quick start guide" },
       { label: "Documentation", href: "/docs", icon: FileCode, description: "API & SDK guides" },
       { label: "W-Matrix Tester", href: "/w-matrix/tester", icon: Cpu, description: "Test model compatibility" },
       { label: "S3 Storage Tester", href: "/s3-tester", icon: Upload, description: "Test file upload/download" },

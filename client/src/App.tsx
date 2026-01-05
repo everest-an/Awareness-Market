@@ -35,6 +35,7 @@ import ApiKeys from "./pages/ApiKeys";
 import S3Tester from "./pages/S3Tester";
 import AdminPanel from "./pages/AdminPanel";
 import ServiceHealth from "./pages/ServiceHealth";
+import DeveloperOnboarding from "./pages/DeveloperOnboarding";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -73,6 +74,7 @@ function Router() {
       <Route path="/s3-tester" component={S3Tester} />
       <Route path="/admin" component={AdminPanel} />
       <Route path="/service-health" component={ServiceHealth} />
+      <Route path="/developer-onboarding" component={DeveloperOnboarding} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
