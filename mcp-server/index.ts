@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Awareness MCP Server
+ * Awareness MCP Server - LatentMAS Integration
  * 
  * Model Context Protocol server for Awareness Market
- * Enables AI agents to discover, evaluate, and purchase latent memory vectors
+ * Enables AI agents to discover, evaluate, and purchase LatentMAS memory packages
  * 
  * Protocol: awareness://memory/[domain]/[topic]
  */
@@ -23,72 +23,75 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '../.env' });
 
 // Types
-interface MemoryVector {
-  id: number;
+interface LatentMASMemoryPackage {
+  id: string;
   title: string;
   description: string;
-  category: string;
-  basePrice: string;
-  wMatrixStandard: string;
-  sourceModel: string;
-  hiddenDim: number;
-  alignmentLoss?: number;
-  fidelityScore?: number;
-  domain?: string;
-  topic?: string;
-}
-
-interface AlignmentGap {
   sourceModel: string;
   targetModel: string;
+  
+  // W-Matrix metadata
+  wMatrix: {
+    version: string;
+    epsilon: number;
+    certificationLevel: string;
+    orthogonalityScore: number;
+    dimension: number;
+  };
+  
+  // KV-Cache metadata
+  kvCache: {
+    originalTokens: number;
+    compressedTokens: number;
+    compressionRatio: number;
+  };
+  
+  // Performance metrics
+  metrics: {
+    ttftReduction: number; // percentage
+    tokenSavings: number; // percentage
+    bandwidthSaving: number; // percentage
+    qualityScore: number; // 0-100
+  };
+  
+  // Pricing
+  price: string;
+  currency: string;
+  
+  // Metadata
+  createdAt: string;
+  downloads: number;
+  rating: number;
+}
+
+interface ModelCompatibility {
+  sourceModel: string;
+  targetModel: string;
+  compatible: boolean;
   epsilon: number;
-  fidelityBoost: number;
   recommendation: string;
+  bestWMatrix?: {
+    id: string;
+    version: string;
+    epsilon: number;
+    certificationLevel: string;
+  };
 }
 
 // API Base URL
-const API_BASE = process.env.VITE_APP_URL || 'https://awareness.market';
+const API_BASE = process.env.VITE_APP_URL || 'http://localhost:3000';
 
 /**
- * Fetch memory vectors from Awareness API
+ * Search LatentMAS memory packages
  */
-async function fetchMemories(params: {
-  domain?: string;
-  topic?: string;
-  category?: string;
+async function searchLatentMASMemories(params: {
+  sourceModel?: string;
+  targetModel?: string;
+  maxEpsilon?: number;
+  minQuality?: number;
   limit?: number;
-}): Promise<MemoryVector[]> {
-  const searchParams = new URLSearchParams();
-  if (params.domain) searchParams.set('domain', params.domain);
-  if (params.topic) searchParams.set('topic', params.topic);
-  if (params.category) searchParams.set('category', params.category);
-  searchParams.set('limit', String(params.limit || 10));
-  
-  const url = `${API_BASE}/api/trpc/vectors.search?input=${encodeURIComponent(JSON.stringify({
-    query: params.topic || '',
-    category: params.category,
-    offset: 0,
-    limit: params.limit || 10
-  }))}`;
-  
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.statusText}`);
-  }
-  
-  const data = await response.json() as any;
-  return data.result?.data?.vectors || [];
-}
-
-/**
- * Calculate alignment gap between models
- */
-async function calculateAlignment(params: {
-  sourceModel: string;
-  targetModel: string;
-  vectorDim: number;
-}): Promise<AlignmentGap> {
-  const url = `${API_BASE}/api/trpc/alignment.calculate`;
+}): Promise<LatentMASMemoryPackage[]> {
+  const url = `${API_BASE}/api/trpc/latentmasMarketplace.browsePackages`;
   
   const response = await fetch(url, {
     method: 'POST',
@@ -96,33 +99,108 @@ async function calculateAlignment(params: {
     body: JSON.stringify({
       sourceModel: params.sourceModel,
       targetModel: params.targetModel,
-      sourceVector: Array(params.vectorDim).fill(0).map(() => Math.random()),
-      targetStandard: '8192'
+      maxEpsilon: params.maxEpsilon || 0.10,
+      minQualityScore: params.minQuality || 70,
+      limit: params.limit || 10,
+      offset: 0,
     })
   });
   
   if (!response.ok) {
-    throw new Error(`Alignment calculation failed: ${response.statusText}`);
+    throw new Error(`API request failed: ${response.statusText}`);
   }
   
   const data = await response.json() as any;
-  return data.result?.data || {
+  return data.result?.data?.packages || [];
+}
+
+/**
+ * Check model compatibility
+ */
+async function checkModelCompatibility(params: {
+  sourceModel: string;
+  targetModel: string;
+}): Promise<ModelCompatibility> {
+  const url = `${API_BASE}/api/trpc/wMatrixMarketplaceV2.getCompatibleModels`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sourceModel: params.sourceModel,
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Compatibility check failed: ${response.statusText}`);
+  }
+  
+  const data = await response.json() as any;
+  const compatibleModels = data.result?.data?.compatibleModels || [];
+  
+  const targetCompatibility = compatibleModels.find(
+    (m: any) => m.targetModel === params.targetModel
+  );
+  
+  if (targetCompatibility) {
+    return {
+      sourceModel: params.sourceModel,
+      targetModel: params.targetModel,
+      compatible: true,
+      epsilon: targetCompatibility.epsilon,
+      recommendation: `Compatible with ${targetCompatibility.certificationLevel} certification`,
+      bestWMatrix: {
+        id: targetCompatibility.wMatrixId,
+        version: targetCompatibility.version,
+        epsilon: targetCompatibility.epsilon,
+        certificationLevel: targetCompatibility.certificationLevel,
+      }
+    };
+  }
+  
+  return {
     sourceModel: params.sourceModel,
     targetModel: params.targetModel,
-    epsilon: 0.05,
-    fidelityBoost: 0.15,
-    recommendation: 'Compatible with minor alignment'
+    compatible: false,
+    epsilon: 1.0,
+    recommendation: 'No compatible W-Matrix found. Consider training a new one.',
   };
 }
 
 /**
- * Purchase memory vector
+ * Get W-Matrix details
  */
-async function purchaseMemory(params: {
-  vectorId: number;
+async function getWMatrixDetails(params: {
+  sourceModel: string;
+  targetModel: string;
+}): Promise<any> {
+  const url = `${API_BASE}/api/trpc/wMatrixMarketplaceV2.getBestMatrix`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sourceModel: params.sourceModel,
+      targetModel: params.targetModel,
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch W-Matrix: ${response.statusText}`);
+  }
+  
+  const data = await response.json() as any;
+  return data.result?.data;
+}
+
+/**
+ * Purchase LatentMAS memory package
+ */
+async function purchaseMemoryPackage(params: {
+  packageId: string;
   apiKey: string;
-}): Promise<{ success: boolean; accessToken?: string; message: string }> {
-  const url = `${API_BASE}/api/trpc/vectors.purchase`;
+}): Promise<{ success: boolean; downloadUrl?: string; message: string }> {
+  const url = `${API_BASE}/api/trpc/latentmasMarketplace.purchasePackage`;
   
   const response = await fetch(url, {
     method: 'POST',
@@ -131,7 +209,7 @@ async function purchaseMemory(params: {
       'Authorization': `Bearer ${params.apiKey}`
     },
     body: JSON.stringify({
-      vectorId: params.vectorId
+      packageId: params.packageId
     })
   });
   
@@ -145,16 +223,60 @@ async function purchaseMemory(params: {
   const data = await response.json() as any;
   return {
     success: true,
-    accessToken: data.result?.data?.accessToken,
+    downloadUrl: data.result?.data?.downloadUrl,
     message: 'Purchase successful'
+  };
+}
+
+/**
+ * Estimate performance improvement
+ */
+async function estimatePerformance(params: {
+  sourceModel: string;
+  targetModel: string;
+  currentTokens: number;
+}): Promise<{
+  ttftReduction: number;
+  tokenSavings: number;
+  bandwidthSaving: number;
+  estimatedCost: number;
+}> {
+  const url = `${API_BASE}/api/trpc/kvCacheApi.estimateSavings`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      modelName: params.targetModel,
+      originalSize: params.currentTokens * 4096 * 4, // Assume 4096 dim, 4 bytes per float
+      compressionRatio: 0.90,
+    })
+  });
+  
+  if (!response.ok) {
+    // Return default estimates
+    return {
+      ttftReduction: 45,
+      tokenSavings: 40,
+      bandwidthSaving: 90,
+      estimatedCost: 0.001,
+    };
+  }
+  
+  const data = await response.json() as any;
+  return data.result?.data || {
+    ttftReduction: 45,
+    tokenSavings: 40,
+    bandwidthSaving: 90,
+    estimatedCost: 0.001,
   };
 }
 
 // Create MCP server
 const server = new Server(
   {
-    name: 'awareness-mcp-server',
-    version: '1.0.0',
+    name: 'awareness-latentmas-mcp',
+    version: '2.0.0',
   },
   {
     capabilities: {
@@ -171,70 +293,113 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: 'search_latent_memory',
-        description: 'Search for latent memory vectors by domain, topic, or category. Returns a list of available memories with metadata including pricing, alignment requirements, and performance metrics.',
+        name: 'search_latentmas_memories',
+        description: 'Search for LatentMAS memory packages (W-Matrix + KV-Cache) by model pair. Returns packages with performance metrics, pricing, and quality scores. Use this to find pre-trained cross-model memory transformations.',
         inputSchema: {
           type: 'object',
           properties: {
-            domain: {
+            sourceModel: {
               type: 'string',
-              description: 'Domain of expertise (e.g., "smart-contracts", "cryptography", "defi")'
+              description: 'Source model identifier (e.g., "gpt-3.5-turbo", "llama-3.1-8b")',
+              examples: ['gpt-3.5-turbo', 'gpt-4', 'claude-3-sonnet', 'llama-3.1-8b']
             },
-            topic: {
+            targetModel: {
               type: 'string',
-              description: 'Specific topic or keyword to search for'
+              description: 'Target model identifier (e.g., "gpt-4", "claude-3-opus")',
+              examples: ['gpt-4', 'claude-3-opus', 'llama-3.1-70b']
             },
-            category: {
-              type: 'string',
-              description: 'Category filter (e.g., "Smart Contracts", "Cryptography", "DeFi", "AI/ML")'
+            maxEpsilon: {
+              type: 'number',
+              description: 'Maximum alignment loss (epsilon) to accept (default: 0.10). Lower is better.',
+              default: 0.10
+            },
+            minQuality: {
+              type: 'number',
+              description: 'Minimum quality score (0-100) to accept (default: 70)',
+              default: 70
             },
             limit: {
               type: 'number',
-              description: 'Maximum number of results to return (default: 10)',
+              description: 'Maximum number of results (default: 10)',
               default: 10
             }
           }
         }
       },
       {
-        name: 'calculate_alignment_gap',
-        description: 'Calculate the alignment gap (epsilon) between your model and a target memory vector. Returns epsilon value, fidelity boost estimate, and compatibility recommendation. Lower epsilon means better alignment.',
+        name: 'check_model_compatibility',
+        description: 'Check if two models are compatible for LatentMAS memory transfer. Returns compatibility status, epsilon value, and best available W-Matrix. Use this before purchasing to ensure compatibility.',
         inputSchema: {
           type: 'object',
           properties: {
             sourceModel: {
               type: 'string',
-              description: 'Your model identifier (e.g., "gpt-4", "llama-3-70b", "claude-3-opus")'
+              description: 'Your current model'
             },
             targetModel: {
               type: 'string',
-              description: 'Target memory\'s source model'
-            },
-            vectorDim: {
-              type: 'number',
-              description: 'Vector dimensionality (4096 or 8192)',
-              enum: [4096, 8192]
+              description: 'Target model you want to transfer memory to'
             }
           },
-          required: ['sourceModel', 'targetModel', 'vectorDim']
+          required: ['sourceModel', 'targetModel']
         }
       },
       {
-        name: 'purchase_memory',
-        description: 'Purchase access to a latent memory vector. Requires API key authentication. Returns an access token for invoking the memory.',
+        name: 'get_wmatrix_details',
+        description: 'Get detailed information about a W-Matrix for a specific model pair. Returns training metadata, certification level, orthogonality score, and download URLs.',
         inputSchema: {
           type: 'object',
           properties: {
-            vectorId: {
+            sourceModel: {
+              type: 'string',
+              description: 'Source model'
+            },
+            targetModel: {
+              type: 'string',
+              description: 'Target model'
+            }
+          },
+          required: ['sourceModel', 'targetModel']
+        }
+      },
+      {
+        name: 'estimate_performance',
+        description: 'Estimate performance improvements from using LatentMAS. Returns expected TTFT reduction, token savings, bandwidth savings, and cost estimates.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sourceModel: {
+              type: 'string',
+              description: 'Source model'
+            },
+            targetModel: {
+              type: 'string',
+              description: 'Target model'
+            },
+            currentTokens: {
               type: 'number',
-              description: 'ID of the memory vector to purchase'
+              description: 'Current number of tokens in your KV-Cache'
+            }
+          },
+          required: ['sourceModel', 'targetModel', 'currentTokens']
+        }
+      },
+      {
+        name: 'purchase_memory_package',
+        description: 'Purchase a LatentMAS memory package. Requires API key. Returns download URL for the complete package (W-Matrix + compressed KV-Cache).',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            packageId: {
+              type: 'string',
+              description: 'ID of the memory package to purchase'
             },
             apiKey: {
               type: 'string',
-              description: 'Your Awareness API key for authentication'
+              description: 'Your Awareness API key'
             }
           },
-          required: ['vectorId', 'apiKey']
+          required: ['packageId', 'apiKey']
         }
       }
     ]
@@ -249,9 +414,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   
   try {
     switch (name) {
-      case 'search_latent_memory': {
-        const params = args as { domain?: string; topic?: string; category?: string; limit?: number };
-        const memories = await fetchMemories(params);
+      case 'search_latentmas_memories': {
+        const params = args as {
+          sourceModel?: string;
+          targetModel?: string;
+          maxEpsilon?: number;
+          minQuality?: number;
+          limit?: number;
+        };
+        
+        const memories = await searchLatentMASMemories(params);
         
         return {
           content: [
@@ -259,53 +431,103 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               type: 'text',
               text: JSON.stringify({
                 count: memories.length,
-                memories: memories.map(m => ({
+                packages: memories.map(m => ({
                   id: m.id,
                   title: m.title,
                   description: m.description,
-                  category: m.category,
-                  price: m.basePrice,
-                  standard: m.wMatrixStandard,
-                  sourceModel: m.sourceModel,
-                  dimension: m.hiddenDim,
-                  alignmentLoss: m.alignmentLoss,
-                  fidelityScore: m.fidelityScore,
-                  uri: `awareness://memory/${m.category.toLowerCase().replace(/\s+/g, '-')}/${m.id}`
-                }))
+                  modelPair: `${m.sourceModel} → ${m.targetModel}`,
+                  epsilon: m.wMatrix.epsilon,
+                  certification: m.wMatrix.certificationLevel,
+                  qualityScore: m.metrics.qualityScore,
+                  performance: {
+                    ttftReduction: `${m.metrics.ttftReduction.toFixed(1)}%`,
+                    tokenSavings: `${m.metrics.tokenSavings.toFixed(1)}%`,
+                    bandwidthSaving: `${m.metrics.bandwidthSaving.toFixed(1)}%`
+                  },
+                  price: `${m.price} ${m.currency}`,
+                  uri: `awareness://latentmas/${m.sourceModel}/${m.targetModel}/${m.id}`
+                })),
+                recommendation: memories.length > 0
+                  ? `Found ${memories.length} compatible packages. Best option: ${memories[0].title} (ε=${memories[0].wMatrix.epsilon.toFixed(4)}, Quality=${memories[0].metrics.qualityScore.toFixed(1)})`
+                  : 'No compatible packages found. Consider training a new W-Matrix or adjusting search criteria.'
               }, null, 2)
             }
           ]
         };
       }
       
-      case 'calculate_alignment_gap': {
-        const params = args as { sourceModel: string; targetModel: string; vectorDim: number };
-        const alignment = await calculateAlignment(params);
+      case 'check_model_compatibility': {
+        const params = args as { sourceModel: string; targetModel: string };
+        const compatibility = await checkModelCompatibility(params);
         
         return {
           content: [
             {
               type: 'text',
               text: JSON.stringify({
-                sourceModel: alignment.sourceModel,
-                targetModel: alignment.targetModel,
-                epsilon: alignment.epsilon,
-                fidelityBoost: alignment.fidelityBoost,
-                recommendation: alignment.recommendation,
-                interpretation: alignment.epsilon < 0.1 
-                  ? 'Excellent alignment - highly recommended'
-                  : alignment.epsilon < 0.3
-                  ? 'Good alignment - recommended with minor adaptation'
-                  : 'Moderate alignment - consider alternative memories or fine-tuning'
+                compatible: compatibility.compatible,
+                sourceModel: compatibility.sourceModel,
+                targetModel: compatibility.targetModel,
+                epsilon: compatibility.epsilon,
+                recommendation: compatibility.recommendation,
+                bestWMatrix: compatibility.bestWMatrix,
+                interpretation: compatibility.compatible
+                  ? compatibility.epsilon < 0.05
+                    ? '✓ Excellent compatibility - Gold/Platinum certified'
+                    : compatibility.epsilon < 0.10
+                    ? '✓ Good compatibility - Silver/Gold certified'
+                    : '⚠ Moderate compatibility - Bronze certified'
+                  : '✗ No compatible W-Matrix available'
               }, null, 2)
             }
           ]
         };
       }
       
-      case 'purchase_memory': {
-        const params = args as { vectorId: number; apiKey: string };
-        const result = await purchaseMemory(params);
+      case 'get_wmatrix_details': {
+        const params = args as { sourceModel: string; targetModel: string };
+        const wmatrix = await getWMatrixDetails(params);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(wmatrix || { error: 'W-Matrix not found' }, null, 2)
+            }
+          ]
+        };
+      }
+      
+      case 'estimate_performance': {
+        const params = args as { sourceModel: string; targetModel: string; currentTokens: number };
+        const estimate = await estimatePerformance(params);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                currentTokens: params.currentTokens,
+                estimatedImprovements: {
+                  ttftReduction: `${estimate.ttftReduction}% faster first token`,
+                  tokenSavings: `${estimate.tokenSavings}% fewer tokens processed`,
+                  bandwidthSaving: `${estimate.bandwidthSaving}% bandwidth reduction`
+                },
+                estimatedCost: `$${estimate.estimatedCost.toFixed(4)} per inference`,
+                recommendation: estimate.ttftReduction > 40
+                  ? 'Highly recommended - significant performance gains'
+                  : estimate.ttftReduction > 20
+                  ? 'Recommended - moderate performance gains'
+                  : 'Consider if cost savings are priority'
+              }, null, 2)
+            }
+          ]
+        };
+      }
+      
+      case 'purchase_memory_package': {
+        const params = args as { packageId: string; apiKey: string };
+        const result = await purchaseMemoryPackage(params);
         
         return {
           content: [
@@ -314,10 +536,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify({
                 success: result.success,
                 message: result.message,
-                accessToken: result.accessToken,
-                nextSteps: result.success 
-                  ? 'Use the accessToken to invoke the memory via /api/vectors/invoke endpoint'
-                  : 'Check your API key and account balance'
+                downloadUrl: result.downloadUrl,
+                nextSteps: result.success
+                  ? [
+                      '1. Download the package from the provided URL',
+                      '2. Extract W-Matrix and compressed KV-Cache',
+                      '3. Load W-Matrix into your inference pipeline',
+                      '4. Apply transformation to your KV-Cache',
+                      '5. Enjoy reduced TTFT and token consumption!'
+                    ]
+                  : ['Check your API key and account balance']
               }, null, 2)
             }
           ]
@@ -333,8 +561,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         {
           type: 'text',
           text: JSON.stringify({
-            error: error instanceof Error ? error.message : 'Unknown error occurred'
-          })
+            error: error instanceof Error ? error.message : 'Unknown error occurred',
+            troubleshooting: [
+              'Ensure the API server is running',
+              'Check your network connection',
+              'Verify model names are correct',
+              'Confirm API key is valid (if required)'
+            ]
+          }, null, 2)
         }
       ],
       isError: true
@@ -346,14 +580,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
  * List available resources
  */
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  // Fetch recent memories to populate resource list
-  const memories = await fetchMemories({ limit: 20 });
+  // Fetch recent LatentMAS packages
+  const packages = await searchLatentMASMemories({ limit: 20 });
   
   return {
-    resources: memories.map(m => ({
-      uri: `awareness://memory/${m.category.toLowerCase().replace(/\s+/g, '-')}/${m.id}`,
-      name: m.title,
-      description: m.description,
+    resources: packages.map(p => ({
+      uri: `awareness://latentmas/${p.sourceModel}/${p.targetModel}/${p.id}`,
+      name: p.title,
+      description: `${p.description} | ε=${p.wMatrix.epsilon.toFixed(4)} | Quality=${p.metrics.qualityScore.toFixed(1)}`,
       mimeType: 'application/json'
     }))
   };
@@ -365,28 +599,31 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const uri = request.params.uri;
   
-  // Parse URI: awareness://memory/[domain]/[id]
-  const match = uri.match(/^awareness:\/\/memory\/([^\/]+)\/(\d+)$/);
+  // Parse URI: awareness://latentmas/[sourceModel]/[targetModel]/[id]
+  const match = uri.match(/^awareness:\/\/latentmas\/([^\/]+)\/([^\/]+)\/(.+)$/);
   if (!match) {
-    throw new Error('Invalid URI format. Expected: awareness://memory/[domain]/[id]');
+    throw new Error('Invalid URI format. Expected: awareness://latentmas/[sourceModel]/[targetModel]/[id]');
   }
   
-  const [, domain, idStr] = match;
-  const id = parseInt(idStr, 10);
+  const [, sourceModel, targetModel, packageId] = match;
   
-  // Fetch memory details
-  const url = `${API_BASE}/api/trpc/vectors.getById?input=${encodeURIComponent(JSON.stringify({ id }))}`;
-  const response = await fetch(url);
+  // Fetch package details
+  const url = `${API_BASE}/api/trpc/latentmasMarketplace.getPackageDetails`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ packageId })
+  });
   
   if (!response.ok) {
-    throw new Error(`Failed to fetch memory: ${response.statusText}`);
+    throw new Error(`Failed to fetch package: ${response.statusText}`);
   }
   
   const data = await response.json() as any;
-  const memory = data.result?.data;
+  const pkg = data.result?.data;
   
-  if (!memory) {
-    throw new Error(`Memory not found: ${id}`);
+  if (!pkg) {
+    throw new Error(`Package not found: ${packageId}`);
   }
   
   return {
@@ -395,21 +632,13 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         uri,
         mimeType: 'application/json',
         text: JSON.stringify({
-          id: memory.id,
-          title: memory.title,
-          description: memory.description,
-          category: memory.category,
-          price: memory.basePrice,
-          standard: memory.wMatrixStandard,
-          sourceModel: memory.sourceModel,
-          dimension: memory.hiddenDim,
-          alignmentLoss: memory.alignmentLoss,
-          fidelityScore: memory.fidelityScore,
+          ...pkg,
           metadata: {
-            domain,
             uri,
-            purchaseEndpoint: `${API_BASE}/api/trpc/vectors.purchase`,
-            invokeEndpoint: `${API_BASE}/api/vectors/invoke`
+            sourceModel,
+            targetModel,
+            purchaseEndpoint: `${API_BASE}/api/trpc/latentmasMarketplace.purchasePackage`,
+            compatibilityCheckEndpoint: `${API_BASE}/api/trpc/wMatrixMarketplaceV2.checkVersionCompatibility`
           }
         }, null, 2)
       }
@@ -421,7 +650,8 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('Awareness MCP Server running on stdio');
+  console.error('Awareness LatentMAS MCP Server v2.0 running on stdio');
+  console.error('Integrated with LatentMAS Marketplace API');
 }
 
 main().catch((error) => {
