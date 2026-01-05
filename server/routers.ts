@@ -22,6 +22,8 @@ import * as adminAnalytics from "./admin-analytics";
 import * as userAnalytics from "./user-analytics";
 import { latentmasRouter } from "./routers/latentmas";
 import { wMatrixMarketplaceRouter } from "./routers/w-matrix-marketplace";
+import { kvCacheApiRouter } from "./routers/kv-cache-api";
+import { wMatrixMarketplaceV2Router } from "./routers/w-matrix-marketplace-v2";
 // Memory Exchange moved to Go microservice
 
 // Helper to ensure user is a creator
@@ -1485,6 +1487,8 @@ export const appRouter = router({
   // LatentMAS v2 API Endpoints
   latentmasV2: latentmasRouter,
   wMatrixMarketplace: wMatrixMarketplaceRouter,
+  wMatrixMarketplaceV2: wMatrixMarketplaceV2Router,
+  kvCacheApi: kvCacheApiRouter,
   // memoryExchange: Go microservice at :8080
 
   // Admin Analytics (admin-only)
