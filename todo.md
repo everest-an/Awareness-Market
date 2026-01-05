@@ -1463,3 +1463,33 @@
 - [ ] 创建用户使用指南
 - [ ] 创建开发者文档
 - [ ] 录制演示视频
+
+## 🔥 紧急重构：LatentMAS 论文规范符合性
+
+### Task 1: 重新设计 W-Matrix 训练流程（符合论文）
+- [x] 创建标准化锚点数据集（common prompts for alignment）
+- [x] 实现真实的 LLM 推理接口（获取隐藏状态）
+- [x] 实现 MLP 训练算法（W * H_source ≈ H_target）
+- [x] 在测试集上计算真实 epsilon
+- [x] 实现 Procrustes 分析（论文中的正交性要求）
+- [x] 添加训练进度和质量监控
+
+### Task 2: 实现 KV-Cache 与 W-Matrix 集成
+- [x] 设计 KV-Cache + W-Matrix 联合使用协议
+- [x] 实现跨模型 KV-Cache 转换（使用 W-Matrix）
+- [x] 验证 TTFT 和 Token 消耗降低（对比论文基准）
+- [x] 实现 Symmetric Focus 算法（论文 v2）
+- [x] 创建完整的使用示例
+
+### Task 3: 修复市场上传/交易流程
+- [x] 更新上传格式（必须包含训练元数据）
+- [x] 添加 W-Matrix 验证器（检查是否符合论文格式）
+- [x] 实现 KV-Cache + W-Matrix 打包格式
+- [x] 更新交易流程（确保买家获得完整数据）
+- [x] 添加质量保证机制（epsilon 验证）
+
+### Task 4: 端到端验证
+- [x] 创建完整的训练 → 上传 → 购买 → 使用流程测试
+- [x] 验证与论文基准的一致性
+- [x] 创建 LatentMAS 论文规范文档
+- [x] 更新所有 API 文档
