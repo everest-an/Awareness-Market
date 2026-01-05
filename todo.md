@@ -1335,3 +1335,25 @@
 - [x] Create interactive API testing interface
 - [x] Add progress tracking
 - [x] Link from dashboard/navbar
+
+## Usage Analytics & WebSocket Notifications
+
+### User Usage Analytics Dashboard
+- [x] Create UsageAnalytics.tsx page component
+- [x] Add tRPC endpoints for user-specific usage stats
+- [x] Implement request count charts (daily/weekly/monthly)
+- [x] Add popular endpoints breakdown
+- [x] Show API key usage distribution
+- [x] Display response time metrics
+- [x] Add error rate visualization
+- [x] Create route and navigation link
+
+### WebSocket Real-Time Notifications
+- [ ] Implement WebSocket server in Go services
+- [ ] Add WebSocket handler for Memory Exchange
+- [ ] Add WebSocket handler for Vector Operations
+- [ ] Create notification message protocol
+- [ ] Build frontend WebSocket client hook
+- [ ] Implement notification toast/banner UI
+- [ ] Add subscription management
+- [ ] Test real-time message delivery

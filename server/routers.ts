@@ -19,6 +19,7 @@ import * as semanticIndex from "./semantic-index";
 import { GENESIS_MEMORIES } from "../shared/genesis-memories";
 import * as authStandalone from "./auth-standalone";
 import * as adminAnalytics from "./admin-analytics";
+import * as userAnalytics from "./user-analytics";
 import { latentmasRouter } from "./routers/latentmas";
 import { wMatrixMarketplaceRouter } from "./routers/w-matrix-marketplace";
 // Memory Exchange moved to Go microservice
@@ -867,6 +868,30 @@ export const appRouter = router({
         averageRating: avgRating.toFixed(2),
         recentTransactions: earnings.slice(0, 10),
       };
+    }),
+
+    // User API usage statistics
+    usageStats: protectedProcedure.query(async ({ ctx }) => {
+      return await userAnalytics.getUserUsageStats(ctx.user.id);
+    }),
+
+    // Popular endpoints
+    popularEndpoints: protectedProcedure
+      .input(z.object({ limit: z.number().positive().default(10) }).optional())
+      .query(async ({ ctx, input }) => {
+        return await userAnalytics.getPopularEndpoints(ctx.user.id, input?.limit);
+      }),
+
+    // Daily usage over time
+    dailyUsage: protectedProcedure
+      .input(z.object({ days: z.number().positive().default(30) }).optional())
+      .query(async ({ ctx, input }) => {
+        return await userAnalytics.getDailyUsage(ctx.user.id, input?.days);
+      }),
+
+    // API key usage breakdown
+    apiKeyUsage: protectedProcedure.query(async ({ ctx }) => {
+      return await userAnalytics.getApiKeyUsage(ctx.user.id);
     }),
 
     // Consumer dashboard stats
