@@ -47,11 +47,20 @@ export interface LLMAdapter {
 export class OpenAIAdapter implements LLMAdapter {
   name = "OpenAI";
   supportedModels = [
-    "gpt-4",
-    "gpt-4-turbo",
+    // GPT-5 series (2025 - Latest)
+    "gpt-5.2",
+    "gpt-5-mini",
+    "gpt-5-nano",
+    "gpt-5",
+    // GPT-4.1 series
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    // Legacy support (still available)
     "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
     "gpt-3.5-turbo",
-    "gpt-3.5-turbo-16k",
   ];
 
   /**
@@ -149,9 +158,14 @@ export class OpenAIAdapter implements LLMAdapter {
     return Math.ceil(text.length / 4);
   }
 
-  estimateCost(config: HiddenStateExtractionConfig): number {
-    // OpenAI pricing (as of 2024)
-    const pricePerToken = 0.00003; // $0.03 per 1K tokens for GPT-4
+  estimateCost(config: HiddenStateExtractionConfig): number {    // OpenAI pricing (2025)
+    // GPT-5.2: ~$10/M input, GPT-5-mini: ~$1/M input, GPT-5-nano: ~$0.1/M input
+    // GPT-4.1: ~$5/M input, GPT-4o: ~$2.5/M input
+    const pricePerToken = config.modelName.includes('5.2') ? 0.00001 :
+                          config.modelName.includes('5-mini') ? 0.000001 :
+                          config.modelName.includes('5-nano') ? 0.0000001 :
+                          config.modelName.includes('4.1') ? 0.000005 :
+                          config.modelName.includes('4o') ? 0.0000025 : 0.00001;
     const totalTokens = config.prompts.reduce(
       (sum, prompt) => sum + this.estimateTokenCount(prompt),
       0
@@ -167,9 +181,10 @@ export class OpenAIAdapter implements LLMAdapter {
 export class AnthropicAdapter implements LLMAdapter {
   name = "Anthropic";
   supportedModels = [
-    "claude-3-opus",
-    "claude-3-sonnet",
-    "claude-3-haiku",
+    "claude-opus-4-1-20250514",
+    "claude-sonnet-4-5-20250929",
+    "claude-haiku-4-5-20251001",
+    // Legacy support (deprecated)
     "claude-3.5-sonnet",
     "claude-2.1",
   ];
@@ -248,7 +263,9 @@ export class AnthropicAdapter implements LLMAdapter {
 
   estimateCost(config: HiddenStateExtractionConfig): number {
     // Anthropic pricing
-    const pricePerToken = 0.000015; // $0.015 per 1K tokens for Claude 3 Sonnet
+    // Claude 4 pricing: Sonnet 4.5 = $3/M input, Opus 4.1 = $15/M input, Haiku 4.5 = $0.25/M input
+    const pricePerToken = config.modelName.includes('opus') ? 0.000015 : 
+                          config.modelName.includes('haiku') ? 0.00000025 : 0.000003;
     const totalTokens = config.prompts.reduce(
       (sum, prompt) => sum + this.estimateTokenCount(prompt),
       0
