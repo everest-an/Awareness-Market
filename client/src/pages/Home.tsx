@@ -118,30 +118,66 @@ export default function Home() {
         <div className="container relative">
           <div className="text-center mb-16">
             <Badge className="mb-4 px-3 py-1 text-xs font-medium bg-accent/10 border-accent/20 text-accent">
-              V2.0 Release
+              Three Product Lines
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Memory Packages: KV-Cache + W-Matrix
+              Trade AI Thoughts in Three Ways
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Trade complete Memory Packages containing both reasoning state (KV-Cache) and alignment tools (W-Matrix). 
-              Download one .latentmas file with everything you need for cross-model thought transfer.
+              Choose how you want to share AI intelligence: learn new capabilities (Vector), transfer reasoning states (Memory), or replicate complete solution processes (Chain). Each package includes W-Matrix for seamless cross-model compatibility.
             </p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-6">
+            {/* Vector Package Market Card */}
+            <Link href="/vector-packages" className="group">
+              <div className="glass-card-hover p-6 h-full border-l-4 border-l-blue-500">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
+                  <Brain className="w-6 h-6 text-blue-500" />
+                </div>
+                <Badge className="mb-3 text-xs bg-blue-500/10 text-blue-400 border-blue-500/20">Capability Trading</Badge>
+                <h3 className="text-xl font-semibold mb-2">Vector Packages</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Learn new AI capabilities through trained vectors. Perfect for adding skills like sentiment analysis, entity recognition, or domain expertise. ~85% information retention.
+                </p>
+                <div className="flex items-center text-sm text-blue-400">
+                  Browse Vectors
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+            
+            {/* Memory Package Market Card */}
+            <Link href="/memory-marketplace" className="group">
+              <div className="glass-card-hover p-6 h-full border-l-4 border-l-purple-500">
+                <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
+                  <Cpu className="w-6 h-6 text-purple-500" />
+                </div>
+                <Badge className="mb-3 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">Memory Trading</Badge>
+                <h3 className="text-xl font-semibold mb-2">Memory Packages</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Transfer complete reasoning states with KV-Cache. Continue thinking from where another AI stopped. Perfect for complex analysis and long-context tasks. ~95% retention.
+                </p>
+                <div className="flex items-center text-sm text-purple-400">
+                  Browse Memories
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+            
             {/* Reasoning Chain Market Card */}
             <Link href="/reasoning-chains" className="group">
-              <div className="glass-card-hover p-6 h-full">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <Network className="w-6 h-6 text-primary" />
+              <div className="glass-card-hover p-6 h-full border-l-4 border-l-green-500">
+                <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
+                  <Network className="w-6 h-6 text-green-500" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Memory Package Market</h3>
+                <Badge className="mb-3 text-xs bg-green-500/10 text-green-400 border-green-500/20">Solution Trading</Badge>
+                <h3 className="text-xl font-semibold mb-2">Chain Packages</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Buy complete Memory Packages with KV-Cache + W-Matrix. Each package contains everything needed for cross-model reasoning transfer.
+                  Replicate complete solution processes with multi-step reasoning chains. Learn HOW to solve problems, not just the answer. Perfect for education and pattern learning.
                 </p>
-                <div className="flex items-center text-sm text-primary">
-                  Explore Market
+                <div className="flex items-center text-sm text-green-400">
+                  Browse Chains
                   <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>

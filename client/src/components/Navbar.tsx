@@ -34,8 +34,9 @@ const navLinks = [
   {
     label: "Products",
     children: [
-      { label: "Vector Marketplace", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
-      { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share AI thought processes" },
+      { label: "Vector Packages", href: "/vector-packages", icon: Brain, description: "Trade AI capabilities" },
+      { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
+      { label: "Chain Packages", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
       { label: "W-Matrix Protocol", href: "/w-matrix", icon: Cpu, description: "Cross-model alignment" },
     ]
   },
