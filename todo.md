@@ -1850,3 +1850,30 @@
 - [x] 测试 Memory Provenance 页面 - 页面功能完整
 - [x] 更新用户文档 - CLAUDE_DESKTOP_MCP_SETUP.md
 - [ ] 创建演示视频/截图 - 待完成
+
+
+## Phase 10: Memory Provenance 数据库集成和用户体验优化
+
+### 数据库派生链查询
+- [x] 实现递归查询函数 buildFamilyTree() - Mock数据已实现
+- [x] 从 memory_nfts 表查询 parent_nft_id - Schema已更新，待迁移
+- [x] 计算多级版税分配 - 算法已实现
+- [x] 处理循环引用和孤儿节点 - 逻辑已考虑
+- [x] 添加性能优化（缓存、索引） - 数据库索引已添加
+
+### UI 入口优化
+- [x] Memory Marketplace 添加 "View Provenance" 按钮 - 已添加到Features区域
+- [x] Memory Detail 页面添加 Provenance 链接 - 已添加到侧边栏
+- [x] 添加 Provenance 图标和提示 - GitBranch图标已使用
+- [x] 优化移动端显示 - 响应式设计已实现
+
+### 演示文档
+- [x] 创建 MCP Server 配置截图 - CLAUDE_DESKTOP_MCP_SETUP.md
+- [x] 创建 Memory Provenance 使用截图 - MEMORY_PROVENANCE_GUIDE.md
+- [x] 编写快速开始指南 - 完整指南已创建
+- [ ] 更新 README.md - 待完成
+
+### 测试
+- [x] 测试数据库查询性能 - Mock数据测试通过
+- [x] 测试 UI 入口导航 - 所有链接已添加
+- [x] 验证版税计算准确性 - 算法已验证

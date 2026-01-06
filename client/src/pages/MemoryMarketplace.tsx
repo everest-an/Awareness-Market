@@ -193,10 +193,12 @@ export default function MemoryMarketplace() {
                   {/* Features */}
                   <div className="flex items-center gap-3 mb-4 text-xs text-slate-400">
                     {memory.hasProvenance && (
-                      <div className="flex items-center gap-1">
-                        <GitBranch className="h-3 w-3" />
-                        <span>Provenance</span>
-                      </div>
+                      <Link href={`/memory-provenance/${memory.id}`} onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1 hover:text-cyan-400 transition-colors cursor-pointer">
+                          <GitBranch className="h-3 w-3" />
+                          <span>View Provenance</span>
+                        </div>
+                      </Link>
                     )}
                     {memory.hasTBA && (
                       <div className="flex items-center gap-1">

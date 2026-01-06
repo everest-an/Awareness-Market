@@ -345,6 +345,19 @@ export default function MemoryNFTDetail() {
                 {purchaseMutation.isPending ? 'Processing...' : 'Purchase Memory'}
               </Button>
 
+              {nft.hasProvenance && (
+                <Link href={`/memory-provenance/${nftId}`}>
+                  <Button
+                    className="w-full mt-3 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
+                    size="lg"
+                    variant="outline"
+                  >
+                    <GitBranch className="mr-2 h-5 w-5" />
+                    View Provenance Tree
+                  </Button>
+                </Link>
+              )}
+
               <div className="mt-4 text-xs text-slate-400 text-center">
                 Secure payment powered by Stripe
               </div>

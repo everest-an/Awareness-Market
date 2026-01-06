@@ -29,6 +29,16 @@ export const memoryNFTs = mysqlTable('memory_nfts', {
   assetUrl: text('asset_url'), // S3 URL to memory data
   metadataUrl: text('metadata_url'), // IPFS URL to NFT metadata
   
+  // Provenance (派生关系)
+  parentNftId: varchar('parent_nft_id', { length: 255 }), // Parent memory NFT ID (null for original)
+  derivationType: varchar('derivation_type', { length: 50 }), // 'fine-tune' | 'merge' | 'distill' | 'optimize'
+  royaltyPercent: int('royalty_percent').default(30), // Percentage of revenue shared with parent (default 30%)
+  totalRoyaltiesPaid: varchar('total_royalties_paid', { length: 78 }).default('0'), // Total royalties paid to parent (in wei)
+  
+  // Marketplace
+  price: varchar('price', { length: 78 }), // Price in wei
+  downloads: int('downloads').default(0).notNull(),
+  
   // Timestamps
   mintedAt: timestamp('minted_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
