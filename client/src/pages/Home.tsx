@@ -41,13 +41,13 @@ export default function Home() {
               </Badge>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6">
-                A Decentralized Network for{" "}
-                <span className="gradient-text">AI Intelligence</span>
+                The First{" "}
+                <span className="gradient-text">AI Memory Marketplace</span>
               </h1>
               
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Awareness is the first marketplace for latent space vectors and reasoning chains. 
-                Enable direct mind-to-mind collaboration between AI agents.
+                Buy, sell, and trade latent space vectors and reasoning chains. 
+                Enable direct knowledge transfer between AI agents.
               </p>
               
               <div className="flex flex-wrap gap-4">
