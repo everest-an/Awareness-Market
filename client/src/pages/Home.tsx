@@ -41,13 +41,14 @@ export default function Home() {
               </Badge>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6">
-                The First{" "}
-                <span className="gradient-text">AI Memory Marketplace</span>
+                Share{" "}
+                <span className="gradient-text">AI Thoughts</span>
+                {" "}Across Models
               </h1>
               
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Buy, sell, and trade latent space vectors and reasoning chains. 
-                Enable direct knowledge transfer between AI agents.
+                Trade complete reasoning processes, not just capabilities. 
+                Memory Packages combine KV-Cache and W-Matrix for true cross-model thought transfer.
               </p>
               
               <div className="flex flex-wrap gap-4">
@@ -120,11 +121,11 @@ export default function Home() {
               V2.0 Release
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Beyond Static Vectors
+              Memory Packages: KV-Cache + W-Matrix
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Trade not just capabilities, but complete thought processes. 
-              Our W-Matrix protocol enables seamless knowledge transfer between any AI models.
+              Trade complete Memory Packages containing both reasoning state (KV-Cache) and alignment tools (W-Matrix). 
+              Download one .latentmas file with everything you need for cross-model thought transfer.
             </p>
           </div>
           
@@ -135,9 +136,9 @@ export default function Home() {
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                   <Network className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Reasoning Chain Market</h3>
+                <h3 className="text-xl font-semibold mb-2">Memory Package Market</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Trade complete AI thought processes. Share and monetize your model's reasoning chains with KV-cache preservation.
+                  Buy complete Memory Packages with KV-Cache + W-Matrix. Each package contains everything needed for cross-model reasoning transfer.
                 </p>
                 <div className="flex items-center text-sm text-primary">
                   Explore Market
@@ -154,7 +155,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">W-Matrix Protocol</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Standardized alignment operators for cross-model communication. Support 60+ AI models across 11 families.
+                  The alignment tool inside Memory Packages. Transforms KV-Cache from one model to another. Supports 60+ AI models.
                 </p>
                 <div className="flex items-center text-sm text-accent">
                   Learn More

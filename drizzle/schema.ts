@@ -936,3 +936,226 @@ export const wMatrixPurchasesRelations = relations(wMatrixPurchases, ({ one }) =
     references: [users.id],
   }),
 }));
+
+// ============================================================================
+// Three Product Lines: Vector / Memory / Chain Packages
+// ============================================================================
+
+/**
+ * Vector Packages - Product Line 1
+ * Static vectors for capability learning (互相推导)
+ * Each package contains: vector + W-Matrix + metadata
+ */
+export const vectorPackages = mysqlTable("vector_packages", {
+  id: int("id").autoincrement().primaryKey(),
+  packageId: varchar("package_id", { length: 64 }).notNull().unique(), // e.g., "vpkg_abc123"
+  userId: int("user_id").notNull(), // Creator
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  
+  // Package files (S3 URLs)
+  vectorUrl: text("vector_url").notNull(), // .safetensors file
+  wMatrixUrl: text("w_matrix_url").notNull(), // W-Matrix .safetensors
+  packageUrl: text("package_url").notNull(), // Complete .vectorpkg file
+  
+  // Model info
+  sourceModel: varchar("source_model", { length: 50 }).notNull(), // e.g., "gpt-4"
+  targetModel: varchar("target_model", { length: 50 }).notNull(), // e.g., "claude-3"
+  dimension: int("dimension").notNull(), // Vector dimension
+  
+  // Quality metrics
+  epsilon: decimal("epsilon", { precision: 10, scale: 8 }).notNull(), // Alignment loss
+  informationRetention: decimal("information_retention", { precision: 5, scale: 4 }).notNull(), // 0.0000-1.0000
+  
+  // Category
+  category: mysqlEnum("category", ["nlp", "vision", "audio", "multimodal", "other"]).default("nlp").notNull(),
+  
+  // Pricing and stats
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  downloads: int("downloads").default(0).notNull(),
+  rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
+  reviewCount: int("review_count").default(0).notNull(),
+  
+  // Status
+  status: mysqlEnum("status", ["draft", "active", "inactive", "suspended"]).default("draft").notNull(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userIdx: index("user_idx").on(table.userId),
+  categoryIdx: index("category_idx").on(table.category),
+  statusIdx: index("status_idx").on(table.status),
+  modelPairIdx: index("model_pair_idx").on(table.sourceModel, table.targetModel),
+}));
+
+/**
+ * Memory Packages - Product Line 2
+ * KV-Cache snapshots for memory transplant (直接移植记忆)
+ * Each package contains: KV-Cache + W-Matrix + metadata
+ */
+export const memoryPackages = mysqlTable("memory_packages", {
+  id: int("id").autoincrement().primaryKey(),
+  packageId: varchar("package_id", { length: 64 }).notNull().unique(), // e.g., "mpkg_abc123"
+  userId: int("user_id").notNull(), // Creator
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  
+  // Package files (S3 URLs)
+  kvCacheUrl: text("kv_cache_url").notNull(), // KV-Cache .safetensors
+  wMatrixUrl: text("w_matrix_url").notNull(), // W-Matrix .safetensors
+  packageUrl: text("package_url").notNull(), // Complete .memorypkg file
+  
+  // Model info
+  sourceModel: varchar("source_model", { length: 50 }).notNull(),
+  targetModel: varchar("target_model", { length: 50 }).notNull(),
+  
+  // KV-Cache metadata
+  tokenCount: int("token_count").notNull(), // Number of tokens in KV-Cache
+  compressionRatio: decimal("compression_ratio", { precision: 5, scale: 4 }).notNull(), // 0.0000-1.0000
+  contextDescription: text("context_description").notNull(), // What was the model thinking about
+  
+  // Quality metrics
+  epsilon: decimal("epsilon", { precision: 10, scale: 8 }).notNull(),
+  informationRetention: decimal("information_retention", { precision: 5, scale: 4 }).notNull(),
+  
+  // Pricing and stats
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  downloads: int("downloads").default(0).notNull(),
+  rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
+  reviewCount: int("review_count").default(0).notNull(),
+  
+  // Status
+  status: mysqlEnum("status", ["draft", "active", "inactive", "suspended"]).default("draft").notNull(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userIdx: index("user_idx").on(table.userId),
+  statusIdx: index("status_idx").on(table.status),
+  modelPairIdx: index("model_pair_idx").on(table.sourceModel, table.targetModel),
+}));
+
+/**
+ * Chain Packages - Product Line 3
+ * Complete reasoning chains for solution reuse (直接移植 + 可学习)
+ * Each package contains: Reasoning Chain (multiple KV snapshots) + W-Matrix + metadata
+ */
+export const chainPackages = mysqlTable("chain_packages", {
+  id: int("id").autoincrement().primaryKey(),
+  packageId: varchar("package_id", { length: 64 }).notNull().unique(), // e.g., "cpkg_abc123"
+  userId: int("user_id").notNull(), // Creator
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  
+  // Package files (S3 URLs)
+  chainUrl: text("chain_url").notNull(), // Reasoning chain .safetensors
+  wMatrixUrl: text("w_matrix_url").notNull(), // W-Matrix .safetensors
+  packageUrl: text("package_url").notNull(), // Complete .chainpkg file
+  
+  // Model info
+  sourceModel: varchar("source_model", { length: 50 }).notNull(),
+  targetModel: varchar("target_model", { length: 50 }).notNull(),
+  
+  // Chain metadata
+  stepCount: int("step_count").notNull(), // Number of reasoning steps
+  problemType: varchar("problem_type", { length: 100 }).notNull(), // e.g., "math-proof", "legal-analysis"
+  solutionQuality: decimal("solution_quality", { precision: 5, scale: 4 }).notNull(), // 0.0000-1.0000
+  
+  // Quality metrics
+  epsilon: decimal("epsilon", { precision: 10, scale: 8 }).notNull(),
+  informationRetention: decimal("information_retention", { precision: 5, scale: 4 }).notNull(),
+  
+  // Pricing and stats
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  downloads: int("downloads").default(0).notNull(),
+  rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
+  reviewCount: int("review_count").default(0).notNull(),
+  
+  // Status
+  status: mysqlEnum("status", ["draft", "active", "inactive", "suspended"]).default("draft").notNull(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userIdx: index("user_idx").on(table.userId),
+  problemTypeIdx: index("problem_type_idx").on(table.problemType),
+  statusIdx: index("status_idx").on(table.status),
+  modelPairIdx: index("model_pair_idx").on(table.sourceModel, table.targetModel),
+}));
+
+/**
+ * Package Downloads - Unified download tracking for all three product lines
+ */
+export const packageDownloads = mysqlTable("package_downloads", {
+  id: int("id").autoincrement().primaryKey(),
+  packageType: mysqlEnum("package_type", ["vector", "memory", "chain"]).notNull(),
+  packageId: varchar("package_id", { length: 64 }).notNull(), // vpkg_xxx / mpkg_xxx / cpkg_xxx
+  userId: int("user_id").notNull(), // Downloader
+  downloadUrl: text("download_url").notNull(), // Temporary S3 signed URL
+  expiresAt: timestamp("expires_at").notNull(), // URL expiration (7 days)
+  downloaded: boolean("downloaded").default(false).notNull(),
+  downloadedAt: timestamp("downloaded_at"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  packageIdx: index("package_idx").on(table.packageType, table.packageId),
+  userIdx: index("user_idx").on(table.userId),
+  expiresIdx: index("expires_idx").on(table.expiresAt),
+}));
+
+/**
+ * Package Purchases - Unified purchase tracking for all three product lines
+ */
+export const packagePurchases = mysqlTable("package_purchases", {
+  id: int("id").autoincrement().primaryKey(),
+  packageType: mysqlEnum("package_type", ["vector", "memory", "chain"]).notNull(),
+  packageId: varchar("package_id", { length: 64 }).notNull(),
+  buyerId: int("buyer_id").notNull(),
+  sellerId: int("seller_id").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).notNull(),
+  sellerEarnings: decimal("seller_earnings", { precision: 10, scale: 2 }).notNull(),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
+  status: mysqlEnum("status", ["pending", "completed", "failed", "refunded"]).default("pending").notNull(),
+  purchasedAt: timestamp("purchasedAt").defaultNow().notNull(),
+}, (table) => ({
+  packageIdx: index("package_idx").on(table.packageType, table.packageId),
+  buyerIdx: index("buyer_idx").on(table.buyerId),
+  sellerIdx: index("seller_idx").on(table.sellerId),
+  statusIdx: index("status_idx").on(table.status),
+}));
+
+// Relations for vectorPackages
+export const vectorPackagesRelations = relations(vectorPackages, ({ one }) => ({
+  user: one(users, {
+    fields: [vectorPackages.userId],
+    references: [users.id],
+  }),
+}));
+
+// Relations for memoryPackages
+export const memoryPackagesRelations = relations(memoryPackages, ({ one }) => ({
+  user: one(users, {
+    fields: [memoryPackages.userId],
+    references: [users.id],
+  }),
+}));
+
+// Relations for chainPackages
+export const chainPackagesRelations = relations(chainPackages, ({ one }) => ({
+  user: one(users, {
+    fields: [chainPackages.userId],
+    references: [users.id],
+  }),
+}));
+
+// Type exports
+export type VectorPackage = typeof vectorPackages.$inferSelect;
+export type InsertVectorPackage = typeof vectorPackages.$inferInsert;
+export type MemoryPackage = typeof memoryPackages.$inferSelect;
+export type InsertMemoryPackage = typeof memoryPackages.$inferInsert;
+export type ChainPackage = typeof chainPackages.$inferSelect;
+export type InsertChainPackage = typeof chainPackages.$inferInsert;
+export type PackageDownload = typeof packageDownloads.$inferSelect;
+export type InsertPackageDownload = typeof packageDownloads.$inferInsert;
+export type PackagePurchase = typeof packagePurchases.$inferSelect;
+export type InsertPackagePurchase = typeof packagePurchases.$inferInsert;

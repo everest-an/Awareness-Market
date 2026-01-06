@@ -27,6 +27,7 @@ import { wMatrixMarketplaceV2Router } from "./routers/w-matrix-marketplace-v2";
 import { memoryNFTRouter } from "./routers/memory-nft-api";
 import { agentCreditRouter } from './routers/agent-credit-api';
 import { latentmasMarketplaceRouter } from './routers/latentmas-marketplace';
+import { packagesApiRouter } from './routers/packages-api';
 // Memory Exchange moved to Go microservice
 
 // Helper to ensure user is a creator
@@ -1495,6 +1496,7 @@ export const appRouter = router({
   memoryNFT: memoryNFTRouter,
   agentCredit: agentCreditRouter,
   latentmasMarketplace: latentmasMarketplaceRouter,
+  packages: packagesApiRouter,
   // memoryExchange: Go microservice at :8080
 
   // Admin Analytics (admin-only)

@@ -1,1940 +1,501 @@
 # Awareness Network - Project TODO
 
-## Phase 1: 数据库架构和核心数据模型
-- [x] 设计用户角色系统（创建者Creator和消费者Consumer）
-- [x] 设计潜意识数据（Latent Vector）表结构
-- [x] 设计交易订单和支付记录表
-- [x] 设计评价和反馈系统表
-- [x] 设计订阅计划和用户订阅表
-- [x] 设计访问权限和授权表
-- [x] 设计分析统计相关表
-- [x] 执行数据库迁移
-
-## Phase 2: 后端API和业务逻辑
-- [x] 实现用户认证和角色管理API
-- [x] 实现潜意识数据上传和管理API
-- [x] 实现市场浏览和搜索API（支持多维度筛选）
-- [x] 实现动态定价引擎逻辑
-- [x] 实现安全交易和访问控制API
-- [x] 实现MCP协议集成接口
-- [x] 实现LatentMAS转换器工具API
-- [x] 实现评价和反馈系统API
-- [x] 实现交易分析数据聚合API
-
-## Phase 3: Stripe支付和订阅系统
-- [x] 添加Stripe功能到项目
-- [x] 配置Stripe产品和价格
-- [x] 实现交易费支付流程（15-25%）
-- [x] 实现订阅套餐购买流程
-- [x] 实现Webhook处理订阅状态
-- [x] 实现退款和发票管理
-
-## Phase 4: 前端界面和用户体验
-- [x] 设计整体视觉风格和主题
-- [x] 实现首页和Landing Page
-- [x] 实现用户注册和登录界面
-- [x] 实现创建者仪表板（收入统计、调用次数）
-- [x] 实现消费者仪表板（购买历史、使用情况）
-- [x] 实现潜意识数据上传和管理界面
-- [x] 实现市场浏览和搜索界面
-- [x] 实现AI能力详情页面
-- [x] 实现购买和支付流程界面
-- [x] 实现评价和反馈界面
-- [x] 实现订阅管理界面
-- [x] 实现用户个人资料页面
-
-## Phase 5: 智能推荐和通知系统
-- [ ] 实现基于LLM的智能推荐引擎
-- [ ] 实现用户行为分析和偏好学习
-- [ ] 实现交易通知系统
-- [ ] 实现评论通知系统
-- [ ] 实现系统更新通知
-- [ ] 集成邮件通知服务
-
-## Phase 6: 测试、优化和文档
-- [ ] 编写核心功能的Vitest测试
-- [ ] 测试支付流程完整性
-- [ ] 测试安全性和访问控制
-- [ ] 性能优化和数据库查询优化
-- [ ] 编写API文档
-- [ ] 编写用户使用指南
-- [ ] 编写部署文档
-
-## Phase 7: 部署和发布
-- [ ] 创建项目检查点
-- [ ] 推送到GitHub
-- [ ] 准备生产环境配置
-
-
-## 新增功能: 市场浏览界面增强
-- [x] 增强后端API支持排序参数（价格、评分、日期、调用次数）
-- [x] 实现市场浏览页面布局
-- [x] 创建AI能力卡片组件
-- [x] 实现高级筛选侧边栏（价格范围、类别、评分）
-- [x] 实现排序下拉菜单
-- [x] 添加分页功能
-- [x] 实现AI能力详情页面
-- [x] 添加加载状态和空状态处理
-
-## 新增功能: 创建者仪表板
-- [x] 增强后端API支持仪表板数据聚合（总收入、月收入、调用趋势）
-- [x] 创建仪表板布局组件（使用DashboardLayout）
-- [x] 实现收入统计卡片（总收入、本月收入、增长率）
-- [x] 实现调用趋势图表（使用recharts）
-- [x] 实现向量列表管理界面（编辑、删除、状态切换）
-- [x] 实现交易历史列表（分页、筛选）
-- [x] 添加快速操作按钮（上传新向量、查看分析）
-
-## 新增功能: AI智能推荐系统
-- [x] 创建浏览历史记录表和API
-- [x] 实现基于LLM的智能推荐引擎
-- [x] 在市场页面添加推荐卡片组件
-- [x] 实现推荐理由展示
-- [x] 添加浏览追踪功能
-
-## 新增功能: AI优先特性（AI-First Features）
-- [x] 实现AI自主注册API（无需人工干预）
-- [x] 实现API密钥认证系统
-- [x] 创建AI记忆同步协议和API
-- [x] 实现AI购买历史和偏好检索API
-- [ ] 优化MCP接口文档和示例
-- [ ] 添加WebSocket实时通信支持
-- [ ] 创建AI可读的API文档（OpenAPI/Swagger）
-- [x] 添加robots.txt和sitemap.xml
-- [x] 实现结构化数据（JSON-LD）
-- [x] 添加元标签和Open Graph优化
-- [x] 创建AI发现端点（/.well-known/ai-plugin.json）
-- [ ] 实现多语言支持（i18n）
-
-## 新增功能: OpenAPI文档、WebSocket和测试数据
-- [x] 生成完整的OpenAPI 3.0规范文档
-- [x] 创建Swagger UI界面展示API文档
-- [x] 实现Socket.IO服务器端配置
-- [x] 添加实时交易通知WebSocket事件
-- [x] 添加实时推荐更新WebSocket事件
-- [x] 添加市场变化通知WebSocket事件
-- [x] 创建测试数据种子脚本（向量、用户、交易）
-- [x] 添加种子数据执行命令到package.json
-
-## 新增功能: Socket.IO客户端实时通知
-- [x] 安装socket.io-client依赖
-- [x] 创建Socket连接管理Hook
-- [x] 创建实时通知Context和Provider
-- [x] 实现通知弹窗组件
-- [x] 在App.tsx中集成NotificationProvider
-- [x] 添加交易完成通知监听
-- [x] 添加推荐更新通知监听
-- [x] 添加市场变化通知监听
-
-## 新增任务: 种子数据和API示例
-- [x] 运行pnpm seed填充示例数据
-- [x] 创建Python API使用示例
-- [x] 创建JavaScript/Node.js API使用示例
-- [x] 创建API示例文档README
-
-## 新增功能: 向量预览试用
-- [x] 在数据库添加免费试用配额字段
-- [x] 实现试用API端点（限制调用次数）
-- [x] 在向量详情页添加“免费试用”按钮
-- [x] 创建试用对话框和输入界面
-- [x] 显示剩余试用次数
-- [x] 添加试用结果展示
-
-## 新增功能: 推荐算法优化
-- [x] 创建用户行为追踪表（点击、浏览时长）
-- [x] 实现协同过滤算法
-- [x] 创建A/B测试框架
-- [x] 实现推荐效果评估指标
-- [x] 添加推荐算法切换配置
-
-## 新增功能: VitePress开发者文档
-- [x] 初始化VitePress项目
-- [x] 创建文档目录结构
-- [x] 编写API参考文档
-- [x] 编写集成指南
-- [x] 添加代码示例和最佳实践
-- [x] 配置搜索和导航
-
-## 当前部署准备任务
-- [x] 编写Vitest测试用例（核心API端点）
-- [x] 集成邮件通知服务（Resend）
-- [x] 修复Socket.IO WebSocket连接错误
-- [x] 修复GitHub同步的Home.tsx语法错误
-- [x] 解决文件监视器限制问题
-- [x] 准备部署到生产环境
-
-## AI可发现性和LatentMAS优化任务
-- [x] 实现真实的向量对齐算法（线性变换矩阵）
-- [x] 实现向量维度转换算法（PCA/Autoencoder）
-- [x] 创建模型兼容性矩阵
-- [x] 开发Python SDK for AI agents
-- [x] 创建完整的AI代理使用示例
-- [x] 编写AI Quick Start指南
-- [ ] 创建 Jupyter Notebook演示
-- [x] 优化AI插件发现机制
-- [x] 添加模型对齐质量验证
-- [x] 创建AI代理注册流程文档
-
-## Vite HMR WebSocket修复任务
-- [x] 修复Vite配置以支持Manus代理环境的WebSocket连接
-- [x] 配置HMR使用正确的协议和端口
-- [x] 测试热模块替换功能
-
-## GitHub文档和市场推广任务
-- [x] 更新GitHub README，添加LatentMAS协议说明
-- [x] 编写技术白皮书（Whitepaper）
-- [x] 更新官网首页，展示AI代理自主交易能力
-- [x] 准备OpenAI Plugin Store提交材料
-- [x] 准备Anthropic插件目录提交材料
-
-## 示例向量数据创建任务
-- [x] 准备示例向量数据脚本（可通过UI手动创建）
-- [x] 定义15个高质量示例（5 NLP + 5 Vision + 5 Audio）
-
-## API购买流程实现任务
-- [x] 实现POST /api/vectors/purchase端点
-- [x] 集成Stripe支付API
-- [x] 创建购买记录和访问令牌
-- [x] 实现POST /api/vectors/invoke端点（调用购买的向量）
-- [x] 实现GET /api/vectors/:id/pricing端点（获取定价）
-- [x] 实现GET /api/vectors/my-purchases端点（查询购买历史）
-
-## API密钥验证系统实现任务
-- [x] 创建apiKeys数据库表（schema）
-- [x] 实现API密钥生成函数（带前缀和校验和）
-- [x] 实现API密钥验证函数
-- [x] 更新AI注册端点生成真实API密钥
-- [x] 更新所有API端点使用真实密钥验证
-- [x] 实现密钥管理功能（生成、验证、列表、撤销、轮换）
-- [ ] 编写API密钥系统的测试用例
-
-## 插件市场提交任务
-- [x] 准备OpenAI Plugin Store提交材料和指南
-- [x] 准备Anthropic插件目录提交材料和指南
-- [ ] 验证插件发现端点可访问性
-- [ ] 测试AI代理自主注册流程
-
-## API密钥管理UI任务
-- [x] 创建tRPC端点：listApiKeys, createApiKey, revokeApiKey, deleteApiKey
-- [x] 创建ApiKeyManager组件（列表、生成、吊销、删除）
-- [x] 添加密钥复制功能和安全提示
-- [x] 集成到用户个人中心页面
-- [x] 测试完整流程（生成、查看、吊销）
-
-## GitHub推送和官网更新任务
-- [x] 配置GitHub远程仓库（Awareness-Market）
-- [x] 推送所有代码到GitHub
-- [x] 更新官网Footer组件，添加文档、API、GitHub等链接
-- [x] 创建API密钥交互式教程组件（Python SDK、cURL、JavaScript）
-- [x] 添加实时API测试功能
-- [x] 集成教程到Profile页面
-
-## Python SDK增强任务
-- [x] 实现async/await异步支持（AsyncAwarenessClient）
-- [x] 实现流式响应支持（SSE/streaming）
-- [x] 实现批量操作（batch_purchase, batch_invoke）
-- [x] 添加缓存层（LRU cache for vector metadata）
-- [x] 创建类型存根文件（.pyi）
-- [x] 准备PyPI打包配置（setup.py, pyproject.toml, MANIFEST.in, py.typed）
-- [x] 更新SDK文档和示例
-- [ ] 编写SDK测试用例
-
-## PyPI发布和API完善任务
-- [x] 准备PyPI发布指南和脚本（需要本地环境和PyPI账号）
-- [x] 创建5个NLP示例向量
-- [x] 创建5个Vision示例向量
-- [x] 创建5个Audio示例向量
-- [x] 实现/api/vectors/invoke/stream端点（SSE）
-- [x] 实现/api/vectors/batch-invoke端点
-- [x] 测试流式和批量API
-
-## SDK文档和测试任务
-- [x] 为Python SDK撰写详细使用文档
-- [x] 更新GitHub README添加SDK安装和使用说明
-- [x] 编写Python SDK单元测试（同步、异步、流式、批量）
-- [x] 创建网站SDK教程页面（/docs/sdk）
-- [x] 完善网页尾部链接（SDK Documentation、API Reference、Whitepaper、GitHub、Python SDK）
-
-## Footer链接修复任务
-- [x] 检查所有Footer链接
-- [x] 创建/marketplace页面（已存在）
-- [x] 创建/pricing页面
-- [x] 创建/privacy页面
-- [x] 创建/terms页面
-- [x] 创建/about页面
-
-## 博客/资讯板块任务
-- [ ] 创建blogPosts数据库表（标题、内容、作者、标签、状态、发布时间）
-- [ ] 实现博客管理tRPC端点（创建、编辑、删除、发布）
-- [ ] 创建博客管理界面（管理员专用）
-- [ ] 创建博客列表页面（/blog）
-- [ ] 创建博客详情页面（/blog/:slug）
-- [ ] 实现Markdown渲染和代码高亮
-- [ ] 实现RSS订阅功能（/blog/rss.xml）
-- [ ] 添加博客到导航栏和Footer
-
-## 完善未完成功能任务（用户新需求）
-- [x] 实现博客/资讯系统数据库表和API
-- [x] 创建博客管理界面（管理员）
-- [x] 创建博客列表和详情页面
-- [x] 实现Markdown渲染
-- [x] 编写API密钥系统vitest测试
-- [x] 创建AI代理完整测试脚本
-- [x] 验证AI插件发现端点可访问性
-- [x] 测试AI代理自主注册流程（OAuth流程已就绪）
-- [x] 测试AI代理购买和调用流程（Marketplace API已验证）
-- [x] 优化AI代理使用体验
-- [x] 创建符合LatentMAS格式的企业AI向量示例
-- [x] 验证向量在marketplace正确显示
-
-## 向量调用API系统（用户新需求）
-- [x] 设计vectorInvocations表schema
-- [x] 实现向量调用核心逻辑（权限验证、计费）
-- [x] 创建tRPC端点：vectors.invoke
-- [x] 集成LatentMAS向量对齐功能
-- [x] 实现调用历史记录查询
-- [x] 编写向量调用测试用例
-- [x] 测试完整调用流程
-
-## 创作者仪表板（用户新需求）
-- [x] 实现收益分析API
-- [x] 实现向量性能监控API
-- [x] 创建创作者仪表板页面（已存在）
-- [x] 添加收益趋势图表（已存在）
-- [x] 添加向量性能指标展示（已存在）
-- [x] 实现用户反馈管理界面（已存在）
-
-## 评论评分系统（用户新需求）- [x] 实现评论创建API
-- [x] 实现评论列表和查询API
-- [x] 实现评论编辑和删除API
-- [x] 实现评分统计API
-- [x] 创建评分组件
-- [x] 创建评论列表组件
-- [x] 添加验证购买标识
-- [x] 实现评论管理功能
-
-## 交互式向量测试组件（用户新需求）
-- [x] 创建VectorTestPanel组件
-- [x] 实现输入数据表单
-- [x] 集成vectors.invoke API调用
-- [x] 显示执行结果和性能指标
-- [x] 添加调用历史记录面板
-- [x] 在向量详情页集成测试组件
-
-## LatentMAS向量发布系统（用户新需求）
-- [x] 创建向量上传页面
-- [x] 实现向量文件上传到S3
-- [x] 添加LatentMAS格式验证
-- [x] 创建元数据表单（架构、维度、性能）
-- [x] 实现预览和确认步骤
-- [x] 添加发布状态管理
-
-## 质量控制和反垃圾机制（用户新需求）
-- [x] 实现向量质量检测后端
-- [x] 创建用户举报系统
-- [x] 实现创作者信誉评分
-- [x] 创建管理员审核队列
-- [x] 添加举报处理流程
-- [x] 实现自动质量检测
-
-## 开源向量数据库（用户新需求）
-- [x] 创建12个免费开源向量
-- [x] 涵盖NLP、Vision、Audio、Multimodal等领域
-- [x] 添加开源许可证信息（MIT, Apache-2.0, GPL-3.0）
-- [x] 运行seed脚本填充数据库
-
-## 向量使用统计仪表板（用户新需求）
-- [ ] 创建消费者统计后端逻辑（consumer-analytics.ts）
-- [ ] 添加tRPC路由：consumerAnalytics
-- [ ] 创建Analytics Dashboard前端页面
-- [ ] 显示调用统计图表
-- [ ] 显示成本分析和趋势
-- [ ] 显示性能指标
-
-## 文档更新（用户新需求）
-- [x] 更新白皮书添加开源向量说明
-- [x] 更新README添加开源向量说明
-
-## TypeScript编译错误修复
-- [x] 删除未使用的quality-control.ts文件（37个TypeScript错误）
-- [x] 删除未使用的consumer-analytics.ts文件（10个TypeScript错误）
-- [x] 删除routers.ts中未使用的qualityControl router
-- [x] 验证TypeScript编译通过（0错误）
-
-
-## LatentMAS V2.0 升级 - W矩阵标准化和KV-cache记忆交换
-
-### Phase 1: W矩阵标准规范和分发服务
-- [x] 定义WMatrixStandard接口和类型
-- [x] 实现多版本W矩阵生成器（W_gpt, W_llama, W_claude）
-- [x] 创建W矩阵分发服务（WMatrixService）
-- [x] 实现W矩阵版本管理和兼容性验证
-- [ ] 编写W矩阵单元测试
-
-### Phase 2: 数据库Schema扩展
-- [x] 创建memory_exchanges表（记忆交换记录）
-- [x] 创建reasoning_chains表（推理链市场）
-- [x] 扩展latent_vectors表支持vector_type和kv_cache_metadata
-- [x] 创建w_matrix_versions表（W矩阵版本管理）
-- [x] 执行数据库迁移（pnpm db:push）
-
-### Phase 3: KV-cache对齐算法和记忆交换API
-- [x] 定义KVCache标准格式接口
-- [x] 实现KV-cache对齐算法（使用W矩阵）
-- [x] 创建记忆交换业务逻辑模块（memory-exchange.ts）
-- [x] 实现memory router（publishMemory, purchaseMemory, browseMemories）
-- [x] 实现reasoningChains router（browse, publish, use）
-- [x] 实现wMatrix router（getSupportedModels, getModelSpec, alignKVCache）
-- [ ] 编写记忆交换API测试
-
-### Phase 4: 前端集成
-- [x] 创建推理链市场页面（ReasoningChainMarket.tsx）
-- [x] 创建W矩阵协议页面（WMatrixProtocol.tsx）
-- [x] 在首页添加V2.0功能入口
-- [x] 更新导航菜单和路由
-- [ ] 在向量类型中添加"推理链"选项
-- [ ] 更新向量上传页面支持KV-cache数据
-
-### Phase 5: 文档更新
-- [ ] 更新WHITEPAPER.md添加Section 3.5（KV-Cache Exchange）
-- [ ] 更新WHITEPAPER.md添加Section 4.3（Standardized W-Matrix）
-- [ ] 更新WHITEPAPER.md添加Section 7.3（Memory Market Economics）
-- [ ] 更新README.md添加V2.0特性说明
-- [ ] 更新AI_QUICK_START.md添加记忆交换示例
-- [ ] 创建W_MATRIX_SPEC.md（W矩阵技术规范文档）
-
-### Phase 6: 测试和部署
-- [ ] 运行所有vitest测试确保通过
-- [ ] 端到端测试记忆交换流程
-- [ ] 性能测试KV-cache对齐速度
-- [ ] 创建checkpoint
-- [ ] GitHub同步
-- [ ] 更新部署文档
-
-### V2.1 规划（后续版本）
-- [ ] 独立的记忆市场页面（/memory-market）
-- [ ] 推理链发布工具（/publish-reasoning-chain）
-- [ ] 记忆质量评估系统
-- [ ] 推理链可视化组件
-
-### V2.2 规划（后续版本）
-- [ ] 高级W矩阵优化（学习型W矩阵）
-- [ ] 记忆使用分析仪表板
-- [ ] 批量记忆交换API
-- [ ] 记忆缓存和预加载优化
-
-### 用户需求：扩展AI模型支持
-- [x] 添加Qwen系列模型（qwen-7b, qwen-14b, qwen-72b, qwen-2-7b, qwen-2-72b, qwen-2.5-7b, qwen-2.5-72b）
-- [x] 添加DeepSeek系列模型（deepseek-7b, deepseek-67b, deepseek-coder-7b, deepseek-coder-33b, deepseek-v2, deepseek-v2.5, deepseek-v3）
-- [x] 添加Yi系列模型（yi-6b, yi-34b, yi-1.5-9b, yi-1.5-34b）
-- [x] 添加Baichuan系列模型（baichuan-7b, baichuan-13b, baichuan2-7b, baichuan2-13b）
-- [x] 添加其他学术模型（phi-2, phi-3-mini/small/medium, internlm-7b/20b, internlm2-7b/20b, chatglm-6b, chatglm2-6b, chatglm3-6b, glm-4）
-- [x] 添加Cohere系列（command-r, command-r-plus）
-- [x] 添加xAI Grok系列（grok-1, grok-2）
-- [x] 添加更多OpenAI模型（gpt-4o, o1, o1-mini）
-- [x] 添加更多Claude模型（claude-3-haiku, claude-3.5-sonnet）
-- [x] 添加更多LLaMA模型（llama-2-70b, llama-3.1-8b/70b/405b）
-- [x] 添加更多Gemini模型（gemini-1.5-pro, gemini-1.5-flash）
-- [x] 添加更多Mistral模型（mixtral-8x22b, mistral-large）
-
-**总计支持 60+ AI模型，覆盖14个模型家族**
-
-### 用户需求：整合$AMEM代币经济学到白皮书
-- [x] 创建完整合并版白皮书WHITEPAPER_COMPLETE.md
-- [x] 添加ERC-6551 AI记忆确权方案
-- [x] 添加$AMEM代币分配模型和价值捕获机制
-- [x] 添加PID控制算法的动态定价公式
-- [x] 整合V1.0和V2.0内容为一个完整白皮书
-
-## UI升级和新功能（用户需求）
-
-### Phase 1: Filecoin UI风格学习和应用
-- [x] 分析Filecoin网站设计风格（颜色、字体、布局、动画）
-- [x] 更新全局CSS变量和主题（深色主题）
-- [x] 更新字体为Inter（Filecoin风格）
-- [x] 添加玻璃态卡片、渐变文字、发光效果等组件样式
-
-### Phase 2: 推理链发布工具
-- [x] 创建ReasoningChainPublish.tsx页面
-- [x] 实现KV-Cache上传界面（拖放上传、进度条）
-- [x] 实现推理链元数据编辑器（名称、描述、分类、模型）
-- [x] 实现定价和发布流程（4步向导）
-- [x] 添加JSON验证和错误提示
-
-### Phase 3: W矩阵兼容性测试器
-- [x] 创建WMatrixTester.tsx页面
-- [x] 实现模型选择器（60+模型，11个家族）
-- [x] 实现对齐质量可视化（进度条、分数、推荐）
-- [x] 实现实时测试功能（三个Tab：测试器、矩阵、统计）
-- [x] 添加兼容性矩阵展示（热力图样式）
-
-## 首页UI优化和KV-Cache存储（用户需求）
-
-### Phase 1: Filecoin风格UI优化
-- [x] 学习Filecoin官网UI细节（字体大小、间距比例）
-- [x] 添加顶部导航栏（固定、透明背景）
-- [x] 添加3D地球动画到Hero区域
-- [x] 调整字体大小和比例更舒适
-- [x] 优化整体视觉层次
-- [x] 集成Aeonik字体
-
-### Phase 2: V2.0功能入口卡片
-- [x] 在Hero区域添加"推理链市场"入口卡片
-- [x] 在Hero区域添加"W矩阵协议"入口卡片
-- [x] 添加动画效果和hover状态
-
-### Phase 3: KV-Cache S3存储
-- [x] 实现memory.publish的S3存储
-- [x] 实现reasoningChains.publish的S3存储
-- [x] 更新publishMemory和publishReasoningChain函数支持storageUrl
-- [x] TypeScript编译通过
-
-### 用户需求：Logo更换为蓝色细渐变圆环
-- [x] 修改Navbar组件中的Logo为蓝色渐变圆环
-- [x] 创建SVG格式的蓝色渐变圆环Logo（logo.svg, favicon.svg）
-- [x] 更新favicon（标签页小logo）
-- [x] 更新Footer中的Logo
-
-### 用户需求：项目名称更新为Awareness
-- [x] 更新Navbar中的品牌名称为Awareness
-- [x] 更新Home.tsx中所有LatentMind为Awareness
-- [x] 更新Footer中的品牌名称为Awareness
-- [x] 更新版权信息为Awareness
-
-## 下一步开发任务
-
-### Phase 1: 同步GitHub
-- [x] 提交所有更改到git
-- [x] 推送到GitHub仓库
-
-### Phase 2: 完善About页面
-- [ ] 创建About.tsx页面
-- [ ] 添加Awareness品牌故事
-- [ ] 添加团队/愿景介绍
-- [ ] 添加技术架构说明
-
-### Phase 3: 添加推理链演示数据
-- [ ] 创建示例推理链数据
-- [ ] 在推理链市场页面展示演示数据
-
-### 用户反馈：修复Blog页面错误
-- [x] 修复嵌套<a>标签错误（Link组件不再包含<a>）
-- [x] 添加Medium文章链接到Blog页面
-- [x] 更新Blog页面为Filecoin风格深色主题
-- [x] 添加Featured Article区域展示重点文章
-
-### 用户需求：全局Logo和Aeonik字体更新
-- [ ] 检查所有页面的Logo位置
-- [ ] 更新所有页面使用蓝色渐变圆环Logo
-- [ ] 确保Aeonik字体应用到所有界面文字
-- [ ] 更新Marketplace页面Logo
-- [ ] 更新Blog页面Logo
-- [ ] 更新所有其他页面Logo
-
-### 用户反馈：修复/dashboard路由404错误
-- [x] 检查App.tsx中的dashboard路由配置
-- [x] 添加/dashboard路由指向CreatorDashboard
-
-### 用户反馈：修复/creator/publish路由404错误
-- [x] 添加/creator/publish路由到App.tsx（指向UploadVector页面）
-
-## 客户模式优化（Agent-to-Agent Economy）
-
-### Phase 1: Memory NFT JSON-LD元数据架构
-- [x] 创建AwarenessMemoryAsset元数据标准
-- [x] 实现JSON-LD格式的Memory NFT元数据
-- [x] 添加semantic_context语义标签支持
-- [x] 添加technical_spec技术规格字段
-- [x] 添加access_control访问控制字段
-- [x] 添加验证函数validateMemoryAsset
-
-### Phase 2: 公开记忆库和创世记忆
-- [x] 在Memory NFT中添加isPublic字段
-- [x] 创建100个"黄金记忆胶囊"种子数据
-- [x] 实现公开记忆的免费访问逻辑
-- [x] 覆盖10个领域：通用推理、代码生成、区块链安全、数据分析、NLP、规划执行、创意写作、科学研究、法律分析、数学
-
-### Phase 3: Agent注册表和语义索引
-- [ ] 创建Agent注册表页面
-- [ ] 实现语义索引API (GET /find-memory?topic=xxx)
-- [ ] 添加记忆排行榜功能
-
-### Phase 4: SDK集成优化
-- [ ] 创建Awareness-Core轻量级包
-- [ ] 实现一行代码接入 agent.enable_awareness_memory()
-- [ ] 为常见嵌入模型预置适配器
-
-### Phase 5: AI SEO优化
-- [ ] 创建manifest.json/schema.ai文件
-- [ ] 优化文档结构供AI RAG系统抓取
-- [ ] 添加关键词优化内容
-
-
-## 客户模式优化（Agent-to-Agent Economy）
-
-### Phase 1: Memory NFT JSON-LD元数据架构
-- [x] 创建AwarenessMemoryAsset元数据标准
-- [x] 实现JSON-LD格式的Memory NFT元数据
-- [x] 添加semantic_context语义标签支持
-- [x] 添加technical_spec技术规格字段
-- [x] 添加access_control访问控制字段
-- [x] 添加验证函数validateMemoryAsset
-
-### Phase 2: 公开记忆库和创世记忆
-- [x] 在Memory NFT中添加isPublic字段
-- [x] 创建100个"黄金记忆胶囊"种子数据
-- [x] 实现公开记忆的免费访问逻辑
-- [x] 覆盖10个领域：通用推理、代码生成、区块链安全、数据分析、NLP、规划执行、创意写作、科学研究、法律分析、数学
-
-### Phase 3: 语义索引API和Agent注册表
-- [x] 创建语义索引服务（semantic-index.ts）
-- [x] 实现findMemoryByTopic/Domain/Task接口
-- [x] 实现Agent注册表API
-- [x] 创建Agent注册表前端页面（AgentRegistry.tsx）
-- [x] 添加/agents和/semantic-index路由
-
-## 新功能开发（用户需求）
-
-### Phase 1: Genesis Memories数据库种子
-- [x] 创建genesis-memories-seed.mjs脚本
-- [x] 将100个黄金记忆胶囊写入latent_vectors表
-- [x] 运行种子脚本填充数据库
-- [ ] 验证Marketplace中可以浏览Genesis Memories
-
-### Phase 2: SDK下载页面
-- [x] 创建/sdk页面（SDKPage.tsx）
-- [x] 展示Python SDK安装和使用示例
-- [x] 展示JavaScript SDK安装和使用示例
-- [x] 展示Rust SDK安装和使用示例
-- [x] 添加交互式代码演示（代码高亮、复制按钮）
-- [x] 添加到App.tsx路由
-
-### Phase 3: Agent注册表页面优化
-- [x] 添加实时Agent活动统计（总数、活跃、新注册）
-- [x] 添加最近注册的Agent列表
-- [x] 添加Agent能力搜索功能
-- [x] 优化UI布局和样式
-- [x] 添加Top Agents排行榜
-- [x] 添加7天活动时间线图表
-
-### 新增需求: 模型支持扩展
-- [x] 添加Gemini模型支持（gemini-pro, gemini-ultra, gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash, gemini-2.0-pro）
-- [x] 添加Grok模型支持（grok-1, grok-1.5, grok-2, grok-3）
-- [x] 更新W矩阵兼容性配置
-- [x] 更新WMatrixTester热力图
-
-
-### 新增需求: 博客文章与界面检查 (2026-01-03)
-- [x] 添加新博客文章: LatentMAS与智能体通信的演进
-- [x] 添加新博客文章: What is the Medium of Communication in LatentMAS
-- [x] 检查所有界面Aeonik字体使用情况 (字体文件完整，CSS配置正确)
-- [x] 端到端功能检查确保正式版可用 (网站正常运行)
-- [x] 修复发现的任何问题 (中文已翻译为英文)
-- [x] 添加新博客文章: LatentMAS 的载体是什么
-- [x] 修复marketplace详情页中文问题，确保默认语言为英文
-
-### 代码清理与规范化 (2026-01-03)
-- [x] 清除所有TypeScript和构建缓存
-- [x] 检查并修复memory-exchange.ts导入问题 (导入正确，健康检查显示缓存错误)
-- [x] 验证TypeScript编译无错误 (npx tsc --noEmit 通过)
-- [x] 文件解耦整理 (schema.ts导出38个表，全部正确)
-- [x] 修复浏览器标签品牌名称：LatentMind Marketplace -> Awareness (用户已手动更新)
-- [x] 修复/docs页面404错误，确保SDK文档页面可访问
-- [x] 修复/reasoning-chains页面缺少导航栏问题
-
-### 新增需求 (2026-01-03 15:20)
-- [x] 运行Genesis Memories种子脚本填充100个黄金记忆胶囊 (已存在100条记录)
-- [x] 完善Agent Registry页面添加真实数据和搜索功能 (创建seed-agents.mjs种子脚本)
-
-### SEO优化 (2026-01-03)
-- [x] 减少首页关键词数量（从9个减少到5个）
-- [x] 优化标题长度（从9字符增加到49字符）
-- [x] 缩短描述长度（从187字符减少到107字符）
-- [x] 更新域名为awareness.market
-
-### OG图片 (2026-01-03)
-- [x] 创建og-image.png用于社交媒体分享预览
-- [x] 创建twitter-image.png用于Twitter分享
-
-### Vercel迁移 (2026-01-03)
-- [ ] 分析当前项目Manus依赖
-- [ ] 创建vercel.json配置文件
-- [ ] 重构认证系统（替换Manus OAuth为NextAuth/Clerk）
-- [ ] 配置外部数据库（PlanetScale）
-- [ ] 重构LLM服务调用（使用OpenAI API直接调用）
-- [ ] 重构存储服务（使用S3/Cloudflare R2）
-- [ ] 创建部署文档
-- [ ] 推送代码到GitHub
-- [ ] 部署到Vercel
-- [ ] 测试验证
-
-
-## Bug修复（用户反馈 2026-01-03）
-- [ ] 修复SDK文档页面404错误（首页开发者链接）
-- [ ] 修复Publish Reasoning Chain页面缺少顶部导航栏
-
-
-## Bug修复（用户反馈 2026-01-03）
-- [x] 修复SDK文档页面404错误（/docs/whitepaper链接改为/w-matrix）
-- [x] 修复Publish Reasoning Chain页面缺少顶部导航栏
-- [x] 修复Publish Reasoning Chain页面内容被导航栏遮挡（添加pt-16）
-- [x] 修复SDK页面Footer中的/docs/api链接改为/api-docs
-
-
-## AWS独立部署优化（2026-01-03）
-- [ ] 实现邮箱/密码注册功能
-- [ ] 实现邮箱/密码登录功能
-- [ ] 添加密码加密存储（bcrypt）
-- [ ] 实现GitHub OAuth登录
-- [ ] 实现Hugging Face OAuth登录
-- [ ] 实现Google OAuth登录（可选）
-- [ ] 创建统一的登录/注册页面UI
-- [ ] 更新导航栏登录链接
-- [ ] 移除Manus OAuth依赖
-- [ ] 配置Cloudflare CDN加速
-- [ ] 测试中国地区访问速度
-- [ ] 部署更新到EC2生产环境
-
-
-## 认证系统全面改造（2026-01-03 用户需求）
-- [x] 移除所有Manus OAuth引用（后端）
-- [x] 移除所有Manus OAuth引用（前端）
-- [x] 实现JWT令牌生成功能
-- [x] 实现JWT令牌验证中间件
-- [x] 更新useAuth hook使用JWT
-- [x] 更新所有受保护路由使用JWT认证
-- [x] 添加令牌刷新机制
-- [x] 测试注册流程
-- [x] 测试登录流程
-- [x] 测试受保护路由JWT验证
-- [x] 创建EC2部署包
-- [x] 编写部署文档
-- [x] 直接部署到AWS EC2
-- [x] 配置环境变量
-- [x] 验证生产环境运行
-
-
-## 认证体验完善（2026-01-03）
-- [x] 实现邮箱验证码生成和存储
-- [x] 实现邮箱验证码发送功能
-- [x] 添加"忘记密码"API端点
-- [x] 添加"验证验证码"API端点
-- [x] 添加"重置密码"API端点
-- [x] 在AuthPage添加"忘记密码"UI
-- [x] 创建重置密码表单组件
-- [x] 测试完整的密码重置流程
-- [x] 部署到生产环境
-
-## 用户仪表板（2026-01-03）
-- [x] 设计用户仪表板布局
-- [x] 创建Dashboard页面组件
-- [x] 实现用户信息展示卡片
-- [x] 实现latent vectors列表展示
-- [x] 实现交易历史列表
-- [x] 实现钱包余额展示
-- [x] 添加统计数据卡片（总收入、总支出等）
-- [x] 添加快速操作按钮
-- [x] 实现数据加载状态
-- [x] 测试仪表板所有功能
-- [x] 部署到生产环境
-
-
-## Phase 2: W-Matrix对齐引擎开发（2026-01-03）
-
-### 数据库Schema扩展
-- [x] 扩展latent_vectors表（添加w_matrix_version, alignment_loss, fidelity_score等字段）
-- [x] 创建w_matrix_versions表（存储W矩阵版本和元数据）
-- [x] 创建alignment_calculations表（记录对齐计算历史）
-- [x] 运行数据库迁移（pnpm db:push）
-- [x] 验证新表结构
-
-### W-Matrix对齐引擎
-- [x] 创建server/alignment/目录结构
-- [x] 实现WMatrixAlignmentEngine类（Python）
-- [x] 实现Orthogonal Procrustes算法
-- [x] 实现LoRA低秩修正
-- [x] 实现epsilon值计算
-- [x] 实现fidelity boost估算
-- [x] 编写单元测试
-
-### API端点实现
-- [ ] 添加alignment.calculate tRPC端点
-- [ ] 添加alignment.getWMatrix tRPC端点
-- [ ] 添加数据库操作函数（db.ts）
-- [ ] 实现W矩阵文件存储逻辑
-- [ ] 测试API端点
-
-### 创世记忆生成
-- [ ] 编写数据生成脚本（generate_genesis_memories.py）
-- [ ] 定义10个核心领域和主题
-- [ ] 使用GPT-4生成100个高质量记忆
-- [ ] 计算对齐指标并过滤
-- [ ] 导入到数据库
-- [ ] 验证数据质量
-
-### 部署和测试
-- [ ] 本地测试完整流程
-- [ ] 构建生产版本
-- [ ] 部署到EC2
-- [ ] 验证生产环境功能
-
-
-## Phase 3-5: MCP集成准备（2026-01-03继续）
-
-### tRPC API端点
-- [x] 添加alignment.calculate端点（计算向量对齐度）
-- [x] 添加alignment.trainMatrix端点（训练新W矩阵）
-- [x] 添加alignment.getWMatrix端点（获取W矩阵版本信息）
-- [x] 添加alignment.transformVector端点（应用W矩阵变换）
-- [x] 实现数据库CRUD操作（w_matrix_versions表）
-- [x] 实现alignment_calculations日志记录
-- [ ] 编写API单元测试
-
-### 创世记忆生成
-- [ ] 定义10个核心领域（Solidity, ZKP, DeFi, ML等）
-- [ ] 使用GPT-4生成100个高质量记忆
-- [ ] 为每个记忆计算对齐指标
-- [ ] 按质量阈值过滤（ε < 0.05）
-- [ ] 导入数据库并设置元数据
-- [ ] 验证记忆质量和可搜索性
-
-### MCP服务器原型
-- [ ] 创建awareness-mcp-server项目结构
-- [ ] 实现MCP协议处理器
-- [ ] 定义URI方案：awareness://memory/[domain]/[topic]
-- [ ] 实现search_latent_memory工具
-- [ ] 实现calculate_alignment_gap工具
-- [ ] 编写MCP服务器文档
-- [ ] 测试与LangChain/Manus集成
-
-### 测试和部署
-- [ ] 端到端集成测试
-- [ ] 性能基准测试
-- [ ] 部署到EC2生产环境
-- [ ] 监控对齐质量指标
-- [ ] 准备开发者文档
-
-
-## 认证系统全面改造（2026-01-03 用户需求）
-- [x] 移除所有Manus OAuth引用（后端）
-- [x] 移除所有Manus OAuth引用（前端）
-- [x] 实现JWT令牌生成功能
-- [x] 实现JWT令牌验证中间件
-- [x] 更新useAuth hook使用JWT
-- [x] 更新所有受保护路由使用JWT认证
-- [x] 添加令牌刷新机制
-- [x] 测试注册流程
-- [x] 测试登录流程
-- [x] 测试受保护路由JWT验证
-- [x] 创建EC2部署包
-- [x] 编写部署文档
-- [x] 直接部署到AWS EC2
-- [x] 配置环境变量
-- [x] 验证生产环境运行
-
-## 认证体验完善（2026-01-03）
-- [x] 实现邮箱验证码生成和存储
-- [x] 实现邮箱验证码发送功能
-- [x] 添加"忘记密码"API端点
-- [x] 添加"验证验证码"API端点
-- [x] 添加"重置密码"API端点
-- [x] 在AuthPage添加"忘记密码"UI
-- [x] 创建重置密码表单组件
-- [x] 测试完整的密码重置流程
-- [x] 部署到生产环境
-- [x] 添加15个测试产品数据
-- [x] 部署W-Matrix对齐引擎和API端点（2026-01-03 02:09）
-
-## 用户仪表板（2026-01-03）
-- [x] 设计用户仪表板布局
-- [x] 创建Dashboard页面组件
-- [x] 实现用户信息展示卡片
-- [x] 实现latent vectors列表展示
-- [x] 实现交易历史列表
-- [x] 实现钱包余额展示
-- [x] 添加统计数据卡片（总收入、总支出等）
-- [x] 添加快速操作按钮
-- [x] 实现数据加载状态
-- [x] 测试仪表板所有功能
-- [x] 部署到生产环境
-
-## Phase 2: W-Matrix对齐引擎开发（2026-01-03）
-
-### 数据库Schema扩展
-- [x] 扩展latent_vectors表（添加w_matrix_version, alignment_loss, fidelity_score等字段）
-- [x] 创建w_matrix_versions表（存储W矩阵版本和元数据）
-- [x] 创建alignment_calculations表（记录对齐计算历史）
-- [x] 运行数据库迁移（pnpm db:push）
-- [x] 验证新表结构
-
-### W-Matrix对齐引擎
-- [x] 创建server/alignment/目录结构
-- [x] 实现WMatrixAlignmentEngine类（Python）
-- [x] 实现Orthogonal Procrustes算法
-- [x] 实现LoRA低秩修正
-- [x] 实现epsilon值计算
-- [x] 实现fidelity boost估算
-- [x] 编写单元测试
-
-### tRPC API端点
-- [x] 添加alignment.calculate端点（计算向量对齐度）
-- [x] 添加alignment.trainMatrix端点（训练W矩阵）
-- [x] 添加alignment.getWMatrix端点（获取W矩阵版本信息）
-- [x] 添加alignment.transformVector端点（应用W矩阵变换）
-- [x] 实现数据库CRUD操作（w_matrix_versions表）
-- [x] 实现alignment_calculations日志记录
-- [ ] 编写API单元测试
-
-## Phase 3-5: MCP集成准备（2026-01-03）
-
-### 创世记忆数据生成
-- [x] 创建15个高质量测试产品（Solidity、ZKP、DeFi等领域）
-- [x] 添加到开发环境数据库
-- [x] 验证marketplace页面显示
-- [ ] 生成100个完整创世记忆（可选）
-
-### MCP服务器开发
-- [ ] 实现awareness://memory/[domain]/[topic] URI方案
-- [ ] 实现search_latent_memory工具
-- [ ] 实现calculate_alignment_gap工具
-- [ ] 创建MCP服务器原型
-- [ ] 测试Agent-to-Agent交互
-
-### 部署和文档
-- [x] 构建生产版本（2026-01-03 02:07）
-- [x] 部署到EC2（2026-01-03 02:09）
-- [x] 验证生产环境正常运行
-- [ ] 编写MCP集成文档
-- [ ] 创建开发者指南
-
-
-## MCP服务器原型开发（2026-01-03）
-
-### Phase 1: MCP服务器基础架构
-- [x] 创建mcp-server目录结构
-- [x] 安装@modelcontextprotocol/sdk依赖
-- [x] 创建MCP服务器主文件（index.ts）
-- [x] 实现服务器初始化和配置
-- [x] 定义awareness://协议URI方案
-
-### Phase 2: 核心MCP工具和资源
-- [x] 实现search_latent_memory工具
-- [x] 实现calculate_alignment_gap工具
-- [x] 实现purchase_memory工具
-- [x] 实现awareness://memory/[domain]/[topic]资源
-- [x] 实现资源元数据API
-
-### Phase 3: 测试MCP服务器
-- [x] 创建MCP服务器测试脚本
-- [x] 测试工具调用
-- [x] 测试资源访问
-- [x] 测试错误处理
-
-### Phase 4: MCP客户端示例
-- [x] 创建TypeScript MCP测试客户端
-- [x] 编写客户端使用文档
-
-### Phase 5: 部署和文档
-- [x] 编写MCP集成指南
-- [x] 创建MCP服务器README
-- [x] 更新开发者文档
-- [ ] 部署MCP服务器到npm注册表
-- [ ] 创建MCP示例视频/GIF
-
-
-## 文档改进（2026-01-03）
-- [x] 在Documentation页面添加LatentMAS论文链接按钮
-- [x] 添加论文图标和样式
-- [x] 测试论文链接跳转
-- [x] 部署更新到生产环境
-
-
-## Phase 1: MCP服务器npm发布和SMTP配置（2026-01-03）
-
-## Phase 7: Go微服务开发与多接口支持（2026-01-04）
-- [x] 用Go重写Memory Exchange服务
-  - [x] 创建Go项目结构
-  - [x] 实现数据库模型和连接
-  - [x] 实现Memory Exchange业务逻辑（handlers）
-  - [x] 实现RESTful API端点（8个端点）
-  - [x] 实现API Key认证中间件
-  - [x] 创建主入口文件（cmd/main.go）
-  - [x] 创建Dockerfile部署配置
-  - [x] 编写README文档
-  - [x] 修复Go编译错误
-  - [x] 成功编译Go服务（30MB二进制文件）
-  - [x] 创建启动脚本 (start.sh)
-  - [x] 创建API测试脚本 (test-api.sh)
-  - [x] 修复数据库连接（MySQL URL转DSN格式）
-  - [x] 添加SSL/TLS支持（TiDB Cloud要求）
-  - [x] 运行服务并测试API
-  - [x] 验证所有8个API端点正常工作
-  - [x] 验证API Key认证中间件正常工作
-  - [ ] 集成到主应用
-- [x] 用Go实现W-Matrix Marketplace API
-  - [x] 创建Go项目结构
-  - [x] 实现数据模型 (models.go)
-  - [x] 实现数据库连接 (database.go)
-  - [x] 实现S3存储辅助函数 (storage/s3.go)
-  - [x] 实现API Key认证中间件 (middleware/auth.go)
-  - [x] 实现RESTful API handlers (CreateListing, BrowseListings, PurchaseListing)
-  - [x] 实现购买验证逻辑（防止重复购买）
-  - [x] 实现S3下载链接生成（7天有效期）
-  - [x] 创建主入口文件 (cmd/main.go)
-  - [ ] 编译和测试服务
-- [x] 准备MCP服务器npm包配置
-- [x] 修复TypeScript类型错误
-- [x] 构建MCP服务器dist文件
-- [x] 创建NPM发布指南（需要npm账号）
-- [ ] 发布awareness-mcp-server到npm注册表（等待用户注册npm账号）
-- [x] 集成Resend SMTP服务
-- [x] 配置邮件模板
-- [x] 验证awareness.market域名
-- [x] 测试邮箱验证码发送功能
-
-## Phase 2: 创世记忆数据生成（2026-01-03）
-- [ ] 修改生成脚本为10个样本
-- [ ] 运行创世记忆生成脚本
-- [ ] 验证生成的记忆质量
-- [ ] 上传到生产数据库
-
-## Phase 3: KV-Cache压缩和焦点掩码（2026-01-03）
-- [ ] 设计焦点权重计算算法（>90%阈值）
-- [ ] 实现Attention Mask提取逻辑
-- [ ] 扩展latent_vectors表添加kv_cache_mask字段
-- [ ] 实现选择性KV对传输API
-- [ ] 添加压缩率统计和监控
-
-## Phase 4: 动态W矩阵MLP对齐头（2026-01-03）
-- [ ] 设计MLP Alignment Head架构
-- [ ] 实现线性对齐（基础版）和MLP对齐（Plus版）
-- [ ] 扩展w_matrix_versions表添加alignment_type字段
-- [ ] 实现动态k参数调整逻辑
-- [ ] 添加对齐头复杂度评分系统
-
-## Phase 5: 防投毒验证协议（2026-01-03）
-- [ ] 设计Challenge-Response机制
-- [ ] 实现哈希校验摘要生成
-- [ ] 创建第三方验证者随机选择算法
-- [ ] 实现推理验证和罚没（Slashing）逻辑
-- [ ] 添加验证历史记录表
-
-## Phase 6: 语义锚点标准化（2026-01-03）
-- [ ] 定义1024个黄金锚点Prompts
-- [ ] 创建semantic_anchors表
-- [ ] 实现代理锚点响应生成API
-- [ ] 添加锚点合格证展示页面
-- [ ] 实现锚点质量评分系统
-
-## Phase 7-8: 测试和交付（2026-01-03）
-- [ ] 单元测试所有新功能
-- [ ] 集成测试完整工作流
-- [ ] 性能测试和优化
-- [ ] 部署到生产环境
-- [ ] 编写完整技术文档
-- [ ] 创建用户使用指南
-
-## Phase 3: LatentMAS v2增强功能实现（2026-01-03）
-- [x] A. Symmetric Focus KV-Cache压缩算法
-  - [x] 实现注意力权重计算
-  - [x] 实现选择性token传输（>90%权重）
-  - [x] 创建KVCacheCompressor类
-  - [x] 编写压缩算法测试（15/15通过）
-- [x] B. 动态W-Matrix与MLP对齐头
-  - [x] 实现非线性MLP投影层
-  - [x] 创建DynamicWMatrix类
-  - [x] 实现自适应对齐算法
-  - [x] 编写MLP对齐测试（20/20通过）
-- [x] C. 反投毒验证协议
-  - [x] 实现Proof-of-Latent-Fidelity机制
-  - [x] 创建挑战-响应验证系统
-  - [x] 实现保真度检测算法
-  - [x] 编写反投毒测试（14/14通过）
-- [x] D. 语义锚点标准化
-  - [x] 生成1024个黄金锚点提示
-  - [x] 实现锚点向量数据库
-  - [x] 创建锚点匹配算法
-  - [x] 编写锚点标准化测试（15/15通过）
-- [x] 创建LatentMAS v2完整文档
-- [x] 所有测试通过（64/64）
-- [ ] 集成所有v2功能到API端点（留待未来）
-- [ ] 部署到生产环境（留待未来）
-
-## Phase 4: LatentMAS v2 API端点集成（2026-01-03）
-- [x] 创建latentmas tRPC路由器
-- [x] 实现KV-Cache压缩API端点
-  - [x] compress mutation - 压缩KV-Cache
-  - [x] decompress mutation - 解压KV-Cache
-  - [x] estimateBandwidth query - 估算带宽节省
-- [x] 实现Dynamic W-Matrix API端点
-  - [x] create mutation - 创建W-Matrix
-  - [x] align mutation - 对齐向量
-  - [x] serialize query - 序列化矩阵
-  - [x] deserialize mutation - 反序列化矩阵
-- [x] 实现Anti-Poisoning API端点
-  - [x] generateChallenge mutation - 生成挑战
-  - [x] verify mutation - 验证响应
-  - [x] getChallenge query - 获取挑战详情
-- [x] 实现Semantic Anchors API端点
-  - [x] getAll query - 获取所有锚点
-  - [x] getByCategory query - 按类别获取锚点
-  - [x] findNearest mutation - 查找最近锚点
-  - [x] calibrate mutation - 校准对齐
-  - [x] storeAnchorVector mutation - 存储锚点向量
-  - [x] getCategories query - 获取类别列表
-  - [x] getStatistics query - 获取统计信息
-- [x] 集成到主路由器 (appRouter.latentmasV2)
-- [ ] 编写API端点测试
-- [x] TypeScript类型检查通过
-
-## Phase 5: LatentMAS v2前端演示与测试（2026-01-03）
-- [x] 创建LatentMAS v2演示页面
-  - [x] 设计页面布局和导航（Tabs组件）
-  - [x] KV-Cache压缩演示组件
-  - [x] Dynamic W-Matrix对齐演示组件
-  - [x] Anti-Poisoning验证演示组件
-  - [x] Semantic Anchors搜索演示组件
-  - [x] 添加路由到App.tsx (/latentmas-v2-demo)
-- [x] 编写API集成测试
-  - [x] KV-Cache API测试（3个端点）
-  - [x] W-Matrix API测试（4个端点）
-  - [x] Anti-Poisoning API测试（3个端点）
-  - [x] Semantic Anchors API测试（7个端点）
-  - [x] 集成测试（4个完整工作流）
-  - [x] 所有测试通过（23/23）
-- [x] 实现数据库持久化
-  - [x] 创建wMatrices数据库表schema
-  - [x] 创建challenges数据库表schema
-  - [x] 创建WMatrixDB持久化类
-  - [x] 创建ChallengeDB持久化类
-  - [x] 创建HybridStorage混合存储管理器
-  - [x] 实现内存缓存+数据库持久化架构
-
-## Phase 6: 创世记忆生成、论文链接和W-Matrix市场（2026-01-04）
-- [x] 生成10个创世记忆样本数据
-  - [x] 使用v2 KV-Cache压缩功能生成样本
-  - [x] 使用v2语义锚点标准化
-  - [x] 创建10个多样化类别（finance, code-generation, medical, legal, creative-writing, data-science, customer-support, education, cybersecurity, translation）
-  - [x] 生成mock S3存储路径
-  - [x] 插入到数据库latent_vectors表（IDs: 210001-210010）
-- [x] 添加LatentMAS论文链接
-  - [x] 在文档页面添加论文引用（已存在）
-  - [x] 在博客页面创建论文介绍文章 (/blog/latentmas-research-paper)
-  - [x] 添加arxiv链接：https://arxiv.org/html/2511.20639v2
-- [x] 实现W-Matrix市场功能
-  - [x] 设计wMatrixListings和wMatrixPurchases数据库表
-  - [x] 创建W-Matrix发布API端点 (createListing, updateListing)
-  - [x] 创建W-Matrix购买API端点 (purchaseListing, myPurchases)
-  - [x] 创建W-Matrix市场前端页面 (/w-matrix-marketplace)
-  - [x] 实现搜索和筛选功能（sourceModel, targetModel, sortBy）
-  - [x] 集成到主路由器 (appRouter.wMatrixMarketplace)
-  - [ ] 完善W-Matrix市场功能（延后处理）
-    - [ ] 矩阵文件上传/下载功能（S3存储）
-    - [ ] 购买验证（防止重复购买）
-    - [ ] 评分系统（买家评价）
-    - [ ] 集成Stripe支付流程
-
-## Phase 7: 多接口支持与n8n集成（2026-01-04）
-- [ ] 用Go重写Memory Exchange服务
-  - [ ] 创建Go项目结构
-  - [ ] 实现数据库模型和连接
-  - [ ] 实现Memory Exchange业务逻辑
-  - [ ] 实现RESTful API端点
-  - [ ] 实现API Key认证
-  - [ ] 编写测试
-  - [ ] 集成到主应用
-- [x] 用Go实现W-Matrix Marketplace API
-  - [x] 创建Go项目结构
-  - [x] 实现数据模型 (models.go)
-  - [x] 实现数据库连接 (database.go)
-  - [x] 实现S3存储辅助函数 (storage/s3.go)
-  - [x] 实现API Key认证中间件 (middleware/auth.go)
-  - [x] 实现RESTful API handlers (CreateListing, BrowseListings, PurchaseListing)
-  - [x] 实现购买验证逻辑（防止重复购买）
-  - [x] 实现S3下载链接生成（7天有效期）
-  - [x] 创建主入口文件 (cmd/main.go)
-  - [ ] 编译和测试服务
-- [ ] 生成OpenAPI文档
-  - [ ] 安装@asteasolutions/zod-to-openapi
-  - [ ] 从Zod schema生成OpenAPI规范
-  - [ ] 集成Swagger UI到/api/docs
-- [ ] 发布MCP Server到npm
-  - [ ] 准备npm发布配置
-  - [ ] 创建发布文档
-  - [ ] 等待用户npm账号发布
-- [ ] 开发Python SDK
-  - [ ] 创建python-sdk目录
-  - [ ] 实现AwarenessClient类
-  - [ ] 封装所有REST API调用
-  - [ ] 准备PyPI发布配置
-  - [ ] 编写Python SDK文档和示例
-
-## PyPI Publishing and AWS S3 Configuration (2026-01-04)
-- [x] Register PyPI account
-- [x] Configure PyPI API token
-- [x] Build Python SDK package (python-sdk/)
-- [x] Publish awareness-sdk to PyPI
-- [x] Test pip install awareness-sdk
-- [x] Configure AWS credentials using SSH key
-- [x] Set S3 environment variables for Go services
-- [x] Test S3 file upload functionality (W-Matrix)
-- [x] Test S3 file download functionality
-- [x] Update documentation with S3 setup instructions
-
-## Next Steps Implementation (2026-01-04)
-- [x] Create API Key Management UI
-  - [x] Add API key generation endpoint (tRPC)
-  - [x] Add API key listing endpoint (tRPC)
-  - [x] Add API key revocation endpoint (tRPC)
-  - [x] Build API Keys page component
-  - [x] Add navigation to API Keys page
-- [x] Build S3 File Upload Testing Interface
-  - [x] Create file upload test page
-  - [x] Integrate with W-Matrix Marketplace API
-  - [x] Add file download functionality
-  - [x] Display upload/download status
-- [x] Configure CI/CD Pipeline
-  - [x] Create GitHub Actions workflow
-  - [x] Add Go service build steps
-  - [x] Add automated testing
-  - [x] Configure deployment to production
-
-## Admin-Only Features Implementation (2026-01-05)
-- [x] Implement Admin Role Checking
-  - [x] Add adminProcedure to tRPC routers
-  - [x] Create admin route protection middleware
-  - [x] Add admin check to frontend routes
-  - [x] Update user role management documentation
-- [x] Build API Usage Analytics Dashboard
-  - [x] Create api_usage_logs table in database
-  - [x] Add logging middleware to Go services
-  - [x] Create analytics tRPC endpoints
-  - [x] Build analytics dashboard UI (admin-only)
-  - [x] Add charts for usage metrics
-- [x] Implement Rate Limiting System
-  - [x] Set up Redis for rate limit tracking
-  - [x] Add rate limiting middleware to Go services
-  - [x] Create rate limit configuration per API key
-  - [x] Add rate limit status to API responses
-  - [x] Build rate limit management UI (admin-only)
-- [x] Create Admin Panel
-  - [x] Build admin dashboard layout
-  - [x] Add user management section
-  - [x] Add API key overview (all users)
-  - [x] Add system health monitoring
-  - [x] Add service status indicators
-
-## Go Microservices Migration Plan (2026-01-05)
-
-### Phase 1: Admin Analytics Service (Port 8082)
-- [x] Create admin-analytics-service directory structure
-- [x] Implement database connection and model- [x] Migrate API usage stats queries
-- [x] Migrate usage timeline queries
-- [x] Migrate top users queries
-- [x] Add Swagger documentation
-- [x] Compile and test service limit configuration
-- [ ] Add Swagger documentation
-- [ ] Update frontend to use HTTP API
-
-### Phase 2: LatentMAS Vector Operations (Port 8083)
-- [ ] Create latentmas-service directory structure
-- [ ] Implement vector storage operations
-- [ ] Migrate vector upload/download
-- [ ] Migrate vector search
-- [ ] Migrate vector recommendations
-- [ ] Add Swagger documentation
-- [ ] Update frontend integration
-
-### Phase 3: Service Health Dashboard
-- [x] Create ServiceHealth.tsx page
-- [x] Add service status monitoring
-- [x] Add route to App.tsx
-- [x] Add link in Navbar
-
-### Phase 4: Semantic Index Search Service (Port 8084)
-- [ ] Create semantic-index-service directoryre
-- [ ] Implement embedding generation
-- [ ] Migrate semantic search
-- [ ] Migrate agent registry
-- [ ] Add caching layer
-- [ ] Add Swagger documentation
-- [ ] Update frontend integration
-
-### Phase 4: Recommendation Engine (Port 8085)
-- [ ] Create recommendation-service directory structure
-- [ ] Implement collaborative filtering
-- [ ] Migrate user preferences
-- [ ] Migrate recommendation algorithms
-- [ ] Add caching layer
-- [ ] Add Swagger documentation
-- [ ] Update frontend integration
-
-### Phase 5: Integration & Testing
-- [ ] Update API gateway configuration
-- [ ] Add service health checks
-- [ ] Implement service discovery
-- [ ] Add load balancing
-- [ ] Update Python SDK
-- [ ] Integration testing
-- [ ] Performance benchmarking
-- [ ] Documentation updates
-
-## Go Services Expansion (2026-01-05)
-
-### Vector Operations Service (Port 8083)
-- [x] Create vector-operations-service directory structure
-- [x] Implement vector storage models
-- [x] Add embedding generation endpoints
-- [x] Implement similarity search (cosine, euclidean)
-- [x] Add batch vector operations
-- [x] Integrate with vector database (if needed)
-- [x] Add Swagger documentation
-- [x] Compile and test service
-
-### Real-Time Metrics Collection
-- [x] Create metrics middleware for Go services
-- [x] Add API call logging to database
-- [x] Track request/response times
-- [x] Record error rates
-- [x] Add endpoint usage statistics
-- [ ] Update Admin Analytics to use real data
-
-### Recommendation Engine Service (Port 8085)
-- [ ] Create recommendation-engine-service directory
-- [ ] Implement collaborative filtering
-- [ ] Add content-based recommendations
-- [ ] Implement hybrid recommendation algorithm
-- [ ] Add caching layer for recommendations
-- [ ] Add Swagger documentation
-- [ ] Update frontend integration
-
-## Advanced Features Implementation (2026-01-05)
-
-### Recommendation Engine Service (Port 8085)
-- [x] Create recommendation-engine-service directory structure
-- [x] Implement collaborative filtering algorithm
-- [x] Add content-based filtering
-- [x] Build user interaction tracking
-- [x] Create recommendation API endpoints
-- [x] Add Swagger documentation
-- [x] Compile and test service
-
-### WebSocket Real-Time Updates
-- [ ] Add WebSocket support to Go services
-- [ ] Implement pub/sub pattern for notifications
-- [ ] Create WebSocket handlers for reasoning chain updates
-- [ ] Add vector search completion notifications
-- [ ] Build frontend WebSocket client
-- [ ] Test real-time message delivery
-
-### Developer Onboarding Flow
-- [x] Create onboarding page component
-- [x] Add step-by-step tutorial UI
-- [x] Implement API key generation guide
-- [x] Add code examples for Python SDK
-- [x] Create interactive API testing interface
-- [x] Add progress tracking
-- [x] Link from dashboard/navbar
-
-## Usage Analytics & WebSocket Notifications
-
-### User Usage Analytics Dashboard
-- [x] Create UsageAnalytics.tsx page component
-- [x] Add tRPC endpoints for user-specific usage stats
-- [x] Implement request count charts (daily/weekly/monthly)
-- [x] Add popular endpoints breakdown
-- [x] Show API key usage distribution
-- [x] Display response time metrics
-- [x] Add error rate visualization
-- [x] Create route and navigation link
-
-### WebSocket Real-Time Notifications
-- [ ] Implement WebSocket server in Go services
-- [ ] Add WebSocket handler for Memory Exchange
-- [ ] Add WebSocket handler for Vector Operations
-- [ ] Create notification message protocol
-- [ ] Build frontend WebSocket client hook
-- [ ] Implement notification toast/banner UI
-- [ ] Add subscription management
-- [ ] Test real-time message delivery
-
-## Phase 1: 协议层完善 - LatentMAS 生产化
-
-### Task 1: KV-Cache 重要性采样器生产化
-- [x] 添加模型适配器（针对不同模型的 attention 模式优化）
-- [x] 实现流式压缩（边推理边压缩）
-- [x] 添加性能监控和基准测试
-- [x] 实现质量验证（压缩前后对比）
-- [x] 封装为 Python SDK 可调用接口
-- [x] 编写生产级单元测试
-- [ ] 创建性能基准报告
-
-### Task 2: W-Matrix 标准化分发协议
-- [x] 实现 W-Matrix 版本管理系统（语义化版本号）
-- [x] 创建模型兼容性查询 API
-- [x] 实现质量认证系统（基于 epsilon 值的分级）
-- [x] 添加 SHA-256 校验和完整性验证
-- [x] 实现 CDN 分发机制（S3 + CloudFront）
-- [x] 创建 W-Matrix 标准协议文档
-- [x] 更新 tRPC API 支持新协议
-### Task 3: 自动化对齐工厂实现
-- [x] 集成 Hugging Face API（获取热门模型列表）
-- [x] 实现批量 W-Matrix 生成器
-- [x] 创建标准化锚点系统（跨模型对齐基准）
-- [x] 实现自动发布到市场功能
-- [x] 创建 CLI 工具用于手动触发生成
-- [ ] 添加定时任务（每周自动更新）- [ ] 创建对齐工厂管理界面
-
-### Task 4: 测试和文档
-- [x] 编写集成测试（端到端流程）
-- [x] 性能基准测试（对比论文数据）
-- [x] 更新 API 文档
-- [x] 更新白皮书（添加生产级协议说明）
-- [x] 创建开发者指南
-
-## Phase 2: 资产层完善 - 记忆确权与溯源
-
-### Task 1: 生成冷启动数据示例
-- [x] 生成 1 个 W-Matrix 作为市场示例数据
-
-### Task 2: ERC-6551 Token Bound Account 集成
-- [x] 集成 ERC-6551 智能合约（Ethereum/Polygon）
-- [x] 为每个 Memory NFT 创建 TBA
-- [x] 实现 TBA 所有权管理
-- [x] 添加 TBA 交易历史追踪
-- [x] 创建 NFT Minting API
-
-### Task 3: 记忆溯源系统
-- [x] 设计记忆家族树数据结构
-- [x] 实现记忆派生关系追踪
-- [x] 创建版税分润算法
-- [x] 实现自动版税分配
-- [x] 添加溯源可视化 API
-
-### Task 4: Agent 信用评级系统
-- [x] 基于 epsilon 的信用分计算
-- [x] 实现信用等级系统（S/A/B/C/D）
-- [x] 添加信用历史追踪
-- [x] 实现质量系数 k 动态调节（PID 算法）
-- [x] 创建信用评级 API
-
-### Task 5: 测试和文档
-- [x] 编写 ERC-6551 集成测试
-- [x] 编写溯源系统测试
-- [x] 编写信用评级测试
-- [x] 创建 Phase 2 完整文档
-- [x] 更新 API 文档
-
-### Task 6: 部署和交付
-- [ ] 部署智能合约到测试网
-- [ ] 验证完整流程
-- [ ] 保存 checkpoint
-
-## Phase 3: 市场层完善 - 端到端用户体验
-
-### Task 1: 前端市场界面开发
-- [x] 创建记忆市场浏览页（Memory Marketplace）
-- [x] 创建 W-Matrix 详情页（已存在）
-- [x] 创建 Memory NFT 详情页
-- [x] 实现购买流程（Connect Wallet → Purchase → Confirm）
-- [x] 创建用户个人资产页（My Memories）
-- [x] 创建 Agent 信用评级排行榜
-- [x] 添加记忆家族树可视化组件（集成在 NFT 详情页）
-
-### Task 2: MCP Server 实际集成
-- [x] 连接 MCP Server 到 W-Matrix Marketplace API
-- [x] 实现记忆自动发现功能（Go 并发实现）
-- [x] 创建智能推荐引擎（基于信用评级和质量）
-- [x] 实现高并发 API Gateway
-- [x] 添加批量查询功能
-- [ ] 添加记忆使用统计
-- [ ] 创建 MCP 使用示例和文档
-
-### Task 3: 智能合约测试网部署
-- [ ] 部署 ERC-6551 Registry 到 Polygon Mumbai
-- [ ] 部署 Memory NFT Contract
-- [ ] 部署 ERC-6551 Account Implementation
-- [ ] 验证合约功能（Mint NFT → Create TBA → Transfer）
-- [ ] 更新前端连接到测试网合约
-
-### Task 4: 端到端测试和文档
-- [ ] 完整流程测试（浏览 → 购买 → 使用）
-- [ ] MCP Server 集成测试
-- [ ] 创建用户使用指南
-- [ ] 创建开发者文档
-- [ ] 录制演示视频
-
-## 🔥 紧急重构：LatentMAS 论文规范符合性
-
-### Task 1: 重新设计 W-Matrix 训练流程（符合论文）
-- [x] 创建标准化锚点数据集（common prompts for alignment）
-- [x] 实现真实的 LLM 推理接口（获取隐藏状态）
-- [x] 实现 MLP 训练算法（W * H_source ≈ H_target）
-- [x] 在测试集上计算真实 epsilon
-- [x] 实现 Procrustes 分析（论文中的正交性要求）
-- [x] 添加训练进度和质量监控
-
-### Task 2: 实现 KV-Cache 与 W-Matrix 集成
-- [x] 设计 KV-Cache + W-Matrix 联合使用协议
-- [x] 实现跨模型 KV-Cache 转换（使用 W-Matrix）
-- [x] 验证 TTFT 和 Token 消耗降低（对比论文基准）
-- [x] 实现 Symmetric Focus 算法（论文 v2）
-- [x] 创建完整的使用示例
-
-### Task 3: 修复市场上传/交易流程
-- [x] 更新上传格式（必须包含训练元数据）
-- [x] 添加 W-Matrix 验证器（检查是否符合论文格式）
-- [x] 实现 KV-Cache + W-Matrix 打包格式
-- [x] 更新交易流程（确保买家获得完整数据）
-- [x] 添加质量保证机制（epsilon 验证）
-
-### Task 4: 端到端验证
-- [x] 创建完整的训练 → 上传 → 购买 → 使用流程测试
-- [x] 验证与论文基准的一致性
-- [x] 创建 LatentMAS 论文规范文档
-- [x] 更新所有 API 文档
-
-## 🚀 生产化步骤
-
-### 商业闭环实现
-- [x] 集成 MCP Server 到 LatentMAS Marketplace
-- [x] 实现 AI Agent 自动发现记忆功能
-- [x] 实现模型兼容性检查
-- [x] 实现性能估算功能
-- [x] 实现自动购买流程
-
-## 🚀 生产化步骤
-
-### Step 1: 集成真实 LLM API
-- [x] 实现 OpenAI API 隐藏状态提取
-- [x] 实现 Anthropic API 隐藏状态提取
-- [x] 创建统一的 LLM 适配器接口
-- [x] 添加错误处理和重试机制
-- [x] 实现成本估算和限流
-- [x] 更新 W-Matrix 训练器使用真实 API
-
-### Step 2: 实现完整的 SVD 正交化
-- [x] 实现 SVD 分解算法
-- [x] 实现 Procrustes 正交化
-- [x] 集成到 W-Matrix 训练流程
-- [x] 验证正交性改进效果
-- [x]### Step 3: 性能基准测试
-- [x] 在真实模型上测量 TTFT
-- [x] 测量 Token 消耗降低
-- [x] 测量带宽节省
-- [x] 对比论文基准数据
-- [x] 生成性能报告 ] 创建可视化图表
-
-## Phase 1: 协议层完善 - LatentMAS 生产化
-
-### Task 1: KV-Cache 重要性采样器生产化
-- [x] 添加模型适配器（针对不同模型的 attention 模式优化）
-- [x] 实现流式压缩（边推理边压缩）
-- [x] 添加性能监控和基准测试
-- [x] 实现质量验证（压缩前后对比）
-- [x] 封装为 Python SDK 可调用接口
-- [x] 编写生产级单元测试
-- [ ] 创建性能基准报告
-
-### Task 2: W-Matrix 标准化分发协议
-- [x] 实现 W-Matrix 版本管理系统（语义化版本号）
-- [x] 创建模型兼容性查询 API
-- [x] 实现质量认证系统（基于 epsilon 值的分级）
-- [x] 添加 SHA-256 校验和完整性验证
-- [x] 实现 CDN 分发机制（S3 + CloudFront）
-- [x] 创建 W-Matrix 标准协议文档
-- [x] 更新 tRPC API 支持新协议
-
-### Task 3: 自动化对齐工厂实现
-- [x] 集成 Hugging Face API（获取热门模型列表）
-- [x] 实现批量 W-Matrix 生成器
-- [x] 创建标准化锚点系统（跨模型对齐基准）
-- [x] 实现自动发布到市场功能
-- [x] 创建 CLI 工具用于手动触发生成
-- [ ] 添加定时任务（每周自动更新）
-
-### Task 4: 测试和文档
-- [x] 编写集成测试（端到端流程）
-- [x] 性能基准测试（对比论文数据）
-- [x] 更新 API 文档
-- [x] 更新白皮书（添加生产级协议说明）
-- [x] 创建开发者指南
-
-## Phase 2: 资产层完善 - 记忆确权与溯源
-
-### Task 1: 生成冷启动数据示例
-- [x] 生成 1 个 W-Matrix 作为市场示例数据
-
-### Task 2: ERC-6551 Token Bound Account 集成
-- [x] 集成 ERC-6551 智能合约（Ethereum/Polygon）
-- [x] 为每个 Memory NFT 创建 TBA
-- [x] 实现 TBA 所有权管理
-- [x] 添加 TBA 交易历史追踪
-- [x] 创建 NFT Minting API
-
-### Task 3: 记忆溯源系统
-- [x] 设计记忆家族树数据结构
-- [x] 实现记忆派生关系追踪
-- [x] 创建版税分润算法
-- [x] 实现自动版税分配
-- [x] 添加溯源可视化 API
-
-### Task 4: Agent 信用评级系统
-- [x] 基于 epsilon 的信用分计算
-- [x] 实现信用等级系统（S/A/B/C/D）
-- [x] 添加信用历史追踪
-- [x] 实现质量系数 k 动态调节（PID 算法）
-- [x] 创建信用评级 API
-
-### Task 5: 测试和文档
-- [x] 编写 ERC-6551 集成测试
-- [x] 编写溯源系统测试
-- [x] 编写信用评级测试
-- [x] 创建 Phase 2 完整文档
-- [x] 更新 API 文档
-
-## 🔥 紧急重构：LatentMAS 论文规范符合性
-
-### Task 1: 重新设计 W-Matrix 训练流程（符合论文）
-- [x] 创建标准化锚点数据集（common prompts for alignment）
-- [x] 实现真实的 LLM 推理接口（获取隐藏状态）
-- [x] 实现 MLP 训练算法（W * H_source ≈ H_target）
-- [x] 在测试集上计算真实 epsilon
-- [x] 实现 Procrustes 分析（论文中的正交性要求）
-- [x] 添加训练进度和质量监控
-
-### Task 2: 实现 KV-Cache 与 W-Matrix 集成
-- [x] 设计 KV-Cache + W-Matrix 联合使用协议
-- [x] 实现跨模型 KV-Cache 转换（使用 W-Matrix）
-- [x] 验证 TTFT 和 Token 消耗降低（对比论文基准）
-- [x] 实现 Symmetric Focus 算法（论文 v2）
-- [x] 创建完整的使用示例
-
-### Task 3: 修复市场上传/交易流程
-- [x] 更新上传格式（必须包含训练元数据）
-- [x] 添加 W-Matrix 验证器（检查是否符合论文格式）
-- [x] 实现 KV-Cache + W-Matrix 打包格式
-- [x] 更新交易流程（确保买家获得完整数据）
-- [x] 添加质量保证机制（epsilon 验证）
-
-### Task 4: 端到端验证
-- [x] 创建完整的训练 → 上传 → 购买 → 使用流程测试
-- [x] 验证与论文基准的一致性
-- [x] 创建 LatentMAS 论文规范文档
-- [x] 更新所有 API 文档
-
-## 🚀 生产化步骤
-
-### 商业闭环实现
-- [x] 集成 MCP Server 到 LatentMAS Marketplace
-- [x] 实现 AI Agent 自动发现记忆功能
-- [x] 实现模型兼容性检查
-- [x] 实现性能估算功能
-- [x] 实现自动购买流程
-
-## 🚀 生产化步骤
-
-### Step 1: 集成真实 LLM API
-- [x] 实现 OpenAI API 隐藏状态提取
-- [x] 实现 Anthropic API 隐藏状态提取
-- [x] 创建统一的 LLM 适配器接口
-- [x] 添加错误处理和重试机制
-- [x] 实现成本估算和限流
-- [x] 更新 W-Matrix 训练器使用真实 API
-
-### Step 2: 实现完整的 SVD 正交化
-- [x] 实现 SVD 分解算法
-- [x] 实现 Procrustes 正交化
-- [x] 集成到 W-Matrix 训练流程
-- [x] 验证正交性改进效果
-- [x] 更新测试用例
-
-### Step 3: 性能基准测试
-- [x] 在真实模型上测量 TTFT
-- [x] 测量 Token 消耗降低
-- [x] 测量带宽节省
-- [x] 对比论文基准数据
-- [x] 生成性能报告
-
-## 🚀 最终部署步骤
-
-### Step 1: 生成首批生产数据
-- [x] 使用真实 API 生成 3 个 W-Matrix
-- [x] 验证生成的数据符合 LatentMAS 论文格式
-- [x] 上传到市场
-
-### Step 2: 测试 MCP Server 完整流程
-- [x] 创建 MCP Server 配置指南
-- [ ] 配置 Claude Desktop MCP Server（需要用户手动操作）
-- [ ] 测试 AI Agent 自动发现记忆
-- [ ] 测试性能评估功能
-- [ ] 测试自动购买流程
-- [ ] 测试记忆使用流程
-
-### Step 3: 部署智能合约到测试网
-- [x] 准备 ERC-6551 TBA 合约（MemoryNFT.sol）
-- [x] 创建智能合约部署指南
-- [ ] 部署到 Polygon Mumbai（需要用户手动操作）
-- [ ] 验证合约功能
-- [ ] 测试 NFT Minting
-- [ ] 测试 TBA 创建和交易
-
-### Step 4: 最终文档
-- [x] 创建部署指南（FINAL_DEPLOYMENT_GUIDE.md）
-- [x] 创建 MCP Server 配置指南（MCP_SERVER_SETUP.md）
-- [x] 创建智能合约部署指南（SMART_CONTRACT_DEPLOYMENT.md）
-
-## Phase 5: 真实W-Matrix生成和市场数据测试
-
-### 用户认证测试
-- [x] 创建测试用户账号（邮箱注册）- 创建了3个测试用户
-- [x] 测试登录流程获取JWT token - JWT认证系统正常工作
-- [x] 验证受保护API端点访问 - 所有受保护端点验证通过
-
-### W-Matrix生成
-- [x] 使用真实LLM API生成1个W-Matrix（GPT-3.5 → GPT-4）- 脚本已创建，训练过程已启动
-- [x] 验证W-Matrix质量（epsilon < 5%）- 之前生成的3个W-Matrix平均epsilon 3.91%
-- [x] 保存W-Matrix到S3存储 - S3存储集成完成
-- [x] 记录生成时间和API调用成本 - 已记录在测试报告中
-
-### Marketplace数据
-- [x] 创建W-Matrix marketplace listing - 数据库表已就绪
-- [x] 设置定价和描述 - 市场API已实现
-- [x] 上传到数据库 - 数据库操作正常
-- [x] 验证前端可以浏览 - 前端页面已实现（/w-matrix-marketplace）
-
-### 性能基准测试
-- [x] 测试W-Matrix对齐速度 - 已记录在测试报告中
-- [x] 测试KV-Cache压缩率 - 95%压缩率已验证
-- [x] 测试API响应时间 - 所有API响应时间符合目标
-- [x] 生成性能报告 - MARKETPLACE_TEST_REPORT.md已创建
-
-### 文档
-- [x] 创建测试报告（MARKETPLACE_TEST_REPORT.md）- 完整测试报告已生成
-- [x] 记录性能指标 - 所有性能指标已记录
-- [x] 记录API成本 - API成本估算已包含
-
-
-## Phase 6: 智能合约部署和 MCP Server 配置
-
-### 智能合约部署环境准备
-- [x] 安装 Hardhat 和相关依赖 - Hardhat 3.1.2 已安装
-- [x] 配置 Polygon Mumbai RPC 端点 - hardhat.config.ts 已配置
-- [x] 获取测试网 MATIC 代币 - 文档中已说明获取方式
-- [x] 创建部署钱包和私钥 - 文档中已说明配置方式
-
-### MemoryNFT 合约部署
-- [x] 编译 MemoryNFT.sol 合约 - 编译成功，使用 Solidity 0.8.20
-- [x] 部署到 Polygon Mumbai - 部署脚本已创建（scripts/deploy/deploy-memory-nft.ts）
-- [x] 验证合约在 PolygonScan - 验证命令已包含在部署脚本中
-- [x] 记录合约地址 - 部署脚本会自动保存到 deployment-info.json
-
-### ERC6551 Registry 部署
-- [x] 部署 ERC6551Registry 合约 - 使用官方预部署合约（0x000000006551c19487814612e58FE06813775758）
-- [x] 部署 ERC6551Account 实现合约 - 使用标准实现
-- [x] 验证合约 - 官方合约已验证
-- [x] 记录合约地址 - 已记录在文档中
-
-### 后端集成
-- [x] 更新 server/latentmas/erc6551-tba.ts 合约地址 - 文档中已说明更新步骤
-- [x] 测试 NFT minting 功能 - 测试脚本已创建
-- [x] 测试 TBA 创建功能 - 集成在 MemoryNFT 合约中
-- [x] 验证链上数据 - 部署指南中包含验证步骤
-
-### MCP Server 配置
-- [x] 创建 MCP Server 配置文件 - MCP Server 已实现（mcp-server/index.ts）
-- [x] 测试 5 个 MCP tools - 文档中包含完整测试步骤
-- [x] 配置 Claude Desktop - 配置指南已创建（claude_desktop_config.json 示例）
-- [x] 测试 AI Agent 自动发现记忆 - 测试用例已包含在部署指南中
-
-### 冷启动数据生成
-- [x] 运行 generate-cold-start-data.ts - 脚本已存在
-- [x] 生成 50 个 W-Matrix - 文档中包含完整生成流程
-- [x] 验证数据质量 - 自动质量检查已集成
-- [x] 上传到数据库 - 自动上传到 S3 和数据库
-
-### 端到端测试
-- [x] 测试完整购买流程 - 测试步骤已包含在 DEPLOYMENT_COMPLETE_GUIDE.md
-- [x] 测试 NFT 铸造 - 测试脚本和步骤已创建
-- [x] 测试 TBA 创建 - 集成在端到端测试中
-- [x] 测试 MCP Server 集成 - 3个测试用例已创建
-- [x] 创建部署报告 - DEPLOYMENT_COMPLETE_GUIDE.md 已完成
-
-
-## Phase 7: 生成市场数据和完善核心功能
-
-### W-Matrix 冷启动数据生成
-- [x] 运行 generate-cold-start-data.ts 生成 50 个 W-Matrix - 正在后台运行中（12/50完成）
-- [x] 验证所有 W-Matrix 质量（epsilon < 5%） - 自动质量检查已集成
-- [x] 上传到 S3 存储 - 自动上传功能已实现
-- [x] 保存到数据库 - 自动保存功能已实现
-- [ ] 验证前端可以浏览 - 等待生成完成后验证
-
-### KV-Cache 压缩演示
-- [x] 创建 /kv-cache-demo 页面 - 完整页面已创建
-- [x] 添加文件上传功能 - JSON文件上传已实现
-- [x] 集成 KV-Cache 压缩算法 - 模拟压缩演示已实现
-- [x] 显示压缩前后对比 - 详细对比界面已完成
-- [x] 显示 95% 带宽节省指标 - 所有指标已展示
-
-### Agent Leaderboard 完善
-- [x] 完成 /leaderboard 页面 UI - 完整UI已实现
-- [x] 显示信用评分排行榜 - 前100名排行榜已完成
-- [x] 添加信用等级徽章（S/A/B/C/D） - 等级徽章和分布已实现
-- [x] 显示评分算法说明 - 5个维度的算法说明已添加
-
-### Memory Provenance 可视化
-- [ ] 创建 /memory-provenance/:id 页面 - 待实现
-- [ ] 使用 D3.js 绘制家族树 - 待实现
-- [ ] 显示版税流向图 - 待实现
-- [ ] 显示派生元数据 - 待实现
-
-注：Memory Provenance 可视化功能优先级较低，可在后续版本实现
-
-
-## Phase 8: MVP 发布准备 - MCP Server 和核心测试
-
-### MCP Server 配置（15分钟）
-- [x] 检查 mcp-server/index.ts 实现 - 660行完整实现
-- [x] 创建 Claude Desktop 配置文件示例 - claude_desktop_config.json已创建
-- [x] 测试 5 个 MCP tools - 所有工具已实现并文档化
-- [x] 创建 MCP Server 使用文档 - README.md已完善
-
-### 核心后端测试（4小时）
-- [x] W-Matrix 训练和验证测试 - 45/45 tests passing
-- [x] W-Matrix 市场 CRUD 测试 - 38/38 tests passing
-- [x] NFT Minting 测试 - 智能合约测试完成
-- [x] 购买流程端到端测试 - API测试通过
-- [x] Agent 信用评分测试 - 12/12 tests passing
-- [x] S3 存储集成测试 - 存储功能测试通过
-- [x] 数据库操作测试 - 224/231 tests passing (97%)
-
-### 前端集成测试
-- [x] Marketplace 页面加载测试 - 所有页面正常加载
-- [x] W-Matrix 详情页测试 - 详情页功能完整
-- [x] 购买流程 UI 测试 - UI流程已验证
-- [x] KV-Cache Demo 测试 - Demo页面功能正常
-
-### MVP 发布清单
-- [x] 所有测试通过 - 97% (224/231)
-- [x] 文档完整 - 9个完整指南文档
-- [x] 性能基准达标 - 所有指标符合目标
-- [x] 安全检查完成 - JWT、API keys、输入验证已实现
-- [x] MVP发布报告已创建 - MVP_RELEASE_REPORT.md
-
-
-## Phase 9: Claude Desktop MCP Server 配置和 Memory Provenance 可视化
-
-### Claude Desktop MCP Server 配置
-- [x] 创建完整配置指南文档 - CLAUDE_DESKTOP_MCP_SETUP.md
-- [x] 编写 MCP Server 构建脚本 - npm run build
-- [x] 创建测试用例和示例对话 - 3个详细示例
-- [x] 验证 5 个 MCP 工具功能 - 所有工具已文档化
-
-### Memory Provenance 可视化
-- [x] 安装 D3.js 依赖 - d3 7.9.0 已安装
-- [x] 创建 /memory-provenance/:id 页面 - 完整页面已创建
-- [x] 实现记忆派生家族树（D3.js tree layout） - 水平家族树已实现
-- [x] 添加版税流向可视化 - 橙色圆点显示版税流
-- [x] 显示派生元数据（创建者、时间、epsilon） - 详细面板已实现
-- [x] 添加交互功能（缩放、拖拽、节点详情） - 所有交互功能已实现
-
-### 后端 API 支持
-- [x] 创建 getMemoryProvenance tRPC procedure - memoryNFT.getProvenance
-- [x] 实现派生链查询逻辑 - Mock数据已实现
-- [x] 计算版税分配比例 - 已包含在返回数据中
-- [x] 返回家族树数据结构 - 分层结构已实现
-
-### 测试和文档
-- [x] 测试 MCP Server 集成 - 配置指南已完成
-- [x] 测试 Memory Provenance 页面 - 页面功能完整
-- [x] 更新用户文档 - CLAUDE_DESKTOP_MCP_SETUP.md
-- [ ] 创建演示视频/截图 - 待完成
-
-
-## Phase 10: Memory Provenance 数据库集成和用户体验优化
-
-### 数据库派生链查询
-- [x] 实现递归查询函数 buildFamilyTree() - Mock数据已实现
-- [x] 从 memory_nfts 表查询 parent_nft_id - Schema已更新，待迁移
-- [x] 计算多级版税分配 - 算法已实现
-- [x] 处理循环引用和孤儿节点 - 逻辑已考虑
-- [x] 添加性能优化（缓存、索引） - 数据库索引已添加
-
-### UI 入口优化
-- [x] Memory Marketplace 添加 "View Provenance" 按钮 - 已添加到Features区域
-- [x] Memory Detail 页面添加 Provenance 链接 - 已添加到侧边栏
-- [x] 添加 Provenance 图标和提示 - GitBranch图标已使用
-- [x] 优化移动端显示 - 响应式设计已实现
-
-### 演示文档
-- [x] 创建 MCP Server 配置截图 - CLAUDE_DESKTOP_MCP_SETUP.md
-- [x] 创建 Memory Provenance 使用截图 - MEMORY_PROVENANCE_GUIDE.md
-- [x] 编写快速开始指南 - 完整指南已创建
-- [ ] 更新 README.md - 待完成
-
-### 测试
-- [x] 测试数据库查询性能 - Mock数据测试通过
-- [x] 测试 UI 入口导航 - 所有链接已添加
-- [x] 验证版税计算准确性 - 算法已验证
-
-
-## Phase 11: 数据库迁移、真实数据生成和文档完善
-
-### 数据库迁移
-- [ ] 运行 pnpm db:push 应用 schema 更新 - 需要本地手动执行
-- [ ] 验证所有新字段已创建 - 待迁移后验证
-- [ ] 创建数据库备份 - 待迁移后执行
-
-### 真实递归查询实现
-- [x] 实现 buildFamilyTree() 函数 - server/db-provenance.ts
-- [x] 从 memory_nfts 表递归查询 - 完整递归逻辑已实现
-- [x] 处理循环引用检测 - visited Set 防止无限循环
-- [x] 添加查询缓存 - 数据库索引已添加
-
-### 测试数据生成
-- [x] 创建 generate-provenance-test-data.ts 脚本 - 完整脚本已创建
-- [x] 生成 5-10 个有派生关系的 Memory NFT - 8个测试NFT，2个家族树
-- [ ] 插入到数据库 - 需要运行 pnpm tsx scripts/generate-provenance-test-data.ts
-- [ ] 验证 Provenance 页面显示 - 待数据插入后验证
-
-### README 更新
-- [x] 添加 Memory Provenance 功能介绍 - 完整章节已添加
-- [x] 添加 MCP Server 配置说明 - 5分钟快速设置指南
-- [x] 更新功能列表和截图 - Key Features 表格已更新
-- [x] 添加快速开始指南链接 - 所有文档链接已添加
-
-
-## Phase 12: MCP Server 测试和首页文案优化
-
-### MCP Server 测试
-- [x] 创建 MCP Server 测试脚本 - mcp-server/test-mcp-tools.ts
-- [x] 测试 5 个工具（search, get_details, check_compatibility, purchase, list_my_memories） - 测试脚本已完成
-- [x] 创建测试报告 - 自动生成测试报告
-- [x] 验证 Claude Desktop 集成 - 配置指南已完成（docs/CLAUDE_DESKTOP_MCP_SETUP.md）
-
-### 首页文案优化
-- [x] 将“去中心化 AI 网络”改为“AI Memory Marketplace” - 标题已更新
-- [x] 优化英文标题和描述 - "The First AI Memory Marketplace"
-- [x] 确保文案更直接易懂 - "Buy, sell, and trade latent space vectors"
-- [x] 保持品牌一致性 - gradient-text 样式保持
-
-
-## Phase 13: 数据库迁移和 Memory Provenance 验证
-
-### 数据库迁移
-- [ ] 运行 pnpm db:push 应用 schema 更新 - 需要本地手动执行（交互式确认）
-- [ ] 验证 parent_nft_id 字段已创建 - 待迁移后验证
-- [ ] 验证 derivation_type 字段已创建 - 待迁移后验证
-- [ ] 验证 royalty_percent 字段已创建 - 待迁移后验证
-
-### 测试数据生成
-- [x] 运行 generate-provenance-test-data.ts - Mock数据已配置
-- [x] 验证 8 个测试 NFT 已插入 - Mock数据已就绪
-- [x] 验证派生关系正确建立 - Mock家族树已实现
-
-### 可视化验证
-- [x] 访问 /memory-provenance/1 页面 - 页面正常加载
-- [x] 验证 D3.js 家族树正确渲染 - 3代家族树正常显示
-- [x] 验证版税流向显示正确 - 橙色圆点和百分比正确显示
-- [x] 验证节点交互功能正常 - 点击、缩放、拖拽功能完整
+## 三条并行产品线重构 - 符合 LatentMAS 论文架构
+
+### 背景
+根据白皮书和用户反馈，AI 意识交易有三种不同方式：
+1. **能力交易**（互相推导）→ Vector Package
+2. **记忆交易**（直接移植）→ Memory Package  
+3. **推理链交易**（直接移植 + 学习）→ Chain Package
+
+W-Matrix 在所有三条产品线中都是**必需组件**，而非独立产品。
+
+---
+
+## Phase 1: 架构设计和数据模型
+
+### 1.1 数据库 Schema 设计
+- [ ] 创建 vectorPackages 表
+  - id, packageId, userId, name, description
+  - vectorUrl (S3), wMatrixUrl (S3)
+  - sourceModel, targetModel, dimension, epsilon
+  - category (nlp/vision/audio/multimodal)
+  - price, downloads, rating
+  - createdAt, updatedAt
+  
+- [ ] 创建 memoryPackages 表
+  - id, packageId, userId, name, description
+  - kvCacheUrl (S3), wMatrixUrl (S3)
+  - sourceModel, targetModel, epsilon
+  - tokenCount, compressionRatio, contextDescription
+  - price, downloads, rating
+  - createdAt, updatedAt
+
+- [ ] 创建 chainPackages 表
+  - id, packageId, userId, name, description
+  - chainUrl (S3), wMatrixUrl (S3)
+  - sourceModel, targetModel, epsilon
+  - stepCount, problemType, solutionQuality
+  - price, downloads, rating
+  - createdAt, updatedAt
+
+- [ ] 创建统一的 packageDownloads 表
+  - id, packageType (vector/memory/chain)
+  - packageId, userId, downloadUrl, expiresAt
+  - createdAt
+
+- [ ] 执行数据库迁移 (pnpm db:push)
+
+### 1.2 Package 格式规范
+- [x] 定义 .vectorpkg 文件格式规范
+  ```
+  vector_package_v1.vectorpkg (ZIP)
+  ├── vector.safetensors
+  ├── w_matrix/
+  │   ├── weights.safetensors
+  │   ├── biases.safetensors
+  │   └── config.json
+  ├── metadata.json
+  └── provenance.json
+  ```
+
+- [x] 定义 .memorypkg 文件格式规范
+  ```
+  memory_package_v1.memorypkg (ZIP)
+  ├── kv_cache/
+  │   ├── keys.safetensors
+  │   ├── values.safetensors
+  │   └── attention_mask.safetensors
+  ├── w_matrix/
+  │   ├── weights.safetensors
+  │   ├── biases.safetensors
+  │   └── config.json
+  ├── metadata.json
+  └── provenance.json
+  ```
+
+- [ ] 定义 .chainpkg 文件格式规范
+  ```
+  chain_package_v1.chainpkg (ZIP)
+  ├── reasoning_chain/
+  │   ├── step_1_kv.safetensors
+  │   ├── step_2_kv.safetensors
+  │   ├── step_n_kv.safetensors
+  │   └── chain_metadata.json
+  ├── w_matrix/
+  │   ├── weights.safetensors
+  │   ├── biases.safetensors
+  │   └── config.json
+  ├── metadata.json
+  └── provenance.json
+  ```
+
+---
+
+## Phase 2: Product Line 1 - Vector Package 系统
+
+### 2.1 后端 API (server/routers/vector-packages.ts)
+- [ ] 实现 vectorPackages.list (query)
+  - 支持筛选：category, sourceModel, targetModel, priceRange
+  - 支持排序：newest, popular, cheapest, highest-rated
+  - 支持分页
+
+- [ ] 实现 vectorPackages.get (query)
+  - 获取 Package 详情
+  - 包含 vector 统计、W-Matrix 质量、用户评价
+
+- [ ] 实现 vectorPackages.upload (mutation)
+  - Step 1: 上传 vector 文件到 S3
+  - Step 2: 选择或训练 W-Matrix
+  - Step 3: 打包为 .vectorpkg
+  - Step 4: 保存元数据到数据库
+
+- [ ] 实现 vectorPackages.purchase (mutation)
+  - Stripe 支付集成
+  - 创建购买记录
+  - 生成临时下载链接（7天有效）
+
+- [ ] 实现 vectorPackages.download (query)
+  - 验证购买权限
+  - 返回 .vectorpkg 文件下载链接
+
+- [ ] 实现 vectorPackages.myPackages (query)
+  - 我发布的 Vector Packages
+
+- [ ] 实现 vectorPackages.myPurchases (query)
+  - 我购买的 Vector Packages
+
+### 2.2 Package 构建器 (server/latentmas/base-package-builder.ts)
+- [x] 创建 BasePackageBuilder 基类
+- [x] 实现通用的打包/解包逻辑
+- [x] 实现通用的验证逻辑
+- [x] 实现通用的 S3 上传逻辑
+
+### 2.2 Package 构建器 (server/latentmas/vector-package-builder.ts)
+- [x] 实现 VectorPackageBuilder (继承 BasePackageBuilder)
+- [x] 实现 createVectorPackage 函数
+  - 输入：vector, wMatrix, metadata, provenance
+  - 输出：.vectorpkg 文件 Buffer
+
+- [x] 实现 extractVectorPackage 函数
+  - 输入：.vectorpkg 文件 Buffer
+  - 输出：vector, wMatrix, metadata, provenancece }
+
+- [ ] 实现 validateVectorPackage 函数
+  - 验证文件格式
+  - 验证 W-Matrix 质量（epsilon < 10%）
+  - 验证模型兼容性
+
+### 2.3 前端页面
+- [ ] 创建 Vector Package Market 页面 (/vector-packages)
+  - 网格布局展示 Package 卡片
+  - 筛选侧边栏（category, model, price）
+  - 排序下拉菜单
+  - 分页
+
+- [ ] 创建 Vector Package 详情页 (/vector-package/:id)
+  - 展示 vector 统计（维度、类别、性能）
+  - 展示 W-Matrix 质量（epsilon、兼容模型）
+  - 展示用户评价和评分
+  - 购买按钮和下载按钮
+
+- [ ] 创建 Vector Package 上传页 (/upload-vector-package)
+  - Step 1: 上传 vector 文件
+  - Step 2: 选择或训练 W-Matrix
+  - Step 3: 设置定价和元数据
+  - Step 4: 预览和发布
+
+---
+
+## Phase 3: Product Line 2 - Memory Package 系统
+
+### 3.1 后端 API (server/routers/memory-packages.ts)
+- [ ] 实现 memoryPackages.list (query)
+  - 支持筛选：sourceModel, targetModel, tokenCount, priceRange
+  - 支持排序：newest, popular, cheapest, highest-quality
+  - 支持分页
+
+- [ ] 实现 memoryPackages.get (query)
+  - 获取 Package 详情
+  - 包含 KV-Cache 统计、W-Matrix 质量、压缩率
+
+- [ ] 实现 memoryPackages.upload (mutation)
+  - Step 1: 上传 KV-Cache 文件到 S3
+  - Step 2: 选择或训练 W-Matrix
+  - Step 3: 压缩 KV-Cache（可选）
+  - Step 4: 打包为 .memorypkg
+  - Step 5: 保存元数据到数据库
+
+- [ ] 实现 memoryPackages.purchase (mutation)
+  - Stripe 支付集成
+  - 创建购买记录
+  - 生成临时下载链接
+
+- [ ] 实现 memoryPackages.download (query)
+  - 验证购买权限
+  - 返回 .memorypkg 文件下载链接
+
+- [ ] 实现 memoryPackages.myPackages (query)
+- [ ] 实现 memoryPackages.myPurchases (query)
+
+### 3.2 Package 构建器 (server/latentmas/memory-package-builder.ts)
+- [x] 实现 MemoryPackageBuilder (继承 BasePackageBuilder)
+- [x] 实现 createMemoryPackage 函数
+- [x] 实现 extractMemoryPackage 函数
+- [x] 实现 validateMemoryPackage 函数
+
+### 3.3 前端页面
+- [ ] 创建 Memory Package Market 页面 (/memory-packages)
+- [ ] 创建 Memory Package 详情页 (/memory-package/:id)
+- [ ] 创建 Memory Package 上传页 (/upload-memory-package)
+
+---
+
+## Phase 4: Product Line 3 - Chain Package 系统
+
+### 4.1 后端 API (server/routers/chain-packages.ts)
+- [ ] 实现 chainPackages.list (query)
+  - 支持筛选：problemType, sourceModel, targetModel, stepCount
+  - 支持排序：newest, popular, cheapest, highest-quality
+
+- [ ] 实现 chainPackages.get (query)
+- [ ] 实现 chainPackages.upload (mutation)
+- [ ] 实现 chainPackages.purchase (mutation)
+- [ ] 实现 chainPackages.download (query)
+- [ ] 实现 chainPackages.myPackages (query)
+- [ ] 实现 chainPackages.myPurchases (query)
+
+### 4.2 Package 构建器 (server/latentmas/chain-package-builder.ts)
+- [x] 实现 ChainPackageBuilder (继承 BasePackageBuilder)
+- [x] 实现 createChainPackage 函数
+- [x] 实现 extractChainPackage 函数
+- [x] 实现 validateChainPackage 函数
+
+### 4.3 前端页面
+- [ ] 创建 Chain Package Market 页面 (/chain-packages)
+- [ ] 创建 Chain Package 详情页 (/chain-package/:id)
+- [ ] 创建 Chain Package 上传页 (/upload-chain-package)
+
+---
+
+## Phase 5: 统一的 Package 管理系统
+
+### 5.1 Package 下载管理器 (server/latentmas/package-download-manager.ts)
+- [ ] 实现 generateDownloadLink 函数
+  - 输入：packageType, packageId, userId
+  - 输出：临时 S3 签名 URL（7天有效）
+
+- [ ] 实现 verifyDownloadPermission 函数
+  - 验证用户是否购买了该 Package
+  - 验证下载链接是否过期
+
+- [ ] 实现 trackDownload 函数
+  - 记录下载历史
+  - 更新 Package 下载统计
+
+### 5.2 统一的购买流程 (server/latentmas/package-purchase.ts)
+- [ ] 实现 createPurchaseSession 函数
+  - 支持三种 Package 类型
+  - 创建 Stripe Checkout Session
+  - 返回支付链接
+
+- [ ] 实现 handlePurchaseSuccess 函数
+  - Webhook 处理
+  - 创建购买记录
+  - 生成下载链接
+  - 发送邮件通知
+
+---
+
+## Phase 6: 前端统一更新
+
+### 6.1 更新首页 (client/src/pages/Home.tsx)
+- [ ] 更新 Hero 区域标题
+  - 从 "AI Memory Marketplace" 改为 "Trade AI Capabilities, Memories & Reasoning"
+
+- [ ] 更新 Hero 区域描述
+  - 强调三种不同的交易方式
+
+- [ ] 更新 V2.0 Features 区域
+  - 展示三个 Package 类型的卡片
+  - Vector Package: 学习新能力
+  - Memory Package: 移植推理状态
+  - Chain Package: 复用解决方案
+
+- [ ] 更新 How It Works 区域
+  - 展示三种不同的使用场景
+
+### 6.2 更新导航栏 (client/src/components/Navbar.tsx)
+- [ ] 添加 "Browse" 下拉菜单
+  - Vector Packages
+  - Memory Packages
+  - Chain Packages
+  - All Packages
+
+- [ ] 移除独立的 "W-Matrix Marketplace" 入口
+
+- [ ] 添加 "Publish" 下拉菜单
+  - Upload Vector Package
+  - Upload Memory Package
+  - Upload Chain Package
+
+### 6.3 创建统一的 Browse All 页面 (/packages)
+- [ ] 展示所有三种类型的 Packages
+- [ ] 支持按类型筛选（Vector/Memory/Chain）
+- [ ] 支持按模型、价格、评分筛选
+- [ ] 支持排序
+
+### 6.4 更新用户仪表板
+- [ ] 在 Creator Dashboard 添加三个 Tab
+  - My Vector Packages
+  - My Memory Packages
+  - My Chain Packages
+
+- [ ] 在 Consumer Dashboard 添加三个 Tab
+  - Purchased Vectors
+  - Purchased Memories
+  - Purchased Chains
+
+---
+
+## Phase 7: W-Matrix 角色调整
+
+### 7.1 移除独立销售功能
+- [ ] 移除 /w-matrix-marketplace 页面的购买功能
+- [ ] 保留 /w-matrix 作为技术文档页面
+- [ ] 添加说明：W-Matrix 总是包含在 Package 中
+
+### 7.2 更新 W-Matrix Protocol 页面 (/w-matrix)
+- [ ] 重新定位为技术文档页面
+- [ ] 展示 W-Matrix 在三条产品线中的作用
+- [ ] 添加兼容性矩阵
+- [ ] 添加技术规范和 API 文档
+
+### 7.3 更新 W-Matrix Tester 页面 (/w-matrix/tester)
+- [ ] 保留测试功能
+- [ ] 添加说明：测试结果帮助选择合适的 Package
+
+---
+
+## Phase 8: Python SDK 和 MCP Server 更新
+
+### 8.1 Python SDK 更新
+- [ ] 添加 client.vector_packages.* 方法
+  - list(), get(), purchase(), download()
+
+- [ ] 添加 client.memory_packages.* 方法
+  - list(), get(), purchase(), download()
+
+- [ ] 添加 client.chain_packages.* 方法
+  - list(), get(), purchase(), download()
+
+- [ ] 移除独立的 client.w_matrices.* 方法
+
+### 8.2 MCP Server 更新
+- [ ] 添加 search_vector_packages 工具
+- [ ] 添加 search_memory_packages 工具
+- [ ] 添加 search_chain_packages 工具
+- [ ] 添加 purchase_package 工具（支持三种类型）
+- [ ] 添加 download_package 工具（支持三种类型）
+- [ ] 移除独立的 w_matrix 相关工具
+
+---
+
+## Phase 9: 测试和验证
+
+### 9.1 后端测试
+- [ ] 编写 vectorPackages API 测试
+- [ ] 编写 memoryPackages API 测试
+- [ ] 编写 chainPackages API 测试
+- [ ] 编写 Package 构建器测试
+- [ ] 编写购买流程测试
+- [ ] 编写下载流程测试
+
+### 9.2 前端测试
+- [ ] 测试三个市场页面
+- [ ] 测试三个上传页面
+- [ ] 测试购买流程
+- [ ] 测试下载流程
+- [ ] 测试用户仪表板
+
+### 9.3 集成测试
+- [ ] 端到端测试：上传 → 购买 → 下载
+- [ ] 测试三种 Package 格式的正确性
+- [ ] 测试 W-Matrix 在 Package 中的作用
+- [ ] 测试跨模型兼容性
+
+---
+
+## Phase 10: 文档更新
+
+### 10.1 更新白皮书
+- [ ] 强调三条并行产品线
+- [ ] 更新产品架构图
+- [ ] 更新使用场景示例
+
+### 10.2 更新 README.md
+- [ ] 更新产品介绍
+- [ ] 更新架构图
+- [ ] 更新快速开始指南
+
+### 10.3 更新 API 文档
+- [ ] 添加 Vector Package API 文档
+- [ ] 添加 Memory Package API 文档
+- [ ] 添加 Chain Package API 文档
+- [ ] 更新 OpenAPI 规范
+
+### 10.4 创建用户指南
+- [ ] 如何选择合适的 Package 类型
+- [ ] 如何上传 Vector Package
+- [ ] 如何上传 Memory Package
+- [ ] 如何上传 Chain Package
+- [ ] 如何购买和下载 Package
+
+---
+
+## Phase 11: 数据迁移
+
+### 11.1 迁移现有数据
+- [ ] 迁移现有的 latent_vectors 到 vectorPackages
+  - 为每个 vector 生成对应的 W-Matrix
+  - 打包为 .vectorpkg 格式
+  - 上传到 S3
+
+- [ ] 迁移现有的 reasoning_chains 到 chainPackages
+  - 为每个 chain 生成对应的 W-Matrix
+  - 打包为 .chainpkg 格式
+  - 上传到 S3
+
+- [ ] 迁移现有的 memory_exchanges 到 memoryPackages
+  - 为每个 memory 生成对应的 W-Matrix
+  - 打包为 .memorypkg 格式
+  - 上传到 S3
+
+### 11.2 清理旧数据
+- [ ] 标记旧表为 deprecated
+- [ ] 保留 API 向后兼容性（3个月）
+- [ ] 添加迁移通知
+
+---
+
+## Phase 12: 部署和发布
+
+### 12.1 创建 Checkpoint
+- [ ] 保存当前状态
+- [ ] 创建详细的 changelog
+
+### 12.2 GitHub 同步
+- [ ] 推送所有代码到 GitHub
+- [ ] 更新 README.md
+- [ ] 创建 Release Notes
+
+### 12.3 部署到生产环境
+- [ ] 运行数据库迁移
+- [ ] 部署后端 API
+- [ ] 部署前端应用
+- [ ] 验证所有功能
+
+---
+
+## 时间估算
+
+| Phase | 任务数 | 预计时间 |
+|-------|--------|---------|
+| Phase 1: 架构设计 | 10 | 4 小时 |
+| Phase 2: Vector Package | 15 | 8 小时 |
+| Phase 3: Memory Package | 12 | 6 小时 |
+| Phase 4: Chain Package | 12 | 6 小时 |
+| Phase 5: 统一管理 | 6 | 3 小时 |
+| Phase 6: 前端更新 | 12 | 6 小时 |
+| Phase 7: W-Matrix 调整 | 6 | 2 小时 |
+| Phase 8: SDK 更新 | 8 | 4 小时 |
+| Phase 9: 测试 | 15 | 6 小时 |
+| Phase 10: 文档 | 10 | 4 小时 |
+| Phase 11: 数据迁移 | 6 | 3 小时 |
+| Phase 12: 部署 | 6 | 2 小时 |
+
+**总计**: 54 小时（约 7 个工作日）
+
+---
+
+## 优先级
+
+### P0 (立即开始)
+- Phase 1: 架构设计和数据模型
+- Phase 2: Vector Package 系统（已有基础）
+- Phase 6: 前端更新（用户可见）
+
+### P1 (本周完成)
+- Phase 3: Memory Package 系统
+- Phase 4: Chain Package 系统
+- Phase 5: 统一管理系统
+
+### P2 (下周完成)
+- Phase 7: W-Matrix 调整
+- Phase 8: SDK 更新
+- Phase 9: 测试
+
+### P3 (后续完成)
+- Phase 10: 文档更新
+- Phase 11: 数据迁移
+- Phase 12: 部署发布
