@@ -1466,3 +1466,15 @@ Cold (20%, Storj):
   - [ ] 同时上传
   - [ ] 同时购买
   - [ ] 同时下载
+
+## 🔥 紧急Bug修复 (2026-01-06)
+
+- [x] 修复 sortBy 参数验证错误（Memory Marketplace 和 Reasoning Chain Market 页面）
+  - 将前端 sortBy 值从 'newest', 'cheapest', 'highest-rated' 改为 'recent', 'price_asc', 'rating'
+  - 更新 MemoryMarketplace.tsx 和 ReasoningChainMarket.tsx
+- [x] 修复 db.select is not a function 错误
+  - 在 packages-api.ts 中所有 getDb() 调用前添加 await 关键字（共9处）
+- [x] 验证所有页面正常加载
+  - 首页 (/) ✅
+  - Memory Marketplace (/memory-marketplace) ✅
+  - Reasoning Chain Market (/reasoning-chains) ✅

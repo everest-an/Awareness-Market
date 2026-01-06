@@ -178,7 +178,7 @@ export const packagesApiRouter = router({
         );
 
         // Save to database
-        const db = getDb();
+        const db = await getDb();
         const [pkg] = await db.insert(vectorPackages).values({
           packageId: result.packageId,
           creatorId: ctx.user.id,
@@ -234,7 +234,7 @@ export const packagesApiRouter = router({
         );
 
         // Save to database
-        const db = getDb();
+        const db = await getDb();
         const [pkg] = await db.insert(memoryPackages).values({
           packageId: result.packageId,
           creatorId: ctx.user.id,
@@ -288,7 +288,7 @@ export const packagesApiRouter = router({
         );
 
         // Save to database
-        const db = getDb();
+        const db = await getDb();
         const [pkg] = await db.insert(chainPackages).values({
           packageId: result.packageId,
           creatorId: ctx.user.id,
@@ -328,7 +328,7 @@ export const packagesApiRouter = router({
   browsePackages: publicProcedure
     .input(BrowsePackagesSchema)
     .query(async ({ input }) => {
-      const db = getDb();
+      const db = await getDb();
       const table = getPackageTable(input.packageType);
 
       // Build query conditions
@@ -390,7 +390,7 @@ export const packagesApiRouter = router({
       packageId: z.string(),
     }))
     .query(async ({ input }) => {
-      const db = getDb();
+      const db = await getDb();
       const table = getPackageTable(input.packageType);
 
       const [pkg] = await db
@@ -418,7 +418,7 @@ export const packagesApiRouter = router({
   purchasePackage: protectedProcedure
     .input(PurchasePackageSchema)
     .mutation(async ({ ctx, input }) => {
-      const db = getDb();
+      const db = await getDb();
       const table = getPackageTable(input.packageType);
 
       // Get package
@@ -483,7 +483,7 @@ export const packagesApiRouter = router({
   downloadPackage: protectedProcedure
     .input(DownloadPackageSchema)
     .query(async ({ ctx, input }) => {
-      const db = getDb();
+      const db = await getDb();
       const table = getPackageTable(input.packageType);
 
       // Check if purchased
@@ -546,7 +546,7 @@ export const packagesApiRouter = router({
   myPackages: protectedProcedure
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
-      const db = getDb();
+      const db = await getDb();
       const table = getPackageTable(input.packageType);
 
       const packages = await db
@@ -567,7 +567,7 @@ export const packagesApiRouter = router({
   myPurchases: protectedProcedure
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
-      const db = getDb();
+      const db = await getDb();
 
       const purchases = await db
         .select()

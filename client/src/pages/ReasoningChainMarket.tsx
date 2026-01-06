@@ -29,7 +29,7 @@ const REASONING_CATEGORIES = [
 
 export default function ReasoningChainMarket() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'cheapest' | 'highest-rated'>('newest');
+  const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'price_asc' | 'price_desc' | 'rating'>('recent');
   const [sourceModel, setSourceModel] = useState<string>('all');
   const [problemType, setProblemType] = useState<string>('all');
 
@@ -145,10 +145,10 @@ export default function ReasoningChainMarket() {
             </div>
             <div className="flex gap-2">
               {[
-                { value: 'newest', label: 'Newest' },
+                { value: 'recent', label: 'Newest' },
                 { value: 'popular', label: 'Popular' },
-                { value: 'cheapest', label: 'Cheapest' },
-                { value: 'highest-rated', label: 'Top Rated' },
+                { value: 'price_asc', label: 'Cheapest' },
+                { value: 'rating', label: 'Top Rated' },
               ].map((sort) => (
                 <Button
                   key={sort.value}
