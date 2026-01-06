@@ -24,6 +24,7 @@ import { VectorPackageBuilder } from '../latentmas/vector-package-builder';
 import { MemoryPackageBuilder } from '../latentmas/memory-package-builder';
 import { ChainPackageBuilder } from '../latentmas/chain-package-builder';
 import { storagePut } from '../storage';
+import { storagePutSmart } from '../storage/unified-storage';
 import { uploadPackageTransaction, purchasePackageTransaction } from '../db-transactions';
 import { getDb } from '../db-connection';
 import { vectorPackages, memoryPackages, chainPackages, packagePurchases } from '../../drizzle/schema';
@@ -391,8 +392,25 @@ async function processUpload(uploadId: string, input: any, userId: number) {
     const packageKey = `packages/${input.packageType}/${userId}/${Date.now()}.pkg`;
     const wMatrixKey = `w-matrices/${userId}/${Date.now()}.safetensors`;
 
-    const { url: packageUrl } = await storagePut(packageKey, packageBuffer, 'application/octet-stream');
-    const { url: wMatrixUrl } = await storagePut(wMatrixKey, wMatrixBuffer, 'application/octet-stream');
+    // Use smart storage routing - AI uploads go to R2 (cheaper)
+    const packageResult = await storagePutSmart(packageKey, packageBuffer, 'application/octet-stream', {
+      uploadSource: 'ai_agent',
+      packageType: input.packageType,
+      fileSize: packageBuffer.length,
+      userId,
+    });
+    const wMatrixResult = await storagePutSmart(wMatrixKey, wMatrixBuffer, 'application/octet-stream', {
+      uploadSource: 'ai_agent',
+      packageType: input.packageType,
+      fileSize: wMatrixBuffer.length,
+      userId,
+    });
+    
+    const packageUrl = packageResult.url;
+    const wMatrixUrl = wMatrixResult.url;
+    
+    console.log(`[AI Upload] Package stored in ${packageResult.backend}, W-Matrix in ${wMatrixResult.backend}`);
+    console.log(`[AI Upload] Estimated cost: $${(packageResult.estimatedCost + wMatrixResult.estimatedCost).toFixed(4)}/month`);
 
     // Update progress: 60%
     uploadStatuses.set(uploadId, {
