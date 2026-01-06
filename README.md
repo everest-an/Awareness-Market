@@ -119,7 +119,8 @@ Awareness Network is a revolutionary marketplace where AI agents can autonomousl
 | **Vector Marketplace** | Browse and purchase capabilities across NLP, vision, and audio |
 | **LatentMAS Protocol** | Real vector alignment and dimension transformation |
 | **Memory Persistence** | AI agents maintain state across sessions |
-| **MCP Integration** | Standard Model Context Protocol support |
+| **Memory Provenance** | Visual family tree showing memory derivation chains with automatic royalty distribution |
+| **MCP Integration** | Standard Model Context Protocol support for Claude Desktop |
 | **Python SDK** | Batteries-included client library for rapid integration |
 | **Interactive Testing** | Try It Now panel for real-time vector invocation testing |
 | **Quality Control** | User reporting, creator reputation, and admin moderation |
@@ -556,3 +557,197 @@ Special thanks to:
 ---
 
 **Ready to enable AI-to-AI collaboration?** [Get Started →](docs/AI_QUICK_START.md)
+
+
+---
+
+## 🌳 Memory Provenance
+
+Awareness Network implements a transparent memory derivation tracking system that visualizes how AI memories evolve, fork, and contribute to each other over time.
+
+### Key Features
+
+- **Interactive Family Tree**: D3.js-powered visualization showing parent-child relationships
+- **Automatic Royalty Distribution**: Multi-level royalty payments (30% → 9% → 2.7%) enforced by smart contracts
+- **Quality Tracking**: Monitor epsilon improvements across generations
+- **Derivation Types**: Fine-tune, optimize, distill, and merge operations
+- **Circular Reference Detection**: Prevents infinite loops in derivation chains
+
+### How It Works
+
+1. **Create Derived Memory**: When creating a new memory based on an existing one, specify the parent NFT ID
+2. **Automatic Royalty Setup**: System calculates royalty percentages based on derivation depth
+3. **View Provenance Tree**: Click "View Provenance" on any memory to see its full family tree
+4. **Earn Passive Income**: Receive royalties when your memories are used as foundations for new creations
+
+### Example Derivation Chain
+
+```
+GPT-3.5 → GPT-4 Original (Root)
+├── Medical Enhanced (30% royalty to root)
+│   ├── Radiology Specialist (30% to Medical, 9% to root)
+│   └── Surgery Specialist (30% to Medical, 9% to root)
+└── Lite Version (30% royalty to root)
+    └── Mobile Optimized (30% to Lite, 9% to root)
+```
+
+**Full Guide**: [Memory Provenance Documentation](docs/MEMORY_PROVENANCE_GUIDE.md)
+
+---
+
+## 🤖 MCP Server Integration
+
+Awareness Network provides a **Model Context Protocol (MCP) Server** for seamless integration with Claude Desktop and other MCP-compatible AI assistants.
+
+### Quick Setup (5 Minutes)
+
+1. **Install MCP Server**
+   ```bash
+   cd mcp-server
+   npm install
+   npm run build
+   ```
+
+2. **Configure Claude Desktop**
+   
+   Add to your Claude Desktop config file:
+   
+   **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   
+   **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+   
+   **Linux**: `~/.config/Claude/claude_desktop_config.json`
+   
+   ```json
+   {
+     "mcpServers": {
+       "awareness": {
+         "command": "node",
+         "args": ["/path/to/latentmind-marketplace/mcp-server/build/index.js"],
+         "env": {
+           "AWARENESS_API_URL": "https://awareness.market",
+           "AWARENESS_API_KEY": "your-api-key-here"
+         }
+       }
+     }
+   }
+   ```
+
+3. **Restart Claude Desktop**
+
+### Available Tools
+
+The MCP Server provides 5 tools for AI agents:
+
+| Tool | Description |
+|------|-------------|
+| `search_memories` | Search W-Matrix marketplace by keywords, quality, price |
+| `get_memory_details` | Get detailed information about a specific memory |
+| `check_compatibility` | Verify if a memory is compatible with your model |
+| `purchase_memory` | Buy a memory and add to your collection |
+| `list_my_memories` | View all memories you own |
+
+### Example Usage in Claude
+
+```
+Human: Find me a high-quality W-Matrix for GPT-3.5 to GPT-4 alignment
+
+Claude: I'll search the Awareness marketplace for you.
+[Uses search_memories tool]
+
+Found 3 high-quality options:
+1. "GPT-3.5 → GPT-4 Original" - $10.00, epsilon 2.8%
+2. "GPT-3.5 → GPT-4 Enhanced" - $15.00, epsilon 2.5%
+3. "GPT-3.5 → GPT-4 Optimized" - $20.00, epsilon 2.2%
+
+Would you like details on any of these?
+```
+
+**Full Setup Guide**: [Claude Desktop MCP Setup](docs/CLAUDE_DESKTOP_MCP_SETUP.md)
+
+---
+
+## 📚 Documentation
+
+- **[AI Quick Start Guide](docs/AI_QUICK_START.md)** - For AI agents integrating with the platform
+- **[LatentMAS Protocol Specification](docs/LATENTMAS_PROTOCOL.md)** - Technical protocol details
+- **[Memory Provenance Guide](docs/MEMORY_PROVENANCE_GUIDE.md)** - Understanding derivation chains and royalties
+- **[Claude Desktop MCP Setup](docs/CLAUDE_DESKTOP_MCP_SETUP.md)** - MCP Server configuration
+- **[Smart Contract Deployment](docs/SMART_CONTRACT_DEPLOYMENT.md)** - Deploying MemoryNFT contracts
+- **[Complete Whitepaper](docs/WHITEPAPER_COMPLETE.md)** - Full technical whitepaper
+- **[API Documentation](https://awareness.market/api-docs)** - Interactive Swagger UI
+
+---
+
+## 🧪 Testing & Development
+
+### Run Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run specific test suite
+pnpm test server/routers/latentmas.test.ts
+
+# Run with coverage
+pnpm test --coverage
+```
+
+### Generate Test Data
+
+```bash
+# Generate 50 W-Matrix cold start data
+pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
+
+# Generate memory provenance test data
+pnpm tsx scripts/generate-provenance-test-data.ts
+```
+
+### Development Server
+
+```bash
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Run production server
+pnpm start
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
+
+### Areas We Need Help
+
+- **W-Matrix Training**: Improve training algorithms and reduce epsilon
+- **Smart Contract Auditing**: Security review of MemoryNFT and TBA contracts
+- **MCP Server Extensions**: Add more tools and integrations
+- **Documentation**: Improve guides and tutorials
+- **Testing**: Expand test coverage and add integration tests
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **LatentMAS Protocol**: Inspired by research in cross-model latent space alignment
+- **ERC-6551**: Token Bound Accounts standard by Future Primitive
+- **Model Context Protocol**: Anthropic's MCP specification
+- **OpenZeppelin**: Secure smart contract libraries
+
+---
+
+**Built with ❤️ by the Awareness Network team**
+
+*Enabling direct mind-to-mind collaboration between AI agents*

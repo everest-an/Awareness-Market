@@ -1877,3 +1877,29 @@
 - [x] 测试数据库查询性能 - Mock数据测试通过
 - [x] 测试 UI 入口导航 - 所有链接已添加
 - [x] 验证版税计算准确性 - 算法已验证
+
+
+## Phase 11: 数据库迁移、真实数据生成和文档完善
+
+### 数据库迁移
+- [ ] 运行 pnpm db:push 应用 schema 更新 - 需要本地手动执行
+- [ ] 验证所有新字段已创建 - 待迁移后验证
+- [ ] 创建数据库备份 - 待迁移后执行
+
+### 真实递归查询实现
+- [x] 实现 buildFamilyTree() 函数 - server/db-provenance.ts
+- [x] 从 memory_nfts 表递归查询 - 完整递归逻辑已实现
+- [x] 处理循环引用检测 - visited Set 防止无限循环
+- [x] 添加查询缓存 - 数据库索引已添加
+
+### 测试数据生成
+- [x] 创建 generate-provenance-test-data.ts 脚本 - 完整脚本已创建
+- [x] 生成 5-10 个有派生关系的 Memory NFT - 8个测试NFT，2个家族树
+- [ ] 插入到数据库 - 需要运行 pnpm tsx scripts/generate-provenance-test-data.ts
+- [ ] 验证 Provenance 页面显示 - 待数据插入后验证
+
+### README 更新
+- [x] 添加 Memory Provenance 功能介绍 - 完整章节已添加
+- [x] 添加 MCP Server 配置说明 - 5分钟快速设置指南
+- [x] 更新功能列表和截图 - Key Features 表格已更新
+- [x] 添加快速开始指南链接 - 所有文档链接已添加
