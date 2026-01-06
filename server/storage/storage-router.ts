@@ -15,6 +15,7 @@ import { StorageBackend, UploadContext, StorageRoute } from './storage-backend';
 import { S3Backend } from './s3-backend';
 import { R2Backend } from './r2-backend';
 import { B2Backend } from './b2-backend';
+import { WasabiBackend } from './wasabi-backend';
 
 export class StorageRouter {
   private backends: Map<string, StorageBackend>;
@@ -34,6 +35,11 @@ export class StorageRouter {
     // Only initialize B2 if credentials are provided
     if (process.env.B2_KEY_ID && process.env.B2_APPLICATION_KEY) {
       this.backends.set('b2', new B2Backend());
+    }
+    
+    // Only initialize Wasabi if credentials are provided
+    if (process.env.WASABI_ACCESS_KEY_ID && process.env.WASABI_SECRET_ACCESS_KEY) {
+      this.backends.set('wasabi', new WasabiBackend());
     }
 
     // Large file threshold (default: 100MB)
@@ -56,12 +62,18 @@ export class StorageRouter {
       return this.createRoute('r2', 'AI agent upload - zero egress fees', fileSize);
     }
 
-    // Rule 3: Large files → B2 (if available)
-    if (fileSize > this.largeFileThreshold && this.backends.has('b2')) {
-      return this.createRoute('b2', `Large file (${this.formatBytes(fileSize)}) - cheapest storage`, fileSize);
+    // Rule 3: Very large files (>500MB) → Wasabi (if available)
+    const wasabiThreshold = parseInt(process.env.STORAGE_WASABI_THRESHOLD || '524288000'); // 500MB
+    if (fileSize > wasabiThreshold && this.backends.has('wasabi')) {
+      return this.createRoute('wasabi', `Very large file (${this.formatBytes(fileSize)}) - cheapest storage + free egress`, fileSize);
     }
 
-    // Rule 4: User uploads → S3 (high availability)
+    // Rule 4: Large files (>100MB) → B2 (if available)
+    if (fileSize > this.largeFileThreshold && this.backends.has('b2')) {
+      return this.createRoute('b2', `Large file (${this.formatBytes(fileSize)}) - cheap storage`, fileSize);
+    }
+
+    // Rule 5: User uploads → S3 (high availability)
     if (uploadSource === 'user') {
       return this.createRoute('s3', 'User upload - high availability', fileSize);
     }

@@ -1159,3 +1159,6 @@ export type PackageDownload = typeof packageDownloads.$inferSelect;
 export type InsertPackageDownload = typeof packageDownloads.$inferInsert;
 export type PackagePurchase = typeof packagePurchases.$inferSelect;
 export type InsertPackagePurchase = typeof packagePurchases.$inferInsert;
+
+// Import storage tier tables for intelligent cost optimization
+export * from './schema-storage-tiers';
