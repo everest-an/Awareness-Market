@@ -28,6 +28,7 @@ import { memoryNFTRouter } from "./routers/memory-nft-api";
 import { agentCreditRouter } from './routers/agent-credit-api';
 import { latentmasMarketplaceRouter } from './routers/latentmas-marketplace';
 import { packagesApiRouter } from './routers/packages-api';
+import { aiAgentRouter } from './api/ai-agent-api';
 // Memory Exchange moved to Go microservice
 
 // Helper to ensure user is a creator
@@ -1491,6 +1492,7 @@ export const appRouter = router({
   // LatentMAS v2 API Endpoints
   latentmasV2: latentmasRouter,
   wMatrixMarketplace: wMatrixMarketplaceRouter,
+  aiAgent: aiAgentRouter,
   wMatrixMarketplaceV2: wMatrixMarketplaceV2Router,
   kvCacheApi: kvCacheApiRouter,
   memoryNFT: memoryNFTRouter,
