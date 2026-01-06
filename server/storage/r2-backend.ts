@@ -126,3 +126,13 @@ export class R2Backend implements StorageBackend {
     };
   }
 }
+
+// Singleton instance
+let r2BackendInstance: R2Backend | null = null;
+
+export function getR2Backend(): R2Backend {
+  if (!r2BackendInstance) {
+    r2BackendInstance = new R2Backend();
+  }
+  return r2BackendInstance;
+}

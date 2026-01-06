@@ -1,452 +1,280 @@
-import { useState } from "react";
-import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
-import Navbar from "@/components/Navbar";
-import { 
-  Search, 
-  SlidersHorizontal, 
-  Star, 
-  TrendingUp, 
-  DollarSign,
-  Brain,
-  ChevronRight,
-  Filter,
+import { useState } from 'react';
+import { Link } from 'wouter';
+import { trpc } from '@/lib/trpc';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import Navbar from '@/components/Navbar';
+import {
+  Search,
+  GitBranch,
   Zap,
-  Network,
-  Cpu,
-  GitBranch
-} from "lucide-react";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "sonner";
+  Filter,
+  Upload,
+  Brain,
+} from 'lucide-react';
 
 const REASONING_CATEGORIES = [
-  "math",
-  "coding",
-  "analysis",
-  "research",
-  "creative",
-  "logic",
-  "science",
-  "business",
-];
-
-const MODEL_FAMILIES = [
-  { label: "OpenAI GPT", models: ["gpt-4", "gpt-4-turbo", "gpt-4o", "o1", "o1-mini"] },
-  { label: "Anthropic Claude", models: ["claude-3-opus", "claude-3-sonnet", "claude-3.5-sonnet"] },
-  { label: "Meta LLaMA", models: ["llama-3-8b", "llama-3-70b", "llama-3.1-8b", "llama-3.1-70b"] },
-  { label: "Alibaba Qwen", models: ["qwen-2-7b", "qwen-2-72b", "qwen-2.5-7b", "qwen-2.5-72b"] },
-  { label: "DeepSeek", models: ["deepseek-v2", "deepseek-v2.5", "deepseek-v3", "deepseek-coder-33b"] },
-  { label: "Google Gemini", models: ["gemini-pro", "gemini-1.5-pro", "gemini-1.5-flash"] },
-  { label: "Mistral", models: ["mistral-7b", "mixtral-8x7b", "mistral-large"] },
+  'math',
+  'coding',
+  'analysis',
+  'research',
+  'creative',
+  'logic',
+  'science',
+  'business',
 ];
 
 export default function ReasoningChainMarket() {
-  const { isAuthenticated, user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
-  const [selectedModel, setSelectedModel] = useState<string | undefined>();
-  const [maxPrice, setMaxPrice] = useState<number | undefined>();
-  const [page, setPage] = useState(0);
-  const [selectedChain, setSelectedChain] = useState<any>(null);
-  const [targetModel, setTargetModel] = useState<string>("gpt-4");
-  const ITEMS_PER_PAGE = 12;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'cheapest' | 'highest-rated'>('newest');
+  const [sourceModel, setSourceModel] = useState<string>('all');
+  const [problemType, setProblemType] = useState<string>('all');
 
-  // Fetch reasoning chains
-  const { data: chainsData, isLoading, refetch } = trpc.reasoningChains.browse.useQuery({
-    category: selectedCategory,
-    sourceModel: selectedModel,
-    maxPrice,
-    limit: ITEMS_PER_PAGE,
-    offset: page * ITEMS_PER_PAGE,
+  // Fetch chain packages using new unified API
+  const { data: packages, isLoading } = trpc.packages.browsePackages.useQuery({
+    packageType: 'chain',
+    sortBy,
+    sourceModel: sourceModel === 'all' ? undefined : sourceModel,
+    limit: 20,
+    offset: 0,
   });
 
-  // Use reasoning chain mutation
-  const useChainMutation = trpc.reasoningChains.use.useMutation({
-    onSuccess: (data) => {
-      toast.success("Reasoning chain applied successfully!", {
-        description: `Alignment quality: ${(data.alignedKVCache.alignmentQuality.cosineSimilarity * 100).toFixed(1)}%`,
-      });
-      setSelectedChain(null);
-    },
-    onError: (error) => {
-      toast.error("Failed to use reasoning chain", {
-        description: error.message,
-      });
-    },
-  });
-
-  const handleUseChain = (chain: any) => {
-    if (!isAuthenticated) {
-      toast.error("Please login to use reasoning chains");
-      return;
-    }
-    setSelectedChain(chain);
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
   };
-
-  const confirmUseChain = () => {
-    if (selectedChain) {
-      useChainMutation.mutate({
-        chainId: selectedChain.id,
-        targetModel,
-      });
-    }
-  };
-
-  const resetFilters = () => {
-    setSearchTerm("");
-    setSelectedCategory(undefined);
-    setSelectedModel(undefined);
-    setMaxPrice(undefined);
-    setPage(0);
-  };
-
-  const FilterPanel = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="mb-3 font-semibold">Category</h3>
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {REASONING_CATEGORIES.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Separator />
-
-      <div>
-        <h3 className="mb-3 font-semibold">Source Model</h3>
-        <Select value={selectedModel} onValueChange={setSelectedModel}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Models" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Models</SelectItem>
-            {MODEL_FAMILIES.map((family) => (
-              <div key={family.label}>
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                  {family.label}
-                </div>
-                {family.models.map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {model}
-                  </SelectItem>
-                ))}
-              </div>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Separator />
-
-      <div>
-        <h3 className="mb-3 font-semibold">Max Price</h3>
-        <Select 
-          value={maxPrice?.toString()} 
-          onValueChange={(value) => setMaxPrice(value === "all" ? undefined : parseFloat(value))}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Any Price" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Any Price</SelectItem>
-            <SelectItem value="1">Under $1</SelectItem>
-            <SelectItem value="5">Under $5</SelectItem>
-            <SelectItem value="10">Under $10</SelectItem>
-            <SelectItem value="50">Under $50</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Separator />
-
-      <Button variant="outline" className="w-full" onClick={resetFilters}>
-        Reset Filters
-      </Button>
-    </div>
-  );
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navbar */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
-      
-      {/* Header */}
-      <div className="border-b bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10 pt-16">
-        <div className="container py-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500">
-              <GitBranch className="h-6 w-6 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold">Reasoning Chain Market</h1>
-            <Badge variant="secondary" className="ml-2">V2.0</Badge>
+
+      <div className="container mx-auto px-4 py-16">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <GitBranch className="h-12 w-12 text-cyan-400" />
+            <h1 className="text-4xl md:text-5xl font-bold text-white">
+              Reasoning Chain Market
+            </h1>
           </div>
-          <p className="text-lg text-muted-foreground">
-            Trade AI reasoning processes directly. Skip the thinking, get the results.
+          <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-6">
+            Trade AI reasoning chains. Direct transplant + learning capability with step-by-step KV snapshots.
           </p>
-          <div className="mt-4 flex gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-500" />
-              <span>KV-Cache Exchange</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Network className="h-4 w-4 text-blue-500" />
-              <span>W-Matrix Alignment</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Cpu className="h-4 w-4 text-green-500" />
-              <span>60+ Models Supported</span>
-            </div>
-          </div>
+          <Link href="/reasoning-chains/publish">
+            <Button className="bg-cyan-500 hover:bg-cyan-600 text-white">
+              <Upload className="h-4 w-4 mr-2" />
+              Publish Reasoning Chain
+            </Button>
+          </Link>
         </div>
-      </div>
 
-      <div className="container py-8">
-        <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
-          {/* Desktop Filters Sidebar */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-8 space-y-6 rounded-lg border bg-card p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Filters</h2>
-                <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
+        {/* Stats */}
+        {packages && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
+              <div className="text-3xl font-bold text-cyan-400 mb-2">{packages.length}</div>
+              <div className="text-sm text-slate-400">Available Chains</div>
+            </Card>
+            <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
+              <div className="text-3xl font-bold text-purple-400 mb-2">
+                {packages.reduce((sum, pkg: any) => sum + (pkg.downloads || 0), 0)}
               </div>
-              <Separator />
-              <FilterPanel />
-            </div>
-          </aside>
-
-          {/* Main Content */}
-          <div className="space-y-6">
-            {/* Search Bar */}
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search reasoning chains..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
+              <div className="text-sm text-slate-400">Total Downloads</div>
+            </Card>
+            <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
+              <div className="text-3xl font-bold text-green-400 mb-2">
+                {packages.length > 0 
+                  ? (packages.reduce((sum, pkg: any) => sum + (pkg.rating || 0), 0) / packages.length).toFixed(1)
+                  : '0.0'}
               </div>
+              <div className="text-sm text-slate-400">Average Rating</div>
+            </Card>
+          </div>
+        )}
 
-              {/* Mobile Filter Button */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" className="lg:hidden">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left">
-                  <SheetHeader>
-                    <SheetTitle>Filters</SheetTitle>
-                    <SheetDescription>
-                      Filter reasoning chains by category and model
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <FilterPanel />
-                  </div>
-                </SheetContent>
-              </Sheet>
+        {/* Search and Filters */}
+        <Card className="p-6 mb-8 bg-slate-900/50 border-slate-800">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative md:col-span-2">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search reasoning chains..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-slate-800 border-slate-700 text-white"
+              />
             </div>
 
-            {/* Results Count */}
-            {chainsData && (
-              <div className="text-sm text-muted-foreground">
-                Found {chainsData.total} reasoning chains
-              </div>
-            )}
+            <Select value={sourceModel} onValueChange={setSourceModel}>
+              <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                <SelectValue placeholder="Source Model" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Models</SelectItem>
+                <SelectItem value="gpt-4">GPT-4</SelectItem>
+                <SelectItem value="o1">O1</SelectItem>
+                <SelectItem value="claude-3">Claude 3</SelectItem>
+                <SelectItem value="deepseek-v3">DeepSeek V3</SelectItem>
+                <SelectItem value="qwen-2">Qwen 2</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {/* Chain Grid */}
-            {isLoading ? (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i}>
-                    <CardHeader>
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-full" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-20 w-full" />
-                    </CardContent>
-                  </Card>
+            <Select value={problemType} onValueChange={setProblemType}>
+              <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                <SelectValue placeholder="Problem Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {REASONING_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </SelectItem>
                 ))}
-              </div>
-            ) : chainsData && chainsData.chains.length > 0 ? (
-              <>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {chainsData.chains.map((chain: any) => (
-                    <Card key={chain.id} className="group transition-all hover:shadow-lg border-l-4 border-l-purple-500">
-                      <CardHeader>
-                        <div className="mb-2 flex items-start justify-between">
-                          <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                            {chain.category}
-                          </Badge>
-                          <div className="flex items-center gap-1 text-sm">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">
-                              {parseFloat(chain.avgQuality || "0").toFixed(1)}
-                            </span>
-                          </div>
-                        </div>
-                        <CardTitle className="line-clamp-1">{chain.chainName}</CardTitle>
-                        <CardDescription className="line-clamp-2">
-                          {chain.description}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Brain className="h-4 w-4" />
-                            <span>{chain.sourceModel}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <GitBranch className="h-4 w-4" />
-                            <span>{chain.stepCount || "?"} reasoning steps</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <TrendingUp className="h-4 w-4" />
-                            <span>{chain.usageCount} uses</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-5 w-5 text-primary" />
-                          <span className="text-2xl font-bold">
-                            {parseFloat(chain.pricePerUse).toFixed(2)}
-                          </span>
-                          <span className="text-sm text-muted-foreground">/use</span>
-                        </div>
-                        <Button 
-                          size="sm" 
-                          className="group-hover:gap-2"
-                          onClick={() => handleUseChain(chain)}
-                        >
-                          Use Chain
-                          <ChevronRight className="h-4 w-4 transition-all group-hover:translate-x-1" />
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Pagination */}
-                {chainsData.chains.length === ITEMS_PER_PAGE && (
-                  <div className="flex justify-center gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setPage((p) => Math.max(0, p - 1))}
-                      disabled={page === 0}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setPage((p) => p + 1)}
-                      disabled={chainsData.chains.length < ITEMS_PER_PAGE}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <Card className="p-12">
-                <div className="text-center">
-                  <GitBranch className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                  <h3 className="mb-2 text-lg font-semibold">No reasoning chains found</h3>
-                  <p className="mb-4 text-muted-foreground">
-                    Be the first to publish a reasoning chain!
-                  </p>
-                  <div className="flex gap-2 justify-center">
-                    <Button onClick={resetFilters} variant="outline">Reset Filters</Button>
-                    <Button asChild>
-                      <Link href="/creator/publish">Publish Chain</Link>
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            )}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      </div>
 
-      {/* Use Chain Dialog */}
-      <Dialog open={!!selectedChain} onOpenChange={() => setSelectedChain(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Use Reasoning Chain</DialogTitle>
-            <DialogDescription>
-              Select your target model to align the reasoning chain
-            </DialogDescription>
-          </DialogHeader>
-          {selectedChain && (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-semibold">{selectedChain.chainName}</h4>
-                <p className="text-sm text-muted-foreground mt-1">{selectedChain.description}</p>
-                <div className="mt-2 flex items-center gap-4 text-sm">
-                  <span>Source: {selectedChain.sourceModel}</span>
-                  <span>Price: ${parseFloat(selectedChain.pricePerUse).toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Target Model</label>
-                <Select value={targetModel} onValueChange={setTargetModel}>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MODEL_FAMILIES.map((family) => (
-                      <div key={family.label}>
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                          {family.label}
-                        </div>
-                        {family.models.map((model) => (
-                          <SelectItem key={model} value={model}>
-                            {model}
-                          </SelectItem>
-                        ))}
-                      </div>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setSelectedChain(null)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={confirmUseChain}
-                  disabled={useChainMutation.isPending}
-                >
-                  {useChainMutation.isPending ? "Processing..." : "Confirm & Pay"}
-                </Button>
-              </div>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <Filter className="h-4 w-4" />
+              <span>Sort by:</span>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            <div className="flex gap-2">
+              {[
+                { value: 'newest', label: 'Newest' },
+                { value: 'popular', label: 'Popular' },
+                { value: 'cheapest', label: 'Cheapest' },
+                { value: 'highest-rated', label: 'Top Rated' },
+              ].map((sort) => (
+                <Button
+                  key={sort.value}
+                  variant={sortBy === sort.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSortBy(sort.value as any)}
+                  className={sortBy === sort.value ? 'bg-cyan-500 hover:bg-cyan-600' : ''}
+                >
+                  {sort.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* Chain Package Grid */}
+        {isLoading ? (
+          <div className="text-center text-white py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+            <p>Loading reasoning chains...</p>
+          </div>
+        ) : packages && packages.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {packages
+              .filter((pkg: any) => 
+                (searchTerm === '' || 
+                pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                pkg.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                (problemType === 'all' || pkg.problemType === problemType)
+              )
+              .map((pkg: any) => (
+              <Link key={pkg.id} href={`/package/chain/${pkg.packageId}`}>
+                <Card className="p-6 bg-slate-900/50 border-slate-800 hover:border-cyan-500 transition-all cursor-pointer group h-full">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors mb-1">
+                        {pkg.name}
+                      </h3>
+                      <p className="text-sm text-slate-400 line-clamp-2">{pkg.description}</p>
+                    </div>
+                    <Badge className="bg-cyan-500 text-white ml-2">
+                      v{pkg.version}
+                    </Badge>
+                  </div>
+
+                  {/* Metrics */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="text-center p-2 bg-slate-800/50 rounded">
+                      <div className="text-sm font-bold text-purple-400">
+                        {pkg.stepCount || 0}
+                      </div>
+                      <div className="text-xs text-slate-400">Steps</div>
+                    </div>
+                    <div className="text-center p-2 bg-slate-800/50 rounded">
+                      <div className="text-sm font-bold text-green-400">
+                        {pkg.solutionQuality ? `${(pkg.solutionQuality * 100).toFixed(0)}%` : 'N/A'}
+                      </div>
+                      <div className="text-xs text-slate-400">Quality</div>
+                    </div>
+                    <div className="text-center p-2 bg-slate-800/50 rounded">
+                      <div className="text-sm font-bold text-yellow-400">
+                        {pkg.rating ? pkg.rating.toFixed(1) : 'N/A'}
+                      </div>
+                      <div className="text-xs text-slate-400">Rating</div>
+                    </div>
+                  </div>
+
+                  {/* Problem Type */}
+                  {pkg.problemType && (
+                    <div className="mb-4">
+                      <Badge variant="outline" className="border-cyan-500/50 text-cyan-400">
+                        <Brain className="h-3 w-3 mr-1" />
+                        {pkg.problemType}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Model Info */}
+                  <div className="mb-4 p-3 bg-slate-800/30 rounded">
+                    <div className="flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-slate-400">From:</span>
+                        <span className="text-white ml-1 font-mono">{pkg.sourceModel}</span>
+                      </div>
+                      <Zap className="h-3 w-3 text-cyan-400" />
+                      <div>
+                        <span className="text-slate-400">To:</span>
+                        <span className="text-white ml-1 font-mono">{pkg.targetModel}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                    <div>
+                      <div className="text-xs text-slate-400">Price</div>
+                      <div className="text-lg font-bold text-white">
+                        ${pkg.price.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-400">Downloads</div>
+                      <div className="text-sm font-semibold text-cyan-400">
+                        {formatNumber(pkg.downloads || 0)}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-slate-400 py-12">
+            <GitBranch className="h-16 w-16 mx-auto mb-4 opacity-50" />
+            <p className="text-lg">No reasoning chains found</p>
+            <p className="text-sm mt-2">Be the first to publish a reasoning chain!</p>
+            <Link href="/reasoning-chains/publish">
+              <Button className="mt-4 bg-cyan-500 hover:bg-cyan-600">
+                <Upload className="h-4 w-4 mr-2" />
+                Publish Reasoning Chain
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

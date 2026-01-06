@@ -1340,3 +1340,129 @@ Cold (20%, Storj):
 - [ ] 历史数据分层迁移
 - [ ] 压缩和去重优化
 
+
+
+---
+
+## Phase 18: 核心功能完善 - 三种意识交易方式 🎯
+
+### 当前状态
+- ✅ Vector Package: 上传页面和市场页面已完成
+- ⏸️ Memory Package: 待开发
+- ⏸️ Chain Package: 待开发
+- ⏸️ 统一详情页: 待开发
+- ⏸️ 购买和下载流程: 待开发
+
+### 18.1 Memory Package 上传页面
+- [x] 创建 UploadMemoryPackage.tsx
+  - [x] 文件上传组件（.memorypkg 格式）
+  - [x] KV-Cache 数据验证
+  - [x] W-Matrix 数据验证
+  - [x] 元数据表单
+    - sourceModel, targetModel
+    - tokenCount, compressionRatio
+    - contextDescription
+    - price, category
+  - [x] 上传进度显示
+  - [x] 成功/失败提示
+
+### 18.2 Memory Package 市场页面
+- [x] 更新 MemoryMarketplace.tsx 使用新API
+  - [x] Package 列表展示
+  - [x] 筛选器（sourceModel, targetModel, priceRange）
+  - [x] 排序（newest, popular, cheapest）
+  - [x] 分页
+  - [x] 搜索功能
+  - [x] 点击跳转到详情页
+
+### 18.3 Chain Package 上传页面
+- [ ] 创建 UploadChainPackage.tsx
+  - [ ] 文件上传组件（.chainpkg 格式）
+  - [ ] Reasoning Chain 数据验证
+  - [ ] W-Matrix 数据验证
+  - [ ] 元数据表单
+    - sourceModel, targetModel
+    - stepCount, problemType
+    - solutionQuality
+    - price, category
+  - [ ] 上传进度显示
+  - [ ] 成功/失败提示
+
+### 18.4 Chain Package 市场页面
+- [ ] 创建 ChainPackageMarket.tsx
+  - [ ] Package 列表展示
+  - [ ] 筛选器（problemType, stepCount, priceRange）
+  - [ ] 排序（newest, popular, cheapest）
+  - [ ] 分页
+  - [ ] 搜索功能
+  - [ ] 点击跳转到详情页
+
+### 18.5 统一 Package 详情页
+- [ ] 创建 PackageDetail.tsx
+  - [ ] 支持三种 Package 类型（vector/memory/chain）
+  - [ ] 基本信息展示
+    - 名称、描述、价格
+    - 上传者信息
+    - 下载量、评分
+  - [ ] 类型特定信息
+    - Vector: dimension, epsilon, category
+    - Memory: tokenCount, compressionRatio, contextDescription
+    - Chain: stepCount, problemType, solutionQuality
+  - [ ] W-Matrix 信息展示
+  - [ ] 购买按钮
+  - [ ] 下载按钮（已购买）
+  - [ ] 评论和评分功能
+
+### 18.6 购买和下载流程
+- [ ] 实现购买流程
+  - [ ] 检查用户余额
+  - [ ] 扣款并创建订单
+  - [ ] 生成下载链接（24小时有效）
+  - [ ] 发送购买成功通知
+- [ ] 实现下载流程
+  - [ ] 验证购买权限
+  - [ ] 生成临时下载URL
+  - [ ] 记录下载日志
+  - [ ] 更新下载统计
+
+### 18.7 后端 API 完善
+- [ ] Memory Package API (server/routers/memory-packages.ts)
+  - [ ] list: 列表查询
+  - [ ] get: 获取详情
+  - [ ] upload: 上传
+  - [ ] purchase: 购买
+  - [ ] download: 下载
+- [ ] Chain Package API (server/routers/chain-packages.ts)
+  - [ ] list: 列表查询
+  - [ ] get: 获取详情
+  - [ ] upload: 上传
+  - [ ] purchase: 购买
+  - [ ] download: 下载
+- [ ] 统一购买 API (server/routers/purchases.ts)
+  - [ ] createPurchase: 创建购买订单
+  - [ ] getPurchaseHistory: 获取购买历史
+  - [ ] generateDownloadLink: 生成下载链接
+  - [ ] verifyPurchase: 验证购买权限
+
+### 18.8 路由配置
+- [ ] 更新 App.tsx 添加新路由
+  - [ ] /upload/memory - Memory Package 上传
+  - [ ] /upload/chain - Chain Package 上传
+  - [ ] /market/memory - Memory Package 市场
+  - [ ] /market/chain - Chain Package 市场
+  - [ ] /package/:type/:id - 统一详情页
+- [ ] 更新导航菜单
+  - [ ] 三种 Package 类型切换
+  - [ ] 统一的上传入口
+
+### 18.9 端到端测试
+- [ ] Vector Package 完整流程测试
+  - [ ] 上传 → 浏览 → 详情 → 购买 → 下载
+- [ ] Memory Package 完整流程测试
+  - [ ] 上传 → 浏览 → 详情 → 购买 → 下载
+- [ ] Chain Package 完整流程测试
+  - [ ] 上传 → 浏览 → 详情 → 购买 → 下载
+- [ ] 多用户并发测试
+  - [ ] 同时上传
+  - [ ] 同时购买
+  - [ ] 同时下载

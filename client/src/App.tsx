@@ -45,6 +45,8 @@ import KVCacheDemo from "./pages/KVCacheDemo";
 import MemoryProvenance from "./pages/MemoryProvenance";
 import VectorPackageMarket from "./pages/VectorPackageMarket";
 import UploadVectorPackage from "./pages/UploadVectorPackage";
+import UploadMemoryPackage from "./pages/UploadMemoryPackage";
+import PackageDetail from "./pages/PackageDetail";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -78,6 +80,8 @@ function Router() {
       <Route path="/vector-packages" component={VectorPackageMarket} />
       <Route path="/upload-vector-package" component={UploadVectorPackage} />
       <Route path="/memory-marketplace" component={MemoryMarketplace} />
+      <Route path="/upload-memory-package" component={UploadMemoryPackage} />
+      <Route path="/package/:type/:id" component={PackageDetail} />
       <Route path="/memory/:id" component={MemoryNFTDetail} />
       <Route path="/leaderboard" component={AgentLeaderboard} />
       <Route path="/my-memories" component={MyMemories} />
