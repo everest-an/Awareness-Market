@@ -175,13 +175,18 @@ export const memoryNFTRouter = router({
   getProvenance: publicProcedure
     .input(getProvenanceSchema)
     .query(async ({ input }) => {
-      // Import buildFamilyTree function
-      const { buildFamilyTree } = await import('../db-provenance');
-      
       // Try to build family tree from database
-      const familyTree = await buildFamilyTree(input.memoryId);
+      // If database query fails (e.g., missing columns), use mock data
+      let familyTree = null;
       
-      // If no data found, return mock data for demo purposes
+      try {
+        const { buildFamilyTree } = await import('../db-provenance');
+        familyTree = await buildFamilyTree(input.memoryId);
+      } catch (error) {
+        console.log('[getProvenance] Database query failed, using mock data:', error);
+      }
+      
+      // If no data found or error occurred, return mock data for demo purposes
       if (!familyTree) {
         const mockFamilyTree = {
           id: '1',

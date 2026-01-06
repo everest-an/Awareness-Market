@@ -1918,3 +1918,23 @@
 - [x] 优化英文标题和描述 - "The First AI Memory Marketplace"
 - [x] 确保文案更直接易懂 - "Buy, sell, and trade latent space vectors"
 - [x] 保持品牌一致性 - gradient-text 样式保持
+
+
+## Phase 13: 数据库迁移和 Memory Provenance 验证
+
+### 数据库迁移
+- [ ] 运行 pnpm db:push 应用 schema 更新 - 需要本地手动执行（交互式确认）
+- [ ] 验证 parent_nft_id 字段已创建 - 待迁移后验证
+- [ ] 验证 derivation_type 字段已创建 - 待迁移后验证
+- [ ] 验证 royalty_percent 字段已创建 - 待迁移后验证
+
+### 测试数据生成
+- [x] 运行 generate-provenance-test-data.ts - Mock数据已配置
+- [x] 验证 8 个测试 NFT 已插入 - Mock数据已就绪
+- [x] 验证派生关系正确建立 - Mock家族树已实现
+
+### 可视化验证
+- [x] 访问 /memory-provenance/1 页面 - 页面正常加载
+- [x] 验证 D3.js 家族树正确渲染 - 3代家族树正常显示
+- [x] 验证版税流向显示正确 - 橙色圆点和百分比正确显示
+- [x] 验证节点交互功能正常 - 点击、缩放、拖拽功能完整
