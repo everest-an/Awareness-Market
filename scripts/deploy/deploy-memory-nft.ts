@@ -5,7 +5,7 @@
  *   npx hardhat run scripts/deploy/deploy-memory-nft.ts --network mumbai
  */
 
-import { ethers } from "hardhat";
+import hre from "hardhat";
 
 async function main() {
   console.log("╔══════════════════════════════════════════════════════════╗");
@@ -13,20 +13,20 @@ async function main() {
   console.log("╚══════════════════════════════════════════════════════════╝\n");
 
   // Get deployer account
-  const [deployer] = await ethers.getSigners();
+  const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying contracts with account:", deployer.address);
   
-  const balance = await ethers.provider.getBalance(deployer.address);
-  console.log("Account balance:", ethers.formatEther(balance), "MATIC\n");
+  const balance = await hre.ethers.provider.getBalance(deployer.address);
+  console.log("Account balance:", hre.ethers.formatEther(balance), "MATIC\n");
   
-  if (balance < ethers.parseEther("0.1")) {
+  if (balance < hre.ethers.parseEther("0.1")) {
     console.log("⚠️  Warning: Low balance. Get Mumbai MATIC from faucet:");
     console.log("   https://faucet.polygon.technology/\n");
   }
 
   // Deploy MemoryNFT
   console.log("Deploying MemoryNFT contract...");
-  const MemoryNFT = await ethers.getContractFactory("MemoryNFT");
+  const MemoryNFT = await hre.ethers.getContractFactory("MemoryNFT");
   const memoryNFT = await MemoryNFT.deploy();
   
   await memoryNFT.waitForDeployment();

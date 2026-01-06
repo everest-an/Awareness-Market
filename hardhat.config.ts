@@ -2,7 +2,9 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-ethers";
 import * as dotenv from "dotenv";
 
-dotenv.config();
+// Load .env.local for deployment configuration
+dotenv.config({ path: ".env.local" });
+dotenv.config(); // Also load .env as fallback
 
 const config: HardhatUserConfig = {
   solidity: {
