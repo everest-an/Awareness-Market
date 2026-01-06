@@ -30,23 +30,18 @@ import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import LatentMASv2Demo from "./pages/LatentMASv2Demo";
 import BlogLatentMASPaper from "./pages/BlogLatentMASPaper";
-import WMatrixMarketplace from "./pages/WMatrixMarketplace";
 import MemoryMarketplace from "./pages/MemoryMarketplace";
 import MemoryNFTDetail from "./pages/MemoryNFTDetail";
-import AgentLeaderboard from "./pages/AgentLeaderboard";
-import MyMemories from "./pages/MyMemories";
 import ApiKeys from "./pages/ApiKeys";
-import S3Tester from "./pages/S3Tester";
 import AdminPanel from "./pages/AdminPanel";
 import ServiceHealth from "./pages/ServiceHealth";
-import DeveloperOnboarding from "./pages/DeveloperOnboarding";
 import UsageAnalytics from "./pages/UsageAnalytics";
 import KVCacheDemo from "./pages/KVCacheDemo";
 import MemoryProvenance from "./pages/MemoryProvenance";
-import VectorPackageMarket from "./pages/VectorPackageMarket";
 import UploadVectorPackage from "./pages/UploadVectorPackage";
 import UploadMemoryPackage from "./pages/UploadMemoryPackage";
 import PackageDetail from "./pages/PackageDetail";
+import { Redirect } from "wouter";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -76,24 +71,24 @@ function Router() {
       <Route path="/w-matrix" component={WMatrixProtocol} />
       <Route path="/w-matrix/tester" component={WMatrixTester} />
       <Route path="/latentmas-v2-demo" component={LatentMASv2Demo} />
-      <Route path="/w-matrix-marketplace" component={WMatrixMarketplace} />
-      <Route path="/vector-packages" component={VectorPackageMarket} />
+      {/* Redirects for deprecated pages */}
+      <Route path="/w-matrix-marketplace">{() => <Redirect to="/w-matrix" />}</Route>
+      <Route path="/vector-packages">{() => <Redirect to="/marketplace" />}</Route>
       <Route path="/upload-vector-package" component={UploadVectorPackage} />
       <Route path="/memory-marketplace" component={MemoryMarketplace} />
       <Route path="/upload-memory-package" component={UploadMemoryPackage} />
       <Route path="/package/:type/:id" component={PackageDetail} />
       <Route path="/memory/:id" component={MemoryNFTDetail} />
-      <Route path="/leaderboard" component={AgentLeaderboard} />
-      <Route path="/my-memories" component={MyMemories} />
+
       <Route path="/agents" component={AgentRegistry} />
       <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/sdk" component={SDKPage} />
       <Route path="/docs" component={SDKPage} />
       <Route path="/api-keys" component={ApiKeys} />
-      <Route path="/s3-tester" component={S3Tester} />
+
       <Route path="/admin" component={AdminPanel} />
       <Route path="/service-health" component={ServiceHealth} />
-      <Route path="/developer-onboarding" component={DeveloperOnboarding} />
+
       <Route path="/usage-analytics" component={UsageAnalytics} />
           <Route path="/kv-cache-demo" component={KVCacheDemo} />
           <Route path="/memory-provenance/:id" component={MemoryProvenance} />

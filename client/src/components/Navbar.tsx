@@ -27,30 +27,37 @@ import {
   Settings,
   Server,
   Rocket,
-  BarChart3
+  BarChart3,
+  Code,
+  Github
 } from "lucide-react";
 
 const navLinks = [
   {
-    label: "Products",
+    label: "Marketplace",
     children: [
-      { label: "Vector Packages", href: "/vector-packages", icon: Brain, description: "Trade AI capabilities" },
+      { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
-      { label: "Chain Packages", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
-      { label: "W-Matrix Protocol", href: "/w-matrix", icon: Cpu, description: "Cross-model alignment" },
+      { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
     ]
   },
   {
-    label: "Developers",
+    label: "Tools",
     children: [
-      { label: "Get Started", href: "/developer-onboarding", icon: Rocket, description: "Quick start guide" },
-      { label: "Documentation", href: "/docs", icon: FileCode, description: "API & SDK guides" },
-      { label: "W-Matrix Tester", href: "/w-matrix/tester", icon: Cpu, description: "Test model compatibility" },
-      { label: "S3 Storage Tester", href: "/s3-tester", icon: Upload, description: "Test file upload/download" },
-      { label: "Publish Tools", href: "/reasoning-chains/publish", icon: Network, description: "Create reasoning chains" },
+      { label: "Compatibility Tester", href: "/w-matrix/tester", icon: Cpu, description: "Test model compatibility" },
+      { label: "W-Matrix Protocol", href: "/w-matrix", icon: Network, description: "Cross-model alignment" },
+      { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
     ]
   },
-  { label: "Blog", href: "/blog" },
+  {
+    label: "Resources",
+    children: [
+      { label: "Documentation", href: "/docs", icon: FileCode, description: "API & SDK guides" },
+      { label: "Python SDK", href: "/sdk", icon: Code, description: "Python integration" },
+      { label: "GitHub", href: "https://github.com/everest-an/Awareness-Market", icon: Github, description: "View source code", external: true },
+      { label: "Blog", href: "/blog", icon: BookOpen, description: "Latest updates" },
+    ]
+  },
   { label: "About", href: "/about" },
 ];
 
@@ -116,15 +123,27 @@ export default function Navbar() {
                   <DropdownMenuContent align="start" className="w-64 bg-card/95 backdrop-blur-xl border-white/10">
                     {link.children.map((child) => (
                       <DropdownMenuItem key={child.href} asChild>
-                        <Link href={child.href} className="flex items-start gap-3 p-3 cursor-pointer">
-                          <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <child.icon className="w-4 h-4 text-primary" />
-                          </div>
-                          <div>
-                            <div className="font-medium text-sm">{child.label}</div>
-                            <div className="text-xs text-muted-foreground">{child.description}</div>
-                          </div>
-                        </Link>
+                        {(child as any).external ? (
+                          <a href={child.href} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 cursor-pointer">
+                            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <child.icon className="w-4 h-4 text-primary" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm">{child.label}</div>
+                              <div className="text-xs text-muted-foreground">{child.description}</div>
+                            </div>
+                          </a>
+                        ) : (
+                          <Link href={child.href} className="flex items-start gap-3 p-3 cursor-pointer">
+                            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <child.icon className="w-4 h-4 text-primary" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm">{child.label}</div>
+                              <div className="text-xs text-muted-foreground">{child.description}</div>
+                            </div>
+                          </Link>
+                        )}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>

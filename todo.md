@@ -1478,3 +1478,24 @@ Cold (20%, Storj):
   - 首页 (/) ✅
   - Memory Marketplace (/memory-marketplace) ✅
   - Reasoning Chain Market (/reasoning-chains) ✅
+
+## 🎯 系统优化计划 (2026-01-06)
+
+### P1 - 用户体验优化（优先）
+- [x] 简化导航结构（Marketplace/Tools/Resources）
+- [x] 移除废弃页面，添加重定向
+
+### P0 - 核心功能完善
+- [ ] 添加示例数据到市场（10-15 个高质量示例 Packages）
+- [ ] 完善上传页面的表单验证和文件上传逻辑
+- [ ] 增强 Creator/Consumer Dashboard 的详细统计
+
+### P1 - 用户体验优化（后续）
+- [ ] 添加新手引导（Onboarding Flow）
+- [ ] 优化移动端体验
+- [ ] 实现 Compatibility Tester 的实际测试功能
+
+### P2 - 功能扩展
+- [ ] 添加全局搜索功能
+- [ ] 实现个性化推荐
+- [ ] 添加社区功能（讨论区、问答、排行榜）
