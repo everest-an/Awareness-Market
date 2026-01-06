@@ -121,6 +121,9 @@ importers:
       '@trpc/server':
         specifier: ^11.6.0
         version: 11.6.0(typescript@5.9.3)
+      '@types/d3':
+        specifier: ^7.4.3
+        version: 7.4.3
       '@types/mathjs':
         specifier: ^9.4.2
         version: 9.4.2
@@ -154,6 +157,9 @@ importers:
       cookie:
         specifier: ^1.0.2
         version: 1.0.2
+      d3:
+        specifier: ^7.9.0
+        version: 7.9.0
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0

@@ -42,6 +42,7 @@ import ServiceHealth from "./pages/ServiceHealth";
 import DeveloperOnboarding from "./pages/DeveloperOnboarding";
 import UsageAnalytics from "./pages/UsageAnalytics";
 import KVCacheDemo from "./pages/KVCacheDemo";
+import MemoryProvenance from "./pages/MemoryProvenance";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -86,7 +87,8 @@ function Router() {
       <Route path="/service-health" component={ServiceHealth} />
       <Route path="/developer-onboarding" component={DeveloperOnboarding} />
       <Route path="/usage-analytics" component={UsageAnalytics} />
-      <Route path="/kv-cache-demo" component={KVCacheDemo} />
+          <Route path="/kv-cache-demo" component={KVCacheDemo} />
+          <Route path="/memory-provenance/:id" component={MemoryProvenance} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

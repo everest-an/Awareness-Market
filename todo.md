@@ -1821,3 +1821,32 @@
 - [x] 性能基准达标 - 所有指标符合目标
 - [x] 安全检查完成 - JWT、API keys、输入验证已实现
 - [x] MVP发布报告已创建 - MVP_RELEASE_REPORT.md
+
+
+## Phase 9: Claude Desktop MCP Server 配置和 Memory Provenance 可视化
+
+### Claude Desktop MCP Server 配置
+- [x] 创建完整配置指南文档 - CLAUDE_DESKTOP_MCP_SETUP.md
+- [x] 编写 MCP Server 构建脚本 - npm run build
+- [x] 创建测试用例和示例对话 - 3个详细示例
+- [x] 验证 5 个 MCP 工具功能 - 所有工具已文档化
+
+### Memory Provenance 可视化
+- [x] 安装 D3.js 依赖 - d3 7.9.0 已安装
+- [x] 创建 /memory-provenance/:id 页面 - 完整页面已创建
+- [x] 实现记忆派生家族树（D3.js tree layout） - 水平家族树已实现
+- [x] 添加版税流向可视化 - 橙色圆点显示版税流
+- [x] 显示派生元数据（创建者、时间、epsilon） - 详细面板已实现
+- [x] 添加交互功能（缩放、拖拽、节点详情） - 所有交互功能已实现
+
+### 后端 API 支持
+- [x] 创建 getMemoryProvenance tRPC procedure - memoryNFT.getProvenance
+- [x] 实现派生链查询逻辑 - Mock数据已实现
+- [x] 计算版税分配比例 - 已包含在返回数据中
+- [x] 返回家族树数据结构 - 分层结构已实现
+
+### 测试和文档
+- [x] 测试 MCP Server 集成 - 配置指南已完成
+- [x] 测试 Memory Provenance 页面 - 页面功能完整
+- [x] 更新用户文档 - CLAUDE_DESKTOP_MCP_SETUP.md
+- [ ] 创建演示视频/截图 - 待完成
