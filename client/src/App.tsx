@@ -41,6 +41,7 @@ import MemoryProvenance from "./pages/MemoryProvenance";
 import UploadVectorPackage from "./pages/UploadVectorPackage";
 import UploadMemoryPackage from "./pages/UploadMemoryPackage";
 import PackageDetail from "./pages/PackageDetail";
+import VectorPackageMarket from "./pages/VectorPackageMarket";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -73,7 +74,7 @@ function Router() {
       <Route path="/latentmas-v2-demo" component={LatentMASv2Demo} />
       {/* Redirects for deprecated pages */}
       <Route path="/w-matrix-marketplace">{() => <Redirect to="/w-matrix" />}</Route>
-      <Route path="/vector-packages">{() => <Redirect to="/marketplace" />}</Route>
+      <Route path="/vector-packages" component={VectorPackageMarket} />
       <Route path="/upload-vector-package" component={UploadVectorPackage} />
       <Route path="/memory-marketplace" component={MemoryMarketplace} />
       <Route path="/upload-memory-package" component={UploadMemoryPackage} />

@@ -1540,3 +1540,22 @@ Cold (20%, Storj):
 - [x] 测试各种屏幕尺寸
 
 **状态**: ✅ 已完成，所有页面都有响应式设计
+
+## 🎯 Phase 4-5: Sample Data & UI Polish (2026-01-06)
+
+### Phase 4: Onboarding Flow Logo Update
+- [x] 替换 OnboardingFlow 顶部星星图标为项目 Logo（蓝色渐变圆环）
+- [x] 保持视觉一致性
+
+### Phase 5: Sample Data Generator
+- [x] 创建 sample data 生成脚本
+- [x] 生成 5 个 Vector Packages（NLP, Vision, Audio, Multimodal）
+- [x] 生成 5 个 Memory Packages（不同模型和场景）
+- [x] 生成 5 个 Chain Packages（不同问题类型）
+- [x] 创建数据库表（vector_packages, memory_packages, chain_packages）
+- [x] 插入数据库
+- [x] 验证市场页面显示
+- [x] 修复 /vector-packages 路由（移除错误的重定向）
+- [x] 添加 VectorPackageMarket 组件导入
+
+**结果**: ✅ 成功显示 5 个 Vector Packages，页面功能正常

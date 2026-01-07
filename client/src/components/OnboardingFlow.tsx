@@ -74,8 +74,25 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <div className="space-y-6">
             <DialogHeader>
               <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-primary" />
+                {/* Project Logo - Blue Gradient Ring */}
+                <div className="relative w-16 h-16">
+                  {/* Outer gradient ring */}
+                  <div 
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: 'conic-gradient(from 180deg, #0ea5e9, #06b6d4, #22d3ee, #67e8f9, #22d3ee, #06b6d4, #0ea5e9)',
+                      padding: '3px',
+                    }}
+                  >
+                    <div className="w-full h-full rounded-full bg-background" />
+                  </div>
+                  {/* Inner subtle glow */}
+                  <div 
+                    className="absolute inset-[4px] rounded-full opacity-20"
+                    style={{
+                      background: 'radial-gradient(circle, #22d3ee 0%, transparent 70%)',
+                    }}
+                  />
                 </div>
               </div>
               <DialogTitle className="text-2xl text-center">
