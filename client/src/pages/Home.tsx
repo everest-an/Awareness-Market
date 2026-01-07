@@ -5,6 +5,7 @@ import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import Globe3D from "@/components/Globe3D";
+import OnboardingFlow from "@/components/OnboardingFlow";
 import { 
   Brain, 
   Zap, 
@@ -23,6 +24,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Onboarding Flow */}
+      <OnboardingFlow />
+      
       {/* Navbar */}
       <Navbar />
 
