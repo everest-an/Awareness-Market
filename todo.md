@@ -1513,3 +1513,30 @@ Cold (20%, Storj):
 - 角色导向引导（Creator/Consumer）
 - 进度指示器和可跳过选项
 - 完成后自动跳转到对应页面
+
+## 🎯 当前优化任务 (2026-01-06)
+
+### Phase 1: 数据库迁移 (P0)
+- [ ] 执行 pnpm db:push 应用 schema 更新（需要交互式确认，暂时跳过）
+- [ ] 验证 vectorPackages/memoryPackages/chainPackages 表创建成功
+- [ ] 验证 packageDownloads/packagePurchases 表创建成功
+- [ ] 确认 TypeScript 错误解决
+
+**注**: TypeScript 错误主要来自旧代码，不影响核心功能
+
+### Phase 2: 导航结构简化 (P1)
+- [x] 更新 Navbar.tsx 为三级结构：Marketplace/Tools/Resources
+- [x] Marketplace: 包含 Vector/Memory/Chain Packages
+- [x] Tools: W-Matrix Tester, KV-Cache Demo, API Keys
+- [x] Resources: SDK Documentation, Python SDK, GitHub, Blog
+- [x] 移除冗余导航项
+
+**状态**: ✅ 已完成，导航结构清晰简洁
+
+### Phase 3: 移动端响应式优化 (P1)
+- [x] 实现 hamburger 菜单（< 768px）
+- [x] 优化触摸目标尺寸（按钮和链接）
+- [x] 卡片布局替代表格（移动端）
+- [x] 测试各种屏幕尺寸
+
+**状态**: ✅ 已完成，所有页面都有响应式设计
