@@ -9,6 +9,7 @@ import { eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
 import { storageGet } from "./storage";
+import { workflowManager } from "./workflow-manager";
 
 export interface InvokeVectorInput {
   vectorId: number;
@@ -203,10 +204,30 @@ export async function invokeVector(
   const db = await getDb();
   if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
+  // Create workflow session
+  const session = workflowManager.createSession({
+    userId,
+    type: 'vector_invocation',
+    title: `Invoke Vector #${input.vectorId}`,
+    description: 'Execute purchased AI capability',
+    tags: ['vector', 'invocation'],
+  });
+  const workflowId = session.id;
+
   try {
     // 1. Verify access permission
+    const verifyEvent = workflowManager.addEvent(workflowId, {
+      type: 'tool_call',
+      title: 'Verify Access Permission',
+      input: { vectorId: input.vectorId, userId },
+    });
+    
     const accessCheck = await verifyVectorAccess(userId, input.vectorId);
     if (!accessCheck.hasAccess) {
+      workflowManager.updateEvent(workflowId, verifyEvent.id, {
+        status: 'failed',
+        output: { hasAccess: false, reason: accessCheck.reason },
+      });
       throw new TRPCError({
         code: "FORBIDDEN",
         message: accessCheck.reason || "Access denied"
@@ -214,8 +235,18 @@ export async function invokeVector(
     }
 
     const permission = accessCheck.permission!;
+    workflowManager.updateEvent(workflowId, verifyEvent.id, {
+      status: 'completed',
+      output: { hasAccess: true, permissionId: permission.id },
+    });
 
     // 2. Fetch vector metadata
+    const fetchMetaEvent = workflowManager.addEvent(workflowId, {
+      type: 'tool_call',
+      title: 'Fetch Vector Metadata',
+      input: { vectorId: input.vectorId },
+    });
+    
     const [vector] = await db
       .select()
       .from(latentVectors)
@@ -229,11 +260,33 @@ export async function invokeVector(
     if (vector.status !== 'active') {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Vector is not active" });
     }
+    
+    workflowManager.updateEvent(workflowId, fetchMetaEvent.id, {
+      status: 'completed',
+      output: { title: vector.title, status: vector.status },
+    });
 
     // 3. Fetch vector data from S3
+    const fetchDataEvent = workflowManager.addEvent(workflowId, {
+      type: 'tool_call',
+      title: 'Load Vector from S3',
+      input: { vectorFileKey: vector.vectorFileKey },
+    });
+    
     const vectorData = await fetchVectorData(vector.vectorFileKey);
+    
+    workflowManager.updateEvent(workflowId, fetchDataEvent.id, {
+      status: 'completed',
+      output: { loaded: true },
+    });
 
     // 4. Execute the vector
+    const executeEvent = workflowManager.addEvent(workflowId, {
+      type: 'tool_call',
+      title: 'Execute Vector',
+      input: { vectorTitle: vector.title, inputData: input.inputData },
+    });
+    
     const { result, tokensUsed } = await executeVector(
       vector,
       vectorData,
@@ -245,6 +298,11 @@ export async function invokeVector(
 
     // 5. Calculate cost
     const cost = calculateInvocationCost(vector, tokensUsed);
+    
+    workflowManager.updateEvent(workflowId, executeEvent.id, {
+      status: 'completed',
+      output: { tokensUsed, executionTime, cost },
+    });
 
     // 6. Record invocation
     await db.insert(vectorInvocations).values({
@@ -270,6 +328,9 @@ export async function invokeVector(
 
     // 8. Update statistics
     await updateInvocationStats(db, input.vectorId, permission.id, cost, true);
+    
+    // End workflow
+    workflowManager.completeSession(workflowId, 'completed');
 
     return {
       success: true,

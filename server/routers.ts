@@ -1396,29 +1396,106 @@ export const appRouter = router({
         useLora: z.boolean().default(true),
         loraRank: z.number().default(64),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const { workflowManager } = await import('./workflow-manager');
         const { alignmentService } = await import('./alignment/alignment-service');
-        const result = await alignmentService.trainWMatrix(
-          input.sourceVectors,
-          input.targetVectors,
-          parseInt(input.standardDim) as 4096 | 8192,
-          { useLora: input.useLora, loraRank: input.loraRank }
-        );
         
-        // Save to database
-        const database = getDb();
-        await database.insert(wMatrixVersions).values({
-          version: input.version,
-          standardDim: parseInt(input.standardDim),
-          matrixData: result.serializedMatrix,
-          matrixFormat: 'numpy',
-          sourceModels: JSON.stringify(input.sourceModels),
-          alignmentPairsCount: input.sourceVectors.length,
-          avgReconstructionError: result.metrics.epsilon.toString(),
-          isActive: true,
+        // Create workflow session
+        const session = workflowManager.createSession({
+          userId: ctx.user.id,
+          type: 'w_matrix_training',
+          title: `Train W-Matrix ${input.version}`,
+          description: `Training W-Matrix from ${input.sourceVectors.length} anchor pairs`,
+          tags: ['w-matrix', 'training', input.standardDim],
         });
+        const workflowId = session.id;
         
-        return result;
+        try {
+          // Track: Prepare training data
+          const prepareEvent = workflowManager.addEvent(workflowId, {
+            type: 'tool_call',
+            title: 'Prepare Training Data',
+            input: {
+              sourceVectorsCount: input.sourceVectors.length,
+              targetVectorsCount: input.targetVectors.length,
+              standardDim: input.standardDim,
+              sourceModels: input.sourceModels,
+            },
+          });
+          
+          workflowManager.updateEvent(workflowId, prepareEvent.id, {
+            status: 'completed',
+            output: {
+              anchorPairs: input.sourceVectors.length,
+              useLora: input.useLora,
+              loraRank: input.loraRank,
+            },
+          });
+          
+          // Track: Train W-Matrix
+          const trainEvent = workflowManager.addEvent(workflowId, {
+            type: 'tool_call',
+            title: 'Train W-Matrix Model',
+            input: {
+              standardDim: input.standardDim,
+              method: input.useLora ? 'LoRA' : 'Full',
+            },
+          });
+          
+          const result = await alignmentService.trainWMatrix(
+            input.sourceVectors,
+            input.targetVectors,
+            parseInt(input.standardDim) as 4096 | 8192,
+            { useLora: input.useLora, loraRank: input.loraRank }
+          );
+          
+          workflowManager.updateEvent(workflowId, trainEvent.id, {
+            status: 'completed',
+            output: {
+              epsilon: result.metrics.epsilon,
+              fidelityScore: result.metrics.fidelityScore,
+              trainingTimeMs: result.metrics.trainingTimeMs,
+            },
+          });
+          
+          // Track: Save to database
+          const saveEvent = workflowManager.addEvent(workflowId, {
+            type: 'tool_call',
+            title: 'Save W-Matrix to Database',
+            input: { version: input.version },
+          });
+          
+          const database = getDb();
+          await database.insert(wMatrixVersions).values({
+            version: input.version,
+            standardDim: parseInt(input.standardDim),
+            matrixData: result.serializedMatrix,
+            matrixFormat: 'numpy',
+            sourceModels: JSON.stringify(input.sourceModels),
+            alignmentPairsCount: input.sourceVectors.length,
+            avgReconstructionError: result.metrics.epsilon.toString(),
+            isActive: true,
+          });
+          
+          workflowManager.updateEvent(workflowId, saveEvent.id, {
+            status: 'completed',
+            output: { version: input.version, saved: true },
+          });
+          
+          // End workflow
+          workflowManager.completeSession(workflowId, 'completed');
+          
+          return result;
+        } catch (error) {
+          // Track error
+          workflowManager.addEvent(workflowId, {
+            type: 'tool_call',
+            title: 'Training Failed',
+            input: { error: (error as Error).message },
+          });
+          workflowManager.completeSession(workflowId, 'failed');
+          throw error;
+        }
       }),
 
     // Get W-matrix versions

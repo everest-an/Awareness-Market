@@ -4,6 +4,9 @@ import { relations } from "drizzle-orm";
 // Import Memory NFT and TBA tables
 export * from './schema-memory-nft';
 
+// Import Workflow History tables
+export * from './schema-workflow';
+
 /**
  * Core user table backing auth flow.
  * Extended with role field for Creator/Consumer distinction.

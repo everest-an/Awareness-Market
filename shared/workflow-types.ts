@@ -63,7 +63,7 @@ export interface WorkflowEvent {
 export interface WorkflowSession {
   id: string;
   userId: number;
-  type: "ai_reasoning" | "memory_transfer" | "package_processing" | "custom";
+  type: "ai_reasoning" | "memory_transfer" | "package_processing" | "w_matrix_training" | "vector_invocation" | "custom";
   status: "active" | "completed" | "failed";
   startedAt: number;
   completedAt?: number;

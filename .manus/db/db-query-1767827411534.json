@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS workflow_sessions (\n  id VARCHAR(32) PRIMARY KEY,\n  user_id INT NOT NULL,\n  type ENUM('ai_reasoning', 'memory_transfer', 'package_processing', 'w_matrix_training', 'vector_invocation', 'custom') NOT NULL,\n  status ENUM('active', 'completed', 'failed') NOT NULL,\n  title VARCHAR(255) NOT NULL,\n  description TEXT,\n  tags TEXT,\n  started_at TIMESTAMP NOT NULL,\n  completed_at TIMESTAMP,\n  total_events INT DEFAULT 0 NOT NULL,\n  total_duration INT DEFAULT 0 NOT NULL,\n  total_cost DECIMAL(10, 4) DEFAULT 0.0000 NOT NULL,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  INDEX user_idx (user_id),\n  INDEX type_idx (type),\n  INDEX status_idx (status),\n  INDEX started_at_idx (started_at)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user BJCg398T6oWYDPo.root --database 7tmxppdWkaaTHYjCYTzpBr --execute CREATE TABLE IF NOT EXISTS workflow_sessions (\n  id VARCHAR(32) PRIMARY KEY,\n  user_id INT NOT NULL,\n  type ENUM('ai_reasoning', 'memory_transfer', 'package_processing', 'w_matrix_training', 'vector_invocation', 'custom') NOT NULL,\n  status ENUM('active', 'completed', 'failed') NOT NULL,\n  title VARCHAR(255) NOT NULL,\n  description TEXT,\n  tags TEXT,\n  started_at TIMESTAMP NOT NULL,\n  completed_at TIMESTAMP,\n  total_events INT DEFAULT 0 NOT NULL,\n  total_duration INT DEFAULT 0 NOT NULL,\n  total_cost DECIMAL(10, 4) DEFAULT 0.0000 NOT NULL,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  INDEX user_idx (user_id),\n  INDEX type_idx (type),\n  INDEX status_idx (status),\n  INDEX started_at_idx (started_at)\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 258
+}

@@ -12,6 +12,9 @@ import type {
   WorkflowEventType,
   WorkflowEventStatus,
 } from "../shared/workflow-types";
+import { getDb } from "./db";
+import { workflowSessions, workflowEvents } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 class WorkflowManager extends EventEmitter {
   private sessions: Map<string, WorkflowSession> = new Map();
@@ -44,6 +47,11 @@ class WorkflowManager extends EventEmitter {
 
     this.sessions.set(session.id, session);
     this.events.set(session.id, []);
+
+    // Save to database (async, don't wait)
+    this.saveSessionToDb(session).catch(err => 
+      console.error(`[WorkflowManager] Failed to save session to DB:`, err)
+    );
 
     // Broadcast session start
     this.broadcastMessage(session.id, {
@@ -96,6 +104,11 @@ class WorkflowManager extends EventEmitter {
     session.totalEvents++;
     session.events = sessionEvents;
 
+    // Save to database (async, don't wait)
+    this.saveEventToDb(event).catch((err: any) =>
+      console.error(`[WorkflowManager] Failed to save event to DB:`, err)
+    );
+
     // Broadcast event
     this.broadcastMessage(workflowId, {
       type: "event",
@@ -146,6 +159,11 @@ class WorkflowManager extends EventEmitter {
       session.totalDuration += updates.duration;
     }
 
+    // Update database (async, don't wait)
+    this.updateEventInDb(eventId, updates).catch((err: any) =>
+      console.error(`[WorkflowManager] Failed to update event in DB:`, err)
+    );
+
     // Broadcast updated event
     this.broadcastMessage(workflowId, {
       type: "event",
@@ -176,6 +194,11 @@ class WorkflowManager extends EventEmitter {
       data: session,
       timestamp: Date.now(),
     });
+
+    // Update database (async, don't wait)
+    this.updateSessionInDb(workflowId, { status, completedAt: session.completedAt! }).catch(err =>
+      console.error(`[WorkflowManager] Failed to update session in DB:`, err)
+    );
 
     console.log(`[WorkflowManager] Completed session: ${workflowId} (${status})`);
     return session;
@@ -237,6 +260,108 @@ class WorkflowManager extends EventEmitter {
    */
   unsubscribe(workflowId: string, callback: (message: WorkflowStreamMessage) => void) {
     this.off(`workflow:${workflowId}`, callback);
+  }
+
+  /**
+   * Save session to database
+   */
+  private async saveSessionToDb(session: WorkflowSession): Promise<void> {
+    try {
+      const db = await getDb();
+      if (!db) return;
+
+      await db.insert(workflowSessions).values({
+        id: session.id,
+        userId: session.userId,
+        type: session.type,
+        status: session.status,
+        title: session.title,
+        description: session.description || null,
+        tags: session.tags ? JSON.stringify(session.tags) : null,
+        startedAt: new Date(session.startedAt),
+        completedAt: session.completedAt ? new Date(session.completedAt) : null,
+        totalEvents: session.totalEvents,
+        totalDuration: session.totalDuration,
+        totalCost: session.totalCost.toString(),
+      });
+    } catch (error: any) {
+      console.error(`[WorkflowManager] DB save error:`, error.message);
+    }
+  }
+
+  /**
+   * Update session in database
+   */
+  private async updateSessionInDb(workflowId: string, updates: Partial<WorkflowSession>): Promise<void> {
+    try {
+      const db = await getDb();
+      if (!db) return;
+
+      const dbUpdates: any = {};
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.completedAt) dbUpdates.completedAt = new Date(updates.completedAt);
+      if (updates.totalEvents !== undefined) dbUpdates.totalEvents = updates.totalEvents;
+      if (updates.totalDuration !== undefined) dbUpdates.totalDuration = updates.totalDuration;
+      if (updates.totalCost !== undefined) dbUpdates.totalCost = updates.totalCost.toString();
+
+      await db
+        .update(workflowSessions)
+        .set(dbUpdates)
+        .where(eq(workflowSessions.id, workflowId));
+    } catch (error: any) {
+      console.error(`[WorkflowManager] DB update error:`, error.message);
+    }
+  }
+
+  /**
+   * Save event to database
+   */
+  private async saveEventToDb(event: WorkflowEvent): Promise<void> {
+    try {
+      const db = await getDb();
+      if (!db) return;
+
+      await db.insert(workflowEvents).values({
+        id: event.id,
+        workflowId: event.workflowId,
+        type: event.type,
+        status: event.status,
+        title: event.title,
+        description: event.description || null,
+        timestamp: event.timestamp,
+        duration: event.duration || null,
+        input: event.input || null,
+        output: event.output || null,
+        metadata: event.metadata || null,
+        error: event.error || null,
+        parentEventId: event.parentEventId || null,
+      });
+    } catch (error: any) {
+      console.error(`[WorkflowManager] DB save event error:`, error.message);
+    }
+  }
+
+  /**
+   * Update event in database
+   */
+  private async updateEventInDb(eventId: string, updates: Partial<WorkflowEvent>): Promise<void> {
+    try {
+      const db = await getDb();
+      if (!db) return;
+
+      const dbUpdates: any = {};
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
+      if (updates.output !== undefined) dbUpdates.output = updates.output;
+      if (updates.error !== undefined) dbUpdates.error = updates.error;
+
+      await db
+        .update(workflowEvents)
+        .set(dbUpdates)
+        .where(eq(workflowEvents.id, eventId));
+    } catch (error: any) {
+      console.error(`[WorkflowManager] DB update event error:`, error.message);
+    }
   }
 
   /**

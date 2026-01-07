@@ -1651,3 +1651,168 @@ Cold (20%, Storj):
 - [x] Create integration guide for developers
 - [x] Add API reference
 - [x] Add troubleshooting section
+
+
+## Workflow Visualizer Integration & Deployment
+
+### Phase 1: Business Process Analysis
+- [ ] Analyze AI Agent API endpoints and integration points
+- [ ] Analyze Package upload processing flow
+- [ ] Analyze W-Matrix training flow
+- [ ] Design integration strategy for each process
+
+### Phase 2: AI Agent API Integration
+- [x] Add workflowManager tracking to package upload
+- [x] Track user upload as 'user_input' event
+- [x] Track decode operation as 'tool_call' event
+- [x] Track S3 upload as 'tool_call' event
+- [x] Track database storage as 'tool_call' event
+- [x] Handle errors and end session properly
+- [ ] Update UI to show visualizer during package upload
+- [ ] Test real package upload with visualizer
+
+### Phase 3: Package Upload Integration
+- [ ] Add WorkflowManager tracking to package upload
+- [ ] Track file upload as 'user_input' event
+- [ ] Track validation as 'tool_call' event
+- [ ] Track extraction as 'prompt' event
+- [ ] Track storage as 'response' event
+- [ ] Update package upload UI with visualizer
+
+### Phase 4: W-Matrix Training Integration
+- [ ] Add WorkflowManager tracking to W-Matrix training
+- [ ] Track training initialization
+- [ ] Track epoch progress
+- [ ] Track validation steps
+- [ ] Track completion and metrics
+- [ ] Update training UI with visualizer
+
+### Phase 5: History Storage
+- [ ] Create workflow_sessions table in database
+- [ ] Create workflow_events table in database
+- [ ] Implement WorkflowManager.persistSession()
+- [ ] Implement WorkflowManager.persistEvent()
+- [ ] Add automatic persistence on session end
+- [ ] Run database migration
+
+### Phase 6: History Replay
+- [ ] Create workflow history query API
+- [ ] Implement WorkflowHistory page
+- [ ] Add workflow list view with filters
+- [ ] Add replay functionality
+- [ ] Add timeline scrubbing controls
+- [ ] Add export historical workflows
+
+### Phase 7: AWS Deployment
+- [ ] Package latest code for AWS
+- [ ] Upload to AWS EC2
+- [ ] Install dependencies on AWS
+- [ ] Run database migrations on AWS
+- [ ] Restart application on AWS
+- [ ] Test on awareness.market
+
+### Phase 8: Testing & Validation
+- [ ] Test AI Agent workflow visualization
+- [ ] Test Package upload workflow visualization
+- [ ] Test W-Matrix training workflow visualization
+- [ ] Test workflow history storage
+- [ ] Test workflow replay functionality
+- [ ] Test AWS production deployment
+
+
+## Workflow Integration Progress ✅
+
+### Completed Integrations
+- [x] AI Agent API - Package Upload (processUpload function)
+  - Track user upload, decode, S3 upload, database storage
+- [x] W-Matrix Training (alignment.trainMatrix)
+  - Track preparation, training, database save
+- [x] Vector Invocation (invokeVector function)
+  - Track permission verification, metadata fetch, S3 load, execution
+
+### Bug Fixes
+- [x] Fix PackageDetail price.toFixed() error (added null check)
+- [x] Fix workflow endSession → completeSession method name
+- [x] Add missing workflow session types (w_matrix_training, vector_invocation)
+
+### Next Steps
+- [ ] Implement workflow history storage in database
+- [ ] Implement history query and replay functionality
+- [ ] Update UI to show visualizer during actual operations
+- [ ] Deploy to AWS production environment
+
+
+---
+
+## Real-time Workflow Visualization \u2705
+
+### Components \u2705
+- [x] Create workflow types (WorkflowEvent, WorkflowSession, etc.)
+- [x] Create EventTimeline component (horizontal timeline)
+- [x] Create EventDetailsPanel component (detailed logs)
+- [x] Create FilterControls component (search and filters)
+- [x] Create main WorkflowVisualizer component
+- [x] Create WorkflowManager (server-side event tracking)
+- [x] Create WebSocket server for real-time streaming
+- [x] Create workflow tRPC router with demo scenarios
+- [x] Create WorkflowDemo page
+- [x] Add route to App.tsx
+- [x] Install socket.io-client package
+- [x] Update WorkflowVisualizer to use Socket.IO
+- [x] Initialize WebSocket server in main entry point
+
+### Business Process Integration \u2705
+- [x] Integrate with AI Agent API (package upload)
+- [x] Integrate with W-Matrix training
+- [x] Integrate with Vector invocation
+- [x] Track all operations with workflow events
+- [x] Handle errors properly in all integrations
+
+### Database Persistence \u2705
+- [x] Create workflow_sessions table
+- [x] Create workflow_events table
+- [x] Add database persistence methods to WorkflowManager
+- [x] Auto-save sessions to database
+- [x] Auto-save events to database
+- [x] Auto-update session status
+- [x] Auto-update event status
+
+### History and Replay (Next Phase)
+- [ ] Implement workflow history query API
+- [ ] Implement workflow replay functionality
+- [ ] Add history browser UI
+- [ ] Add replay controls (play, pause, step)
+- [ ] Add export workflow as JSON/PDF
+
+### Testing \u2705
+- [x] Test AI reasoning demo scenario
+- [x] Test WebSocket real-time updates
+- [x] Test event timeline visualization
+- [x] Test event details panel (Overview, Input, Output, Metadata)
+- [ ] Test memory transfer demo scenario
+- [ ] Test package processing demo scenario
+- [ ] Test event filtering and search
+- [ ] Test export functionality
+- [ ] Test real package upload with visualizer
+- [ ] Test real W-Matrix training with visualizer
+- [ ] Test real vector invocation with visualizer
+
+### Documentation \u2705
+- [x] Create comprehensive usage guide (WORKFLOW_VISUALIZER_GUIDE.md)
+- [x] Document WebSocket API
+- [x] Document workflow event types
+- [x] Create integration guide for developers
+- [x] Add API reference
+- [x] Add troubleshooting section
+
+### Bug Fixes \u2705
+- [x] Fix PackageDetail price.toFixed() error (added null check)
+- [x] Fix workflow endSession → completeSession method name
+- [x] Add missing workflow session types (w_matrix_training, vector_invocation)
+- [x] Fix bigint import in workflow schema
+
+### AWS Deployment (Next Phase)
+- [ ] Deploy workflow visualizer to AWS production
+- [ ] Test on awareness.market
+- [ ] Verify database persistence in production
+- [ ] Monitor performance and optimize

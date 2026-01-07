@@ -353,7 +353,7 @@ export default function PackageDetail() {
               <div className="mb-6">
                 <div className="text-sm text-slate-400 mb-2">Price</div>
                 <div className="text-4xl font-bold text-white mb-4">
-                  ${pkg.price.toFixed(2)}
+                  ${pkg.price != null ? pkg.price.toFixed(2) : '0.00'}
                 </div>
               </div>
 

@@ -29,6 +29,7 @@ import { uploadPackageTransaction, purchasePackageTransaction } from '../db-tran
 import { getDb } from '../db-connection';
 import { vectorPackages, memoryPackages, chainPackages, packagePurchases } from '../../drizzle/schema';
 import { eq, and, like, or } from 'drizzle-orm';
+import { workflowManager } from '../workflow-manager';
 
 // Upload status tracking (in-memory, should use Redis in production)
 const uploadStatuses = new Map<string, {
@@ -359,12 +360,50 @@ export const aiAgentRouter = router({
  * Process upload asynchronously
  */
 async function processUpload(uploadId: string, input: any, userId: number) {
+  // Create workflow session for visualization
+  const session = workflowManager.createSession({
+    userId,
+    type: 'package_processing',
+    title: `Package Upload: ${input.name}`,
+    description: `Processing ${input.packageType} package upload`,
+    tags: [input.packageType, 'upload'],
+  });
+  const workflowId = session.id;
+
   try {
+    // Track: User initiated upload
+    const uploadEvent = workflowManager.addEvent(workflowId, {
+      type: 'user_input',
+      title: 'Upload Package',
+      input: {
+        packageType: input.packageType,
+        name: input.name,
+        sourceModel: input.sourceModel,
+        targetModel: input.targetModel,
+        epsilon: input.epsilon,
+        price: input.price,
+      },
+      metadata: { uploadId },
+    });
+
     // Update status: processing
     uploadStatuses.set(uploadId, {
       status: 'processing',
       progress: 10,
       createdAt: new Date(),
+    });
+
+    workflowManager.updateEvent(workflowId, uploadEvent.id, {
+      status: 'completed',
+      output: { message: 'Upload initiated' },
+    });
+
+    // Track: Decode and validate data
+    const decodeEvent = workflowManager.addEvent(workflowId, {
+      type: 'tool_call',
+      title: 'Decode Package Data',
+      input: { packageType: input.packageType },
+      metadata: { step: 'decode' },
     });
 
     // Decode base64 data
@@ -381,11 +420,30 @@ async function processUpload(uploadId: string, input: any, userId: number) {
       throw new Error('Missing package data');
     }
 
+    workflowManager.updateEvent(workflowId, decodeEvent.id, {
+      status: 'completed',
+      output: {
+        packageSize: packageBuffer.length,
+        wMatrixSize: wMatrixBuffer.length,
+      },
+    });
+
     // Update progress: 30%
     uploadStatuses.set(uploadId, {
       status: 'processing',
       progress: 30,
       createdAt: new Date(),
+    });
+
+    // Track: Upload to storage
+    const storageEvent = workflowManager.addEvent(workflowId, {
+      type: 'tool_call',
+      title: 'Upload to S3',
+      input: {
+        packageSize: packageBuffer.length,
+        wMatrixSize: wMatrixBuffer.length,
+      },
+      metadata: { step: 'storage' },
     });
 
     // Upload to S3
@@ -412,11 +470,33 @@ async function processUpload(uploadId: string, input: any, userId: number) {
     console.log(`[AI Upload] Package stored in ${packageResult.backend}, W-Matrix in ${wMatrixResult.backend}`);
     console.log(`[AI Upload] Estimated cost: $${(packageResult.estimatedCost + wMatrixResult.estimatedCost).toFixed(4)}/month`);
 
+    workflowManager.updateEvent(workflowId, storageEvent.id, {
+      status: 'completed',
+      output: {
+        packageUrl,
+        wMatrixUrl,
+        backend: packageResult.backend,
+        estimatedCost: (packageResult.estimatedCost + wMatrixResult.estimatedCost).toFixed(4),
+      },
+    });
+
     // Update progress: 60%
     uploadStatuses.set(uploadId, {
       status: 'processing',
       progress: 60,
       createdAt: new Date(),
+    });
+
+    // Track: Create database record
+    const dbEvent = workflowManager.addEvent(workflowId, {
+      type: 'tool_call',
+      title: 'Store Package Metadata',
+      input: {
+        packageType: input.packageType,
+        name: input.name,
+        price: input.price,
+      },
+      metadata: { step: 'database' },
     });
 
     // Create database record
@@ -442,6 +522,14 @@ async function processUpload(uploadId: string, input: any, userId: number) {
       },
     });
 
+    workflowManager.updateEvent(workflowId, dbEvent.id, {
+      status: 'completed',
+      output: {
+        packageId: result.packageId,
+        packageUrl: result.packageUrl,
+      },
+    });
+
     // Update status: completed
     uploadStatuses.set(uploadId, {
       status: 'completed',
@@ -449,6 +537,9 @@ async function processUpload(uploadId: string, input: any, userId: number) {
       packageId: result.packageId.toString(),
       createdAt: new Date(),
     });
+
+    // End workflow session
+    workflowManager.completeSession(workflowId, 'completed');
 
     // Send webhook notification if provided
     if (input.webhookUrl) {
@@ -461,6 +552,17 @@ async function processUpload(uploadId: string, input: any, userId: number) {
     }
   } catch (error) {
     console.error('[Process Upload] Error:', error);
+    
+    // Track error in workflow
+    workflowManager.addEvent(workflowId, {
+      type: 'tool_call',
+      title: 'Upload Failed',
+      input: { error: (error as Error).message },
+      metadata: { status: 'error' },
+    });
+    
+    workflowManager.completeSession(workflowId, 'failed');
+    
     uploadStatuses.set(uploadId, {
       status: 'failed',
       progress: 0,
