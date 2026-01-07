@@ -1559,3 +1559,42 @@ Cold (20%, Storj):
 - [x] 添加 VectorPackageMarket 组件导入
 
 **结果**: ✅ 成功显示 5 个 Vector Packages，页面功能正常
+
+## 🔍 Phase 6: Global Search Functionality (2026-01-06)
+
+### Backend Search API
+- [x] 创建 globalSearch tRPC procedure
+- [x] 支持跨三种 package 类型搜索（vector/memory/chain）
+- [x] 实现多字段筛选：
+  - [x] 名称搜索（模糊匹配）
+  - [x] 模型筛选（sourceModel, targetModel）
+  - [x] 类别筛选（category）
+  - [x] Epsilon 范围筛选（min/max）
+- [x] 返回统一的搜索结果格式
+
+### Frontend Search UI
+- [x] 创建 GlobalSearch 组件
+- [x] 实现搜索栏 UI（带图标和快捷键提示）
+- [x] 实现筛选器 UI：
+  - [x] 类别下拉选择器
+  - [x] 模型输入框
+  - [x] Epsilon 范围滑块
+  - [x] 价格范围滑块
+  - [x] 重置筛选按钮
+- [x] 实现实时搜索（debounced 300ms）
+- [x] 实现搜索结果展示（卡片式布局）
+
+### Integration
+- [x] 将 GlobalSearch 集成到 Navbar
+- [x] 实现快捷键触发（Ctrl+K / Cmd+K）
+- [x] 实现点击外部关闭搜索面板
+- [x] ESC 键关闭搜索
+- [x] 显示快捷键提示（⌘K）
+
+### Testing
+- [x] 测试搜索功能（文本搜索） - 搜索 "GPT" 返回 6 个相关结果
+- [x] 测试筛选器组合 - Vector 筛选成功显示 5 个 Vector Packages
+- [x] 测试快捷键触发 - Ctrl+K / Cmd+K 成功打开搜索
+- [x] 验证搜索结果准确性 - 所有结果正确显示类型、价格、epsilon
+
+**状态**: ✅ 全局搜索功能完全实现并测试通过

@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +30,8 @@ import {
   Rocket,
   BarChart3,
   Code,
-  Github
+  Github,
+  Search
 } from "lucide-react";
 
 const navLinks = [
@@ -64,6 +66,7 @@ const navLinks = [
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [location] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
 
@@ -73,6 +76,18 @@ export default function Navbar() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Ctrl+K / Cmd+K shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   return (
@@ -108,6 +123,18 @@ export default function Navbar() {
             </div>
             <span className="font-semibold text-lg tracking-tight">Awareness</span>
           </Link>
+
+          {/* Search Button */}
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm text-muted-foreground"
+          >
+            <Search className="w-4 h-4" />
+            <span>Search</span>
+            <kbd className="hidden lg:inline-block px-2 py-0.5 text-xs bg-white/10 rounded border border-white/20">
+              ⌘K
+            </kbd>
+          </button>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
@@ -290,6 +317,9 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      {/* Global Search Modal */}
+      <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </nav>
   );
 }

@@ -585,4 +585,107 @@ export const packagesApiRouter = router({
         purchases,
       };
     }),
+
+  /**
+   * Global Search - Search across all package types
+   */
+  globalSearch: publicProcedure
+    .input(z.object({
+      query: z.string().optional(),
+      packageTypes: z.array(PackageTypeSchema).optional(), // Filter by specific types
+      sourceModel: z.string().optional(),
+      targetModel: z.string().optional(),
+      category: z.string().optional(),
+      minEpsilon: z.number().min(0).max(1).optional(),
+      maxEpsilon: z.number().min(0).max(1).optional(),
+      minPrice: z.number().optional(),
+      maxPrice: z.number().optional(),
+      limit: z.number().min(1).max(50).default(20),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      const results: Array<{
+        type: 'vector' | 'memory' | 'chain';
+        package: any;
+      }> = [];
+
+      // Determine which package types to search
+      const typesToSearch = input.packageTypes || ['vector', 'memory', 'chain'];
+
+      // Search each package type
+      for (const packageType of typesToSearch) {
+        const table = getPackageTable(packageType);
+        const conditions: any[] = [];
+
+        // Text search (name or description)
+        if (input.query) {
+          conditions.push(
+            or(
+              like(table.name, `%${input.query}%`),
+              like(table.description, `%${input.query}%`)
+            )
+          );
+        }
+
+        // Model filters
+        if (input.sourceModel) {
+          conditions.push(eq(table.sourceModel, input.sourceModel));
+        }
+        if (input.targetModel) {
+          conditions.push(eq(table.targetModel, input.targetModel));
+        }
+
+        // Category filter (only for vector packages)
+        if (input.category && packageType === 'vector') {
+          conditions.push(eq(table.category, input.category));
+        }
+
+        // Epsilon range filter
+        if (input.minEpsilon !== undefined) {
+          conditions.push(sql`${table.epsilon} >= ${input.minEpsilon}`);
+        }
+        if (input.maxEpsilon !== undefined) {
+          conditions.push(sql`${table.epsilon} <= ${input.maxEpsilon}`);
+        }
+
+        // Price range filter
+        if (input.minPrice !== undefined) {
+          conditions.push(sql`${table.price} >= ${input.minPrice}`);
+        }
+        if (input.maxPrice !== undefined) {
+          conditions.push(sql`${table.price} <= ${input.maxPrice}`);
+        }
+
+        // Query packages
+        const packages = await db
+          .select()
+          .from(table)
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(desc(table.createdAt))
+          .limit(Math.ceil(input.limit / typesToSearch.length)); // Distribute limit across types
+
+        // Add to results with type annotation
+        packages.forEach(pkg => {
+          results.push({
+            type: packageType,
+            package: pkg,
+          });
+        });
+      }
+
+      // Sort all results by creation date and limit
+      const sortedResults = results
+        .sort((a, b) => {
+          const dateA = new Date(a.package.createdAt).getTime();
+          const dateB = new Date(b.package.createdAt).getTime();
+          return dateB - dateA;
+        })
+        .slice(0, input.limit);
+
+      return {
+        success: true,
+        results: sortedResults,
+        total: sortedResults.length,
+      };
+    }),
 });
