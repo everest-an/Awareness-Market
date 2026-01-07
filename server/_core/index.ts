@@ -19,6 +19,7 @@ import swaggerUi from "swagger-ui-express";
 import { Server as SocketIOServer } from "socket.io";
 import fs from "fs";
 import path from "path";
+import { initializeWorkflowWebSocket } from "../workflow-websocket";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -133,6 +134,9 @@ async function startServer() {
   
   // Attach io to app for use in other modules
   (app as any).io = io;
+  
+  // Initialize workflow WebSocket server
+  initializeWorkflowWebSocket(server);
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

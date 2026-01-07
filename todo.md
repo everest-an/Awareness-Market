@@ -1598,3 +1598,56 @@ Cold (20%, Storj):
 - [x] 验证搜索结果准确性 - 所有结果正确显示类型、价格、epsilon
 
 **状态**: ✅ 全局搜索功能完全实现并测试通过
+
+## 🐛 Bug Fix: Onboarding Flow Create Account Button
+
+### Issue
+- [ ] "Create Account" 按钮点击没有反应
+- [ ] 需要检查 OnboardingFlow 组件中的事件处理
+
+### Fix
+- [ ] 检查按钮的 onClick 事件
+- [ ] 确保正确调用 handleRoleSelect 函数
+- [ ] 测试修复后的功能
+
+
+## Real-time Workflow Visualization ✅
+
+### Components
+- [x] Create workflow types (WorkflowEvent, WorkflowSession, etc.)
+- [x] Create EventTimeline component (horizontal timeline)
+- [x] Create EventDetailsPanel component (detailed logs)
+- [x] Create FilterControls component (search and filters)
+- [x] Create main WorkflowVisualizer component
+- [x] Create WorkflowManager (server-side event tracking)
+- [x] Create WebSocket server for real-time streaming
+- [x] Create workflow tRPC router with demo scenarios
+- [x] Create WorkflowDemo page
+- [x] Add route to App.tsx
+- [x] Install socket.io-client package
+- [x] Update WorkflowVisualizer to use Socket.IO
+- [x] Initialize WebSocket server in main entry point
+
+### Integration Points
+- [ ] Integrate with AI Agent API calls
+- [ ] Integrate with Package upload processing
+- [ ] Integrate with W-Matrix training
+- [ ] Integrate with Memory transfer operations
+
+### Testing
+- [x] Test AI reasoning demo scenario
+- [x] Test WebSocket real-time updates
+- [x] Test event timeline visualization
+- [x] Test event details panel (Overview, Input, Output, Metadata)
+- [ ] Test memory transfer demo scenario
+- [ ] Test package processing demo scenario
+- [ ] Test event filtering and search
+- [ ] Test export functionality
+
+### Documentation
+- [x] Create comprehensive usage guide (WORKFLOW_VISUALIZER_GUIDE.md)
+- [x] Document WebSocket API
+- [x] Document workflow event types
+- [x] Create integration guide for developers
+- [x] Add API reference
+- [x] Add troubleshooting section

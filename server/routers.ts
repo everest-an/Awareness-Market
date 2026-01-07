@@ -29,6 +29,7 @@ import { agentCreditRouter } from './routers/agent-credit-api';
 import { latentmasMarketplaceRouter } from './routers/latentmas-marketplace';
 import { packagesApiRouter } from './routers/packages-api';
 import { aiAgentRouter } from './api/ai-agent-api';
+import { workflowRouter } from './routers/workflow';
 // Memory Exchange moved to Go microservice
 
 // Helper to ensure user is a creator
@@ -1499,6 +1500,7 @@ export const appRouter = router({
   agentCredit: agentCreditRouter,
   latentmasMarketplace: latentmasMarketplaceRouter,
   packages: packagesApiRouter,
+  workflow: workflowRouter,
   // memoryExchange: Go microservice at :8080
 
   // Admin Analytics (admin-only)

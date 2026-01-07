@@ -42,6 +42,7 @@ import UploadVectorPackage from "./pages/UploadVectorPackage";
 import UploadMemoryPackage from "./pages/UploadMemoryPackage";
 import PackageDetail from "./pages/PackageDetail";
 import VectorPackageMarket from "./pages/VectorPackageMarket";
+import WorkflowDemo from "./pages/WorkflowDemo";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -75,6 +76,7 @@ function Router() {
       {/* Redirects for deprecated pages */}
       <Route path="/w-matrix-marketplace">{() => <Redirect to="/w-matrix" />}</Route>
       <Route path="/vector-packages" component={VectorPackageMarket} />
+      <Route path="/workflow-demo" component={WorkflowDemo} />
       <Route path="/upload-vector-package" component={UploadVectorPackage} />
       <Route path="/memory-marketplace" component={MemoryMarketplace} />
       <Route path="/upload-memory-package" component={UploadMemoryPackage} />
