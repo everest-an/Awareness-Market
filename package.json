@@ -11,7 +11,9 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
-    "seed": "node scripts/seed-data.mjs"
+    "seed": "node scripts/seed-data.mjs",
+    "create-demo-account": "tsx scripts/create-demo-account.ts",
+    "test-memory-types": "tsx scripts/test-three-memory-types.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",

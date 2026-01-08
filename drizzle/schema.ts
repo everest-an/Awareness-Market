@@ -1005,6 +1005,9 @@ export const memoryPackages = mysqlTable("memory_packages", {
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description").notNull(),
   
+  // Memory type
+  memoryType: mysqlEnum("memory_type", ["kv_cache", "reasoning_chain", "long_term_memory"]).default("kv_cache").notNull(),
+  
   // Package files (S3 URLs)
   kvCacheUrl: text("kv_cache_url").notNull(), // KV-Cache .safetensors
   wMatrixUrl: text("w_matrix_url").notNull(), // W-Matrix .safetensors
