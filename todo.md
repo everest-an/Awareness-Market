@@ -1872,3 +1872,27 @@ Cold (20%, Storj):
 - [x] Verify user can complete signup
   - Registration → Login flow is seamless
   - User just needs to click "Sign In" after registration
+
+
+### User Onboarding Flow ✅
+- [x] Design and implement welcome dialog
+  - [x] Create WelcomeDialog component with role selection
+  - [x] Add "Creator" and "Consumer" options with descriptions
+  - [x] Add visual icons and styling
+  - [x] Store user preference in database
+- [x] Update database schema for user roles
+  - [x] Add userType field to users table (creator/consumer/both)
+  - [x] Add onboardingCompleted boolean field
+  - [x] Run database migration
+- [x] Create tRPC API endpoints
+  - [x] user.me - Get current user profile
+  - [x] user.updateUserRole - Update user role during onboarding
+  - [x] user.updateProfile - Update user profile
+- [x] Integrate WelcomeDialog into Home page
+  - [x] Show dialog for new users who haven't completed onboarding
+  - [x] Auto-close after role selection
+- [x] Test onboarding flow
+  - [x] Test first-time user experience - Dialog shows on first login
+  - [x] Test role selection persistence - Data saved to database
+  - [x] Test dialog behavior - Closes after role selection
+  - [x] Verified database updates correctly (user_type and onboarding_completed)

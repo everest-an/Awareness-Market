@@ -1,11 +1,13 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import Globe3D from "@/components/Globe3D";
-import OnboardingFlow from "@/components/OnboardingFlow";
+import { WelcomeDialog } from "@/components/WelcomeDialog";
+import { trpc } from "@/lib/trpc";
 import { 
   Brain, 
   Zap, 
@@ -21,11 +23,29 @@ import {
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
+  const [showWelcome, setShowWelcome] = useState(false);
+  
+  // Query user profile to check onboarding status
+  const { data: userProfile } = trpc.user.me.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  useEffect(() => {
+    // Show welcome dialog if user is authenticated but hasn't completed onboarding
+    if (isAuthenticated && userProfile && !userProfile.onboardingCompleted) {
+      setShowWelcome(true);
+    }
+  }, [isAuthenticated, userProfile]);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Onboarding Flow */}
-      <OnboardingFlow />
+      {/* Welcome Dialog for new users */}
+      {isAuthenticated && (
+        <WelcomeDialog 
+          open={showWelcome} 
+          onOpenChange={setShowWelcome}
+        />
+      )}
       
       {/* Navbar */}
       <Navbar />

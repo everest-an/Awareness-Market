@@ -20,6 +20,8 @@ export const users = mysqlTable("users", {
   emailVerified: boolean("email_verified").default(false),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin", "creator", "consumer"]).default("consumer").notNull(),
+  userType: mysqlEnum("user_type", ["creator", "consumer", "both"]), // User's primary role
+  onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
   bio: text("bio"),
   avatar: text("avatar"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
