@@ -1896,3 +1896,39 @@ Cold (20%, Storj):
   - [x] Test role selection persistence - Data saved to database
   - [x] Test dialog behavior - Closes after role selection
   - [x] Verified database updates correctly (user_type and onboarding_completed)
+
+
+### AWS Deployment (In Progress)
+- [ ] Prepare project for deployment
+  - [ ] Check server information from provided files
+  - [ ] Export project code from Manus
+  - [ ] Create deployment package
+- [ ] Deploy to AWS EC2
+  - [ ] Connect to EC2 instance using provided SSH key
+  - [ ] Install Node.js and dependencies
+  - [ ] Upload project files
+  - [ ] Configure environment variables
+  - [ ] Set up database connection
+  - [ ] Start application with PM2
+- [ ] Configure domain and SSL
+  - [ ] Set up reverse proxy (Nginx)
+  - [ ] Configure SSL certificate
+  - [ ] Update DNS settings
+
+### Email Verification Feature (Pending)
+- [ ] Design email verification flow
+  - [ ] Generate verification tokens
+  - [ ] Create email templates
+  - [ ] Add verification endpoints
+- [ ] Implement backend logic
+  - [ ] Add email sending with Resend API
+  - [ ] Create verification token storage
+  - [ ] Add verification check middleware
+- [ ] Update UI
+  - [ ] Add verification status badge
+  - [ ] Create verification reminder banner
+  - [ ] Add resend verification email button
+- [ ] Test email verification
+  - [ ] Test email sending
+  - [ ] Test verification link
+  - [ ] Test edge cases
