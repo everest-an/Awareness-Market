@@ -1777,12 +1777,33 @@ Cold (20%, Storj):
 - [x] Auto-update session status
 - [x] Auto-update event status
 
-### History and Replay (Next Phase)
-- [ ] Implement workflow history query API
-- [ ] Implement workflow replay functionality
-- [ ] Add history browser UI
-- [ ] Add replay controls (play, pause, step)
-- [ ] Add export workflow as JSON/PDF
+### History and Replay ✅
+- [x] Create tRPC API endpoints for workflow history
+  - [x] workflow.getHistory - List all workflow sessions with filters
+  - [x] workflow.getSession - Get single session details
+  - [x] workflow.getEvents - Get all events for a session
+  - [x] workflow.searchSessions - Search sessions by user, type, date range
+  - [x] workflow.getStatistics - Get workflow statistics
+  - [x] workflow.deleteOldSessions - Cleanup old data
+- [x] Build workflow history browser UI
+  - [x] Create WorkflowHistory page component
+  - [x] Add session list with filters (user, type, status, date range)
+  - [x] Add session details view (WorkflowSessionDetail)
+  - [x] Add pagination and sorting
+  - [x] Add statistics cards
+- [x] Implement playback functionality
+  - [x] Create WorkflowPlayback component
+  - [x] Add play/pause/step controls
+  - [x] Add speed control (1x, 2x, 5x)
+  - [x] Add timeline scrubber with slider
+  - [x] Replay events in sequence with actual timestamps
+  - [x] Add reset and skip forward/backward
+- [x] Add export workflow as JSON
+- [ ] Test workflow history features
+  - [ ] Test history query API
+  - [ ] Test filtering and search
+  - [ ] Test playback controls
+  - [ ] Test with real workflow data
 
 ### Testing \u2705
 - [x] Test AI reasoning demo scenario

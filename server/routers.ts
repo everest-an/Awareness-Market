@@ -30,6 +30,7 @@ import { latentmasMarketplaceRouter } from './routers/latentmas-marketplace';
 import { packagesApiRouter } from './routers/packages-api';
 import { aiAgentRouter } from './api/ai-agent-api';
 import { workflowRouter } from './routers/workflow';
+import { workflowHistoryRouter } from './routers/workflow-history';
 // Memory Exchange moved to Go microservice
 
 // Helper to ensure user is a creator
@@ -1578,6 +1579,7 @@ export const appRouter = router({
   latentmasMarketplace: latentmasMarketplaceRouter,
   packages: packagesApiRouter,
   workflow: workflowRouter,
+  workflowHistory: workflowHistoryRouter,
   // memoryExchange: Go microservice at :8080
 
   // Admin Analytics (admin-only)
