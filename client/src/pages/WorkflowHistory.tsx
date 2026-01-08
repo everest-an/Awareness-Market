@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
-import { Clock, Search, Filter, ChevronLeft, ChevronRight, Play, Download } from "lucide-react";
+import { Clock, Search, Filter, ChevronLeft, ChevronRight, Play, Download, SlidersHorizontal } from "lucide-react";
 import { useLocation } from "wouter";
+import { AdvancedSearchDialog, type AdvancedSearchFilters } from "@/components/WorkflowVisualizer/AdvancedSearchDialog";
 
 /**
  * Workflow History Page
@@ -28,6 +29,8 @@ export function WorkflowHistory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"createdAt" | "updatedAt" | "duration">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedSearchFilters>({});
 
   // Query workflow history
   const { data, isLoading, error } = trpc.workflowHistory.getHistory.useQuery({
@@ -48,6 +51,23 @@ export function WorkflowHistory() {
       // TODO: Implement search using searchSessions endpoint
       console.log("Search:", searchQuery);
     }
+  };
+
+  // Handle advanced search
+  const handleAdvancedSearch = (filters: AdvancedSearchFilters) => {
+    setAdvancedFilters(filters);
+    // Apply filters to the query
+    if (filters.sessionType) {
+      setSessionType(filters.sessionType);
+    }
+    if (filters.status) {
+      setStatus(filters.status);
+    }
+    if (filters.keyword) {
+      setSearchQuery(filters.keyword);
+    }
+    // Reset to first page when applying new filters
+    setPage(1);
   };
 
   // Handle session click
@@ -151,22 +171,31 @@ export function WorkflowHistory() {
         {/* Filters */}
         <Card className="bg-gray-900/50 border-gray-800 mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {/* Search */}
-              <div className="md:col-span-2">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Search sessions..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                    className="bg-gray-800 border-gray-700"
-                  />
-                  <Button onClick={handleSearch} size="icon" className="bg-blue-600 hover:bg-blue-700">
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </div>
+            <div className="space-y-4">
+              {/* Search and Advanced Search Button */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search sessions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  className="bg-gray-800 border-gray-700 flex-1"
+                />
+                <Button onClick={handleSearch} size="icon" className="bg-blue-600 hover:bg-blue-700">
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => setIsAdvancedSearchOpen(true)}
+                  variant="outline"
+                  className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                >
+                  <SlidersHorizontal className="h-4 w-4 mr-2" />
+                  Advanced
+                </Button>
               </div>
+
+              {/* Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
               {/* Session Type Filter */}
               <Select value={sessionType} onValueChange={setSessionType}>
@@ -212,9 +241,18 @@ export function WorkflowHistory() {
                   <SelectItem value="duration-asc">Shortest Duration</SelectItem>
                 </SelectContent>
               </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Advanced Search Dialog */}
+        <AdvancedSearchDialog
+          open={isAdvancedSearchOpen}
+          onOpenChange={setIsAdvancedSearchOpen}
+          onSearch={handleAdvancedSearch}
+          initialFilters={advancedFilters}
+        />
 
         {/* Session List */}
         {isLoading && (

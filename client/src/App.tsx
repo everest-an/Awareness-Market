@@ -46,6 +46,7 @@ import WorkflowDemo from "./pages/WorkflowDemo";
 import { WorkflowHistory } from "./pages/WorkflowHistory";
 import { WorkflowSessionDetail } from "./pages/WorkflowSessionDetail";
 import { WorkflowPlayback } from "./pages/WorkflowPlayback";
+import { WorkflowPerformance } from "./pages/WorkflowPerformance";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -83,6 +84,7 @@ function Router() {
       <Route path="/workflow-history" component={WorkflowHistory} />
       <Route path="/workflow-history/:sessionId" component={WorkflowSessionDetail} />
       <Route path="/workflow-playback/:sessionId" component={WorkflowPlayback} />
+      <Route path="/workflow-performance" component={WorkflowPerformance} />
       <Route path="/upload-vector-package" component={UploadVectorPackage} />
       <Route path="/memory-marketplace" component={MemoryMarketplace} />
       <Route path="/upload-memory-package" component={UploadMemoryPackage} />

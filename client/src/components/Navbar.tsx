@@ -31,7 +31,8 @@ import {
   BarChart3,
   Code,
   Github,
-  Search
+  Search,
+  History
 } from "lucide-react";
 
 const navLinks = [
@@ -46,6 +47,8 @@ const navLinks = [
   {
     label: "Tools",
     children: [
+      { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
+      { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
       { label: "Compatibility Tester", href: "/w-matrix/tester", icon: Cpu, description: "Test model compatibility" },
       { label: "W-Matrix Protocol", href: "/w-matrix", icon: Network, description: "Cross-model alignment" },
       { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
