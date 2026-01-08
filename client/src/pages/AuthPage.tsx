@@ -24,6 +24,9 @@ export default function AuthPage() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerName, setRegisterName] = useState("");
   
+  // Tab state
+  const [activeTab, setActiveTab] = useState("login");
+  
   // Forgot password dialog
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
@@ -46,9 +49,10 @@ export default function AuthPage() {
     onSuccess: (data) => {
       if (data.success) {
         toast({ title: "Registration successful!", description: "Please log in with your credentials." });
-        // Auto-fill login form
+        // Auto-fill login form and switch to login tab
         setLoginEmail(registerEmail);
         setLoginPassword(registerPassword);
+        setActiveTab("login");
       } else {
         toast({ title: "Registration failed", description: data.error, variant: "destructive" });
       }
@@ -85,7 +89,7 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
