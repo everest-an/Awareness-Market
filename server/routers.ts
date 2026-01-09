@@ -32,6 +32,7 @@ import { aiAgentRouter } from './api/ai-agent-api';
 import { workflowRouter } from './routers/workflow';
 import { workflowHistoryRouter } from './routers/workflow-history';
 import { userRouter } from './routers/user';
+import { authUnifiedRouter } from './routers/auth-unified';
 // Memory Exchange moved to Go microservice
 
 // Helper to ensure user is a creator
@@ -1582,6 +1583,7 @@ export const appRouter = router({
   workflow: workflowRouter,
   workflowHistory: workflowHistoryRouter,
   user: userRouter,
+  authUnified: authUnifiedRouter,
   // memoryExchange: Go microservice at :8080
 
   // Admin Analytics (admin-only)
