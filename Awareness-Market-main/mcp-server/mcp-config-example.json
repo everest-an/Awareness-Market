@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "awareness-market": {
+      "command": "node",
+      "args": ["./mcp-server/dist/index-enhanced.js"],
+      "env": {
+        "VITE_APP_URL": "http://localhost:3000",
+        "NODE_ENV": "development"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "search_kv_cache_memories",
+        "search_reasoning_chain_memories",
+        "search_long_term_memories",
+        "search_vector_packages",
+        "search_chain_packages",
+        "get_all_memory_types",
+        "get_memory_package_details",
+        "check_model_compatibility"
+      ]
+    }
+  }
+}

@@ -181,7 +181,7 @@ export const packagesApiRouter = router({
         const db = await getDb();
         const [pkg] = await db.insert(vectorPackages).values({
           packageId: result.packageId,
-          creatorId: ctx.user.id,
+          userId: ctx.user.id,
           name: input.name,
           description: input.description,
           version: input.version,
@@ -237,7 +237,7 @@ export const packagesApiRouter = router({
         const db = await getDb();
         const [pkg] = await db.insert(memoryPackages).values({
           packageId: result.packageId,
-          creatorId: ctx.user.id,
+          userId: ctx.user.id,
           name: input.name,
           description: input.description,
           version: input.version,
@@ -291,7 +291,7 @@ export const packagesApiRouter = router({
         const db = await getDb();
         const [pkg] = await db.insert(chainPackages).values({
           packageId: result.packageId,
-          creatorId: ctx.user.id,
+          userId: ctx.user.id,
           name: input.name,
           description: input.description,
           version: input.version,
@@ -366,7 +366,7 @@ export const packagesApiRouter = router({
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(
           input.sortBy === 'recent' ? desc(table.createdAt) :
-          input.sortBy === 'popular' ? desc(table.downloadCount) :
+          input.sortBy === 'popular' ? desc(table.downloads) :
           input.sortBy === 'price_asc' ? table.price :
           input.sortBy === 'price_desc' ? desc(table.price) :
           desc(table.createdAt)
@@ -441,7 +441,7 @@ export const packagesApiRouter = router({
         .from(packagePurchases)
         .where(
           and(
-            eq(packagePurchases.userId, ctx.user.id),
+            eq(packagePurchases.buyerId, ctx.user.id),
             eq(packagePurchases.packageId, input.packageId),
             eq(packagePurchases.packageType, input.packageType)
           )
@@ -456,19 +456,22 @@ export const packagesApiRouter = router({
         };
       }
 
+      // Calculate fees (10% platform fee)
+      const priceNum = parseFloat(pkg.price.toString());
+      const platformFee = (priceNum * 0.1).toFixed(2);
+      const sellerEarnings = (priceNum * 0.9).toFixed(2);
+
       // Create purchase record
       const [purchase] = await db.insert(packagePurchases).values({
-        userId: ctx.user.id,
+        buyerId: ctx.user.id,
+        sellerId: pkg.userId,
         packageId: input.packageId,
         packageType: input.packageType,
         price: pkg.price,
+        platformFee,
+        sellerEarnings,
+        status: 'completed',
       }).returning();
-
-      // Update purchase count
-      await db
-        .update(table)
-        .set({ purchaseCount: sql`${table.purchaseCount} + 1` })
-        .where(eq(table.packageId, input.packageId));
 
       return {
         success: true,
@@ -492,7 +495,7 @@ export const packagesApiRouter = router({
         .from(packagePurchases)
         .where(
           and(
-            eq(packagePurchases.userId, ctx.user.id),
+            eq(packagePurchases.buyerId, ctx.user.id),
             eq(packagePurchases.packageId, input.packageId),
             eq(packagePurchases.packageType, input.packageType)
           )
@@ -520,17 +523,23 @@ export const packagesApiRouter = router({
         });
       }
 
+      // Generate download URL (expires in 7 days)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
       // Record download
       await db.insert(packageDownloads).values({
         userId: ctx.user.id,
         packageId: input.packageId,
         packageType: input.packageType,
+        downloadUrl: pkg.packageUrl,
+        expiresAt,
       });
 
       // Update download count
       await db
         .update(table)
-        .set({ downloadCount: sql`${table.downloadCount} + 1` })
+        .set({ downloads: sql`${table.downloads} + 1` })
         .where(eq(table.packageId, input.packageId));
 
       return {
@@ -552,7 +561,7 @@ export const packagesApiRouter = router({
       const packages = await db
         .select()
         .from(table)
-        .where(eq(table.creatorId, ctx.user.id))
+        .where(eq(table.userId, ctx.user.id))
         .orderBy(desc(table.createdAt));
 
       return {
@@ -574,7 +583,7 @@ export const packagesApiRouter = router({
         .from(packagePurchases)
         .where(
           and(
-            eq(packagePurchases.userId, ctx.user.id),
+            eq(packagePurchases.buyerId, ctx.user.id),
             eq(packagePurchases.packageType, input.packageType)
           )
         )
