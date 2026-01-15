@@ -12,8 +12,11 @@
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "seed": "node scripts/seed-data.mjs",
+    "seed:products": "tsx scripts/seed-three-product-lines.ts",
     "create-demo-account": "tsx scripts/create-demo-account.ts",
-    "test-memory-types": "tsx scripts/test-three-memory-types.ts"
+    "test-memory-types": "tsx scripts/test-three-memory-types.ts",
+    "mcp:build": "cd mcp-server && npm run build",
+    "mcp:start": "node mcp-server/dist/index-enhanced.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",
