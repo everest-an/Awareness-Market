@@ -1,0 +1,217 @@
+basePath: /
+definitions:
+  models.BatchVectorRequest:
+    properties:
+      vectors:
+        items:
+          $ref: '#/definitions/models.Vector'
+        type: array
+    required:
+    - vectors
+    type: object
+  models.Vector:
+    properties:
+      created_at:
+        type: string
+      creator_id:
+        type: string
+      description:
+        type: string
+      dimension:
+        type: integer
+      embedding:
+        items:
+          type: number
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.VectorSearchRequest:
+    properties:
+      query_vector:
+        items:
+          type: number
+        type: array
+      threshold:
+        type: number
+      top_k:
+        maximum: 100
+        minimum: 1
+        type: integer
+    required:
+    - query_vector
+    - top_k
+    type: object
+  models.VectorSearchResult:
+    properties:
+      distance:
+        type: number
+      similarity:
+        type: number
+      vector:
+        $ref: '#/definitions/models.Vector'
+    type: object
+  models.VectorStats:
+    properties:
+      avg_dimension:
+        type: number
+      last_updated:
+        type: string
+      storage_size_bytes:
+        type: integer
+      total_creators:
+        type: integer
+      total_vectors:
+        type: integer
+    type: object
+host: localhost:8083
+info:
+  contact:
+    email: support@awareness.market
+    name: API Support
+    url: http://www.awareness.market/support
+  description: High-performance vector storage and similarity search service
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Vector Operations API
+  version: "1.0"
+paths:
+  /api/v1/vectors:
+    post:
+      consumes:
+      - application/json
+      description: Store a latent space vector
+      parameters:
+      - description: Vector to store
+        in: body
+        name: vector
+        required: true
+        schema:
+          $ref: '#/definitions/models.Vector'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Vector'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Store a new vector
+      tags:
+      - vectors
+  /api/v1/vectors/batch:
+    post:
+      consumes:
+      - application/json
+      description: Store multiple latent space vectors in a single request
+      parameters:
+      - description: Batch vector request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.BatchVectorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Store multiple vectors
+      tags:
+      - vectors
+  /api/v1/vectors/search:
+    post:
+      consumes:
+      - application/json
+      description: Find vectors similar to the query vector using cosine similarity
+      parameters:
+      - description: Search request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.VectorSearchRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.VectorSearchResult'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Search for similar vectors
+      tags:
+      - vectors
+  /api/v1/vectors/stats:
+    get:
+      description: Get statistics about stored vectors
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.VectorStats'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get vector storage statistics
+      tags:
+      - vectors
+schemes:
+- http
+- https
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-API-Key
+    type: apiKey
+swagger: "2.0"

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "awareness-latentmas": {
+      "command": "node",
+      "args": [
+        "/path/to/latentmind-marketplace/mcp-server/index.js"
+      ],
+      "env": {
+        "VITE_APP_URL": "https://awareness.market",
+        "API_KEY": "your_api_key_here"
+      }
+    }
+  }
+}

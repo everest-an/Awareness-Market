@@ -1,0 +1,155 @@
+basePath: /
+definitions:
+  models.Recommendation:
+    properties:
+      description:
+        type: string
+      item_id:
+        type: string
+      item_type:
+        description: '"reasoning_chain" or "w_matrix"'
+        type: string
+      reason:
+        type: string
+      score:
+        type: number
+      title:
+        type: string
+    type: object
+  models.RecommendationResponse:
+    properties:
+      generated_at:
+        type: string
+      recommendations:
+        items:
+          $ref: '#/definitions/models.Recommendation'
+        type: array
+    type: object
+  models.UserInteraction:
+    properties:
+      action:
+        description: '"view", "purchase", "like"'
+        type: string
+      item_id:
+        type: string
+      item_type:
+        type: string
+      timestamp:
+        type: string
+      user_id:
+        type: string
+    type: object
+host: localhost:8085
+info:
+  contact: {}
+  description: AI-powered recommendation engine for Awareness Marketplace
+  title: Recommendation Engine API
+  version: "1.0"
+paths:
+  /api/v1/recommendations:
+    get:
+      consumes:
+      - application/json
+      description: Get personalized recommendations for a user
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - default: 10
+        description: Number of recommendations
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by type (reasoning_chain or w_matrix)
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RecommendationResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get personalized recommendations
+      tags:
+      - recommendations
+  /api/v1/recommendations/similar:
+    get:
+      consumes:
+      - application/json
+      description: Find items similar to the given item
+      parameters:
+      - description: Item ID
+        in: query
+        name: item_id
+        required: true
+        type: string
+      - default: 5
+        description: Number of similar items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RecommendationResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get similar items
+      tags:
+      - recommendations
+  /api/v1/recommendations/track:
+    post:
+      consumes:
+      - application/json
+      description: Record a user's interaction with an item for future recommendations
+      parameters:
+      - description: User interaction data
+        in: body
+        name: interaction
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserInteraction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Track user interaction
+      tags:
+      - recommendations
+  /health:
+    get:
+      description: Check if the service is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-API-Key
+    type: apiKey
+swagger: "2.0"

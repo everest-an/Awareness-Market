@@ -1,0 +1,4 @@
+auth: password
+cert: false
+bind-addr: 0.0.0.0:8329
+password: f5cd518af2f52ce5

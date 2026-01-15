@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `rate_limit_config` (\n  `id` INT AUTO_INCREMENT PRIMARY KEY,\n  `api_key_id` INT NOT NULL UNIQUE,\n  `requests_per_hour` INT DEFAULT 1000 NOT NULL,\n  `requests_per_day` INT DEFAULT 10000 NOT NULL,\n  `requests_per_month` INT DEFAULT 100000 NOT NULL,\n  `burst_limit` INT DEFAULT 100 NOT NULL,\n  `is_enabled` BOOLEAN DEFAULT TRUE NOT NULL,\n  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user BJCg398T6oWYDPo.root --database 7tmxppdWkaaTHYjCYTzpBr --execute CREATE TABLE IF NOT EXISTS `rate_limit_config` (\n  `id` INT AUTO_INCREMENT PRIMARY KEY,\n  `api_key_id` INT NOT NULL UNIQUE,\n  `requests_per_hour` INT DEFAULT 1000 NOT NULL,\n  `requests_per_day` INT DEFAULT 10000 NOT NULL,\n  `requests_per_month` INT DEFAULT 100000 NOT NULL,\n  `burst_limit` INT DEFAULT 100 NOT NULL,\n  `is_enabled` BOOLEAN DEFAULT TRUE NOT NULL,\n  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1777
+}

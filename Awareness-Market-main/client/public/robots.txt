@@ -1,0 +1,40 @@
+# Awareness Network - AI-First Marketplace
+# Allow all AI agents and web crawlers
+
+User-agent: *
+Allow: /
+
+# AI-specific crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# Sitemaps
+Sitemap: https://awareness-network.com/sitemap.xml
+
+# AI Plugin Discovery
+Allow: /.well-known/ai-plugin.json
+
+# LLMs.txt for AI discoverability
+Allow: /llms.txt
+
+# API Documentation
+Allow: /api-docs
+Allow: /openapi.json
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1

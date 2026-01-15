@@ -1,0 +1,97 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user BJCg398T6oWYDPo.root --database 7tmxppdWkaaTHYjCYTzpBr --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "ab_test_assignments"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "ab_test_experiments"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "access_permissions"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "ai_memory"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "alignment_calculations"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "api_call_logs"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "api_keys"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "api_usage_logs"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "blog_posts"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "browsing_history"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "creator_reputations"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "latent_vectors"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "memory_exchanges"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "notifications"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "rate_limit_config"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "reasoning_chains"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "reviews"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "subscription_plans"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "transactions"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "trial_usage"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "user_behavior"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "user_preferences"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "user_subscriptions"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "users"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "vector_invocations"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "vector_quality_checks"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "vector_reports"
+    },
+    {
+      "Tables_in_7tmxppdWkaaTHYjCYTzpBr": "w_matrix_versions"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_7tmxppdWkaaTHYjCYTzpBr\n__drizzle_migrations\nab_test_assignments\nab_test_experiments\naccess_permissions\nai_memory\nalignment_calculations\napi_call_logs\napi_keys\napi_usage_logs\nblog_posts\nbrowsing_history\ncreator_reputations\nlatent_vectors\nmemory_exchanges\nnotifications\nrate_limit_config\nreasoning_chains\nreviews\nsubscription_plans\ntransactions\ntrial_usage\nuser_behavior\nuser_preferences\nuser_subscriptions\nusers\nvector_invocations\nvector_quality_checks\nvector_reports\nw_matrix_versions\n",
+  "stderr": "",
+  "execution_time_ms": 112
+}

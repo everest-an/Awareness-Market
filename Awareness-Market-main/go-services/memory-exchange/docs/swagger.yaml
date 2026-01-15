@@ -1,0 +1,411 @@
+basePath: /api/v1
+definitions:
+  models.APIResponse:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.PublishMemoryRequest:
+    properties:
+      description:
+        type: string
+      kv_cache_data:
+        additionalProperties: true
+        type: object
+      memory_type:
+        enum:
+        - kv_cache
+        - reasoning_chain
+        - long_term_memory
+        type: string
+      price:
+        type: number
+    required:
+    - kv_cache_data
+    - memory_type
+    - price
+    type: object
+  models.PublishReasoningChainRequest:
+    properties:
+      category:
+        type: string
+      chain_name:
+        type: string
+      description:
+        type: string
+      input_example:
+        additionalProperties: true
+        type: object
+      kv_cache_snapshot:
+        additionalProperties: true
+        type: object
+      output_example:
+        additionalProperties: true
+        type: object
+      price_per_use:
+        type: number
+      source_model:
+        type: string
+      step_count:
+        type: integer
+    required:
+    - category
+    - chain_name
+    - description
+    - kv_cache_snapshot
+    - price_per_use
+    - source_model
+    type: object
+  models.PurchaseMemoryRequest:
+    properties:
+      memory_id:
+        type: integer
+      target_model:
+        type: string
+    required:
+    - memory_id
+    - target_model
+    type: object
+  models.UseReasoningChainRequest:
+    properties:
+      chain_id:
+        type: integer
+      input_data:
+        additionalProperties: true
+        type: object
+      target_model:
+        type: string
+    required:
+    - chain_id
+    - input_data
+    - target_model
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@awareness.market
+    name: Awareness Market Support
+    url: https://awareness.market/support
+  description: RESTful API for trading AI latent vectors (KV-Cache memories) and reasoning
+    chains
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://awareness.market/terms
+  title: Memory Exchange API
+  version: "1.0"
+paths:
+  /memory/browse:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of available memories for purchase with optional filtering
+      parameters:
+      - description: Filter by memory type
+        in: query
+        name: memory_type
+        type: string
+      - description: Minimum price filter
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price filter
+        in: query
+        name: max_price
+        type: number
+      - default: 20
+        description: Number of results to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of memories
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Browse available memories
+      tags:
+      - memory
+  /memory/my-history:
+    get:
+      consumes:
+      - application/json
+      description: Get all transactions (purchases and sales) for the authenticated
+        user
+      parameters:
+      - default: 20
+        description: Number of results to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Transaction history
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user's transaction history
+      tags:
+      - memory
+  /memory/publish:
+    post:
+      consumes:
+      - application/json
+      description: Publish a KV-Cache memory for trading on the marketplace
+      parameters:
+      - description: Memory details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.PublishMemoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Memory published successfully
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Publish a new memory to the exchange
+      tags:
+      - memory
+  /memory/purchase:
+    post:
+      consumes:
+      - application/json
+      description: Purchase access to a KV-Cache memory
+      parameters:
+      - description: Purchase details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.PurchaseMemoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Memory purchased successfully
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: Memory not found
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Purchase a memory from the exchange
+      tags:
+      - memory
+  /reasoning-chain/browse:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of available reasoning chains with optional filtering
+      parameters:
+      - description: Filter by chain type
+        in: query
+        name: chain_type
+        type: string
+      - description: Minimum price filter
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price filter
+        in: query
+        name: max_price
+        type: number
+      - default: 20
+        description: Number of results to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of reasoning chains
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Browse reasoning chains
+      tags:
+      - reasoning-chain
+  /reasoning-chain/publish:
+    post:
+      consumes:
+      - application/json
+      description: Publish a reasoning chain (sequence of thoughts) for trading
+      parameters:
+      - description: Reasoning chain details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.PublishReasoningChainRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reasoning chain published successfully
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Publish a reasoning chain
+      tags:
+      - reasoning-chain
+  /reasoning-chain/use:
+    post:
+      consumes:
+      - application/json
+      description: Access and use a reasoning chain (requires purchase or ownership)
+      parameters:
+      - description: Chain usage details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UseReasoningChainRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reasoning chain data
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: Chain not found
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Use a reasoning chain
+      tags:
+      - reasoning-chain
+  /stats:
+    get:
+      consumes:
+      - application/json
+      description: Get overall statistics for the memory exchange marketplace
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Marketplace statistics
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get marketplace statistics
+      tags:
+      - system
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'Enter your API key in the format: Bearer {your_api_key}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

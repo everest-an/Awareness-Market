@@ -1,0 +1,13 @@
+{
+  "query": "SELECT COUNT(*) as total FROM latent_vectors;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user BJCg398T6oWYDPo.root --database 7tmxppdWkaaTHYjCYTzpBr --execute SELECT COUNT(*) as total FROM latent_vectors;",
+  "rows": [
+    {
+      "total": "175"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\n175\n",
+  "stderr": "",
+  "execution_time_ms": 1598
+}

@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, name, email, user_type, onboarding_completed, createdAt FROM users ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user BJCg398T6oWYDPo.root --database 7tmxppdWkaaTHYjCYTzpBr --execute SELECT id, name, email, user_type, onboarding_completed, createdAt FROM users ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "2310046",
+      "name": "Test User 2",
+      "email": "testuser2@example.com",
+      "user_type": "NULL",
+      "onboarding_completed": "0",
+      "createdAt": "2026-01-08 16:28:47"
+    },
+    {
+      "id": "2310037",
+      "name": "New User",
+      "email": "newuser@example.com",
+      "user_type": "NULL",
+      "onboarding_completed": "0",
+      "createdAt": "2026-01-08 16:26:25"
+    },
+    {
+      "id": "2310026",
+      "name": "Test User",
+      "email": "testuser@example.com",
+      "user_type": "NULL",
+      "onboarding_completed": "0",
+      "createdAt": "2026-01-08 16:20:44"
+    },
+    {
+      "id": "1950022",
+      "name": "Awareness Demo",
+      "email": "demo@awareness.market",
+      "user_type": "NULL",
+      "onboarding_completed": "0",
+      "createdAt": "2026-01-06 17:21:35"
+    },
+    {
+      "id": "1500009",
+      "name": "Test Invoker",
+      "email": "test-invoke-1767659728484@test.com",
+      "user_type": "NULL",
+      "onboarding_completed": "0",
+      "createdAt": "2026-01-06 00:35:29"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tuser_type\tonboarding_completed\tcreatedAt\n2310046\tTest User 2\ttestuser2@example.com\tNULL\t0\t2026-01-08 16:28:47\n2310037\tNew User\tnewuser@example.com\tNULL\t0\t2026-01-08 16:26:25\n2310026\tTest User\ttestuser@example.com\tNULL\t0\t2026-01-08 16:20:44\n1950022\tAwareness Demo\tdemo@awareness.market\tNULL\t0\t2026-01-06 17:21:35\n1500009\tTest Invoker\ttest-invoke-1767659728484@test.com\tNULL\t0\t2026-01-06 00:35:29\n",
+  "stderr": "",
+  "execution_time_ms": 53
+}

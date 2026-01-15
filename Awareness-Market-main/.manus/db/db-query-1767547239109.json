@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `api_usage_logs` (\n  `id` INT AUTO_INCREMENT PRIMARY KEY,\n  `api_key_id` INT NOT NULL,\n  `user_id` INT NOT NULL,\n  `endpoint` VARCHAR(255) NOT NULL,\n  `method` VARCHAR(10) NOT NULL,\n  `status_code` INT NOT NULL,\n  `response_time_ms` INT NOT NULL,\n  `request_size_bytes` INT DEFAULT 0,\n  `response_size_bytes` INT DEFAULT 0,\n  `ip_address` VARCHAR(45),\n  `user_agent` TEXT,\n  `error_message` TEXT,\n  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  INDEX `api_key_idx` (`api_key_id`),\n  INDEX `user_idx` (`user_id`),\n  INDEX `endpoint_idx` (`endpoint`),\n  INDEX `created_at_idx` (`created_at`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user BJCg398T6oWYDPo.root --database 7tmxppdWkaaTHYjCYTzpBr --execute CREATE TABLE IF NOT EXISTS `api_usage_logs` (\n  `id` INT AUTO_INCREMENT PRIMARY KEY,\n  `api_key_id` INT NOT NULL,\n  `user_id` INT NOT NULL,\n  `endpoint` VARCHAR(255) NOT NULL,\n  `method` VARCHAR(10) NOT NULL,\n  `status_code` INT NOT NULL,\n  `response_time_ms` INT NOT NULL,\n  `request_size_bytes` INT DEFAULT 0,\n  `response_size_bytes` INT DEFAULT 0,\n  `ip_address` VARCHAR(45),\n  `user_agent` TEXT,\n  `error_message` TEXT,\n  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  INDEX `api_key_idx` (`api_key_id`),\n  INDEX `user_idx` (`user_id`),\n  INDEX `endpoint_idx` (`endpoint`),\n  INDEX `created_at_idx` (`created_at`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 3766
+}
