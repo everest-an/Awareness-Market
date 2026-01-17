@@ -1,0 +1,345 @@
+name: CI/CD - Build, Test, and Deploy
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NODE_VERSION: '18'
+
+jobs:
+  # ==========================================
+  # 代码质量检查
+  # ==========================================
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 运行 ESLint
+        run: npm run lint --if-present
+
+      - name: 检查 TypeScript
+        run: npm run type-check --if-present
+
+  # ==========================================
+  # 运行测试
+  # ==========================================
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: awareness_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 运行数据库迁移
+        env:
+          DATABASE_URL: postgresql://postgres:test@localhost:5432/awareness_test
+        run: npm run db:migrate --if-present
+
+      - name: 运行单元测试
+        run: npm run test:unit --if-present
+        env:
+          DATABASE_URL: postgresql://postgres:test@localhost:5432/awareness_test
+          REDIS_URL: redis://localhost:6379
+
+      - name: 运行集成测试
+        run: npm run test:integration --if-present
+        env:
+          DATABASE_URL: postgresql://postgres:test@localhost:5432/awareness_test
+          REDIS_URL: redis://localhost:6379
+
+      - name: 上传覆盖率报告
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+  # ==========================================
+  # 构建
+  # ==========================================
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建应用
+        run: npm run build
+
+      - name: 生成构建工件
+        run: |
+          mkdir -p build-artifacts
+          cp -r dist build-artifacts/
+          cp package*.json build-artifacts/
+
+      - name: 上传构建工件
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ github.sha }}
+          path: build-artifacts/
+
+      - name: 分析包大小
+        run: |
+          npm run analyze:build --if-present || echo "Build analysis not configured"
+
+      - name: 构建 Docker 镜像
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==========================================
+  # 安全扫描
+  # ==========================================
+  security:
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: 运行依赖安全检查
+        run: npm audit --audit-level=moderate || true
+
+      - name: Trivy 漏洞扫描
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 上传 Trivy 结果
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ==========================================
+  # 部署到开发环境
+  # ==========================================
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    environment:
+      name: development
+      url: https://dev.awareness-market.com
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: 下载构建工件
+        uses: actions/download-artifact@v3
+        with:
+          name: build-${{ github.sha }}
+
+      - name: 部署到开发服务器
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST_DEV }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          
+          scp -i ~/.ssh/deploy_key -r dist $DEPLOY_USER@$DEPLOY_HOST:/var/www/awareness-market/
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && npm install && pm2 reload ecosystem.config.js'
+
+      - name: 健康检查
+        run: |
+          for i in {1..5}; do
+            if curl -f https://dev.awareness-market.com/health; then
+              echo "✅ 开发环境健康检查通过"
+              exit 0
+            fi
+            echo "⏳ 等待应用启动... ($i/5)"
+            sleep 10
+          done
+          echo "❌ 健康检查失败"
+          exit 1
+
+  # ==========================================
+  # 部署到生产环境
+  # ==========================================
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'everest-an/Awareness-Market'
+    environment:
+      name: production
+      url: https://awareness-market.com
+    concurrency:
+      group: production
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: 下载构建工件
+        uses: actions/download-artifact@v3
+        with:
+          name: build-${{ github.sha }}
+
+      - name: 部署到生产服务器
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST_PROD }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          
+          # 备份当前版本
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && cp -r dist dist.backup'
+          
+          # 部署新版本
+          scp -i ~/.ssh/deploy_key -r dist $DEPLOY_USER@$DEPLOY_HOST:/var/www/awareness-market/
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && npm install && npm run build && pm2 reload ecosystem.config.js'
+
+      - name: 生产健康检查
+        run: |
+          for i in {1..5}; do
+            if curl -f https://awareness-market.com/health; then
+              echo "✅ 生产环境健康检查通过"
+              exit 0
+            fi
+            echo "⏳ 等待应用启动... ($i/5)"
+            sleep 10
+          done
+          echo "❌ 健康检查失败"
+          exit 1
+
+      - name: 通知部署完成
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ 生产环境部署完成！\n\n🔗 [查看应用](https://awareness-market.com)\n\n📊 [查看性能指标](https://console.aws.amazon.com/cloudwatch)'
+            })
+
+      - name: 部署失败回滚
+        if: failure()
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST_PROD }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          
+          echo "⚠️  部署失败，开始回滚..."
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && rm -rf dist && mv dist.backup dist && pm2 reload ecosystem.config.js'
+          echo "✅ 回滚完成"
+
+  # ==========================================
+  # 通知和报告
+  # ==========================================
+  notify:
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, security]
+    if: always()
+
+    steps:
+      - name: 构建状态总结
+        run: |
+          echo "## CI/CD 流程完成"
+          echo "- Lint: ${{ needs.lint.result }}"
+          echo "- Test: ${{ needs.test.result }}"
+          echo "- Build: ${{ needs.build.result }}"
+          echo "- Security: ${{ needs.security.result }}"
+
+      - name: 发送 Slack 通知
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'CI/CD Pipeline ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
