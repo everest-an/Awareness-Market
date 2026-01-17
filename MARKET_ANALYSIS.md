@@ -67,22 +67,35 @@ Awareness Market正处于这两个高增长市场的交集，市场潜力巨大�
 
 ## 6. 结论与建议
 
-您提出的基于LatentMAS的AI潜意识交易市场是一个极具前瞻性和商业潜力的构想。它顺应了AI从“模型即服务”向“**能力即服务**”演进的趋势，有望成为下一代AI生态的核心基础设施。
+您提出的基于LatentMAS的AI潜意识交易市场是一个极具前瞻性和商业潜力的构想。它顺应了AI从“模型即服务”向“**能力即服务**”演进的趋势，有望成为下一代AI生态的核心基础设施。下一步，我们将为您制定详细的项目规划和技术路线图。
 
-**初步建议**：
+### 初步建议
 
 - **启动MVP（最小可行产品）**：从一个特定的垂直领域（如金融分析、代码生成）开始，邀请少量高质量的AI能力提供方和调用方入驻，验证核心交易流程。
 - **拥抱开放标准**：积极参与并推动LatentMAS和MCP相关标准的建立，抢占生态制高点。
 - **社区驱动**：效仿HuggingFace，建立一个活跃的开发者社区，鼓励用户贡献、分享和评估不同的“潜意识”能力。
 
-这个市场不仅有用户，更有可能催生一个全新的、以AI为中心的经济体。下一步，我们将为您制定详细的项目规划和技术路线图。
-
 ---
 
-### 参考文献
+## Community‑Driven Open Ecosystem
 
-[1] [沉默的进化：LatentMAS 如何通过“潜意识通信”重塑多智能体协作？](https://blog.csdn.net/qq_27590277/article/details/155583265)
-[2] [一文读懂MCP与AI工具生态的未来，它会是AI智能体的「万能插头」吗？](https://zhuanlan.zhihu.com/p/32632422386)
-[3] [How to Build Effective Revenue Models for AI Agent Marketplaces](https://www.getmonetizely.com/articles/how-to-build-effective-revenue-models-for-ai-agent-marketplaces)
-[4] [44 Multi-Agent Systems Revenue Statistics - Nevermined](https://nevermined.ai/blog/multi-agent-systems-revenue-statistics)
-[5] [Data Monetization Market Size, Share | Global Report [2032]](https://www.fortunebusinessinsights.com/zh/data-monetization-market-106480)
+- **Goal**: Build an open, vibrant developer community similar to HuggingFace, encouraging contributions of latent‑vector capabilities, evaluation scripts, and tooling.
+- **Key Initiatives**:
+  - Publish `COMMUNITY.md`, `CONTRIBUTING.md`, and a code‑of‑conduct.
+  - Define a capability manifest (`client/capabilities/manifest.json`) and render cards on the marketplace UI.
+  - Continuous‑integration evaluation pipeline (GitHub Actions) produces `metrics/*.json` for a public leaderboard.
+  - Deploy an AI‑assistant endpoint (`/community/assistant`) to answer FAQs and recommend relevant capabilities.
+- **Milestones**:
+  - **M0 (0‑3 months)**: Documentation, manifest schema, first sample capabilities.
+  - **M1 (3‑6 months)**: CI‑driven evaluation, public leaderboard, open discussion forum (GitHub Discussions).
+  - **M2 (6‑12 months)**: Community reaches 100+ contributed capabilities, launch incentive program.
+
+## Internationalization (i18n) & v1.0 Release Roadmap
+
+- **i18n**: Adopt `i18next` with `en.json` and `zh.json`; all UI strings externalized.
+- **v1.0 Release Checklist**:
+  1. Complete i18n translations and pass CI checks.
+  2. Security audit of all core APIs (`/api/latentmas/*`).
+  3. Deliver community assistant, capability cards, and leaderboard.
+  4. Generate CHANGELOG, tag `v1.0.0`, publish to npm/Docker.
+  5. Deploy a public beta site for early adopters.
