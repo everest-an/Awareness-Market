@@ -12,8 +12,17 @@
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "seed": "node scripts/seed-data.mjs",
+    "seed:reasoning-chains": "tsx seed-reasoning-chains.ts",
     "create-demo-account": "tsx scripts/create-demo-account.ts",
-    "test-memory-types": "tsx scripts/test-three-memory-types.ts"
+    "test-memory-types": "tsx scripts/test-three-memory-types.ts",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:restart": "pm2 restart ecosystem.config.js",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:logs": "pm2 logs",
+    "pm2:monit": "pm2 monit",
+    "setup:performance": "bash deploy-performance-optimizations.sh",
+    "setup:logrotate": "bash setup-pm2-logrotate.sh",
+    "analyze:build": "vite build --report"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",
