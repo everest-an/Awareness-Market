@@ -52,10 +52,15 @@ const trpcClient = trpc.createClient({
   ],
 });
 
+import i18n from "../i18n";
+import { I18nextProvider } from "react-i18next";
+
 createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <I18nextProvider i18n={i18n}>
+        <App />
+      </I18nextProvider>
     </QueryClientProvider>
   </trpc.Provider>
 );
