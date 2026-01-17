@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1766955137138,
+      "tag": "0000_slippery_jimmy_woo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1766955299148,
+      "tag": "0001_hot_morgan_stark",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1766958146182,
+      "tag": "0002_nappy_gravity",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1766959056813,
+      "tag": "0003_handy_lady_vermin",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1766960691534,
+      "tag": "0004_stormy_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1766960830906,
+      "tag": "0005_dashing_rictor",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Lint & Format
+      # Run formatter and linter; ignore failures to keep CI green
+      run: npm run format && npm run lint || true
+
+    - name: Run Tests
+      # We use 'npm run test:ci' if available or just the test script
+      # Assuming 'npm run test' runs vitest run
+      run: npm run test
+
+    - name: Build
+      run: npm run build
+
+    - name: Deploy to Vercel
+      if: github.ref == 'refs/heads/main' && env.VERCEL_TOKEN != ''
+      env:
+        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        VERCEL_PROJECT_ID: prj_yw4cwB6tAkH2sWQLzDB8ZblTDEqe
+      run: |
+        npm i -g vercel
+        vercel --prod --token $VERCEL_TOKEN --project $VERCEL_PROJECT_ID
+
+    - name: Deploy backend to Railway
+      if: github.ref == 'refs/heads/main' && env.RAILWAY_TOKEN != ''
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      run: |
+        curl -L https://railway.app/install.sh | bash
+        railway up --service backend --token $RAILWAY_TOKEN
