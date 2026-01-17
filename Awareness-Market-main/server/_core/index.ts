@@ -20,6 +20,7 @@ import { Server as SocketIOServer } from "socket.io";
 import fs from "fs";
 import path from "path";
 import { initializeWorkflowWebSocket } from "../workflow-websocket";
+import { setupGoServiceProxies, createHealthCheckRouter } from "../middleware/go-service-proxy";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -71,6 +72,11 @@ async function startServer() {
   
   // Streaming and Batch API
   app.use("/api/vectors", streamingRouter);
+  
+  // 🎯 Register Go Service Proxies (API Gateway Pattern)
+  // Must be registered BEFORE tRPC middleware
+  setupGoServiceProxies(app);
+  app.use(createHealthCheckRouter());
   
   // Swagger UI for API Documentation
   try {

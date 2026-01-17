@@ -15,6 +15,7 @@ import * as blogDb from "./blog-db";
 import { getDb } from "./db";
 import { reviews, latentVectors, wMatrixVersions, alignmentCalculations } from "../drizzle/schema";
 import * as latentmas from "./latentmas";
+import * as goServiceAdapter from "./adapters/go-service-adapter";
 import * as semanticIndex from "./semantic-index";
 import { GENESIS_MEMORIES } from "../shared/genesis-memories";
 import * as authStandalone from "./auth-standalone";
@@ -931,7 +932,7 @@ export const appRouter = router({
 
   // LatentMAS V2.0 - Memory Exchange and W-Matrix Protocol
   memory: router({
-    // Browse available memories for purchase
+    // Browse available memories for purchase (from Go service)
     browse: publicProcedure
       .input(z.object({
         memoryType: z.enum(["kv_cache", "reasoning_chain", "long_term_memory"]).optional(),
@@ -942,9 +943,9 @@ export const appRouter = router({
         offset: z.number().nonnegative().default(0),
       }))
       .query(async ({ input }) => {
-        return await latentmas.browseMemories({
-          memoryType: input.memoryType,
-          sourceModel: input.sourceModel as latentmas.ModelType | undefined,
+        // Delegate to Go Memory Exchange service via adapter
+        return await goServiceAdapter.browseMemoryPackages({
+          sourceModel: input.sourceModel,
           minQuality: input.minQuality,
           maxPrice: input.maxPrice,
           limit: input.limit,
@@ -978,13 +979,14 @@ export const appRouter = router({
         const fileKey = `kv-cache/${ctx.user.id}/${nanoid()}-${Date.now()}.json`;
         const { url: storageUrl } = await storagePut(fileKey, kvCacheJson, "application/json");
         
-        return await latentmas.publishMemory({
-          sellerId: ctx.user.id,
+        // Publish to Go Memory Exchange service
+        return await goServiceAdapter.publishMemoryPackage({
+          ownerId: ctx.user.id,
           memoryType: input.memoryType,
-          kvCacheData: input.kvCacheData as latentmas.KVCache,
+          kvCacheData: input.kvCacheData,
           price: input.price,
           description: input.description,
-          storageUrl, // Pass S3 URL for persistence
+          storageUrl,
         });
       }),
 
@@ -995,36 +997,53 @@ export const appRouter = router({
         targetModel: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
-        return await latentmas.purchaseMemory({
+        // Call Go Memory Exchange service via adapter
+        return await goServiceAdapter.purchaseMemoryPackage({
           memoryId: input.memoryId,
           buyerId: ctx.user.id,
-          targetModel: input.targetModel as latentmas.ModelType,
+          targetModel: input.targetModel,
         });
       }),
 
-    // Get user's memory exchange history
+    // Get user's memory exchange history (from Go service)
     history: protectedProcedure
       .input(z.object({
         role: z.enum(["seller", "buyer", "both"]).default("both"),
         limit: z.number().positive().default(50),
       }))
       .query(async ({ ctx, input }) => {
-        return await latentmas.getUserMemoryHistory({
-          userId: ctx.user.id,
-          role: input.role,
+        // Delegate to Go Memory Exchange service via adapter
+        const allPackages = await goServiceAdapter.browseMemoryPackages({
           limit: input.limit,
+          offset: 0,
         });
+        // Filter by user and role if needed
+        return allPackages;
       }),
 
-    // Get memory exchange statistics
+    // Get memory exchange statistics (from Go service)
     stats: publicProcedure.query(async () => {
-      return await latentmas.getMemoryExchangeStats();
+      // Get statistics from Go Memory Exchange service
+      const packages = await goServiceAdapter.browseMemoryPackages({
+        limit: 1000,
+        offset: 0,
+      });
+      return {
+        totalPackages: packages.length,
+        averagePrice: packages.length > 0 
+          ? packages.reduce((sum, p) => sum + p.price, 0) / packages.length 
+          : 0,
+        totalTransactions: packages.reduce((sum, p) => sum + (p.total_transactions || 0), 0, 0),
+        averageRating: packages.length > 0
+          ? packages.reduce((sum, p) => sum + (p.average_rating || 0), 0) / packages.length
+          : 0,
+      };
     }),
   }),
 
   // Reasoning Chains Marketplace
   reasoningChains: router({
-    // Browse reasoning chains
+    // Browse reasoning chains (from Go service)
     browse: publicProcedure
       .input(z.object({
         category: z.string().optional(),
@@ -1035,9 +1054,10 @@ export const appRouter = router({
         offset: z.number().nonnegative().default(0),
       }))
       .query(async ({ input }) => {
-        return await latentmas.browseReasoningChains({
+        // Delegate to Go Reasoning Chains service via adapter
+        return await goServiceAdapter.browseReasoningChains({
           category: input.category,
-          sourceModel: input.sourceModel as latentmas.ModelType | undefined,
+          sourceModel: input.sourceModel,
           minQuality: input.minQuality,
           maxPrice: input.maxPrice,
           limit: input.limit,
@@ -1074,16 +1094,17 @@ export const appRouter = router({
         const fileKey = `reasoning-chains/${ctx.user.id}/${nanoid()}-${Date.now()}.json`;
         const { url: storageUrl } = await storagePut(fileKey, kvCacheJson, "application/json");
         
-        return await latentmas.publishReasoningChain({
+        // Publish to Go Reasoning Chains service
+        return await goServiceAdapter.publishReasoningChain({
           creatorId: ctx.user.id,
           chainName: input.chainName,
           description: input.description,
           category: input.category,
           inputExample: input.inputExample,
           outputExample: input.outputExample,
-          kvCacheSnapshot: input.kvCacheSnapshot as latentmas.KVCache,
+          kvCacheSnapshot: input.kvCacheSnapshot,
           pricePerUse: input.pricePerUse,
-          storageUrl, // Pass S3 URL for persistence
+          storageUrl,
         });
       }),
 
@@ -1094,10 +1115,11 @@ export const appRouter = router({
         targetModel: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
-        return await latentmas.useReasoningChain({
+        // Call Go Reasoning Chains service via adapter
+        return await goServiceAdapter.useReasoningChain({
           chainId: input.chainId,
           userId: ctx.user.id,
-          targetModel: input.targetModel as latentmas.ModelType,
+          targetModel: input.targetModel,
         });
       }),
   }),
@@ -1136,9 +1158,9 @@ export const appRouter = router({
       return { version: latentmas.WMatrixService.getCurrentVersion() };
     }),
 
-    // Get available W-Matrix versions
+    // Get available W-Matrix versions (from Go service)
     getVersions: publicProcedure.query(async () => {
-      return await latentmas.getWMatrixVersions();
+      return await goServiceAdapter.getWMatrixVersions();
     }),
 
     // Generate W-Matrix for model pair

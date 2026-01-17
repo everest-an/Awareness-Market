@@ -62,22 +62,22 @@ export default function ChainPackageMarketplace() {
         </div>
 
         {/* Stats */}
-        {packages && (
+        {packages && packages.packages && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
-              <div className="text-3xl font-bold text-emerald-400 mb-2">{packages.length}</div>
+              <div className="text-3xl font-bold text-emerald-400 mb-2">{packages.packages.length}</div>
               <div className="text-sm text-slate-400">Available Chains</div>
             </Card>
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
               <div className="text-3xl font-bold text-cyan-400 mb-2">
-                {packages.reduce((sum, pkg: any) => sum + (pkg.downloads || 0), 0)}
+                {packages.packages.reduce((sum: number, pkg: any) => sum + (pkg.downloads || 0), 0)}
               </div>
               <div className="text-sm text-slate-400">Total Downloads</div>
             </Card>
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
               <div className="text-3xl font-bold text-green-400 mb-2">
-                {packages.length > 0 
-                  ? (packages.reduce((sum, pkg: any) => sum + (pkg.rating || 0), 0) / packages.length).toFixed(1)
+                {packages.packages.length > 0 
+                  ? (packages.packages.reduce((sum: number, pkg: any) => sum + (pkg.rating || 0), 0) / packages.packages.length).toFixed(1)
                   : '0.0'}
               </div>
               <div className="text-sm text-slate-400">Average Rating</div>
@@ -158,9 +158,9 @@ export default function ChainPackageMarketplace() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
             <p>Loading chain packages...</p>
           </div>
-        ) : packages && packages.length > 0 ? (
+        ) : packages && packages.packages && packages.packages.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {packages
+            {packages.packages
               .filter((pkg: any) => {
                 const matchesSearch = searchTerm === '' || 
                   pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
