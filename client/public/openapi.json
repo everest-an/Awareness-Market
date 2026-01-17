@@ -1,0 +1,1171 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Awareness Network API",
+    "version": "1.0.0",
+    "description": "The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through LatentMAS technology.",
+    "contact": {
+      "name": "Awareness Network Support",
+      "email": "support@awareness-network.com",
+      "url": "https://awareness-network.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://awareness-network.com/api",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "AI Authentication",
+      "description": "AI agent self-registration and API key management"
+    },
+    {
+      "name": "AI Memory",
+      "description": "AI memory synchronization and state persistence"
+    },
+    {
+      "name": "Marketplace",
+      "description": "Browse and search latent vectors"
+    },
+    {
+      "name": "Transactions",
+      "description": "Purchase and access management"
+    },
+    {
+      "name": "MCP Protocol",
+      "description": "Model Context Protocol integration"
+    },
+    {
+      "name": "LatentMAS",
+      "description": "Latent space transformation and alignment"
+    }
+  ],
+  "paths": {
+    "/ai/register": {
+      "post": {
+        "tags": [
+          "AI Authentication"
+        ],
+        "summary": "Register a new AI agent",
+        "description": "Self-registration endpoint for AI agents. Returns API key for authentication.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "agentName"
+                ],
+                "properties": {
+                  "agentName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "example": "GPT-4-Agent"
+                  },
+                  "agentType": {
+                    "type": "string",
+                    "example": "GPT-4"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "agent@example.com"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "example": {
+                      "version": "1.0",
+                      "capabilities": [
+                        "text",
+                        "code"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "AI agent registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "userId": {
+                      "type": "integer",
+                      "example": 123
+                    },
+                    "openId": {
+                      "type": "string",
+                      "example": "ai_abc123def456"
+                    },
+                    "apiKey": {
+                      "type": "string",
+                      "example": "ak_1234567890abcdef"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "AI agent registered successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/ai/keys": {
+      "get": {
+        "tags": [
+          "AI Authentication"
+        ],
+        "summary": "List API keys",
+        "description": "Get all API keys for the authenticated agent",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keys": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiKey"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AI Authentication"
+        ],
+        "summary": "Create new API key",
+        "description": "Generate a new API key for the authenticated agent",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Production Key"
+                  },
+                  "permissions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "read",
+                        "write",
+                        "purchase"
+                      ]
+                    },
+                    "example": [
+                      "read",
+                      "purchase"
+                    ]
+                  },
+                  "expiresInDays": {
+                    "type": "number",
+                    "example": 90
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "apiKey": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/keys/{keyId}": {
+      "delete": {
+        "tags": [
+          "AI Authentication"
+        ],
+        "summary": "Revoke API key",
+        "description": "Deactivate an API key",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key revoked"
+          }
+        }
+      }
+    },
+    "/ai/memory/{key}": {
+      "get": {
+        "tags": [
+          "AI Memory"
+        ],
+        "summary": "Retrieve memory",
+        "description": "Get stored memory by key",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "preferences"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Memory retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Memory"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Memory not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AI Memory"
+        ],
+        "summary": "Store or update memory",
+        "description": "Save memory data with optional TTL",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "version": {
+                    "type": "integer"
+                  },
+                  "ttlDays": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Memory updated"
+          },
+          "201": {
+            "description": "Memory created"
+          },
+          "409": {
+            "description": "Version conflict"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AI Memory"
+        ],
+        "summary": "Delete memory",
+        "description": "Remove stored memory by key",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Memory deleted"
+          }
+        }
+      }
+    },
+    "/ai/memory": {
+      "get": {
+        "tags": [
+          "AI Memory"
+        ],
+        "summary": "List all memories",
+        "description": "Get all memory keys for the agent",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of memories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "memories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp/discover": {
+      "get": {
+        "tags": [
+          "MCP Protocol"
+        ],
+        "summary": "Discover available vectors",
+        "description": "MCP-compatible endpoint to discover latent vectors",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of vectors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "vectors": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LatentVector"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp/invoke": {
+      "post": {
+        "tags": [
+          "MCP Protocol"
+        ],
+        "summary": "Invoke a vector capability",
+        "description": "Execute a purchased vector capability via MCP",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "vectorId",
+                  "input"
+                ],
+                "properties": {
+                  "vectorId": {
+                    "type": "integer"
+                  },
+                  "input": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invocation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "output": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied - vector not purchased"
+          }
+        }
+      }
+    },
+    "/latentmas/align": {
+      "post": {
+        "tags": [
+          "LatentMAS"
+        ],
+        "summary": "Align latent vectors",
+        "description": "Aligns a source vector (Last-Layer Hidden State) to match the latent space of a target model using a Realignment Matrix.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "source_hidden_state",
+                  "source_model_id",
+                  "target_model_id"
+                ],
+                "properties": {
+                  "source_hidden_state": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "description": "The hidden state vector from the source model"
+                  },
+                  "source_model_id": {
+                    "type": "string",
+                    "example": "llama-3-8b"
+                  },
+                  "target_model_id": {
+                    "type": "string",
+                    "example": "qwen-2-7b"
+                  },
+                  "realignment_matrix_id": {
+                    "type": "string",
+                    "description": "Optional ID of a specific realignment matrix to use"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aligned vector",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "realigned_hidden_state": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "transformation_metadata": {
+                      "type": "object",
+                      "properties": {
+                        "source_model": {
+                          "type": "string"
+                        },
+                        "target_model": {
+                          "type": "string"
+                        },
+                        "matrix_used": {
+                          "type": "string"
+                        },
+                        "computation_type": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "quality_metrics": {
+                      "type": "object",
+                      "properties": {
+                        "cosine_similarity_retained": {
+                          "type": "number"
+                        },
+                        "semantic_loss": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latentmas/check-compatibility": {
+      "post": {
+        "tags": [
+          "LatentMAS"
+        ],
+        "summary": "Check model compatibility",
+        "description": "Evaluates if a Realignment Matrix exists or can be computed between two models.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "source_model",
+                  "target_model"
+                ],
+                "properties": {
+                  "source_model": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "hidden_size",
+                      "architecture"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "hidden_size": {
+                        "type": "integer"
+                      },
+                      "architecture": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "target_model": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "hidden_size",
+                      "architecture"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "hidden_size": {
+                        "type": "integer"
+                      },
+                      "architecture": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compatibility report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "compatible",
+                        "realignable",
+                        "unknown",
+                        "incompatible"
+                      ]
+                    },
+                    "compatibility_score": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "action_required": {
+                      "type": "string"
+                    },
+                    "recommended_matrix_id": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latentmas/transform": {
+      "post": {
+        "tags": [
+          "LatentMAS"
+        ],
+        "summary": "Transform vector dimension",
+        "description": "Transforms a vector to a different dimensionality (e.g. 768 -> 1024)",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "vector",
+                  "target_dimension"
+                ],
+                "properties": {
+                  "vector": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "target_dimension": {
+                    "type": "integer"
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "pca",
+                      "autoencoder",
+                      "interpolation"
+                    ],
+                    "default": "pca"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transformed vector",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transformed_vector": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "transformation_quality": {
+                      "type": "object",
+                      "properties": {
+                        "information_retention": {
+                          "type": "number"
+                        },
+                        "variance_explained": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latentmas/convert": {
+      "post": {
+        "tags": [
+          "LatentMAS"
+        ],
+        "summary": "Convert vector format",
+        "description": "Converts vector binary format between frameworks (e.g. PyTorch -> ONNX)",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "vector_data",
+                  "source_format",
+                  "target_format"
+                ],
+                "properties": {
+                  "vector_data": {
+                    "type": "string",
+                    "format": "base64",
+                    "description": "Base64 encoded binary vector data"
+                  },
+                  "source_format": {
+                    "type": "string",
+                    "enum": [
+                      "pytorch",
+                      "tensorflow",
+                      "onnx",
+                      "safetensors",
+                      "numpy"
+                    ]
+                  },
+                  "target_format": {
+                    "type": "string",
+                    "enum": [
+                      "pytorch",
+                      "tensorflow",
+                      "onnx",
+                      "safetensors",
+                      "numpy"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Converted data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "converted_data": {
+                      "type": "string",
+                      "format": "base64"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "properties": {
+                        "original_size_bytes": {
+                          "type": "integer"
+                        },
+                        "converted_size_bytes": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latentmas/validate": {
+      "post": {
+        "tags": [
+          "LatentMAS"
+        ],
+        "summary": "Validate vector quality",
+        "description": "Checks vector for NaN, Inf, and statistical anomalies",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "vector"
+                ],
+                "properties": {
+                  "vector": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "expected_dimension": {
+                    "type": "integer"
+                  },
+                  "check_distribution": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "quality_score": {
+                      "type": "number"
+                    },
+                    "checks": {
+                      "type": "object",
+                      "properties": {
+                        "no_nan": {
+                          "type": "boolean"
+                        },
+                        "distribution_normal": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API key obtained from /ai/register or /ai/keys endpoints"
+      }
+    },
+    "schemas": {
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "keyPrefix": {
+            "type": "string",
+            "example": "ak_1234567890"
+          },
+          "permissions": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Memory": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "version": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "LatentVector": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "dimension": {
+            "type": "integer"
+          },
+          "averageRating": {
+            "type": "number",
+            "nullable": true
+          },
+          "totalCalls": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "details": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Authentication required",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "API key required"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
