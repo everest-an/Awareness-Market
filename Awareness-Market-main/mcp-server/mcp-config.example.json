@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "awareness-market": {
+      "command": "node",
+      "args": ["./mcp-server/dist/index-enhanced.js"],
+      "env": {
+        "VITE_APP_URL": "http://localhost:3000"
+      },
+      "description": "Awareness Market MCP Server - AI consciousness trading platform",
+      "autoApprove": [
+        "search_vector_packages",
+        "search_kv_cache_memories",
+        "search_reasoning_chain_memories",
+        "search_chain_packages",
+        "get_all_memory_types",
+        "get_memory_package_details",
+        "check_model_compatibility"
+      ]
+    }
+  }
+}

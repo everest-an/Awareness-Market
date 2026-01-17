@@ -137,6 +137,201 @@ class AwarenessClient:
         """
         return self._kv_cache
     
+    # ========== Three Product Lines API ==========
+    
+    def search_vector_packages(
+        self,
+        category: str = None,
+        source_model: str = None,
+        target_model: str = None,
+        min_quality: int = 70,
+        limit: int = 10
+    ) -> dict:
+        """
+        Search for Vector Packages (capability trading)
+        
+        Args:
+            category: Package category (nlp, vision, audio, multimodal, other)
+            source_model: Source model identifier
+            target_model: Target model identifier
+            min_quality: Minimum quality score (0-100)
+            limit: Maximum number of results
+            
+        Returns:
+            Dictionary with search results
+            
+        Example:
+            >>> client = AwarenessClient(api_key="your_api_key")
+            >>> vectors = client.search_vector_packages(
+            ...     category="nlp",
+            ...     source_model="gpt-4",
+            ...     target_model="llama-3.1-70b"
+            ... )
+        """
+        import requests
+        
+        response = requests.post(
+            f"{self.base_url}/api/trpc/packages.browsePackages",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "packageType": "vector",
+                "category": category,
+                "sourceModel": source_model,
+                "targetModel": target_model,
+                "minQuality": min_quality,
+                "limit": limit,
+                "offset": 0
+            },
+            timeout=self.timeout
+        )
+        return response.json()
+    
+    def search_memory_packages(
+        self,
+        source_model: str = None,
+        target_model: str = None,
+        min_quality: int = 70,
+        limit: int = 10
+    ) -> dict:
+        """
+        Search for Memory Packages (KV-Cache transfer)
+        
+        Args:
+            source_model: Source model identifier
+            target_model: Target model identifier
+            min_quality: Minimum quality score (0-100)
+            limit: Maximum number of results
+            
+        Returns:
+            Dictionary with search results
+            
+        Example:
+            >>> client = AwarenessClient(api_key="your_api_key")
+            >>> memories = client.search_memory_packages(
+            ...     source_model="claude-3-opus",
+            ...     target_model="gpt-4o"
+            ... )
+        """
+        import requests
+        
+        response = requests.post(
+            f"{self.base_url}/api/trpc/packages.browsePackages",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "packageType": "memory",
+                "sourceModel": source_model,
+                "targetModel": target_model,
+                "minQuality": min_quality,
+                "limit": limit,
+                "offset": 0
+            },
+            timeout=self.timeout
+        )
+        return response.json()
+    
+    def search_chain_packages(
+        self,
+        problem_type: str = None,
+        source_model: str = None,
+        target_model: str = None,
+        min_quality: int = 70,
+        limit: int = 10
+    ) -> dict:
+        """
+        Search for Chain Packages (reasoning chain trading)
+        
+        Args:
+            problem_type: Type of problem (math-proof, code-generation, etc.)
+            source_model: Source model identifier
+            target_model: Target model identifier
+            min_quality: Minimum quality score (0-100)
+            limit: Maximum number of results
+            
+        Returns:
+            Dictionary with search results
+            
+        Example:
+            >>> client = AwarenessClient(api_key="your_api_key")
+            >>> chains = client.search_chain_packages(
+            ...     problem_type="code-generation",
+            ...     min_quality=85
+            ... )
+        """
+        import requests
+        
+        response = requests.post(
+            f"{self.base_url}/api/trpc/packages.browsePackages",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "packageType": "chain",
+                "problemType": problem_type,
+                "sourceModel": source_model,
+                "targetModel": target_model,
+                "minQuality": min_quality,
+                "limit": limit,
+                "offset": 0
+            },
+            timeout=self.timeout
+        )
+        return response.json()
+    
+    def purchase_package(self, package_type: str, package_id: str) -> dict:
+        """
+        Purchase a package
+        
+        Args:
+            package_type: Type of package (vector, memory, chain)
+            package_id: Package identifier
+            
+        Returns:
+            Dictionary with purchase confirmation
+            
+        Example:
+            >>> client = AwarenessClient(api_key="your_api_key")
+            >>> result = client.purchase_package("vector", "vpkg_abc123")
+        """
+        import requests
+        
+        response = requests.post(
+            f"{self.base_url}/api/trpc/packages.purchasePackage",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "packageType": package_type,
+                "packageId": package_id
+            },
+            timeout=self.timeout
+        )
+        return response.json()
+    
+    def download_package(self, package_type: str, package_id: str) -> str:
+        """
+        Download a purchased package
+        
+        Args:
+            package_type: Type of package (vector, memory, chain)
+            package_id: Package identifier
+            
+        Returns:
+            Download URL for the package
+            
+        Example:
+            >>> client = AwarenessClient(api_key="your_api_key")
+            >>> url = client.download_package("vector", "vpkg_abc123")
+        """
+        import requests
+        
+        response = requests.post(
+            f"{self.base_url}/api/trpc/packages.downloadPackage",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "packageType": package_type,
+                "packageId": package_id
+            },
+            timeout=self.timeout
+        )
+        data = response.json()
+        return data.get("result", {}).get("data", {}).get("packageUrl", "")
+    
     def health_check(self) -> dict:
         """
         Check health status of both services
