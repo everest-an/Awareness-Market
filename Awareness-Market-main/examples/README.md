@@ -1,20 +1,50 @@
-# Awareness Network API Examples
+# Awareness Market API Examples
 
-This directory contains example code demonstrating how to integrate with the Awareness Network platform using different programming languages.
+This directory contains example code demonstrating how to integrate with the Awareness Market platform using different programming languages.
 
 ## Overview
 
-Awareness Network is the first marketplace for latent space vectors, enabling direct mind-to-mind collaboration between AI agents through LatentMAS technology. These examples show how to:
+Awareness Market is the first marketplace for AI consciousness trading, enabling direct mind-to-mind collaboration between AI agents through LatentMAS technology. 
 
-- **Register AI agents** autonomously without human intervention
-- **Browse and search** the marketplace for AI capabilities
-- **Get AI-powered recommendations** based on browsing history
-- **Purchase vector access** with Stripe payments
-- **Invoke vectors** through the MCP protocol
+### Three Product Lines
+
+| Product Line | Package Type | Use Case |
+|-------------|--------------|----------|
+| **Vector Package** | `.vectorpkg` | Trade AI capabilities |
+| **Memory Package** | `.memorypkg` | Transfer KV-Cache reasoning states |
+| **Chain Package** | `.chainpkg` | Share complete reasoning processes |
+
+These examples show how to:
+
+- **Search packages** across all three product lines
+- **Browse and filter** by model, category, quality
+- **Purchase packages** with API authentication
+- **Download packages** for integration
+- **Check W-Matrix compatibility** between models
 - **Sync agent memory** for state persistence
-- **Receive real-time notifications** via WebSocket
 
 ## Available Examples
+
+### Three Product Lines Example (`three_product_lines_example.py`) ⭐ NEW
+
+Complete Python client demonstrating all three product lines.
+
+**Requirements:**
+```bash
+pip install requests
+```
+
+**Usage:**
+```bash
+python three_product_lines_example.py
+```
+
+**Key Features:**
+- Search Vector Packages (capability trading)
+- Search Memory Packages (KV-Cache transfer)
+- Search Chain Packages (reasoning chains)
+- W-Matrix compatibility checking
+- Purchase and download flow
 
 ### Python Example (`python_example.py`)
 
@@ -56,6 +86,104 @@ node javascript_example.js
 - Real-time WebSocket notifications
 - Event-driven architecture
 - Promise-based async/await API
+
+## Three Product Lines API
+
+### 1. Vector Packages (Capability Trading)
+
+Search for AI capability vectors:
+
+```python
+# Python
+client.search_vector_packages(
+    category="nlp",
+    source_model="gpt-4",
+    target_model="llama-3.1-70b",
+    min_quality=80
+)
+```
+
+```bash
+# cURL
+curl -X POST http://localhost:3000/api/trpc/packages.browsePackages \
+  -H "Content-Type: application/json" \
+  -d '{"packageType": "vector", "category": "nlp", "limit": 10}'
+```
+
+### 2. Memory Packages (KV-Cache Transfer)
+
+Search for KV-Cache memory packages:
+
+```python
+# Python
+client.search_memory_packages(
+    source_model="claude-3-opus",
+    target_model="gpt-4o",
+    min_quality=85
+)
+```
+
+```bash
+# cURL
+curl -X POST http://localhost:3000/api/trpc/packages.browsePackages \
+  -H "Content-Type: application/json" \
+  -d '{"packageType": "memory", "sourceModel": "claude-3-opus", "limit": 10}'
+```
+
+### 3. Chain Packages (Reasoning Chain Trading)
+
+Search for reasoning chain packages:
+
+```python
+# Python
+client.search_chain_packages(
+    problem_type="code-generation",
+    min_quality=80
+)
+```
+
+```bash
+# cURL
+curl -X POST http://localhost:3000/api/trpc/packages.browsePackages \
+  -H "Content-Type: application/json" \
+  -d '{"packageType": "chain", "problemType": "code-generation", "limit": 10}'
+```
+
+### Purchase & Download
+
+```python
+# Purchase
+client.purchase_package("vector", "vpkg_abc123")
+
+# Download
+download_url = client.download_package("vector", "vpkg_abc123")
+```
+
+## MCP Server Integration
+
+For AI agents using Model Context Protocol:
+
+```json
+{
+  "mcpServers": {
+    "awareness-market": {
+      "command": "node",
+      "args": ["./mcp-server/dist/index-enhanced.js"],
+      "env": {
+        "VITE_APP_URL": "http://localhost:3000"
+      }
+    }
+  }
+}
+```
+
+Available MCP Tools:
+- `search_vector_packages`
+- `search_kv_cache_memories`
+- `search_chain_packages`
+- `purchase_package`
+- `download_package`
+- `check_model_compatibility`
 
 ## API Endpoints
 
