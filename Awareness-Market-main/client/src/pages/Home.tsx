@@ -107,24 +107,7 @@ export default function Home() {
                 )}
               </div>
               
-              {/* Quick links */}
-              <div className="mt-10 flex flex-wrap gap-6 text-sm">
-                <Link href="/reasoning-chains" className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                  <Network className="w-4 h-4" />
-                  Reasoning Chains
-                  <ChevronRight className="w-3 h-3" />
-                </Link>
-                <Link href="/w-matrix" className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                  <Cpu className="w-4 h-4" />
-                  W-Matrix Protocol
-                  <ChevronRight className="w-3 h-3" />
-                </Link>
-                <Link href="/docs" className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                  <GitBranch className="w-4 h-4" />
-                  Documentation
-                  <ChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
+
             </div>
             
             {/* Right: 3D Globe */}
@@ -154,7 +137,7 @@ export default function Home() {
           
           <div className="grid md:grid-cols-3 gap-6">
             {/* Vector Package Market Card */}
-            <Link href="/vector-packages" className="group">
+            <Link href="/marketplace" className="group">
               <div className="glass-card-hover p-6 h-full border-l-4 border-l-blue-500">
                 <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
                   <Brain className="w-6 h-6 text-blue-500" />
@@ -190,7 +173,7 @@ export default function Home() {
             </Link>
             
             {/* Reasoning Chain Market Card */}
-            <Link href="/chain-packages" className="group">
+            <Link href="/reasoning-chains" className="group">
               <div className="glass-card-hover p-6 h-full border-l-4 border-l-green-500">
                 <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
                   <Network className="w-6 h-6 text-green-500" />
@@ -202,40 +185,6 @@ export default function Home() {
                 </p>
                 <div className="flex items-center text-sm text-green-400">
                   Browse Chains
-                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </Link>
-            
-            {/* W-Matrix Protocol Card */}
-            <Link href="/w-matrix" className="group">
-              <div className="glass-card-hover p-6 h-full">
-                <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-4 group-hover:bg-accent/20 transition-colors">
-                  <Cpu className="w-6 h-6 text-accent" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">W-Matrix Protocol</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  The alignment tool inside Memory Packages. Transforms KV-Cache from one model to another. Supports 60+ AI models.
-                </p>
-                <div className="flex items-center text-sm text-accent">
-                  Learn More
-                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </Link>
-            
-            {/* Compatibility Tester Card */}
-            <Link href="/w-matrix/tester" className="group">
-              <div className="glass-card-hover p-6 h-full">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <Zap className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Compatibility Tester</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Test alignment quality between any two models. Visualize compatibility scores with our interactive matrix.
-                </p>
-                <div className="flex items-center text-sm text-primary">
-                  Try Now
                   <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -380,17 +329,17 @@ export default function Home() {
             <div>
               <h4 className="font-medium mb-4">Products</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Marketplace</Link></li>
+                <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Packages</Link></li>
+                <li><Link href="/memory-marketplace" className="hover:text-foreground transition-colors">Memory Packages</Link></li>
                 <li><Link href="/reasoning-chains" className="hover:text-foreground transition-colors">Reasoning Chains</Link></li>
-                <li><Link href="/w-matrix" className="hover:text-foreground transition-colors">W-Matrix Protocol</Link></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-medium mb-4">Developers</h4>
+              <h4 className="font-medium mb-4">Resources</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/docs" className="hover:text-foreground transition-colors">Documentation</Link></li>
-                <li><Link href="/w-matrix/tester" className="hover:text-foreground transition-colors">Compatibility Tester</Link></li>
+                <li><Link href="/sdk" className="hover:text-foreground transition-colors">Python SDK</Link></li>
                 <li><a href="https://github.com/everest-an/Awareness-Market" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a></li>
               </ul>
             </div>

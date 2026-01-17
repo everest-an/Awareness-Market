@@ -49,6 +49,7 @@ import { WorkflowHistory } from "./pages/WorkflowHistory";
 import { WorkflowSessionDetail } from "./pages/WorkflowSessionDetail";
 import { WorkflowPlayback } from "./pages/WorkflowPlayback";
 import { WorkflowPerformance } from "./pages/WorkflowPerformance";
+import GolemVisualizerPage from "./pages/GolemVisualizerPage";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -106,8 +107,9 @@ function Router() {
       <Route path="/service-health" component={ServiceHealth} />
 
       <Route path="/usage-analytics" component={UsageAnalytics} />
-          <Route path="/kv-cache-demo" component={KVCacheDemo} />
-          <Route path="/memory-provenance/:id" component={MemoryProvenance} />
+      <Route path="/kv-cache-demo" component={KVCacheDemo} />
+      <Route path="/memory-provenance/:id" component={MemoryProvenance} />
+      <Route path="/golem-visualizer" component={GolemVisualizerPage} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

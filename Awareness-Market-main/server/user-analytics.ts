@@ -58,7 +58,7 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
   const userKeys = await database
     .select({ id: apiKeys.id })
     .from(apiKeys)
-    .where(eq(apiKeys.userId, userId));
+    .where(eq(apiKeys.userId, parseInt(userId)));
 
   const keyIds = userKeys.map(k => k.id);
 
@@ -97,7 +97,7 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
 
   // Average response time
   const avgTimeResult = await database
-    .select({ avg: sql<number>`avg(${apiUsageLogs.responseTime})` })
+    .select({ avg: sql<number>`avg(${apiUsageLogs.responseTimeMs})` })
     .from(apiUsageLogs)
     .where(sql`${apiUsageLogs.apiKeyId} IN (${sql.join(keyIds.map(id => sql`${id}`), sql`, `)})`);
 
@@ -110,7 +110,7 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
     .where(
       and(
         sql`${apiUsageLogs.apiKeyId} IN (${sql.join(keyIds.map(id => sql`${id}`), sql`, `)})`,
-        gte(apiUsageLogs.timestamp, today)
+        gte(apiUsageLogs.createdAt, today)
       )
     );
 
@@ -123,7 +123,7 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
     .where(
       and(
         sql`${apiUsageLogs.apiKeyId} IN (${sql.join(keyIds.map(id => sql`${id}`), sql`, `)})`,
-        gte(apiUsageLogs.timestamp, weekAgo)
+        gte(apiUsageLogs.createdAt, weekAgo)
       )
     );
 
@@ -136,7 +136,7 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
     .where(
       and(
         sql`${apiUsageLogs.apiKeyId} IN (${sql.join(keyIds.map(id => sql`${id}`), sql`, `)})`,
-        gte(apiUsageLogs.timestamp, monthAgo)
+        gte(apiUsageLogs.createdAt, monthAgo)
       )
     );
 
@@ -172,7 +172,7 @@ export async function getPopularEndpoints(userId: string, limit: number = 10): P
   const userKeys = await database
     .select({ id: apiKeys.id })
     .from(apiKeys)
-    .where(eq(apiKeys.userId, userId));
+    .where(eq(apiKeys.userId, parseInt(userId)));
 
   const keyIds = userKeys.map(k => k.id);
 
@@ -185,7 +185,7 @@ export async function getPopularEndpoints(userId: string, limit: number = 10): P
       endpoint: apiUsageLogs.endpoint,
       method: apiUsageLogs.method,
       count: sql<number>`count(*)`,
-      avgResponseTime: sql<number>`avg(${apiUsageLogs.responseTime})`,
+      avgResponseTime: sql<number>`avg(${apiUsageLogs.responseTimeMs})`,
       errorRate: sql<number>`(sum(case when ${apiUsageLogs.statusCode} >= 400 then 1 else 0 end) * 100.0 / count(*))`,
     })
     .from(apiUsageLogs)
@@ -230,7 +230,7 @@ export async function getDailyUsage(userId: string, days: number = 30): Promise<
   const userKeys = await database
     .select({ id: apiKeys.id })
     .from(apiKeys)
-    .where(eq(apiKeys.userId, userId));
+    .where(eq(apiKeys.userId, parseInt(userId)));
 
   const keyIds = userKeys.map(k => k.id);
 
@@ -240,7 +240,7 @@ export async function getDailyUsage(userId: string, days: number = 30): Promise<
 
   const results = await database
     .select({
-      date: sql<string>`DATE(${apiUsageLogs.timestamp})`,
+      date: sql<string>`DATE(${apiUsageLogs.createdAt})`,
       requests: sql<number>`count(*)`,
       errors: sql<number>`sum(case when ${apiUsageLogs.statusCode} >= 400 then 1 else 0 end)`,
     })
@@ -248,11 +248,11 @@ export async function getDailyUsage(userId: string, days: number = 30): Promise<
     .where(
       and(
         sql`${apiUsageLogs.apiKeyId} IN (${sql.join(keyIds.map(id => sql`${id}`), sql`, `)})`,
-        gte(apiUsageLogs.timestamp, startDate)
+        gte(apiUsageLogs.createdAt, startDate)
       )
     )
-    .groupBy(sql`DATE(${apiUsageLogs.timestamp})`)
-    .orderBy(sql`DATE(${apiUsageLogs.timestamp})`);
+    .groupBy(sql`DATE(${apiUsageLogs.createdAt})`)
+    .orderBy(sql`DATE(${apiUsageLogs.createdAt})`);
 
   return results.map(r => ({
     date: r.date,
@@ -280,10 +280,10 @@ export async function getApiKeyUsage(userId: string): Promise<ApiKeyUsage[]> {
     .select({
       id: apiKeys.id,
       name: apiKeys.name,
-      lastUsed: apiKeys.lastUsed,
+      lastUsed: apiKeys.lastUsedAt,
     })
     .from(apiKeys)
-    .where(eq(apiKeys.userId, userId));
+    .where(eq(apiKeys.userId, parseInt(userId)));
 
   const usagePromises = userKeys.map(async (key) => {
     const result = await database

@@ -37,7 +37,7 @@ import {
 
 const navLinks = [
   {
-    label: "Marketplace",
+    label: "Products",
     children: [
       { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
@@ -49,8 +49,8 @@ const navLinks = [
     children: [
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
-      { label: "Compatibility Tester", href: "/w-matrix/tester", icon: Cpu, description: "Test model compatibility" },
       { label: "W-Matrix Protocol", href: "/w-matrix", icon: Network, description: "Cross-model alignment" },
+      { label: "Compatibility Tester", href: "/w-matrix/tester", icon: Cpu, description: "Test model compatibility" },
       { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
     ]
   },
