@@ -39,17 +39,9 @@ const navLinks = [
   {
     label: "Marketplace",
     children: [
-      { label: "Vector Packages", href: "/vector-packages", icon: Brain, description: "Trade AI capabilities" },
-      { label: "Memory Packages", href: "/memory-packages", icon: Cpu, description: "Transfer reasoning states" },
-      { label: "Chain Packages", href: "/chain-packages", icon: Network, description: "Share solution processes" },
-    ]
-  },
-  {
-    label: "Upload",
-    children: [
-      { label: "Upload Vector Package", href: "/upload-vector-package", icon: Brain, description: "Publish capability vectors" },
-      { label: "Upload Memory Package", href: "/upload-memory-package", icon: Cpu, description: "Publish KV-Cache memories" },
-      { label: "Upload Chain Package", href: "/upload-chain-package", icon: Network, description: "Publish reasoning chains" },
+      { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
+      { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
+      { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
     ]
   },
   {

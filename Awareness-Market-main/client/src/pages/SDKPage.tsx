@@ -34,17 +34,30 @@ const PYTHON_EXAMPLES = {
 # Initialize client with your API key
 client = AwarenessClient(api_key="your_api_key")
 
-# Discover memories by topic
-memories = client.find_memories(topic="chain-of-thought reasoning")
+# === Three Product Lines ===
 
-# Load a genesis memory capsule (free!)
-memory = client.load_memory("genesis-001")
+# 1. Vector Packages - Capability Trading
+vectors = client.search_vector_packages(
+    category="nlp",
+    source_model="gpt-4",
+    target_model="llama-3.1-70b"
+)
 
-# Apply to your agent's context
-enhanced_context = client.align_memory(
-    memory=memory,
-    target_model="llama-3-70b"
-)`,
+# 2. Memory Packages - KV-Cache Transfer
+memories = client.search_memory_packages(
+    source_model="claude-3-opus",
+    target_model="gpt-4o"
+)
+
+# 3. Chain Packages - Reasoning Chain Trading
+chains = client.search_chain_packages(
+    problem_type="code-generation",
+    min_quality=80
+)
+
+# Purchase and download any package
+client.purchase_package("vector", "vpkg_abc123")
+download_url = client.download_package("vector", "vpkg_abc123")`,
   advanced: `from awareness import AsyncAwarenessClient
 import asyncio
 
@@ -96,6 +109,25 @@ aligned_cache = WMatrixService.align_kv_cache(
     kv_cache=llama_cache,
     target_model="gpt-4"
 )`,
+  mcp: `# MCP Server Integration for AI Agents
+# Configure in your MCP settings (mcp.json):
+{
+  "mcpServers": {
+    "awareness-market": {
+      "command": "node",
+      "args": ["./mcp-server/dist/index-enhanced.js"],
+      "env": { "VITE_APP_URL": "http://localhost:3000" }
+    }
+  }
+}
+
+# Available MCP Tools:
+# - search_vector_packages: Search capability vectors
+# - search_kv_cache_memories: Search KV-Cache memories
+# - search_chain_packages: Search reasoning chains
+# - purchase_package: Purchase any package type
+# - download_package: Download purchased packages
+# - check_model_compatibility: Check W-Matrix compatibility`,
 };
 
 const JAVASCRIPT_EXAMPLES = {
@@ -111,22 +143,32 @@ const client = new AwarenessClient({
   apiKey: process.env.AWARENESS_API_KEY
 });
 
-// Discover memories by domain
-const memories = await client.findMemories({
-  domain: 'code_generation',
+// === Three Product Lines ===
+
+// 1. Vector Packages - Capability Trading
+const vectors = await client.searchVectorPackages({
+  category: 'nlp',
+  sourceModel: 'gpt-4',
+  targetModel: 'llama-3.1-70b',
   limit: 10
 });
 
-// Load a genesis memory (free!)
-const memory = await client.loadMemory('genesis-011');
-
-// Apply W-Matrix alignment
-const aligned = await client.alignMemory({
-  memory,
-  targetModel: 'gpt-4o'
+// 2. Memory Packages - KV-Cache Transfer
+const memories = await client.searchMemoryPackages({
+  sourceModel: 'claude-3-opus',
+  targetModel: 'gpt-4o',
+  minQuality: 80
 });
 
-console.log('Alignment quality:', aligned.quality);`,
+// 3. Chain Packages - Reasoning Chain Trading
+const chains = await client.searchChainPackages({
+  problemType: 'code-generation',
+  minQuality: 85
+});
+
+// Purchase and download
+await client.purchasePackage('vector', 'vpkg_abc123');
+const url = await client.downloadPackage('vector', 'vpkg_abc123');`,
   advanced: `import { AwarenessClient, WMatrixService } from '@awareness/sdk';
 
 const client = new AwarenessClient({ apiKey: 'your_key' });
@@ -507,6 +549,19 @@ export default function SDKPage() {
                 </CardHeader>
                 <CardContent>
                   <CodeBlock code={PYTHON_EXAMPLES.wMatrix} language="python" />
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900/50 border-gray-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Cpu className="h-5 w-5 text-cyan-400" />
+                    MCP Server Integration
+                  </CardTitle>
+                  <CardDescription>For AI agents using Model Context Protocol</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CodeBlock code={PYTHON_EXAMPLES.mcp} language="json" />
                 </CardContent>
               </Card>
             </TabsContent>
