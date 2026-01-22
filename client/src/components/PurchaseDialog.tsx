@@ -33,11 +33,14 @@ export function PurchaseDialog({ vector, open, onOpenChange, onSuccess }: Purcha
   const purchaseMutation = trpc.transactions.purchase.useMutation({
     onSuccess: (data) => {
       setIsProcessing(false);
-      toast.success("Purchase successful!", {
-        description: "You now have access to this AI capability.",
+      if (data.checkoutUrl) {
+        onSuccess();
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+      toast.error("Purchase failed", {
+        description: "Unable to start checkout session.",
       });
-      onSuccess();
-      onOpenChange(false);
     },
     onError: (error) => {
       setIsProcessing(false);
@@ -49,11 +52,8 @@ export function PurchaseDialog({ vector, open, onOpenChange, onSuccess }: Purcha
 
   const handlePurchase = () => {
     setIsProcessing(true);
-    // In production, this should integrate with Stripe Checkout
-    // For now, we use a mock payment method ID
     purchaseMutation.mutate({
       vectorId: vector.id,
-      paymentMethodId: "pm_card_visa",
     });
   };
 

@@ -36,6 +36,15 @@ jobs:
       # Assuming 'npm run test' runs vitest run
       run: npm run test
 
+    - name: Evaluate Capabilities
+      run: npm run evaluate:capabilities
+
+    - name: Upload Metrics
+      uses: actions/upload-artifact@v4
+      with:
+        name: capability-metrics
+        path: metrics/*.json
+
     - name: Build
       run: npm run build
 

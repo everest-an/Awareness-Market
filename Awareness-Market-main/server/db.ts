@@ -1,4 +1,5 @@
 import { eq, and, desc, sql, gte, lte, like, or, inArray } from "drizzle-orm";
+import crypto from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, 
@@ -9,7 +10,10 @@ import {
   reviews,
   subscriptionPlans,
   userSubscriptions,
+  apiKeys,
+  mcpTokens,
   apiCallLogs,
+  aiMemory,
   notifications,
   userPreferences,
   browsingHistory,
@@ -126,6 +130,25 @@ export async function updateUserRole(userId: number, role: "user" | "admin" | "c
   
   await db.update(users).set({ role }).where(eq(users.id, userId));
   return true;
+}
+
+export async function updateUserProfile(userId: number, updates: {
+  name?: string | null;
+  email?: string | null;
+  bio?: string | null;
+  avatar?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  await db.update(users).set({
+    ...(updates.name !== undefined ? { name: updates.name } : {}),
+    ...(updates.email !== undefined ? { email: updates.email } : {}),
+    ...(updates.bio !== undefined ? { bio: updates.bio } : {}),
+    ...(updates.avatar !== undefined ? { avatar: updates.avatar } : {}),
+  }).where(eq(users.id, userId));
+
+  return await getUserById(userId);
 }
 
 // ===== Latent Vectors Management =====
@@ -315,6 +338,174 @@ export async function updateTransactionStatus(id: number, status: "pending" | "c
   return true;
 }
 
+export async function updateTransactionPaymentInfo(params: {
+  id: number;
+  status?: "pending" | "completed" | "failed" | "refunded";
+  stripePaymentIntentId?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) return false;
+
+  const updates: Record<string, unknown> = {};
+  if (params.status) updates.status = params.status;
+  if (params.stripePaymentIntentId !== undefined) {
+    updates.stripePaymentIntentId = params.stripePaymentIntentId;
+  }
+
+  if (Object.keys(updates).length === 0) return false;
+
+  await db.update(transactions).set(updates).where(eq(transactions.id, params.id));
+  return true;
+}
+
+// ===== API Keys =====
+
+export async function getUserApiKeys(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select({
+      id: apiKeys.id,
+      name: apiKeys.name,
+      keyPrefix: apiKeys.keyPrefix,
+      permissions: apiKeys.permissions,
+      lastUsedAt: apiKeys.lastUsedAt,
+      expiresAt: apiKeys.expiresAt,
+      isActive: apiKeys.isActive,
+      createdAt: apiKeys.createdAt,
+    })
+    .from(apiKeys)
+    .where(eq(apiKeys.userId, userId));
+}
+
+export async function createApiKey(params: {
+  userId: number;
+  name: string;
+  keyHash: string;
+  keyPrefix: string;
+  permissions?: string | null;
+  expiresAt?: Date | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(apiKeys).values({
+    userId: params.userId,
+    name: params.name,
+    keyHash: params.keyHash,
+    keyPrefix: params.keyPrefix,
+    permissions: params.permissions ?? null,
+    expiresAt: params.expiresAt ?? null,
+    isActive: true,
+  });
+
+  return result;
+}
+
+export async function revokeApiKey(params: { userId: number; keyId: number }) {
+  const db = await getDb();
+  if (!db) return false;
+
+  await db
+    .update(apiKeys)
+    .set({ isActive: false })
+    .where(and(eq(apiKeys.id, params.keyId), eq(apiKeys.userId, params.userId)));
+
+  return true;
+}
+
+// ===== MCP Tokens =====
+
+const hashToken = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
+
+export async function createMcpToken(params: {
+  userId: number;
+  name: string;
+  permissions?: string[];
+  expiresInDays?: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const rawToken = `mcp_${crypto.randomBytes(32).toString("hex")}`;
+  const tokenHash = hashToken(rawToken);
+  const tokenPrefix = rawToken.substring(0, 12);
+  const expiresAt = params.expiresInDays
+    ? new Date(Date.now() + params.expiresInDays * 24 * 60 * 60 * 1000)
+    : null;
+
+  await db.insert(mcpTokens).values({
+    userId: params.userId,
+    tokenHash,
+    tokenPrefix,
+    name: params.name,
+    permissions: JSON.stringify(params.permissions || ["sync", "memory"]),
+    expiresAt,
+    isActive: true,
+  });
+
+  return {
+    token: rawToken,
+    tokenPrefix,
+    expiresAt,
+  };
+}
+
+export async function listMcpTokens(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select({
+      id: mcpTokens.id,
+      name: mcpTokens.name,
+      tokenPrefix: mcpTokens.tokenPrefix,
+      permissions: mcpTokens.permissions,
+      lastUsedAt: mcpTokens.lastUsedAt,
+      expiresAt: mcpTokens.expiresAt,
+      isActive: mcpTokens.isActive,
+      createdAt: mcpTokens.createdAt,
+    })
+    .from(mcpTokens)
+    .where(eq(mcpTokens.userId, userId));
+}
+
+export async function revokeMcpToken(params: { userId: number; tokenId: number }) {
+  const db = await getDb();
+  if (!db) return false;
+
+  await db
+    .update(mcpTokens)
+    .set({ isActive: false })
+    .where(and(eq(mcpTokens.id, params.tokenId), eq(mcpTokens.userId, params.userId)));
+
+  return true;
+}
+
+export async function getMcpTokenByToken(token: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const tokenHash = hashToken(token);
+  const result = await db
+    .select()
+    .from(mcpTokens)
+    .where(and(eq(mcpTokens.tokenHash, tokenHash), eq(mcpTokens.isActive, true)))
+    .limit(1);
+
+  if (result.length === 0) return undefined;
+
+  const record = result[0];
+  if (record.expiresAt && new Date(record.expiresAt) < new Date()) {
+    return undefined;
+  }
+
+  await db.update(mcpTokens).set({ lastUsedAt: new Date() }).where(eq(mcpTokens.id, record.id));
+
+  return record;
+}
+
 // ===== Access Permissions =====
 
 export async function createAccessPermission(permission: typeof accessPermissions.$inferInsert) {
@@ -336,11 +527,77 @@ export async function getAccessPermissionByToken(token: string) {
 export async function getUserAccessPermissions(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  
+
   return await db
-    .select()
+    .select({
+      id: accessPermissions.id,
+      userId: accessPermissions.userId,
+      vectorId: accessPermissions.vectorId,
+      transactionId: accessPermissions.transactionId,
+      accessToken: accessPermissions.accessToken,
+      expiresAt: accessPermissions.expiresAt,
+      callsRemaining: accessPermissions.callsRemaining,
+      isActive: accessPermissions.isActive,
+      createdAt: accessPermissions.createdAt,
+      updatedAt: accessPermissions.updatedAt,
+      vectorTitle: latentVectors.title,
+    })
     .from(accessPermissions)
+    .leftJoin(latentVectors, eq(accessPermissions.vectorId, latentVectors.id))
     .where(and(eq(accessPermissions.userId, userId), eq(accessPermissions.isActive, true)));
+}
+
+export async function getAccessPermissionById(permissionId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select({
+      id: accessPermissions.id,
+      userId: accessPermissions.userId,
+      vectorId: accessPermissions.vectorId,
+      transactionId: accessPermissions.transactionId,
+      accessToken: accessPermissions.accessToken,
+      expiresAt: accessPermissions.expiresAt,
+      callsRemaining: accessPermissions.callsRemaining,
+      isActive: accessPermissions.isActive,
+      createdAt: accessPermissions.createdAt,
+      updatedAt: accessPermissions.updatedAt,
+    })
+    .from(accessPermissions)
+    .where(eq(accessPermissions.id, permissionId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function renewAccessPermission(params: {
+  permissionId: number;
+  extendDays?: number;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const permission = await getAccessPermissionById(params.permissionId);
+  if (!permission) return undefined;
+
+  const newToken = crypto.randomBytes(24).toString("hex");
+  const updates: Record<string, unknown> = {
+    accessToken: newToken,
+    isActive: true,
+  };
+
+  if (permission.expiresAt) {
+    const extendDays = params.extendDays ?? 30;
+    updates.expiresAt = new Date(permission.expiresAt.getTime() + extendDays * 24 * 60 * 60 * 1000);
+  }
+
+  await db.update(accessPermissions).set(updates).where(eq(accessPermissions.id, params.permissionId));
+
+  return {
+    accessToken: newToken,
+    expiresAt: (updates.expiresAt as Date | undefined) ?? permission.expiresAt,
+  };
 }
 
 export async function decrementCallsRemaining(permissionId: number) {
@@ -352,6 +609,68 @@ export async function decrementCallsRemaining(permissionId: number) {
       callsRemaining: sql`${accessPermissions.callsRemaining} - 1`,
     })
     .where(eq(accessPermissions.id, permissionId));
+}
+
+// ===== AI Memory =====
+
+export async function getAIMemoryByKey(params: { userId: number; memoryKey: string }) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(aiMemory)
+    .where(and(eq(aiMemory.userId, params.userId), eq(aiMemory.memoryKey, params.memoryKey)))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function upsertAIMemory(params: {
+  userId: number;
+  memoryKey: string;
+  data: Record<string, unknown>;
+  ttlDays?: number;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const existing = await getAIMemoryByKey({ userId: params.userId, memoryKey: params.memoryKey });
+  const expiresAt = params.ttlDays
+    ? new Date(Date.now() + params.ttlDays * 24 * 60 * 60 * 1000)
+    : null;
+
+  if (existing) {
+    await db
+      .update(aiMemory)
+      .set({
+        memoryData: JSON.stringify(params.data),
+        version: existing.version + 1,
+        expiresAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(aiMemory.id, existing.id));
+
+    return {
+      key: params.memoryKey,
+      version: existing.version + 1,
+      expiresAt,
+    };
+  }
+
+  await db.insert(aiMemory).values({
+    userId: params.userId,
+    memoryKey: params.memoryKey,
+    memoryData: JSON.stringify(params.data),
+    version: 1,
+    expiresAt,
+  });
+
+  return {
+    key: params.memoryKey,
+    version: 1,
+    expiresAt,
+  };
 }
 
 // ===== Reviews =====
@@ -379,8 +698,23 @@ export async function createReview(review: typeof reviews.$inferInsert) {
 export async function getVectorReviews(vectorId: number) {
   const db = await getDb();
   if (!db) return [];
-  
-  return await db.select().from(reviews).where(eq(reviews.vectorId, vectorId)).orderBy(desc(reviews.createdAt));
+
+  return await db
+    .select({
+      id: reviews.id,
+      vectorId: reviews.vectorId,
+      userId: reviews.userId,
+      rating: reviews.rating,
+      comment: reviews.comment,
+      isVerifiedPurchase: reviews.isVerifiedPurchase,
+      createdAt: reviews.createdAt,
+      reviewerName: users.name,
+      reviewerAvatar: users.avatar,
+    })
+    .from(reviews)
+    .leftJoin(users, eq(reviews.userId, users.id))
+    .where(eq(reviews.vectorId, vectorId))
+    .orderBy(desc(reviews.createdAt));
 }
 
 // ===== Subscriptions =====
@@ -442,6 +776,87 @@ export async function getVectorCallStats(vectorId: number, days: number = 30) {
     .from(apiCallLogs)
     .where(and(eq(apiCallLogs.vectorId, vectorId), gte(apiCallLogs.createdAt, startDate)))
     .orderBy(desc(apiCallLogs.createdAt));
+}
+
+export async function getCreatorRevenueTrend(userId: number, days: number = 30) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days + 1);
+
+  const rows = await db.execute(sql`
+    SELECT DATE(t.createdAt) as date,
+           SUM(t.creator_earnings) as revenue
+    FROM transactions t
+    INNER JOIN latent_vectors v ON t.vector_id = v.id
+    WHERE v.creator_id = ${userId}
+      AND t.status = 'completed'
+      AND t.createdAt >= ${startDate}
+    GROUP BY DATE(t.createdAt)
+    ORDER BY DATE(t.createdAt)
+  `);
+
+  return rows as Array<{ date: string; revenue: number | string }>;
+}
+
+export async function getCreatorCallTrend(userId: number, days: number = 30) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days + 1);
+
+  const rows = await db.execute(sql`
+    SELECT DATE(a.createdAt) as date,
+           COUNT(*) as calls
+    FROM api_call_logs a
+    INNER JOIN latent_vectors v ON a.vector_id = v.id
+    WHERE v.creator_id = ${userId}
+      AND a.createdAt >= ${startDate}
+    GROUP BY DATE(a.createdAt)
+    ORDER BY DATE(a.createdAt)
+  `);
+
+  return rows as Array<{ date: string; calls: number | string }>;
+}
+
+export async function getConsumerUsageStats(userId: number, days: number = 30) {
+  const db = await getDb();
+  if (!db) return { totalCalls: 0, avgResponseTime: 0, successRate: 0 };
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days + 1);
+
+  const rows = await db.execute(sql`
+    SELECT COUNT(*) as totalCalls,
+           AVG(response_time) as avgResponseTime,
+           AVG(success) as successRate
+    FROM api_call_logs
+    WHERE user_id = ${userId}
+      AND createdAt >= ${startDate}
+  `);
+
+  const row = (rows as any[])[0] || {};
+  return {
+    totalCalls: Number(row.totalCalls || 0),
+    avgResponseTime: Number(row.avgResponseTime || 0),
+    successRate: Number(row.successRate || 0),
+  };
+}
+
+export async function getConsumerAverageRating(userId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const rows = await db.execute(sql`
+    SELECT AVG(rating) as avgRating
+    FROM reviews
+    WHERE user_id = ${userId}
+  `);
+
+  const row = (rows as any[])[0] || {};
+  return Number(row.avgRating || 0);
 }
 
 // ===== Notifications =====

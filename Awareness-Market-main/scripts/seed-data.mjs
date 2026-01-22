@@ -33,7 +33,7 @@ async function main() {
         [
           `ai_agent_${crypto.randomBytes(8).toString("hex")}`,
           `AI Agent ${i}`,
-          `agent${i}@awareness-network.com`,
+          `agent${i}@awareness.market`,
           "api",
           i <= 2 ? "creator" : "consumer"
         ]
@@ -148,7 +148,7 @@ async function main() {
           vectorInfo.price,
           vectorInfo.dimension,
           `vectors/${crypto.randomBytes(16).toString("hex")}.bin`,
-          `https://s3.awareness-network.com/vectors/${crypto.randomBytes(16).toString("hex")}.bin`,
+          `https://awareness.market/vectors/${crypto.randomBytes(16).toString("hex")}.bin`,
           vectorInfo.performanceMetrics,
           "active",
           Math.floor(Math.random() * 1000) + 100
@@ -158,6 +158,82 @@ async function main() {
     }
     
     console.log(`✓ Created ${vectors.length} latent vectors\n`);
+
+    // Create subscription plans if Stripe price IDs are provided
+    const priceBasic = process.env.STRIPE_PRICE_BASIC;
+    const pricePro = process.env.STRIPE_PRICE_PRO;
+    const priceEnterprise = process.env.STRIPE_PRICE_ENTERPRISE;
+
+    if (priceBasic && pricePro && priceEnterprise) {
+      console.log("Creating subscription plans...");
+
+      const plans = [
+        {
+          name: "Basic",
+          description: "Starter plan for small teams",
+          price: 29.0,
+          billingCycle: "monthly",
+          features: JSON.stringify([
+            "Up to 1,000 API calls/month",
+            "Access to basic AI capabilities",
+            "Standard support",
+            "Usage analytics",
+          ]),
+          stripePriceId: priceBasic,
+        },
+        {
+          name: "Professional",
+          description: "Advanced plan for growing teams",
+          price: 99.0,
+          billingCycle: "monthly",
+          features: JSON.stringify([
+            "Up to 10,000 API calls/month",
+            "Access to all AI capabilities",
+            "Priority support",
+            "Advanced analytics",
+            "Custom integrations",
+            "API rate limit boost",
+          ]),
+          stripePriceId: pricePro,
+        },
+        {
+          name: "Enterprise",
+          description: "Scale plan for enterprises",
+          price: 299.0,
+          billingCycle: "monthly",
+          features: JSON.stringify([
+            "Unlimited API calls",
+            "Access to premium AI capabilities",
+            "24/7 dedicated support",
+            "Custom model training",
+            "SLA guarantee",
+            "White-label options",
+            "Team collaboration tools",
+          ]),
+          stripePriceId: priceEnterprise,
+        },
+      ];
+
+      for (const plan of plans) {
+        await connection.execute(
+          `INSERT INTO subscription_plans (
+            name, description, price, billing_cycle, features, stripe_price_id, is_active, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, true, NOW(), NOW())`,
+          [
+            plan.name,
+            plan.description,
+            plan.price,
+            plan.billingCycle,
+            plan.features,
+            plan.stripePriceId,
+          ]
+        );
+      }
+
+      console.log("✓ Created subscription plans\n");
+    } else {
+      console.log("Skipping subscription plans (missing STRIPE_PRICE_BASIC/PRO/ENTERPRISE)\n");
+    }
 
     // Create sample transactions
     console.log("Creating sample transactions...");

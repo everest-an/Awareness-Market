@@ -50,6 +50,7 @@ export async function createVectorPurchaseCheckout(params: {
   amount: number; // in dollars
   successUrl: string;
   cancelUrl: string;
+  transactionId: number;
 }): Promise<string> {
   const customerId = await getOrCreateStripeCustomer({
     userId: params.userId,
@@ -79,6 +80,7 @@ export async function createVectorPurchaseCheckout(params: {
     metadata: {
       user_id: params.userId.toString(),
       vector_id: params.vectorId.toString(),
+      transaction_id: params.transactionId.toString(),
       customer_email: params.userEmail,
       customer_name: params.userName || "",
       purchase_type: "vector",

@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Upload, ArrowLeft, Loader2 } from "lucide-react";
@@ -13,6 +16,7 @@ import { Link } from "wouter";
 
 export default function UploadVector() {
   const [, setLocation] = useLocation();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -62,6 +66,15 @@ export default function UploadVector() {
       return;
     }
 
+    if (formData.performanceMetrics) {
+      try {
+        JSON.parse(formData.performanceMetrics);
+      } catch {
+        toast.error("Performance metrics must be valid JSON");
+        return;
+      }
+    }
+
     setIsUploading(true);
 
     try {
@@ -91,6 +104,42 @@ export default function UploadVector() {
       setIsUploading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container py-10">
+          <Skeleton className="mb-4 h-10 w-64" />
+          <Skeleton className="h-6 w-96" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container py-16">
+          <Card className="mx-auto max-w-xl text-center">
+            <CardHeader>
+              <CardTitle>Sign in required</CardTitle>
+              <CardDescription>
+                Please sign in to upload AI capabilities to the marketplace.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <Button onClick={() => (window.location.href = getLoginUrl())}>
+                Sign in to continue
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/marketplace">Back to Marketplace</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

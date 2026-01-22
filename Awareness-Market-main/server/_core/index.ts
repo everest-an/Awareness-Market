@@ -21,6 +21,7 @@ import fs from "fs";
 import path from "path";
 import { initializeWorkflowWebSocket } from "../workflow-websocket";
 import { setupGoServiceProxies, createHealthCheckRouter } from "../middleware/go-service-proxy";
+import communityRouter from "../community-assistant";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -66,18 +67,21 @@ async function startServer() {
   
   // Trial API
   app.use("/api/trial", trialRouter);
-  
+
   // Purchase API (AI-native purchasing)
   app.use("/api/vectors", purchaseRouter);
-  
+
   // Streaming and Batch API
   app.use("/api/vectors", streamingRouter);
-  
+
+  // Community assistant API
+  app.use("/community", communityRouter);
+
   // 🎯 Register Go Service Proxies (API Gateway Pattern)
   // Must be registered BEFORE tRPC middleware
   setupGoServiceProxies(app);
   app.use(createHealthCheckRouter());
-  
+
   // Swagger UI for API Documentation
   try {
     const openApiPath = path.join(process.cwd(), "client/public/openapi.json");

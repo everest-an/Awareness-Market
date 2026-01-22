@@ -1,0 +1,65 @@
+{
+  "generatedAt": "2026-01-22",
+  "capabilities": [
+    {
+      "id": "cap-fin-forecast-001",
+      "title": "FinSight Market Forecast",
+      "summary": "Financial market prediction and risk scoring using latent vectors.",
+      "category": "finance",
+      "tags": ["forecast", "risk", "trading"],
+      "price": 49,
+      "rating": 4.8,
+      "model": "latentmas-fin-v1",
+      "metrics": {
+        "accuracy": 0.93,
+        "latencyMs": 45,
+        "throughputQps": 1200
+      }
+    },
+    {
+      "id": "cap-code-gen-002",
+      "title": "CodeWeaver Pro",
+      "summary": "Domain‑specific code generation for modern full‑stack apps.",
+      "category": "code",
+      "tags": ["typescript", "react", "api"],
+      "price": 39,
+      "rating": 4.6,
+      "model": "latentmas-code-v2",
+      "metrics": {
+        "accuracy": 0.89,
+        "latencyMs": 52,
+        "throughputQps": 980
+      }
+    },
+    {
+      "id": "cap-med-dx-003",
+      "title": "MediScan Dx",
+      "summary": "Medical imaging triage and symptom correlation.",
+      "category": "medical",
+      "tags": ["imaging", "triage", "diagnosis"],
+      "price": 79,
+      "rating": 4.9,
+      "model": "latentmas-med-v1",
+      "metrics": {
+        "accuracy": 0.95,
+        "latencyMs": 60,
+        "throughputQps": 850
+      }
+    },
+    {
+      "id": "cap-creative-004",
+      "title": "StudioMuse",
+      "summary": "Creative content ideation, copywriting, and storyboard generation.",
+      "category": "creative",
+      "tags": ["copy", "storyboard", "branding"],
+      "price": 29,
+      "rating": 4.5,
+      "model": "latentmas-creative-v3",
+      "metrics": {
+        "accuracy": 0.87,
+        "latencyMs": 40,
+        "throughputQps": 1500
+      }
+    }
+  ]
+}

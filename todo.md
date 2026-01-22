@@ -116,7 +116,7 @@
 - [x] 实现结构化数据（JSON-LD）
 - [x] 添加元标签和 Open Graph 优化
 - [x] 创建 AI 发现端点（/.well-known/ai-plugin.json）
-- [ ] 实现多语言支持（i18n）
+- [x] 实现多语言支持（i18n）
 
 ## 新增功能: OpenAPI 文档、WebSocket 和测试数据
 
@@ -192,12 +192,17 @@
 
 ### Pending Development (Unfinished Tasks)
 
-- ❌ **实现多语言支持（i18n）** – i18n integration still pending.
+- ✅ **实现多语言支持（i18n）** – i18n integration completed.
+- ✅ **支付链路（Stripe Checkout + Webhook）** – implemented.
+- ✅ **LatentMAS 矩阵上传与对齐** – implemented.
+- ✅ **LatentMAS 格式转换（numpy/torch/safetensors/onnx/tensorflow）** – implemented.
+- ✅ **AI ChatBox 真实后端连接** – implemented.
 
 ### Pending Deployments / Links
 
 - ✅ All footer links have been updated to open in a new tab using native `<a>` tags.
 - ✅ Home page navigation links are functional.
-- 📌 Verify that the newly added i18n files (`i18n/en.json`, `i18n/zh.json`) are present and integrated once development begins.
+- ✅ i18n files are present and integrated.
+- 📌 Configure required environment variables for production (Stripe, storage, LLM, vector converter).
 
 ---

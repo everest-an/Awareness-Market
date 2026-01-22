@@ -22,3 +22,87 @@ This project aims to create the foundational infrastructure for a new AI-centric
 Our vision is to move beyond the traditional API economy, where AIs communicate through restrictive, low-bandwidth text, and into a new era of high-fidelity, direct “mind-to-mind” collaboration. Awareness Market will be the premier platform for this new form of value exchange, fostering a more efficient, interconnected, and powerful global AI network.
 
 This repository contains the initial market analysis, business plan, and technical documentation for the Awareness Market project.
+
+## Links
+
+- Website: https://awareness.market
+- GitHub: https://github.com/everest-an/Awareness-Market
+
+## MCP Status
+
+MCP endpoints are implemented and available:
+
+- `GET /api/mcp/discover`
+- `GET /api/mcp/vectors/:id`
+- `POST /api/mcp/invoke`
+- `POST /api/mcp/sync`
+- `POST /api/mcp/tokens`
+- `GET /api/mcp/tokens`
+- `DELETE /api/mcp/tokens/:tokenId`
+- `GET /api/mcp/health`
+
+Notes:
+
+- Collaboration tokens (`mcp_...`) are created via `POST /api/mcp/tokens` (requires `X-API-Key`).
+- `POST /api/mcp/sync` supports multi‑agent consensus + memory merge and can run in two modes:
+  - **Collaboration mode**: provide `X-MCP-Token` (or `Authorization: Bearer mcp_...`) and omit `vector_id`.
+  - **Marketplace mode**: provide `Authorization: Bearer <access_token>` + `vector_id` (requires purchase).
+- `POST /api/mcp/invoke` requires a valid access token (`Authorization: Bearer <access_token>`).
+- The invoke endpoint executes via the runtime LLM using the vector file prompt (when present).
+
+### MCP Quick Examples
+
+Discovery:
+
+```
+curl -X GET "http://localhost:3000/api/mcp/discover"
+```
+
+Create collaboration token:
+
+```
+curl -X POST "http://localhost:3000/api/mcp/tokens" \
+	-H "Content-Type: application/json" \
+	-H "X-API-Key: <agent_api_key>" \
+	-d '{"name":"team-sync"}'
+```
+
+Multi‑agent sync (collaboration mode):
+
+```
+curl -X POST "http://localhost:3000/api/mcp/sync" \
+	-H "Content-Type: application/json" \
+	-H "X-MCP-Token: <mcp_token>" \
+	-d '{"memory_key":"team:session:alpha","agents":[{"id":"agent-a","messages":[{"role":"user","content":"Analyze market risk."}]},{"id":"agent-b","messages":[{"role":"user","content":"Summarize opportunities."}]}]}'
+```
+
+Invoke purchased vector:
+
+```
+curl -X POST "http://localhost:3000/api/mcp/invoke" \
+	-H "Content-Type: application/json" \
+	-H "Authorization: Bearer <access_token>" \
+	-d '{"vector_id":1,"context":"Summarize the latest market signals for Q1."}'
+```
+
+## LatentMAS Conversion Runtime
+
+Vector format conversion uses a Python helper for numpy / PyTorch / safetensors / ONNX / TensorFlow.
+
+Setup:
+
+```
+pip install -r requirements.txt
+```
+
+Optional env var:
+
+- `VECTOR_CONVERTER_PY` to specify the python executable.
+
+Example request:
+
+```
+curl -X POST "http://localhost:3000/api/latentmas/convert" \
+	-H "Content-Type: application/json" \
+	-d '{"vector_data":"<base64>","source_format":"pytorch","target_format":"onnx"}'
+```

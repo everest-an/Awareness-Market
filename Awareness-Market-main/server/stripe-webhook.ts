@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { stripe } from "./stripe-client";
 import * as db from "./db";
+import { sendEmail } from "./_core/email";
+import crypto from "crypto";
 
 export async function handleStripeWebhook(req: Request, res: Response) {
   const sig = req.headers["stripe-signature"];
@@ -87,10 +89,49 @@ async function handleCheckoutCompleted(session: any) {
   if (purchaseType === "vector") {
     // Handle one-time vector purchase
     const vectorId = parseInt(session.metadata?.vector_id);
+    const transactionId = parseInt(session.metadata?.transaction_id);
     if (!vectorId) {
       console.error("[Webhook] Missing vector_id in session metadata");
       return;
     }
+
+    if (!transactionId) {
+      console.error("[Webhook] Missing transaction_id in session metadata");
+      return;
+    }
+
+    const transaction = await db.getTransactionById(transactionId);
+    if (!transaction) {
+      console.error("[Webhook] Transaction not found:", transactionId);
+      return;
+    }
+
+    if (transaction.status === "completed") {
+      return;
+    }
+
+    const vector = await db.getLatentVectorById(vectorId);
+    if (!vector) {
+      console.error("[Webhook] Vector not found:", vectorId);
+      return;
+    }
+
+    await db.updateTransactionPaymentInfo({
+      id: transactionId,
+      status: "completed",
+      stripePaymentIntentId: session.payment_intent || null,
+    });
+
+    const accessToken = crypto.randomUUID().replace(/-/g, "");
+    await db.createAccessPermission({
+      userId,
+      vectorId,
+      transactionId,
+      accessToken,
+      isActive: true,
+    });
+
+    await db.incrementVectorStats(vectorId, parseFloat(transaction.creatorEarnings));
 
     // Transaction should already be created by the purchase API
     // Just update the payment intent ID
@@ -102,8 +143,37 @@ async function handleCheckoutCompleted(session: any) {
       type: "transaction",
       title: "Purchase Successful",
       message: "Your AI capability purchase has been completed successfully",
-      relatedEntityId: vectorId,
+      relatedEntityId: transactionId,
     });
+
+    // Send email
+    const user = await db.getUserById(userId);
+    if (user?.email) {
+      await sendEmail({
+        to: user.email,
+        subject: "Awareness Market - Purchase Successful",
+        text: `Your purchase of vector #${vectorId} was successful. You can now access this capability in your dashboard.`,
+      });
+    }
+
+    const creator = await db.getUserById(vector.creatorId);
+    if (creator) {
+      await db.createNotification({
+        userId: vector.creatorId,
+        type: "transaction",
+        title: "New Purchase",
+        message: `${user?.name || "Someone"} purchased your AI capability "${vector.title}"`,
+        relatedEntityId: transactionId,
+      });
+
+      if (creator.email) {
+        await sendEmail({
+          to: creator.email,
+          subject: "Awareness Market - New Sale",
+          text: `Great news! ${user?.name || "A user"} just purchased your AI capability "${vector.title}". You earned $${parseFloat(transaction.creatorEarnings).toFixed(2)}.`,
+        });
+      }
+    }
   } else if (session.mode === "subscription") {
     // Handle subscription purchase
     const subscriptionId = session.subscription;

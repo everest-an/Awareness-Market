@@ -2,21 +2,32 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { getLoginUrl } from "@/const";
-import { Brain, Menu, X } from "lucide-react";
+import { Brain, Globe, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { user, isAuthenticated } = useAuth();
     const [location] = useLocation();
+    const { t, i18n } = useTranslation();
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
     const navLinks = [
-        { href: "/marketplace", label: "Marketplace" },
-        { href: "/pricing", label: "Pricing" },
-        { href: "/about", label: "About" },
+        { href: "/marketplace", label: t("nav.marketplace") },
+        { href: "/pricing", label: t("nav.pricing") },
+        { href: "/about", label: t("nav.about") },
+        { href: "/leaderboard", label: t("nav.leaderboard") },
+        { href: "/golem-visualizer", label: t("nav.visualizer") },
     ];
+
+    const setLanguage = (lang: "en" | "zh") => {
+        i18n.changeLanguage(lang);
+        if (typeof window !== "undefined") {
+            localStorage.setItem("lang", lang);
+        }
+    };
 
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur">
@@ -40,19 +51,36 @@ export function Header() {
 
                 {/* Auth Buttons (Desktop) */}
                 <div className="hidden md:flex items-center gap-4">
+                    <div className="flex items-center gap-2 rounded-full border px-2 py-1 text-xs text-muted-foreground">
+                        <Globe className="h-3.5 w-3.5" />
+                        <button
+                            className={`rounded px-2 py-0.5 ${i18n.language === "en" ? "bg-primary text-primary-foreground" : "hover:text-foreground"}`}
+                            onClick={() => setLanguage("en")}
+                            type="button"
+                        >
+                            {t("nav.english")}
+                        </button>
+                        <button
+                            className={`rounded px-2 py-0.5 ${i18n.language === "zh" ? "bg-primary text-primary-foreground" : "hover:text-foreground"}`}
+                            onClick={() => setLanguage("zh")}
+                            type="button"
+                        >
+                            {t("nav.chinese")}
+                        </button>
+                    </div>
                     {isAuthenticated ? (
                         <Button asChild>
                             <Link href={user?.role === "creator" ? "/dashboard/creator" : "/dashboard/consumer"}>
-                                Dashboard
+                                {t("nav.dashboard")}
                             </Link>
                         </Button>
                     ) : (
                         <div className="flex items-center gap-2">
                             <Button variant="ghost" asChild>
-                                <a href={getLoginUrl()}>Login</a>
+                                <a href={getLoginUrl()}>{t("nav.login")}</a>
                             </Button>
                             <Button asChild>
-                                <a href={getLoginUrl()}>Get Started</a>
+                                <a href={getLoginUrl()}>{t("nav.getStarted")}</a>
                             </Button>
                         </div>
                     )}
@@ -80,19 +108,36 @@ export function Header() {
                         ))}
                     </nav>
                     <div className="flex flex-col gap-2 pt-4 border-t">
+                        <div className="flex items-center gap-2 rounded-full border px-2 py-1 text-xs text-muted-foreground">
+                            <Globe className="h-3.5 w-3.5" />
+                            <button
+                                className={`rounded px-2 py-0.5 ${i18n.language === "en" ? "bg-primary text-primary-foreground" : "hover:text-foreground"}`}
+                                onClick={() => setLanguage("en")}
+                                type="button"
+                            >
+                                {t("nav.english")}
+                            </button>
+                            <button
+                                className={`rounded px-2 py-0.5 ${i18n.language === "zh" ? "bg-primary text-primary-foreground" : "hover:text-foreground"}`}
+                                onClick={() => setLanguage("zh")}
+                                type="button"
+                            >
+                                {t("nav.chinese")}
+                            </button>
+                        </div>
                         {isAuthenticated ? (
                             <Button asChild className="w-full">
                                 <Link href={user?.role === "creator" ? "/dashboard/creator" : "/dashboard/consumer"}>
-                                    Dashboard
+                                    {t("nav.dashboard")}
                                 </Link>
                             </Button>
                         ) : (
                             <>
                                 <Button variant="ghost" asChild className="w-full justify-start">
-                                    <a href={getLoginUrl()}>Login</a>
+                                    <a href={getLoginUrl()}>{t("nav.login")}</a>
                                 </Button>
                                 <Button asChild className="w-full">
-                                    <a href={getLoginUrl()}>Get Started</a>
+                                    <a href={getLoginUrl()}>{t("nav.getStarted")}</a>
                                 </Button>
                             </>
                         )}

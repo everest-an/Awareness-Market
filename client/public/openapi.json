@@ -6,8 +6,8 @@
     "description": "The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through LatentMAS technology.",
     "contact": {
       "name": "Awareness Network Support",
-      "email": "support@awareness-network.com",
-      "url": "https://awareness-network.com"
+      "email": "support@awareness.market",
+      "url": "https://awareness.market"
     },
     "license": {
       "name": "MIT",
@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "https://awareness-network.com/api",
+      "url": "https://awareness.market/api",
       "description": "Production server"
     },
     {
@@ -462,11 +462,6 @@
         ],
         "summary": "Discover available vectors",
         "description": "MCP-compatible endpoint to discover latent vectors",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
         "parameters": [
           {
             "name": "category",
@@ -476,11 +471,10 @@
             }
           },
           {
-            "name": "limit",
+            "name": "minRating",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "default": 20
+              "type": "number"
             }
           }
         ],
@@ -492,16 +486,64 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "protocol": { "type": "string" },
+                    "total": { "type": "integer" },
                     "vectors": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/LatentVector"
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "name": { "type": "string" },
+                          "description": { "type": "string" },
+                          "category": { "type": "string" },
+                          "version": { "type": "string" },
+                          "capabilities": { "type": "object" },
+                          "performance": { "type": "object" },
+                          "pricing": { "type": "object" },
+                          "metadata": { "type": "object" }
+                        }
                       }
                     }
                   }
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/mcp/vectors/{id}": {
+      "get": {
+        "tags": [
+          "MCP Protocol"
+        ],
+        "summary": "Get vector details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vector details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "protocol": { "type": "string" },
+                    "vector": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Vector not found"
           }
         }
       }
@@ -514,9 +556,7 @@
         "summary": "Invoke a vector capability",
         "description": "Execute a purchased vector capability via MCP",
         "security": [
-          {
-            "ApiKeyAuth": []
-          }
+          { "BearerAuth": [] }
         ],
         "requestBody": {
           "required": true,
@@ -525,17 +565,12 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "vectorId",
-                  "input"
+                  "vector_id",
+                  "context"
                 ],
                 "properties": {
-                  "vectorId": {
-                    "type": "integer"
-                  },
-                  "input": {
-                    "type": "object",
-                    "additionalProperties": true
-                  }
+                  "vector_id": { "type": "integer" },
+                  "context": { "type": "object", "additionalProperties": true }
                 }
               }
             }
@@ -546,24 +581,125 @@
             "description": "Invocation result",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "output": {
-                      "type": "object",
-                      "additionalProperties": true
-                    }
-                  }
-                }
+                "schema": { "type": "object" }
               }
             }
           },
-          "403": {
-            "description": "Access denied - vector not purchased"
+          "403": { "description": "Access denied" }
+        }
+      }
+    },
+    "/mcp/sync": {
+      "post": {
+        "tags": [
+          "MCP Protocol"
+        ],
+        "summary": "Multi-agent sync",
+        "description": "Run multi-agent sync with shared context, consensus, and memory merge.",
+        "security": [
+          { "BearerAuth": [] },
+          { "McpTokenAuth": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["agents"],
+                "properties": {
+                  "vector_id": { "type": "integer", "nullable": true },
+                  "memory_key": { "type": "string" },
+                  "memory_ttl_days": { "type": "number" },
+                  "shared_context": { "type": "object", "additionalProperties": true },
+                  "agents": { "type": "array", "items": { "type": "object" } }
+                }
+              }
+            }
           }
+        },
+        "responses": {
+          "200": {
+            "description": "Sync result",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp/tokens": {
+      "post": {
+        "tags": [
+          "MCP Protocol"
+        ],
+        "summary": "Create MCP collaboration token",
+        "security": [
+          { "ApiKeyAuth": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "permissions": { "type": "array", "items": { "type": "string" } },
+                  "expiresInDays": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Token created",
+            "content": {
+              "application/json": { "schema": { "type": "object" } }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MCP Protocol"
+        ],
+        "summary": "List MCP tokens",
+        "security": [
+          { "ApiKeyAuth": [] }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token list",
+            "content": {
+              "application/json": { "schema": { "type": "object" } }
+            }
+          }
+        }
+      }
+    },
+    "/mcp/tokens/{tokenId}": {
+      "delete": {
+        "tags": [
+          "MCP Protocol"
+        ],
+        "summary": "Revoke MCP token",
+        "security": [
+          { "ApiKeyAuth": [] }
+        ],
+        "parameters": [
+          {
+            "name": "tokenId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Token revoked" }
         }
       }
     },
@@ -1012,6 +1148,18 @@
         "in": "header",
         "name": "x-api-key",
         "description": "API key obtained from /ai/register or /ai/keys endpoints"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "AccessToken",
+        "description": "Access token issued after vector purchase"
+      },
+      "McpTokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-mcp-token",
+        "description": "Collaboration token used for MCP sync"
       }
     },
     "schemas": {

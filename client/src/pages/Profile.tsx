@@ -9,29 +9,55 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User, Mail, Shield, Key, Bell, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
+import { getLoginUrl } from "@/const";
 
 export default function Profile() {
-  const { user, loading } = useAuth();
+  const { user, loading, refresh } = useAuth();
   const [, setLocation] = useLocation();
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
+  const [notifications, setNotifications] = useState({
+    transactions: true,
+    recommendations: true,
+    market: true,
+    email: false,
+  });
 
-  const updateProfileMutation = { mutate: () => {}, isPending: false } as any; /* trpc.user.updateProfile.useMutation({
-    onSuccess: () => {
+  const updateProfileMutation = trpc.user.updateProfile.useMutation({
+    onSuccess: async () => {
       toast.success("Profile updated successfully");
+      await refresh();
     },
     onError: (error: any) => {
       toast.error(`Failed to update profile: ${error.message}`);
     },
-  }); */
+  });
 
-  // TODO: Implement user API
-  const apiKeysMutation = { isLoading: false, data: [] as any[], refetch: () => {} };
+  const apiKeysQuery = trpc.apiKeys.list.useQuery();
 
-  const generateApiKeyMutation = { mutate: () => {}, isPending: false } as any;
+  const generateApiKeyMutation = trpc.apiKeys.create.useMutation({
+    onSuccess: (data) => {
+      apiKeysQuery.refetch();
+      toast.success("API key generated");
+      window.prompt("Copy your new API key (shown once):", data.apiKey);
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to generate API key: ${error.message}`);
+    },
+  });
+
+  const revokeApiKeyMutation = trpc.apiKeys.revoke.useMutation({
+    onSuccess: () => {
+      apiKeysQuery.refetch();
+      toast.success("API key revoked");
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to revoke API key: ${error.message}`);
+    },
+  });
 
   if (loading) {
     return (
@@ -41,10 +67,28 @@ export default function Profile() {
     );
   }
 
-  if (!user) {
-    setLocation("/");
-    return null;
-  }
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (loading) return;
+    if (!user) {
+      window.location.href = getLoginUrl();
+      return;
+    }
+    const stored = window.localStorage.getItem("profile.notificationPrefs");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setNotifications((prev) => ({ ...prev, ...parsed }));
+      } catch {
+        // ignore invalid stored data
+      }
+    }
+  }, [loading, user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("profile.notificationPrefs", JSON.stringify(notifications));
+  }, [notifications]);
 
   const handleUpdateProfile = () => {
     updateProfileMutation.mutate({ name, email });
@@ -205,11 +249,11 @@ export default function Profile() {
                   <Button onClick={handleGenerateApiKey}>Generate New Key</Button>
                 </div>
                 <Separator />
-                {apiKeysMutation.isLoading ? (
+                {apiKeysQuery.isLoading ? (
                   <div className="text-center py-4">Loading API keys...</div>
-                ) : apiKeysMutation.data && apiKeysMutation.data.length > 0 ? (
+                ) : apiKeysQuery.data && apiKeysQuery.data.length > 0 ? (
                   <div className="space-y-2">
-                    {apiKeysMutation.data.map((key: any) => (
+                    {apiKeysQuery.data.map((key: any) => (
                       <div
                         key={key.id}
                         className="flex items-center justify-between p-3 border rounded-lg"
@@ -217,12 +261,22 @@ export default function Profile() {
                         <div>
                           <p className="font-medium">{key.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            Created {new Date(key.createdAt).toLocaleDateString()}
+                            {key.keyPrefix} • Created {new Date(key.createdAt).toLocaleDateString()}
                           </p>
                         </div>
-                        <Badge variant={key.isActive ? "default" : "secondary"}>
-                          {key.isActive ? "Active" : "Inactive"}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={key.isActive ? "default" : "secondary"}>
+                            {key.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!key.isActive || revokeApiKeyMutation.isPending}
+                            onClick={() => revokeApiKeyMutation.mutate({ keyId: key.id })}
+                          >
+                            Revoke
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -253,7 +307,18 @@ export default function Profile() {
                         Get notified when transactions complete
                       </p>
                     </div>
-                    <input type="checkbox" defaultChecked className="h-4 w-4" />
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      aria-label="Transaction notifications"
+                      checked={notifications.transactions}
+                      onChange={(e) =>
+                        setNotifications((prev) => ({
+                          ...prev,
+                          transactions: e.target.checked,
+                        }))
+                      }
+                    />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -263,7 +328,18 @@ export default function Profile() {
                         Receive personalized recommendations
                       </p>
                     </div>
-                    <input type="checkbox" defaultChecked className="h-4 w-4" />
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      aria-label="Recommendation updates"
+                      checked={notifications.recommendations}
+                      onChange={(e) =>
+                        setNotifications((prev) => ({
+                          ...prev,
+                          recommendations: e.target.checked,
+                        }))
+                      }
+                    />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -273,7 +349,18 @@ export default function Profile() {
                         Stay updated on market trends
                       </p>
                     </div>
-                    <input type="checkbox" defaultChecked className="h-4 w-4" />
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      aria-label="Market change notifications"
+                      checked={notifications.market}
+                      onChange={(e) =>
+                        setNotifications((prev) => ({
+                          ...prev,
+                          market: e.target.checked,
+                        }))
+                      }
+                    />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -283,7 +370,18 @@ export default function Profile() {
                         Receive updates via email
                       </p>
                     </div>
-                    <input type="checkbox" className="h-4 w-4" />
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      aria-label="Email notifications"
+                      checked={notifications.email}
+                      onChange={(e) =>
+                        setNotifications((prev) => ({
+                          ...prev,
+                          email: e.target.checked,
+                        }))
+                      }
+                    />
                   </div>
                 </div>
               </CardContent>
