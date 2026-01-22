@@ -1,14 +1,114 @@
 {
-    "hero": {
-        "title": "Trade AI Capabilities Directly",
-        "subtitle": "The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through LatentMAS technology."
-    },
-    "cta": {
+    "nav": {
+        "marketplace": "Marketplace",
+        "pricing": "Pricing",
+        "about": "About",
+        "leaderboard": "Leaderboard",
+        "visualizer": "Golem Visualizer",
+        "dashboard": "Dashboard",
+        "login": "Login",
         "getStarted": "Get Started",
-        "exploreMarketplace": "Explore Marketplace",
-        "browseMarketplace": "Browse Marketplace"
+        "language": "Language",
+        "english": "English",
+        "chinese": "中文"
+    },
+    "hero": {
+        "badge": "The Future of AI Collaboration",
+        "title": "Trade AI Capabilities",
+        "titleHighlight": "Directly",
+        "subtitle": "The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through LatentMAS technology.",
+        "ctaExplore": "Explore Marketplace",
+        "ctaCreator": "Creator Dashboard",
+        "ctaGetStarted": "Get Started",
+        "ctaBrowse": "Browse Marketplace"
+    },
+    "features": {
+        "heading": "Why Awareness Network?",
+        "subheading": "Revolutionary technology meets seamless marketplace experience",
+        "items": {
+            "latentmas": {
+                "title": "LatentMAS Protocol",
+                "desc": "Direct latent space communication between AI models, 4.3x faster than traditional APIs"
+            },
+            "mcp": {
+                "title": "MCP Integration",
+                "desc": "Standardized Model Context Protocol for seamless AI agent interoperability"
+            },
+            "secure": {
+                "title": "Secure Trading",
+                "desc": "Encrypted vector transmission with granular access control and usage tracking"
+            },
+            "pricing": {
+                "title": "Dynamic Pricing",
+                "desc": "Smart pricing engine based on performance, scarcity, and demand metrics"
+            },
+            "economy": {
+                "title": "Creator Economy",
+                "desc": "Monetize your AI capabilities with transparent revenue sharing (80-85% to creators)"
+            },
+            "matching": {
+                "title": "AI-Powered Matching",
+                "desc": "Intelligent recommendations using LLM analysis of your needs and behavior"
+            }
+        }
+    },
+    "howItWorks": {
+        "heading": "How It Works",
+        "subheading": "Three simple steps to start trading AI capabilities",
+        "steps": {
+            "create": {
+                "title": "Create or Browse",
+                "desc": "AI creators upload their latent vectors with performance metrics and pricing. Consumers browse the marketplace to find capabilities that match their needs."
+            },
+            "purchase": {
+                "title": "Secure Purchase",
+                "desc": "Complete transactions through our Stripe-powered payment system. Access tokens are generated with configurable expiration and call limits."
+            },
+            "integrate": {
+                "title": "Integrate & Use",
+                "desc": "Access purchased vectors via our MCP-compatible API. Track usage, performance, and ROI through comprehensive analytics dashboards."
+            }
+        }
+    },
+    "useCases": {
+        "heading": "Use Cases",
+        "subheading": "Powering innovation across industries",
+        "items": {
+            "finance": {
+                "title": "Financial Analysis",
+                "desc": "Access specialized models for market prediction, risk assessment, and algorithmic trading strategies trained on proprietary financial data."
+            },
+            "code": {
+                "title": "Code Generation",
+                "desc": "Leverage domain-specific code generation models fine-tuned for frameworks, languages, or architectural patterns."
+            },
+            "medical": {
+                "title": "Medical Diagnosis",
+                "desc": "Integrate specialized medical AI capabilities for image analysis, symptom assessment, and treatment recommendations."
+            },
+            "content": {
+                "title": "Content Creation",
+                "desc": "Access creative AI models for copywriting, design generation, video editing, and multimedia content production."
+            }
+        }
+    },
+    "finalCta": {
+        "heading": "Ready to Join the AI Capability Revolution?",
+        "subheading": "Whether you're creating AI capabilities or looking to integrate them, Awareness Network is your gateway to the future of AI collaboration.",
+        "primary": "Start Exploring",
+        "secondary": "Sign Up Now",
+        "tertiary": "View Marketplace"
     },
     "footer": {
+        "tagline": "The first marketplace for AI latent space vectors, powered by LatentMAS and MCP technology.",
+        "product": "Product",
+        "company": "Company",
+        "legal": "Legal",
+        "marketplace": "Marketplace",
+        "pricing": "Pricing",
+        "about": "About",
+        "privacy": "Privacy",
+        "terms": "Terms",
         "rights": "© 2025 Awareness Network. All rights reserved."
     }
 }

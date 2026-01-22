@@ -26,6 +26,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
+import { getLoginUrl } from "@/const";
 
 export default function VectorDetail() {
   const { id } = useParams();
@@ -57,7 +58,7 @@ export default function VectorDetail() {
 
   const handlePurchaseClick = () => {
     if (!isAuthenticated) {
-      toast.error("Please login to purchase");
+      window.location.href = getLoginUrl();
       return;
     }
     setPurchaseDialogOpen(true);
@@ -65,12 +66,12 @@ export default function VectorDetail() {
 
   const handlePurchaseSuccess = () => {
     toast.success("Purchase successful!");
-    setLocation("/consumer-dashboard");
+    setLocation("/dashboard/consumer");
   };
 
   const handleTrialClick = () => {
     if (!isAuthenticated) {
-      toast.error("Please login to try");
+      window.location.href = getLoginUrl();
       return;
     }
     setTrialDialogOpen(true);
@@ -109,6 +110,16 @@ export default function VectorDetail() {
 
   const rating = parseFloat(vector.averageRating || "0");
   const isOwner = user?.id === vector.creatorId;
+  const metrics = (() => {
+    try {
+      return vector.performanceMetrics ? JSON.parse(vector.performanceMetrics) : {};
+    } catch {
+      return {};
+    }
+  })();
+  const accuracy = metrics.accuracy ?? metrics.accuracy_score ?? 0;
+  const latency = metrics.latency ?? metrics.latency_ms ?? metrics.latencyMs ?? null;
+  const throughput = metrics.throughput ?? metrics.throughput_qps ?? metrics.throughputQps ?? null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -216,22 +227,28 @@ export default function VectorDetail() {
                     <div>
                       <div className="mb-2 flex justify-between text-sm">
                         <span>Accuracy Score</span>
-                        <span className="font-medium">95.0%</span>
+                        <span className="font-medium">
+                          {accuracy ? `${(accuracy * 100).toFixed(1)}%` : "N/A"}
+                        </span>
                       </div>
-                      <Progress value={95} />
+                      <Progress value={accuracy ? accuracy * 100 : 0} />
                     </div>
                     
                     <div>
                       <div className="mb-2 flex justify-between text-sm">
                         <span>Average Latency</span>
-                        <span className="font-medium">~50ms</span>
+                        <span className="font-medium">
+                          {latency ? `~${latency}ms` : "N/A"}
+                        </span>
                       </div>
                     </div>
                     
                     <div>
                       <div className="mb-2 flex justify-between text-sm">
                         <span>Throughput</span>
-                        <span className="font-medium">1000 QPS</span>
+                        <span className="font-medium">
+                          {throughput ? `${throughput} QPS` : "N/A"}
+                        </span>
                       </div>
                     </div>
                   </CardContent>

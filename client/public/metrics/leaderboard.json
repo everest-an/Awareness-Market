@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-01-22T00:00:00.000Z",
+  "leaderboard": [
+    {
+      "rank": 1,
+      "id": "cap-creative-004",
+      "title": "StudioMuse",
+      "category": "creative",
+      "score": 0.905,
+      "rating": 4.5,
+      "metrics": {
+        "accuracy": 0.87,
+        "latencyMs": 40,
+        "throughputQps": 1500
+      }
+    },
+    {
+      "rank": 2,
+      "id": "cap-fin-forecast-001",
+      "title": "FinSight Market Forecast",
+      "category": "finance",
+      "score": 0.8713,
+      "rating": 4.8,
+      "metrics": {
+        "accuracy": 0.93,
+        "latencyMs": 45,
+        "throughputQps": 1200
+      }
+    },
+    {
+      "rank": 3,
+      "id": "cap-code-gen-002",
+      "title": "CodeWeaver Pro",
+      "category": "code",
+      "score": 0.771,
+      "rating": 4.6,
+      "metrics": {
+        "accuracy": 0.89,
+        "latencyMs": 52,
+        "throughputQps": 980
+      }
+    },
+    {
+      "rank": 4,
+      "id": "cap-med-dx-003",
+      "title": "MediScan Dx",
+      "category": "medical",
+      "score": 0.769,
+      "rating": 4.9,
+      "metrics": {
+        "accuracy": 0.95,
+        "latencyMs": 60,
+        "throughputQps": 850
+      }
+    }
+  ]
+}

@@ -9,7 +9,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/introduction' },
       { text: 'API Reference', link: '/api/overview' },
       { text: 'Examples', link: '/examples/python' },
-      { text: 'Marketplace', link: 'https://your-domain.manus.space' }
+      { text: 'Marketplace', link: 'https://awareness.market' }
     ],
     sidebar: {
       '/guide/': [

@@ -13,7 +13,6 @@ import {
   ArrowDownRight,
   Plus,
   Eye,
-  Edit,
   MoreVertical
 } from "lucide-react";
 import { Link } from "wouter";
@@ -34,8 +33,17 @@ import {
 } from "@/components/ui/table";
 
 export default function CreatorDashboard() {
+  const utils = trpc.useUtils();
   const { data: stats, isLoading: statsLoading } = trpc.analytics.creatorStats.useQuery();
+  const { data: trend } = trpc.analytics.creatorTrend.useQuery({ days: 30 });
   const { data: vectors, isLoading: vectorsLoading } = trpc.vectors.myVectors.useQuery();
+  const updateVectorMutation = trpc.vectors.update.useMutation({
+    onSuccess: () => {
+      utils.vectors.myVectors.invalidate();
+      utils.analytics.creatorStats.invalidate();
+      utils.analytics.creatorTrend.invalidate();
+    },
+  });
 
   if (statsLoading) {
     return (
@@ -163,15 +171,7 @@ export default function CreatorDashboard() {
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={[
-                        { date: "Day 1", revenue: 120, calls: 45 },
-                        { date: "Day 7", revenue: 250, calls: 89 },
-                        { date: "Day 14", revenue: 180, calls: 67 },
-                        { date: "Day 21", revenue: 320, calls: 112 },
-                        { date: "Day 30", revenue: 410, calls: 145 },
-                      ]}
-                    >
+                    <LineChart data={trend || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
                       <YAxis yAxisId="left" />
@@ -299,14 +299,17 @@ export default function CreatorDashboard() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                {vector.status === "active" ? "Deactivate" : "Activate"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
-                                Delete
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-0 text-foreground"
+                                  onClick={() => updateVectorMutation.mutate({
+                                    id: vector.id,
+                                    status: vector.status === "active" ? "inactive" : "active",
+                                  })}
+                                >
+                                  {vector.status === "active" ? "Deactivate" : "Activate"}
+                                </Button>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

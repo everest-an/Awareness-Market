@@ -13,10 +13,10 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://api.awareness-network.com/openapi.json",
+    "url": "https://awareness.market/openapi.json",
     "has_user_authentication": true
   },
-  "logo_url": "https://awareness-network.com/logo.png",
-  "contact_email": "support@awareness-network.com",
-  "legal_info_url": "https://awareness-network.com/legal"
+  "logo_url": "https://awareness.market/logo.png",
+  "contact_email": "support@awareness.market",
+  "legal_info_url": "https://awareness.market/legal"
 }

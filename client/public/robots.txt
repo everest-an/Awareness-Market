@@ -24,7 +24,7 @@ User-agent: PerplexityBot
 Allow: /
 
 # Sitemaps
-Sitemap: https://awareness-network.com/sitemap.xml
+Sitemap: https://awareness.market/sitemap.xml
 
 # AI Plugin Discovery
 Allow: /.well-known/ai-plugin.json

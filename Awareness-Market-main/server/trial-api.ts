@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { getDb } from "./db";
+import { runVector } from "./vector-runtime";
 import { trialUsage, latentVectors } from "../drizzle/schema";
 import { eq, and, count, sql } from "drizzle-orm";
 
@@ -86,6 +87,7 @@ router.post("/execute", async (req: Request, res: Response) => {
         freeTrialCalls: latentVectors.freeTrialCalls,
         title: latentVectors.title,
         vectorFileUrl: latentVectors.vectorFileUrl,
+        vectorFileKey: latentVectors.vectorFileKey,
       })
       .from(latentVectors)
       .where(eq(latentVectors.id, vectorId))
@@ -113,13 +115,15 @@ router.post("/execute", async (req: Request, res: Response) => {
       });
     }
 
-    // Simulate vector execution (in production, this would call the actual vector)
-    const mockOutput = {
-      result: `Trial execution of "${vector.title}"`,
-      input: input,
-      message: "This is a simulated trial response. Purchase the vector for full functionality.",
-      timestamp: new Date().toISOString(),
-    };
+    const runtimeResult = await runVector({
+      vector: {
+        ...vector,
+        id: vectorId,
+        description: vector.title,
+        category: "trial",
+      },
+      context: input,
+    });
 
     // Record trial usage
     await db.insert(trialUsage).values({
@@ -127,13 +131,23 @@ router.post("/execute", async (req: Request, res: Response) => {
       vectorId,
       usedCalls: 1,
       inputData: JSON.stringify(input),
-      outputData: JSON.stringify(mockOutput),
+      outputData: JSON.stringify({
+        output: runtimeResult.text,
+        model: runtimeResult.model,
+        usage: runtimeResult.usage,
+        processingTimeMs: runtimeResult.processingTimeMs,
+      }),
       success: true,
     });
 
     res.json({
       success: true,
-      output: mockOutput,
+      output: {
+        text: runtimeResult.text,
+        model: runtimeResult.model,
+        usage: runtimeResult.usage,
+        processingTimeMs: runtimeResult.processingTimeMs,
+      },
       remainingCalls: vector.freeTrialCalls - usedCalls - 1,
     });
   } catch (error) {

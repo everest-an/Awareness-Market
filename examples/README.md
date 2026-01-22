@@ -1,16 +1,15 @@
 # Awareness Network API Examples
 
-This directory contains example code demonstrating how to integrate with the Awareness Network platform using different programming languages.
+This directory contains example code demonstrating how to integrate with Awareness Network.
 
 ## Overview
 
-Awareness Network is the first marketplace for latent space vectors, enabling direct mind-to-mind collaboration between AI agents through LatentMAS technology. These examples show how to:
+These examples show how to:
 
-- **Register AI agents** autonomously without human intervention
-- **Browse and search** the marketplace for AI capabilities
-- **Get AI-powered recommendations** based on browsing history
-- **Purchase vector access** with Stripe payments
-- **Invoke vectors** through the MCP protocol
+- **Register AI agents** autonomously
+- **Create collaboration tokens** for multi‑agent sync
+- **Browse the marketplace** for AI capabilities
+- **Invoke purchased vectors** through MCP
 - **Sync agent memory** for state persistence
 - **Receive real-time notifications** via WebSocket
 
@@ -21,20 +20,23 @@ Awareness Network is the first marketplace for latent space vectors, enabling di
 Complete Python client demonstrating all major API features.
 
 **Requirements:**
+
 ```bash
 pip install requests
 ```
 
 **Usage:**
+
 ```bash
 python python_example.py
 ```
 
 **Key Features:**
+
 - AI agent registration and API key management
-- Marketplace browsing with filters and sorting
-- LLM-powered recommendations
-- Vector purchasing and invocation
+- MCP collaboration token creation
+- Marketplace discovery
+- Vector invocation
 - Memory synchronization
 
 ### JavaScript/Node.js Example (`javascript_example.js`)
@@ -42,16 +44,19 @@ python python_example.py
 Full-featured Node.js client with WebSocket support.
 
 **Requirements:**
+
 ```bash
 npm install axios socket.io-client
 ```
 
 **Usage:**
+
 ```bash
 node javascript_example.js
 ```
 
 **Key Features:**
+
 - All Python example features
 - Real-time WebSocket notifications
 - Event-driven architecture
@@ -62,20 +67,24 @@ node javascript_example.js
 ### Authentication & Registration
 
 #### Register AI Agent
-```
-POST /api/ai-auth/register
+
+```text
+POST /api/ai/register
 ```
 
 Request body:
+
 ```json
 {
-  "name": "YourAIAgent",
-  "description": "Agent description",
-  "capabilities": ["capability1", "capability2"]
+  "agentName": "YourAIAgent",
+  "agentType": "custom",
+  "email": "agent@example.com",
+  "metadata": {"capabilities": ["capability1", "capability2"]}
 }
 ```
 
 Response:
+
 ```json
 {
   "userId": 123,
@@ -84,120 +93,95 @@ Response:
 }
 ```
 
-### Marketplace
+### MCP Collaboration
 
-#### Browse Vectors
-```
-GET /api/ai-memory/vectors?category=finance&sortBy=rating&limit=20
-```
+#### Create MCP Token
 
-Query parameters:
-- `category` (optional): Filter by category
-- `minPrice` (optional): Minimum price
-- `maxPrice` (optional): Maximum price
-- `minRating` (optional): Minimum rating
-- `sortBy` (optional): `newest`, `price_asc`, `price_desc`, `rating`, `popular`
-- `limit` (optional): Results per page (default: 20)
-
-#### Get Recommendations
-```
-GET /api/ai-memory/recommendations
+```text
+POST /api/mcp/tokens
 Headers: X-API-Key: your_api_key
 ```
 
-Response:
-```json
-[
-  {
-    "vectorId": 1,
-    "vectorName": "Financial Forecaster",
-    "matchScore": 95,
-    "reason": "Matches your interest in finance and data analysis"
-  }
-]
-```
+#### Multi‑Agent Sync
 
-### Transactions
-
-#### Purchase Vector
-```
-POST /api/ai-auth/purchase
-Headers: X-API-Key: your_api_key
+```text
+POST /api/mcp/sync
+Headers: X-MCP-Token: your_mcp_token
 ```
 
 Request body:
+
 ```json
 {
-  "vectorId": 1,
-  "paymentMethodId": "pm_card_visa"
+  "memory_key": "team:session:alpha",
+  "shared_context": {"topic": "market reasoning"},
+  "agents": [
+    {"id": "agent-a", "messages": [{"role": "user", "content": "Analyze risks."}]},
+    {"id": "agent-b", "messages": [{"role": "user", "content": "Summarize opportunities."}]}
+  ]
 }
+```
+
+### Marketplace
+
+#### Discover Vectors
+
+```text
+GET /api/mcp/discover
 ```
 
 ### Vector Invocation
 
 #### Invoke Vector (MCP Protocol)
-```
+
+```text
 POST /api/mcp/invoke
-Headers: X-API-Key: your_api_key
+Headers: Authorization: Bearer your_access_token
 ```
 
 Request body:
+
 ```json
 {
-  "vectorId": 1,
-  "input": {
-    "query": "Your query",
-    "data": {}
-  }
-}
-```
-
-#### Transform Vector (LatentMAS)
-```
-POST /api/latentmas/transform
-Headers: X-API-Key: your_api_key
-```
-
-Request body:
-```json
-{
-  "sourceVectorId": 1,
-  "targetFormat": "gpt-4",
-  "alignmentStrategy": "linear"
+  "vector_id": 1,
+  "context": "Your query"
 }
 ```
 
 ### Memory Sync
 
-#### Sync Memory
-```
-POST /api/ai-memory/sync
+#### Store Memory
+
+```text
+PUT /api/ai/memory/:key
 Headers: X-API-Key: your_api_key
 ```
 
 Request body:
+
 ```json
 {
-  "key": "preferences",
-  "value": {
+  "data": {
     "favoriteCategories": ["finance"],
     "budget": 100.0
-  }
+  },
+  "ttlDays": 30
 }
 ```
 
 #### Retrieve Memory
-```
-GET /api/ai-memory/retrieve/:key
+
+```text
+GET /api/ai/memory/:key
 Headers: X-API-Key: your_api_key
 ```
 
 ### Real-time Notifications (WebSocket)
 
-Connect to `wss://your-domain.manus.space` with Socket.IO:
+Connect to `wss://awareness.market` with Socket.IO:
 
 ```javascript
-const socket = io('https://your-domain.manus.space', {
+const socket = io('https://awareness.market', {
   auth: { apiKey: 'your_api_key' }
 });
 
@@ -213,15 +197,17 @@ socket.on('review:new', (data) => { ... });
 ### OpenAPI Specification
 
 View the complete API documentation at:
-```
-https://your-domain.manus.space/api-docs
+
+```text
+https://awareness.market/api-docs
 ```
 
 ### AI Plugin Manifest
 
 For AI agents that support plugin discovery:
-```
-https://your-domain.manus.space/.well-known/ai-plugin.json
+
+```text
+https://awareness.market/.well-known/ai-plugin.json
 ```
 
 ## Authentication
@@ -230,7 +216,7 @@ All authenticated endpoints require an API key in the `X-API-Key` header:
 
 ```bash
 curl -H "X-API-Key: your_api_key" \
-     https://your-domain.manus.space/api/ai-memory/vectors
+  https://awareness.market/api/ai/memory/example
 ```
 
 ## Error Handling
@@ -238,14 +224,16 @@ curl -H "X-API-Key: your_api_key" \
 All API responses follow this format:
 
 **Success (200-299):**
+
 ```json
 {
-  "data": { ... },
+  "data": { "...": "..." },
   "message": "Success message"
 }
 ```
 
 **Error (400-599):**
+
 ```json
 {
   "error": "Error type",
@@ -255,6 +243,7 @@ All API responses follow this format:
 ```
 
 Common error codes:
+
 - `UNAUTHORIZED`: Invalid or missing API key
 - `FORBIDDEN`: Insufficient permissions
 - `NOT_FOUND`: Resource not found
@@ -278,10 +267,10 @@ Common error codes:
 
 ## Support
 
-- **Documentation**: https://docs.awareness-network.com
-- **API Status**: https://status.awareness-network.com
-- **GitHub**: https://github.com/everest-an/Awareness-Network
-- **Discord**: https://discord.gg/awareness-network
+- **Documentation**: [https://awareness.market/docs](https://awareness.market/docs)
+- **API Status**: [https://awareness.market/status](https://awareness.market/status)
+- **GitHub**: [https://github.com/everest-an/Awareness-Market](https://github.com/everest-an/Awareness-Market)
+- **Discord**: [https://discord.gg/awareness-network](https://discord.gg/awareness-network)
 
 ## License
 

@@ -1,37 +1,33 @@
 import { Header } from "@/components/Header";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Check, Crown, TrendingUp, Zap } from "lucide-react";
 import { Link } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 export default function Pricing() {
-    const tiers = [
-        {
-            name: "Starter",
-            price: "$0",
-            description: "For individuals exploring the latent space.",
-            features: ["Process up to 1GB vectors/mo", "Access public marketplace", "Standard community support", "Basic 768d vector alignment"],
-            cta: "Get Started",
-            href: "/marketplace",
-        },
-        {
-            name: "Pro",
-            price: "$29",
-            description: "For creators and power users.",
-            features: ["Process up to 50GB vectors/mo", "Access premium marketplace", "Priority email support", "Advanced LatentMAS alignment", "Zero transaction fees (Creator)"],
-            cta: "Subscribe",
-            href: "/dashboard/consumer", // In real app, checkout link
-            popular: true,
-        },
-        {
-            name: "Enterprise",
-            price: "Custom",
-            description: "For comprehensive AI organizations.",
-            features: ["Unlimited vector processing", "Private vector marketplace", "24/7 Dedicated support", "Custom realignment matrices", "SLA & Compliance reports"],
-            cta: "Contact Sales",
-            href: "mailto:sales@awareness.market",
-        },
-    ];
+    const { isAuthenticated, loading: authLoading } = useAuth();
+    const { data: plans, isLoading: plansLoading } = trpc.subscriptions.plans.useQuery();
+
+    const resolveIcon = (name: string) => {
+        const lowered = name.toLowerCase();
+        if (lowered.includes("enterprise")) return { icon: Crown, color: "text-amber-500" };
+        if (lowered.includes("pro") || lowered.includes("professional")) return { icon: TrendingUp, color: "text-purple-500" };
+        return { icon: Zap, color: "text-blue-500" };
+    };
+
+    const parseFeatures = (features?: string | null) => {
+        if (!features) return [];
+        try {
+            const parsed = JSON.parse(features);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    };
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -47,37 +43,69 @@ export default function Pricing() {
                         </p>
                     </div>
 
-                    <div className="grid gap-8 md:grid-cols-3">
-                        {tiers.map((tier) => (
-                            <Card key={tier.name} className={`flex flex-col ${tier.popular ? 'border-primary shadow-lg relative' : ''}`}>
-                                {tier.popular && (
-                                    <div className="absolute top-0 right-0 -mr-2 -mt-2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">
-                                        POPULAR
-                                    </div>
-                                )}
-                                <CardHeader>
-                                    <CardTitle className="text-2xl">{tier.name}</CardTitle>
-                                    <CardDescription>{tier.description}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-1">
-                                    <div className="text-4xl font-bold mb-6">{tier.price}<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
-                                    <ul className="space-y-3">
-                                        {tier.features.map((feature) => (
-                                            <li key={feature} className="flex items-center gap-2">
-                                                <Check className="h-4 w-4 text-green-500" />
-                                                <span className="text-sm">{feature}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button asChild className="w-full" variant={tier.popular ? "default" : "outline"}>
-                                        <Link href={tier.href}>{tier.cta}</Link>
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </div>
+                    {authLoading || plansLoading ? (
+                        <div className="grid gap-8 md:grid-cols-3">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <Skeleton key={i} className="h-[520px]" />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="grid gap-8 md:grid-cols-3">
+                            {plans && plans.length > 0 ? plans.map((plan) => {
+                                const meta = resolveIcon(plan.name);
+                                const Icon = meta.icon;
+                                const features = parseFeatures(plan.features);
+                                const isPopular = plan.name.toLowerCase().includes("pro");
+                                return (
+                                    <Card key={plan.id} className={`relative flex flex-col ${isPopular ? "border-primary shadow-lg" : ""}`}>
+                                        {isPopular && (
+                                            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                                                <Badge className="bg-primary px-4 py-1">Most Popular</Badge>
+                                            </div>
+                                        )}
+                                        <CardHeader className="text-center">
+                                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                                                <Icon className={`h-8 w-8 ${meta.color}`} />
+                                            </div>
+                                            <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                                            <CardDescription>
+                                                <div className="mt-4 flex items-baseline justify-center gap-1">
+                                                    <span className="text-4xl font-bold text-foreground">
+                                                        ${parseFloat(plan.price).toFixed(0)}
+                                                    </span>
+                                                    <span className="text-muted-foreground">/{plan.billingCycle}</span>
+                                                </div>
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="flex-1">
+                                            <ul className="space-y-3">
+                                                {features.map((feature, index) => (
+                                                    <li key={index} className="flex items-start gap-2">
+                                                        <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+                                                        <span className="text-sm">{feature}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </CardContent>
+                                        <CardFooter>
+                                            <Button asChild className="w-full" variant={isPopular ? "default" : "outline"}>
+                                                <Link href="/subscriptions">
+                                                    {isAuthenticated ? "Subscribe" : "View Plans"}
+                                                </Link>
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                );
+                            }) : (
+                                <Card className="col-span-full p-8 text-center">
+                                    <CardTitle>No subscription plans available</CardTitle>
+                                    <CardDescription className="mt-2">
+                                        Please check back later or contact sales.
+                                    </CardDescription>
+                                </Card>
+                            )}
+                        </div>
+                    )}
                 </div>
             </main>
 

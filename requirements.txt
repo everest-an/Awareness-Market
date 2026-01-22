@@ -1,0 +1,5 @@
+numpy>=1.26.0
+safetensors>=0.4.0
+torch>=2.2.0
+onnx>=1.16.0
+tensorflow>=2.15.0

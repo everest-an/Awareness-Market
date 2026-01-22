@@ -1,14 +1,114 @@
 {
-    "hero": {
-        "title": "直接交易 AI 能力",
-        "subtitle": "首个潜在空间向量的市场。通过 LatentMAS 技术实现 AI 代理之间的直接心灵协作。"
-    },
-    "cta": {
+    "nav": {
+        "marketplace": "市场",
+        "pricing": "定价",
+        "about": "关于",
+        "leaderboard": "排行榜",
+        "visualizer": "Golem 可视化",
+        "dashboard": "仪表板",
+        "login": "登录",
         "getStarted": "立即开始",
-        "exploreMarketplace": "探索市场",
-        "browseMarketplace": "浏览市场"
+        "language": "语言",
+        "english": "English",
+        "chinese": "中文"
+    },
+    "hero": {
+        "badge": "AI 协作的未来",
+        "title": "直接交易 AI 能力",
+        "titleHighlight": "即刻达成",
+        "subtitle": "首个潜在空间向量的市场。通过 LatentMAS 技术实现 AI 代理之间的直接心灵协作。",
+        "ctaExplore": "探索市场",
+        "ctaCreator": "创建者仪表板",
+        "ctaGetStarted": "立即开始",
+        "ctaBrowse": "浏览市场"
+    },
+    "features": {
+        "heading": "为何选择 Awareness Network？",
+        "subheading": "革命性技术与无缝市场体验的结合",
+        "items": {
+            "latentmas": {
+                "title": "LatentMAS 协议",
+                "desc": "AI 模型之间的潜空间直连通信，比传统 API 快 4.3 倍"
+            },
+            "mcp": {
+                "title": "MCP 集成",
+                "desc": "标准化的 Model Context Protocol，实现 AI 代理无缝互操作"
+            },
+            "secure": {
+                "title": "安全交易",
+                "desc": "向量加密传输与细粒度访问控制及使用追踪"
+            },
+            "pricing": {
+                "title": "动态定价",
+                "desc": "基于性能、稀缺性和需求指标的智能定价引擎"
+            },
+            "economy": {
+                "title": "创建者经济",
+                "desc": "透明的收益分成机制（80-85% 归创建者）"
+            },
+            "matching": {
+                "title": "AI 智能匹配",
+                "desc": "基于 LLM 的需求与行为分析，为你推荐最优能力"
+            }
+        }
+    },
+    "howItWorks": {
+        "heading": "如何运作",
+        "subheading": "三步开启 AI 能力交易",
+        "steps": {
+            "create": {
+                "title": "创建或浏览",
+                "desc": "创建者上传潜向量并配置性能与定价；消费者浏览市场以匹配需求。"
+            },
+            "purchase": {
+                "title": "安全购买",
+                "desc": "通过 Stripe 完成交易，系统生成可配置的访问令牌与调用限制。"
+            },
+            "integrate": {
+                "title": "接入与使用",
+                "desc": "通过 MCP 兼容 API 调用已购买向量，并在仪表板中跟踪性能与 ROI。"
+            }
+        }
+    },
+    "useCases": {
+        "heading": "应用场景",
+        "subheading": "驱动各行业创新",
+        "items": {
+            "finance": {
+                "title": "金融分析",
+                "desc": "获取用于市场预测、风险评估与量化交易的专业模型。"
+            },
+            "code": {
+                "title": "代码生成",
+                "desc": "使用针对特定框架、语言与架构模式微调的代码生成模型。"
+            },
+            "medical": {
+                "title": "医学诊断",
+                "desc": "接入用于影像分析、症状评估与治疗建议的医学 AI 能力。"
+            },
+            "content": {
+                "title": "内容创作",
+                "desc": "使用用于文案、设计、视频编辑与多媒体制作的创意模型。"
+            }
+        }
+    },
+    "finalCta": {
+        "heading": "准备加入 AI 能力革命？",
+        "subheading": "无论你是能力创建者还是集成方，Awareness Network 都是通往 AI 协作未来的入口。",
+        "primary": "开始探索",
+        "secondary": "立即注册",
+        "tertiary": "查看市场"
     },
     "footer": {
+        "tagline": "首个 AI 潜空间向量市场，由 LatentMAS 与 MCP 技术驱动。",
+        "product": "产品",
+        "company": "公司",
+        "legal": "法律",
+        "marketplace": "市场",
+        "pricing": "定价",
+        "about": "关于",
+        "privacy": "隐私",
+        "terms": "条款",
         "rights": "© 2025 Awareness Network. 版权所有。"
     }
 }
