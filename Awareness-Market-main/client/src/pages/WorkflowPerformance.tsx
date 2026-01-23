@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Navbar from "@/components/Navbar";
-import { BarChart3, TrendingUp, Clock, Zap, AlertTriangle, Activity } from "lucide-react";
+import { BarChart3, TrendingUp, Clock, Zap, AlertTriangle, Activity, LogIn } from "lucide-react";
 import { useLocation } from "wouter";
 
 /**
@@ -16,9 +17,43 @@ import { useLocation } from "wouter";
  * - Session type comparison
  * - Success/failure rates
  */
+// Generate demo performance data for unauthenticated users
+function generateDemoData() {
+  const sessionTypes = ["ai_reasoning", "memory_transfer", "package_processing", "w_matrix_training", "vector_invocation"];
+  const statuses = ["completed", "completed", "completed", "completed", "failed"]; // 80% success
+  
+  const sessions = Array.from({ length: 50 }, (_, i) => {
+    const type = sessionTypes[Math.floor(Math.random() * sessionTypes.length)];
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
+    const duration = Math.floor(Math.random() * 5000) + 500; // 500ms - 5500ms
+    return {
+      sessionId: `demo-session-${i + 1}`,
+      sessionType: type,
+      status,
+      duration,
+      eventCount: Math.floor(Math.random() * 20) + 5,
+      createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+  });
+
+  const stats = {
+    totalSessions: 50,
+    completedSessions: sessions.filter(s => s.status === "completed").length,
+    failedSessions: sessions.filter(s => s.status === "failed").length,
+    avgEventCount: 12.5,
+    avgDuration: 2800,
+  };
+
+  return { sessions, stats };
+}
+
 export function WorkflowPerformance() {
   const [, setLocation] = useLocation();
   const [timeRange, setTimeRange] = useState<"7" | "30" | "90">("7");
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  
+  // Demo data for unauthenticated users
+  const demoData = useMemo(() => generateDemoData(), []);
 
   // Calculate date range
   const getDateRange = () => {
@@ -30,21 +65,33 @@ export function WorkflowPerformance() {
 
   const { startDate, endDate } = getDateRange();
 
-  // Query statistics for the time range
-  const { data: stats, isLoading } = trpc.workflowHistory.getStatistics.useQuery({
+  // Query statistics for the time range (only for authenticated users)
+  const { data: realStats, isLoading } = trpc.workflowHistory.getStatistics.useQuery({
     startDate,
     endDate,
+  }, {
+    enabled: isAuthenticated,
   });
+  
+  // Use real stats if authenticated, demo stats otherwise
+  const stats = isAuthenticated ? realStats : demoData.stats;
 
-  // Query all sessions for detailed analysis
-  const { data: sessionsData } = trpc.workflowHistory.getHistory.useQuery({
+  // Query all sessions for detailed analysis (only for authenticated users)
+  const { data: realSessionsData } = trpc.workflowHistory.getHistory.useQuery({
     page: 1,
     pageSize: 1000, // Get more data for analysis
     startDate,
     endDate,
     sortBy: "createdAt",
     sortOrder: "desc",
+  }, {
+    enabled: isAuthenticated,
   });
+  
+  // Use real sessions if authenticated, demo sessions otherwise
+  const sessionsData = isAuthenticated 
+    ? realSessionsData 
+    : { sessions: demoData.sessions, totalCount: demoData.sessions.length };
 
   // Calculate performance metrics
   const calculateMetrics = () => {
@@ -156,18 +203,53 @@ export function WorkflowPerformance() {
             </p>
           </div>
 
-          {/* Time Range Selector */}
-          <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
-            <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700">
-              <SelectValue placeholder="Select time range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-4">
+            {/* Auth Status Indicator */}
+            {!isAuthenticated && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <LogIn className="h-4 w-4 text-amber-400" />
+                <span className="text-amber-400 text-sm">Demo Data</span>
+              </div>
+            )}
+            {isAuthenticated && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <Activity className="h-4 w-4 text-green-400" />
+                <span className="text-green-400 text-sm">Live Data</span>
+              </div>
+            )}
+            
+            {/* Time Range Selector */}
+            <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+              <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700">
+                <SelectValue placeholder="Select time range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
+                <SelectItem value="90">Last 90 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+        
+        {/* Login Prompt for unauthenticated users */}
+        {!isAuthenticated && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-300 font-medium">📊 Viewing Demo Performance Data</p>
+                <p className="text-gray-400 text-sm mt-1">Login to see your real workflow performance metrics and analytics</p>
+              </div>
+              <Button 
+                onClick={() => setLocation("/auth")}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Login
+              </Button>
+            </div>
+          </div>
+        )}
 
         {isLoading && (
           <div className="text-center py-12">
