@@ -51,6 +51,7 @@ const navLinks = [
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
       { label: "W-Matrix Protocol", href: "/w-matrix", icon: Network, description: "Cross-model alignment" },
       { label: "Compatibility Tester", href: "/w-matrix/tester", icon: Cpu, description: "Test model compatibility" },
+      { label: "Project Golem", href: "/golem-visualizer", icon: Brain, description: "Vector space visualizer" },
       { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
     ]
   },
@@ -59,6 +60,7 @@ const navLinks = [
     children: [
       { label: "Documentation", href: "/docs", icon: FileCode, description: "API & SDK guides" },
       { label: "Python SDK", href: "/sdk", icon: Code, description: "Python integration" },
+      { label: "MCP Integration", href: "/sdk#mcp", icon: Cpu, description: "Model Context Protocol" },
       { label: "GitHub", href: "https://github.com/everest-an/Awareness-Market", icon: Github, description: "View source code", external: true },
       { label: "Blog", href: "/blog", icon: BookOpen, description: "Latest updates" },
     ]
