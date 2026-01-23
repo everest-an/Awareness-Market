@@ -68,6 +68,7 @@
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/three": "^0.182.0",
+    "@ethersproject/providers": "^5.7.2",
     "axios": "^1.12.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
