@@ -64,8 +64,8 @@ export default function UploadChainPackage() {
       const chain = {
         ...rawChain,
         problemType: rawChain.problemType || formData.problemType || 'general',
-        solutionQuality: rawChain.solutionQuality ?? parseFloat(formData.solutionQuality) || 0.85,
-        totalSteps: rawChain.totalSteps ?? parseInt(formData.stepCount) || 5,
+        solutionQuality: rawChain.solutionQuality ?? (parseFloat(formData.solutionQuality) || 0.85),
+        totalSteps: rawChain.totalSteps ?? (parseInt(formData.stepCount) || 5),
       };
 
       const wMatrix = {
