@@ -5,7 +5,7 @@
  * 简化了 tRPC 路由中对 Go 服务的调用。
  */
 
-import fetch from 'node-fetch';
+// Using native fetch API (Node.js 18+)
 
 // ==========================================
 // 类型定义
