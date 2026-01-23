@@ -36,6 +36,51 @@ export default function MemoryMarketplace() {
     return num.toString();
   };
 
+  const featuredCases = [
+    {
+      id: "case-legal-review",
+      name: "Legal Reasoning Continuation",
+      description: "Transfer multi-step contract analysis from GPT-4 to Claude for follow-up negotiation and compliance checks.",
+      version: "1.3.0",
+      tokenCount: 180000,
+      compressionRatio: 0.92,
+      rating: 4.8,
+      price: 29.0,
+      sourceModel: "gpt-4",
+      targetModel: "claude-3",
+      downloads: 1200,
+      contextDescription: "Enterprise contract review and risk analysis",
+    },
+    {
+      id: "case-research-synthesis",
+      name: "Research Synthesis Memory",
+      description: "Carry over a 40-page literature synthesis into a new model without losing citations or reasoning structure.",
+      version: "2.1.0",
+      tokenCount: 240000,
+      compressionRatio: 0.95,
+      rating: 4.9,
+      price: 45.0,
+      sourceModel: "claude-3",
+      targetModel: "gpt-4",
+      downloads: 980,
+      contextDescription: "Academic literature review and hypothesis mapping",
+    },
+    {
+      id: "case-product-design",
+      name: "Product Strategy Memory",
+      description: "Move a complete product discovery process across models for roadmap planning and stakeholder alignment.",
+      version: "1.0.4",
+      tokenCount: 150000,
+      compressionRatio: 0.9,
+      rating: 4.7,
+      price: 24.0,
+      sourceModel: "llama-3",
+      targetModel: "qwen-2",
+      downloads: 740,
+      contextDescription: "Product discovery, market sizing, and roadmap planning",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
@@ -231,16 +276,94 @@ export default function MemoryMarketplace() {
             ))}
           </div>
         ) : (
-          <div className="text-center text-slate-400 py-12">
-            <Database className="h-16 w-16 mx-auto mb-4 opacity-50" />
-            <p className="text-lg">No memory packages found</p>
-            <p className="text-sm mt-2">Be the first to upload a memory package!</p>
-            <Link href="/upload-memory-package">
-              <Button className="mt-4 bg-purple-500 hover:bg-purple-600">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Memory Package
-              </Button>
-            </Link>
+          <div className="space-y-10">
+            <div className="text-center text-slate-400 py-6">
+              <Database className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <p className="text-lg">No memory packages found</p>
+              <p className="text-sm mt-2">Here are featured memory market cases to explore.</p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white">Featured Memory Cases</h2>
+                <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/20">Examples</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredCases.map((pkg) => (
+                  <Card key={pkg.id} className="p-6 bg-slate-900/50 border-slate-800 hover:border-purple-500 transition-all group h-full">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white group-hover:text-purple-400 transition-colors mb-1">
+                          {pkg.name}
+                        </h3>
+                        <p className="text-sm text-slate-400 line-clamp-2">{pkg.description}</p>
+                      </div>
+                      <Badge className="bg-purple-500 text-white ml-2">v{pkg.version}</Badge>
+                    </div>
+
+                    {/* Metrics */}
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="text-center p-2 bg-slate-800/50 rounded">
+                        <div className="text-sm font-bold text-cyan-400">{formatNumber(pkg.tokenCount)}</div>
+                        <div className="text-xs text-slate-400">Tokens</div>
+                      </div>
+                      <div className="text-center p-2 bg-slate-800/50 rounded">
+                        <div className="text-sm font-bold text-green-400">{Math.round(pkg.compressionRatio * 100)}%</div>
+                        <div className="text-xs text-slate-400">Compression</div>
+                      </div>
+                      <div className="text-center p-2 bg-slate-800/50 rounded">
+                        <div className="text-sm font-bold text-yellow-400">{pkg.rating.toFixed(1)}</div>
+                        <div className="text-xs text-slate-400">Rating</div>
+                      </div>
+                    </div>
+
+                    {/* Model Info */}
+                    <div className="mb-4 p-3 bg-slate-800/30 rounded">
+                      <div className="flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-slate-400">From:</span>
+                          <span className="text-white ml-1 font-mono">{pkg.sourceModel}</span>
+                        </div>
+                        <Zap className="h-3 w-3 text-purple-400" />
+                        <div>
+                          <span className="text-slate-400">To:</span>
+                          <span className="text-white ml-1 font-mono">{pkg.targetModel}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Context Description */}
+                    {pkg.contextDescription && (
+                      <p className="text-xs text-slate-400 mb-4 line-clamp-2">
+                        💭 {pkg.contextDescription}
+                      </p>
+                    )}
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                      <div>
+                        <div className="text-xs text-slate-400">Price</div>
+                        <div className="text-lg font-bold text-white">${pkg.price.toFixed(2)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-slate-400">Downloads</div>
+                        <div className="text-sm font-semibold text-purple-400">{formatNumber(pkg.downloads)}</div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div className="text-center">
+              <Link href="/upload-memory-package">
+                <Button className="bg-purple-500 hover:bg-purple-600">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Memory Package
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
       </div>

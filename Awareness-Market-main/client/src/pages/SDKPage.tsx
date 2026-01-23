@@ -552,7 +552,7 @@ export default function SDKPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-900/50 border-gray-800">
+              <Card id="mcp" className="bg-gray-900/50 border-gray-800">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Cpu className="h-5 w-5 text-cyan-400" />
