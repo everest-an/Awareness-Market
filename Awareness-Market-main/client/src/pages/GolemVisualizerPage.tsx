@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/_core/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,38 +25,96 @@ interface VectorData {
 }
 
 export default function GolemVisualizerPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [vectors, setVectors] = useState<VectorData[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<VectorData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [packageType, setPackageType] = useState<'vector' | 'memory' | 'chain'>('vector');
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'rating'>('recent');
+  const [dataSource, setDataSource] = useState<'live' | 'live+demo' | 'demo'>('demo');
 
-  // 查询包数据
+  // 查询包数据 - 仅在登录后获取真实数据
   const { data: packagesData } = trpc.packages.browsePackages.useQuery({
     packageType,
     sortBy,
     search: searchQuery || undefined,
     limit: 50,
+  }, {
+    enabled: isAuthenticated, // 仅在登录时获取真实数据
   });
 
+  const generateDemoVectors = (count: number): VectorData[] => {
+    const categories = ['nlp', 'vision', 'audio', 'multimodal', 'other'];
+    const clusters = [
+      { center: [2, 1, 0], color: '#4a9eff' },
+      { center: [-2, 1.5, 1], color: '#a855f7' },
+      { center: [1, -2, -1], color: '#10b981' },
+      { center: [-1.5, -1.5, 2], color: '#f59e0b' },
+      { center: [0, 2.5, -2], color: '#6366f1' },
+    ];
+
+    return Array.from({ length: count }).map((_, i) => {
+      const cluster = clusters[i % clusters.length];
+      const jitter = () => (Math.random() - 0.5) * 1.2;
+      return {
+        id: `demo-${packageType}-${i}`,
+        vector: [
+          cluster.center[0] + jitter(),
+          cluster.center[1] + jitter(),
+          cluster.center[2] + jitter(),
+        ],
+        label: `Demo ${packageType} node ${i + 1}`,
+        color: cluster.color,
+      } as VectorData;
+    });
+  };
+
   // 将包数据转换为向量用于可视化
+  // 未登录: 显示演示数据 | 已登录: 显示真实客户数据
   useEffect(() => {
+    const minPoints = 300;
+
+    // 未登录 - 显示精心设计的演示数据
+    if (!isAuthenticated) {
+      setVectors(generateDemoVectors(minPoints));
+      setDataSource('demo');
+      return;
+    }
+
+    // 已登录但数据未加载
     if (!packagesData?.packages) return;
 
+    // 已登录 - 映射真实客户数据
     const vectorizedPackages = packagesData.packages.map((pkg: any, index: number) => ({
       id: pkg.packageId,
       vector: [
-        (pkg.epsilon || 0) * 10,
+        // 基于实际数据属性生成3D坐标
+        (pkg.epsilon || Math.random()) * 10,
         (pkg.downloads || 0) / 100,
-        (pkg.rating || 0) * 10 + index,
+        (pkg.rating || 3) * 10 + (index * 0.5),
       ],
       label: pkg.name,
       color: getColorByCategory(pkg.category),
     }));
 
+    // 如果真实数据不足，补充演示数据
+    if (vectorizedPackages.length === 0) {
+      setVectors(generateDemoVectors(minPoints));
+      setDataSource('demo');
+      return;
+    }
+
+    if (vectorizedPackages.length < minPoints) {
+      const extra = generateDemoVectors(minPoints - vectorizedPackages.length);
+      setVectors([...vectorizedPackages, ...extra]);
+      setDataSource('live+demo');
+      return;
+    }
+
     setVectors(vectorizedPackages);
-  }, [packagesData]);
+    setDataSource('live');
+  }, [packagesData, packageType, isAuthenticated]);
 
   const getColorByCategory = (category?: string): string => {
     const colors: Record<string, string> = {
@@ -167,8 +226,16 @@ export default function GolemVisualizerPage() {
             </div>
           </div>
 
-          <div className="text-sm text-slate-400">
-            Visualizing {vectors.length} packages in 3D vector space
+          <div className="flex items-center justify-between text-sm">
+            <div className="text-slate-400">
+              Visualizing {vectors.length} packages in 3D vector space
+              <span className="ml-2 text-slate-500">• Source: {dataSource}</span>
+            </div>
+            {!isAuthenticated && (
+              <div className="text-amber-400/80 text-xs">
+                💡 Login to view your real data
+              </div>
+            )}
           </div>
         </Card>
 
@@ -187,6 +254,8 @@ export default function GolemVisualizerPage() {
                   height="600px"
                   backgroundColor="#0a0e27"
                   autoRotate={true}
+                  rotateSpeed={0.6}
+                  pointScale={8}
                 />
               )}
             </Card>
