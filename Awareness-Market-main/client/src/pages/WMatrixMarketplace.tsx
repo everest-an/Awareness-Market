@@ -22,6 +22,7 @@ export default function WMatrixMarketplace() {
     sortBy,
     sourceModel: sourceModel || undefined,
     targetModel: targetModel || undefined,
+    search: searchTerm || undefined,
     limit: 20,
     offset: 0,
   });

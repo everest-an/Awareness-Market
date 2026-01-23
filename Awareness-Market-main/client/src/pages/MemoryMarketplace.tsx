@@ -26,6 +26,7 @@ export default function MemoryMarketplace() {
     packageType: 'memory',
     sortBy,
     sourceModel: sourceModel === 'all' ? undefined : sourceModel,
+    search: searchTerm || undefined,
     limit: 20,
     offset: 0,
   });
@@ -106,22 +107,22 @@ export default function MemoryMarketplace() {
         </div>
 
         {/* Stats */}
-        {packages && (
+        {packages?.packages && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
-              <div className="text-3xl font-bold text-purple-400 mb-2">{packages.length}</div>
+              <div className="text-3xl font-bold text-purple-400 mb-2">{packages.packages.length}</div>
               <div className="text-sm text-slate-400">Available Memories</div>
             </Card>
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
               <div className="text-3xl font-bold text-cyan-400 mb-2">
-                {packages.reduce((sum, pkg: any) => sum + (pkg.downloads || 0), 0)}
+                {packages.packages.reduce((sum: number, pkg: any) => sum + (pkg.downloads || 0), 0)}
               </div>
               <div className="text-sm text-slate-400">Total Downloads</div>
             </Card>
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
               <div className="text-3xl font-bold text-green-400 mb-2">
-                {packages.length > 0 
-                  ? (packages.reduce((sum, pkg: any) => sum + (pkg.rating || 0), 0) / packages.length).toFixed(1)
+                {packages.packages.length > 0 
+                  ? (packages.packages.reduce((sum: number, pkg: any) => sum + (pkg.rating || 0), 0) / packages.packages.length).toFixed(1)
                   : '0.0'}
               </div>
               <div className="text-sm text-slate-400">Average Rating</div>
@@ -188,15 +189,9 @@ export default function MemoryMarketplace() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
             <p>Loading memory packages...</p>
           </div>
-        ) : packages && packages.length > 0 ? (
+        ) : packages?.packages && packages.packages.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {packages
-              .filter((pkg: any) => 
-                searchTerm === '' || 
-                pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                pkg.description.toLowerCase().includes(searchTerm.toLowerCase())
-              )
-              .map((pkg: any) => (
+            {packages.packages.map((pkg: any) => (
               <Link key={pkg.id} href={`/package/memory/${pkg.packageId}`}>
                 <Card className="p-6 bg-slate-900/50 border-slate-800 hover:border-purple-500 transition-all cursor-pointer group h-full">
                   {/* Header */}

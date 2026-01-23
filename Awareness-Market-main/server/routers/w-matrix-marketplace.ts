@@ -142,6 +142,7 @@ export const wMatrixMarketplaceRouter = router({
       targetModel: z.string().optional(),
       minPrice: z.number().optional(),
       maxPrice: z.number().optional(),
+      search: z.string().optional(),
       sortBy: z.enum(["price", "sales", "rating", "recent"]).default("recent"),
       limit: z.number().min(1).max(100).default(20),
       offset: z.number().min(0).default(0),
@@ -150,7 +151,7 @@ export const wMatrixMarketplaceRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
       
-      const { sourceModel, targetModel, minPrice, maxPrice, sortBy, limit, offset } = input;
+      const { sourceModel, targetModel, minPrice, maxPrice, search, sortBy, limit, offset } = input;
 
       // Apply filters
       const conditions = [eq(wMatrixListings.status, "active")];
@@ -158,7 +159,11 @@ export const wMatrixMarketplaceRouter = router({
       if (targetModel) conditions.push(eq(wMatrixListings.targetModel, targetModel));
       if (minPrice !== undefined) conditions.push(sql`${wMatrixListings.price} >= ${minPrice}`);
       if (maxPrice !== undefined) conditions.push(sql`${wMatrixListings.price} <= ${maxPrice}`);
-
+      if (search) {
+        conditions.push(
+          sql`(${wMatrixListings.title} ILIKE ${'%' + search + '%'} OR ${wMatrixListings.description} ILIKE ${'%' + search + '%'})`
+        );
+      }
       // Determine sort order
       let orderByClause;
       switch (sortBy) {
