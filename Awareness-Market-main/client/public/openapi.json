@@ -3,11 +3,11 @@
   "info": {
     "title": "Awareness Network API",
     "version": "1.0.0",
-    "description": "The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through LatentMAS technology.",
+    "description": "Awareness Market API for AI vector, memory, and reasoning-chain marketplaces with LatentMAS interoperability.",
     "contact": {
-      "name": "Awareness Network Support",
-      "email": "support@latentmind-marketplace.manus.space",
-      "url": "https://latentmind-marketplace.manus.space"
+      "name": "Awareness Market Support",
+      "email": "support@awareness.market",
+      "url": "https://awareness.market"
     },
     "license": {
       "name": "MIT",
@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "https://latentmind-marketplace.manus.space/api",
+      "url": "https://awareness.market/api",
       "description": "Production server"
     },
     {
