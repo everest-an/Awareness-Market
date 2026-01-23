@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'wouter';
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function WMatrixMarketplace() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'price' | 'sales' | 'rating'>('recent');
   const [sourceModel, setSourceModel] = useState<string>('');
@@ -43,11 +44,52 @@ export default function WMatrixMarketplace() {
     },
   });
 
+  const checkoutMutation = trpc.wMatrixMarketplace.createCheckout.useMutation({
+    onSuccess: (result) => {
+      window.location.href = result.url;
+    },
+    onError: (error) => {
+      toast({
+        title: 'Checkout Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const finalizeMutation = trpc.wMatrixMarketplace.finalizeCheckout.useMutation({
+    onSuccess: () => {
+      toast({
+        title: 'Purchase Successful',
+        description: 'Your W-Matrix purchase has been completed.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Checkout Verification Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handlePurchase = async (listingId: number) => {
-    // TODO: Integrate Stripe payment
-    const mockPaymentIntentId = `pi_mock_${Date.now()}`;
-    purchaseMutation.mutate({ listingId, stripePaymentIntentId: mockPaymentIntentId });
+    checkoutMutation.mutate({
+      listingId,
+      successUrl: `${window.location.origin}/w-matrix-marketplace?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${window.location.origin}/w-matrix-marketplace?canceled=true`,
+    });
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    if (sessionId) {
+      finalizeMutation.mutate({ sessionId });
+      params.delete('session_id');
+      setLocation(`/w-matrix-marketplace?${params.toString()}`);
+    }
+  }, [finalizeMutation, setLocation]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">

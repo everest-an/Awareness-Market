@@ -92,6 +92,57 @@ export async function createVectorPurchaseCheckout(params: {
 }
 
 /**
+ * Create a checkout session for W-Matrix purchase
+ */
+export async function createWMatrixPurchaseCheckout(params: {
+  userId: number;
+  userEmail: string;
+  userName?: string;
+  listingId: number;
+  listingTitle: string;
+  amount: number; // in dollars
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<string> {
+  const customerId = await getOrCreateStripeCustomer({
+    userId: params.userId,
+    email: params.userEmail,
+    name: params.userName,
+  });
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: "payment",
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `W-Matrix: ${params.listingTitle}`,
+            description: "One-time access to alignment matrix",
+          },
+          unit_amount: Math.round(params.amount * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    client_reference_id: params.userId.toString(),
+    metadata: {
+      user_id: params.userId.toString(),
+      listing_id: params.listingId.toString(),
+      purchase_type: "w-matrix",
+      customer_email: params.userEmail,
+      customer_name: params.userName || "",
+    },
+    allow_promotion_codes: true,
+  });
+
+  return session.url!;
+}
+
+/**
  * Create a checkout session for subscription
  */
 export async function createSubscriptionCheckout(params: {

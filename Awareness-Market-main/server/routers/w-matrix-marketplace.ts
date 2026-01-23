@@ -2,12 +2,137 @@ import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
+import { createWMatrixPurchaseCheckout, stripe } from "../stripe-client";
 
 // db is async, must await in each procedure
 import { wMatrixListings, wMatrixPurchases } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
 export const wMatrixMarketplaceRouter = router({
+  /**
+   * Create Stripe checkout session for W-Matrix purchase
+   */
+  createCheckout: protectedProcedure
+    .input(z.object({
+      listingId: z.number(),
+      successUrl: z.string().url(),
+      cancelUrl: z.string().url(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const [listing] = await db
+        .select()
+        .from(wMatrixListings)
+        .where(eq(wMatrixListings.id, input.listingId));
+
+      if (!listing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Listing not found" });
+      }
+
+      if (listing.status !== "active") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This listing is not available for purchase" });
+      }
+
+      const [existingPurchase] = await db
+        .select()
+        .from(wMatrixPurchases)
+        .where(
+          and(
+            eq(wMatrixPurchases.listingId, input.listingId),
+            eq(wMatrixPurchases.buyerId, ctx.user.id),
+            eq(wMatrixPurchases.status, "completed")
+          )
+        );
+
+      if (existingPurchase) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "You have already purchased this W-Matrix" });
+      }
+
+      if (!ctx.user.email) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Email is required to start checkout" });
+      }
+
+      const url = await createWMatrixPurchaseCheckout({
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        userName: ctx.user.name || undefined,
+        listingId: input.listingId,
+        listingTitle: listing.title,
+        amount: parseFloat(listing.price),
+        successUrl: input.successUrl,
+        cancelUrl: input.cancelUrl,
+      });
+
+      return { url };
+    }),
+
+  /**
+   * Finalize checkout after Stripe redirect
+   */
+  finalizeCheckout: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+
+      if (session.payment_status !== "paid") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Payment not completed" });
+      }
+
+      const listingId = parseInt(session.metadata?.listing_id || "", 10);
+      const userId = parseInt(session.metadata?.user_id || "", 10);
+
+      if (!listingId || userId !== ctx.user.id) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid checkout session" });
+      }
+
+      const [listing] = await db
+        .select()
+        .from(wMatrixListings)
+        .where(eq(wMatrixListings.id, listingId));
+
+      if (!listing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Listing not found" });
+      }
+
+      const [existingPurchase] = await db
+        .select()
+        .from(wMatrixPurchases)
+        .where(
+          and(
+            eq(wMatrixPurchases.listingId, listingId),
+            eq(wMatrixPurchases.buyerId, ctx.user.id),
+            eq(wMatrixPurchases.status, "completed")
+          )
+        );
+
+      if (existingPurchase) {
+        return { success: true, purchaseId: existingPurchase.id, matrixId: listing.matrixId };
+      }
+
+      const [result] = await db.insert(wMatrixPurchases).values({
+        listingId,
+        buyerId: ctx.user.id,
+        price: listing.price,
+        stripePaymentIntentId: session.payment_intent as string,
+        status: "completed",
+      });
+
+      await db
+        .update(wMatrixListings)
+        .set({
+          totalSales: sql`${wMatrixListings.totalSales} + 1`,
+          totalRevenue: sql`${wMatrixListings.totalRevenue} + ${listing.price}`,
+        })
+        .where(eq(wMatrixListings.id, listingId));
+
+      return { success: true, purchaseId: result.insertId, matrixId: listing.matrixId };
+    }),
+
   /**
    * List all active W-Matrix listings with optional filtering
    */
