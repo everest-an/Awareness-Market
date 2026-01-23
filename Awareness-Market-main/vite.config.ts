@@ -46,29 +46,29 @@ export default defineConfig({
           
           // 页面组件 - 按路由分割
           'page-marketplace': [
-            'src/pages/Marketplace.tsx',
-            'src/pages/VectorDetail.tsx',
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'Marketplace.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'VectorDetail.tsx'),
           ],
           'page-dashboard': [
-            'src/pages/Dashboard.tsx',
-            'src/pages/CreatorDashboard.tsx',
-            'src/pages/ConsumerDashboard.tsx',
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'Dashboard.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'CreatorDashboard.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'ConsumerDashboard.tsx'),
           ],
           'page-memory': [
-            'src/pages/MemoryMarketplace.tsx',
-            'src/pages/MemoryNFTDetail.tsx',
-            'src/pages/MemoryProvenance.tsx',
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'MemoryMarketplace.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'MemoryNFTDetail.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'MemoryProvenance.tsx'),
           ],
           'page-reasoning': [
-            'src/pages/ReasoningChainMarket.tsx',
-            'src/pages/ReasoningChainPublish.tsx',
-            'src/pages/WMatrixTester.tsx',
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'ReasoningChainMarket.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'ReasoningChainPublish.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'WMatrixTester.tsx'),
           ],
           'page-docs': [
-            'src/pages/SdkDocs.tsx',
-            'src/pages/ApiKeys.tsx',
-            'src/pages/Blog.tsx',
-            'src/pages/BlogPost.tsx',
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'SdkDocs.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'ApiKeys.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'Blog.tsx'),
+            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'BlogPost.tsx'),
           ],
         },
         
