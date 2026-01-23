@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,9 +74,11 @@ export default function MyMemories() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">My Memories</h1>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <div className="container mx-auto py-8 mt-20">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">My Memories</h1>
         <p className="text-muted-foreground">
           Manage your owned and created memory assets
         </p>
@@ -279,6 +282,7 @@ export default function MyMemories() {
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,10 +117,12 @@ export default function ServiceHealth() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Service Health Monitor</h1>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <div className="container mx-auto py-8 mt-20">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Service Health Monitor</h1>
           <p className="text-muted-foreground mt-1">
             Monitor the status of all microservices
           </p>
@@ -204,6 +207,7 @@ export default function ServiceHealth() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

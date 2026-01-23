@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Navbar from "@/components/Navbar";
 import { Upload, Zap, BarChart3, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,9 +73,11 @@ export default function KVCacheDemo() {
   };
 
   return (
-    <div className="container max-w-6xl py-12">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-4">KV-Cache Compression Demo</h1>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <div className="container max-w-6xl py-12 mt-20">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-4">KV-Cache Compression Demo</h1>
         <p className="text-lg text-muted-foreground">
           Experience the power of Symmetric Focus algorithm achieving 95% bandwidth savings
           through intelligent KV-Cache compression.
@@ -301,6 +304,7 @@ export default function KVCacheDemo() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -171,9 +172,11 @@ export default function DeveloperOnboarding() {
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Developer Onboarding</h1>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <div className="container mx-auto py-8 max-w-6xl mt-20">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">Developer Onboarding</h1>
         <p className="text-muted-foreground">
           Get started with the Awareness API in 4 simple steps
         </p>
@@ -335,6 +338,7 @@ export default function DeveloperOnboarding() {
             </Card>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

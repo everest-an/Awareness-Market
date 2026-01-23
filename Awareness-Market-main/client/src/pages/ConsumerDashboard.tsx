@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -42,8 +43,9 @@ export default function ConsumerDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       {/* Header */}
-      <div className="border-b bg-muted/30">
+      <div className="border-b bg-muted/30 mt-20">
         <div className="container flex items-center justify-between py-6">
           <div>
             <h1 className="text-3xl font-bold">Consumer Dashboard</h1>

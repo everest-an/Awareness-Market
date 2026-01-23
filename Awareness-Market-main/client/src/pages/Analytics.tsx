@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,9 +13,11 @@ export default function Analytics() {
   const { data: dailyUsage, isLoading: dailyLoading } = trpc.analytics.dailyUsage.useQuery({ days: timePeriod });
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Usage Analytics</h1>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <div className="container mx-auto py-8 mt-20">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Usage Analytics</h1>
         <p className="text-muted-foreground">Monitor your AI capability usage, costs, and performance</p>
       </div>
 
@@ -101,6 +104,7 @@ export default function Analytics() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

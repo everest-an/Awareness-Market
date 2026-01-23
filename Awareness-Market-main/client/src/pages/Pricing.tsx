@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, Brain } from "lucide-react";
@@ -53,28 +54,10 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-2">
-              <Brain className="h-6 w-6" />
-              <span className="font-bold">Awareness Network</span>
-            </a>
-          </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/marketplace">
-              <a className="text-sm font-medium hover:text-primary">Marketplace</a>
-            </Link>
-            <Link href="/profile">
-              <Button>Get Started</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Hero */}
-      <section className="border-b bg-muted/30 py-20">
+      <section className="border-b bg-muted/30 py-20 mt-20">
         <div className="container text-center">
           <h1 className="mb-4 text-5xl font-bold">Simple, Transparent Pricing</h1>
           <p className="mx-auto max-w-2xl text-xl text-muted-foreground">

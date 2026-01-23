@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Navbar from "@/components/Navbar";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -178,8 +179,9 @@ export default function UploadVector() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       {/* Header */}
-      <div className="border-b bg-muted/30">
+      <div className="border-b bg-muted/30 mt-20">
         <div className="container py-6">
           <Button variant="ghost" asChild className="mb-4">
             <Link href="/dashboard/creator">

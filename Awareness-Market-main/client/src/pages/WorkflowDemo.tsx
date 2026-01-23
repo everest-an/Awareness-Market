@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Navbar from "@/components/Navbar";
 import { WorkflowVisualizer } from "@/components/WorkflowVisualizer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,9 +54,11 @@ export default function WorkflowDemo() {
   ];
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-4">
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <div className="container mx-auto py-8 space-y-8 mt-20">
+        {/* Header */}
+        <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold">Workflow Visualizer Demo</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Experience real-time visualization of AI reasoning, memory transfer, and package processing workflows
@@ -196,6 +199,7 @@ export default function WorkflowDemo() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
