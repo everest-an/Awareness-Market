@@ -67,6 +67,48 @@ export default function VectorPackageMarket() {
     return 'text-red-400';
   };
 
+  const featuredCases = [
+    {
+      packageId: 'vector-case-nlp-001',
+      name: 'Contract Clause Classifier',
+      description: 'Identify and categorize contract clauses for legal review workflows.',
+      category: 'nlp',
+      sourceModel: 'gpt-4',
+      targetModel: 'claude-3',
+      epsilon: 0.06,
+      dimension: 1536,
+      downloadCount: 980,
+      tags: 'legal,contracts,classification',
+      price: 18,
+    },
+    {
+      packageId: 'vector-case-vision-002',
+      name: 'Defect Detection Vision Vector',
+      description: 'Surface-level defect detection for manufacturing QA and inspection pipelines.',
+      category: 'vision',
+      sourceModel: 'gemini',
+      targetModel: 'llama-3',
+      epsilon: 0.09,
+      dimension: 1024,
+      downloadCount: 720,
+      tags: 'vision,qa,manufacturing',
+      price: 22,
+    },
+    {
+      packageId: 'vector-case-multi-003',
+      name: 'Product Discovery Multimodal',
+      description: 'Blend user interview summaries with screenshots for product discovery analysis.',
+      category: 'multimodal',
+      sourceModel: 'claude-3',
+      targetModel: 'gpt-4',
+      epsilon: 0.07,
+      dimension: 2048,
+      downloadCount: 640,
+      tags: 'product,ux,multimodal',
+      price: 26,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
@@ -274,16 +316,102 @@ export default function VectorPackageMarket() {
             ))}
           </div>
         ) : (
-          <div className="text-center text-slate-400 py-12">
-            <TrendingUp className="h-16 w-16 mx-auto mb-4 opacity-50" />
-            <p className="text-lg">No vector packages found</p>
-            <p className="text-sm mt-2">Try adjusting your filters or be the first to publish!</p>
-            <Button className="mt-6 bg-cyan-500 hover:bg-cyan-600" asChild>
-              <Link href="/upload-vector-package">
-                <Box className="h-4 w-4 mr-2" />
-                Publish Vector Package
-              </Link>
-            </Button>
+          <div className="space-y-10">
+            <div className="text-center text-slate-400 py-6">
+              <TrendingUp className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <p className="text-lg">No vector packages found</p>
+              <p className="text-sm mt-2">Here are featured vector market cases to explore.</p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white">Featured Vector Cases</h2>
+                <Badge className="bg-cyan-500/10 text-cyan-300 border-cyan-500/20">Examples</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredCases.map((pkg) => (
+                  <Link key={pkg.packageId} href={`/vector-package/${pkg.packageId}`}>
+                    <Card className="p-6 bg-slate-900/50 border-slate-800 hover:border-cyan-500 transition-all cursor-pointer group">
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors mb-1">
+                            {pkg.name}
+                          </h3>
+                          <p className="text-sm text-slate-400 line-clamp-2">{pkg.description}</p>
+                        </div>
+                        <Badge className={`${getCategoryColor(pkg.category)} text-white ml-2`}>
+                          {getCategoryIcon(pkg.category)}
+                          <span className="ml-1">{pkg.category?.toUpperCase()}</span>
+                        </Badge>
+                      </div>
+
+                      {/* Model Transfer */}
+                      <div className="flex items-center gap-2 mb-4 p-3 bg-slate-800/50 rounded">
+                        <span className="text-xs font-medium text-cyan-400">{pkg.sourceModel}</span>
+                        <Zap className="h-3 w-3 text-slate-500" />
+                        <span className="text-xs font-medium text-purple-400">{pkg.targetModel}</span>
+                      </div>
+
+                      {/* Metrics */}
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="text-center p-2 bg-slate-800/50 rounded">
+                          <div className={`text-sm font-bold ${getEpsilonColor(pkg.epsilon)}`}>
+                            {(pkg.epsilon * 100).toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-slate-400">Epsilon</div>
+                        </div>
+                        <div className="text-center p-2 bg-slate-800/50 rounded">
+                          <div className="text-sm font-bold text-blue-400">{pkg.dimension}</div>
+                          <div className="text-xs text-slate-400">Dimension</div>
+                        </div>
+                        <div className="text-center p-2 bg-slate-800/50 rounded">
+                          <div className="text-sm font-bold text-green-400">{pkg.downloadCount}</div>
+                          <div className="text-xs text-slate-400">Downloads</div>
+                        </div>
+                      </div>
+
+                      {/* Tags */}
+                      {pkg.tags && (
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {pkg.tags.split(',').slice(0, 3).map((tag: string, idx: number) => (
+                            <Badge key={idx} variant="outline" className="text-xs border-slate-700 text-slate-400">
+                              {tag.trim()}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                        <div>
+                          <div className="text-xs text-slate-400">Price</div>
+                          <div className="text-lg font-bold text-white">${pkg.price}</div>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                          onClick={(e) => {
+                            e.preventDefault();
+                          }}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="text-center">
+              <Button className="bg-cyan-500 hover:bg-cyan-600" asChild>
+                <Link href="/upload-vector-package">
+                  <Box className="h-4 w-4 mr-2" />
+                  Publish Vector Package
+                </Link>
+              </Button>
+            </div>
           </div>
         )}
       </div>
