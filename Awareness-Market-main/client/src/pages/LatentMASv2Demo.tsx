@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Navbar from '@/components/Navbar';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,51 +12,54 @@ import { Loader2, CheckCircle2, XCircle, Zap, Shield, Anchor, Network } from 'lu
 
 export default function LatentMASv2Demo() {
   return (
-    <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">LatentMAS v2 Features Demo</h1>
-        <p className="text-muted-foreground">
-          Interactive demonstrations of the 4 core v2 enhancements: KV-Cache Compression, Dynamic W-Matrix, 
-          Anti-Poisoning Verification, and Semantic Anchors.
-        </p>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <div className="container py-8 mt-20">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">LatentMAS v2 Features Demo</h1>
+          <p className="text-muted-foreground">
+            Interactive demonstrations of the 4 core v2 enhancements: KV-Cache Compression, Dynamic W-Matrix, 
+            Anti-Poisoning Verification, and Semantic Anchors.
+          </p>
+        </div>
+
+        <Tabs defaultValue="kv-cache" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="kv-cache">
+              <Zap className="w-4 h-4 mr-2" />
+              KV-Cache
+            </TabsTrigger>
+            <TabsTrigger value="w-matrix">
+              <Network className="w-4 h-4 mr-2" />
+              W-Matrix
+            </TabsTrigger>
+            <TabsTrigger value="anti-poisoning">
+              <Shield className="w-4 h-4 mr-2" />
+              Anti-Poisoning
+            </TabsTrigger>
+            <TabsTrigger value="semantic-anchors">
+              <Anchor className="w-4 h-4 mr-2" />
+              Semantic Anchors
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="kv-cache">
+            <KVCacheDemo />
+          </TabsContent>
+
+          <TabsContent value="w-matrix">
+            <WMatrixDemo />
+          </TabsContent>
+
+          <TabsContent value="anti-poisoning">
+            <AntiPoisoningDemo />
+          </TabsContent>
+
+          <TabsContent value="semantic-anchors">
+            <SemanticAnchorsDemo />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="kv-cache" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="kv-cache">
-            <Zap className="w-4 h-4 mr-2" />
-            KV-Cache
-          </TabsTrigger>
-          <TabsTrigger value="w-matrix">
-            <Network className="w-4 h-4 mr-2" />
-            W-Matrix
-          </TabsTrigger>
-          <TabsTrigger value="anti-poisoning">
-            <Shield className="w-4 h-4 mr-2" />
-            Anti-Poisoning
-          </TabsTrigger>
-          <TabsTrigger value="semantic-anchors">
-            <Anchor className="w-4 h-4 mr-2" />
-            Semantic Anchors
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="kv-cache">
-          <KVCacheDemo />
-        </TabsContent>
-
-        <TabsContent value="w-matrix">
-          <WMatrixDemo />
-        </TabsContent>
-
-        <TabsContent value="anti-poisoning">
-          <AntiPoisoningDemo />
-        </TabsContent>
-
-        <TabsContent value="semantic-anchors">
-          <SemanticAnchorsDemo />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import Navbar from "@/components/Navbar";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -240,35 +241,30 @@ export default function WMatrixTester() {
   
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       {/* Hero gradient */}
       <div className="hero-gradient absolute inset-0 pointer-events-none" />
       
-      {/* Header */}
-      <header className="border-b border-border/50 backdrop-blur-xl bg-background/80 sticky top-0 z-50">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="/w-matrix">
-                  <ArrowLeft className="w-5 h-5" />
-                </Link>
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold">W-Matrix Compatibility Tester</h1>
-                <p className="text-sm text-muted-foreground">
-                  Test alignment quality between 60+ AI models
-                </p>
-              </div>
-            </div>
+      <main className="container py-8 mt-20">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/w-matrix">
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+            </Button>
             <Badge className="badge-primary">
               <Sparkles className="w-3 h-3 mr-1" />
               V2.0
             </Badge>
           </div>
+          <h1 className="text-3xl font-bold">W-Matrix Compatibility Tester</h1>
+          <p className="text-muted-foreground mt-2">
+            Test alignment quality between 60+ AI models
+          </p>
         </div>
-      </header>
-      
-      <main className="container py-8">
+        
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <TabsList className="glass-card p-1">

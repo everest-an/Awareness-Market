@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import Navbar from "@/components/Navbar";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,8 +68,9 @@ export default function Subscriptions() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       {/* Header */}
-      <div className="border-b bg-gradient-to-b from-muted/50 to-background">
+      <div className="border-b bg-gradient-to-b from-muted/50 to-background mt-20">
         <div className="container py-16 text-center">
           <h1 className="mb-4 text-4xl font-bold">Choose Your Plan</h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">

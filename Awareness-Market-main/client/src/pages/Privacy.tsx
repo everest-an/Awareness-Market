@@ -1,32 +1,15 @@
 import { Link } from "wouter";
+import Navbar from "@/components/Navbar";
 import { Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Privacy() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-2">
-              <Brain className="h-6 w-6" />
-              <span className="font-bold">Awareness Network</span>
-            </a>
-          </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/marketplace">
-              <a className="text-sm font-medium hover:text-primary">Marketplace</a>
-            </Link>
-            <Link href="/profile">
-              <Button>Get Started</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Content */}
-      <div className="container py-12">
+      <div className="container py-12 mt-20">
         <div className="mx-auto max-w-4xl">
           <h1 className="mb-8 text-4xl font-bold">Privacy Policy</h1>
           <p className="mb-8 text-muted-foreground">Last updated: January 1, 2026</p>
