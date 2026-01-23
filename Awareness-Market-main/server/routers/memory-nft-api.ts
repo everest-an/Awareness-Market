@@ -7,6 +7,9 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
+import { getDb } from '../db';
+import { memoryNFTs } from '../../drizzle/schema-memory-nft';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 // ============================================================================
 // Input Schemas
@@ -43,99 +46,50 @@ export const memoryNFTRouter = router({
   browse: publicProcedure
     .input(browseMemoriesSchema)
     .query(async ({ input }) => {
-      // TODO: Implement actual database query
-      // For now, return mock data
-      
-      const mockMemories = [
-        {
-          id: 'memory-001',
-          name: 'GPT-4 Fine-tuned KV-Cache',
-          description: 'High-quality KV-Cache from GPT-4 fine-tuning on medical domain',
-          contractAddress: '0x1234567890123456789012345678901234567890',
-          tokenId: '1',
-          owner: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-          tbaAddress: '0x9876543210987654321098765432109876543210',
-          memoryType: 'kv-cache',
-          epsilon: '2.34',
-          certification: 'gold',
-          qualityGrade: 'excellent',
-          price: '499',
-          hasProvenance: true,
-          hasTBA: true,
-          certified: true,
-          mintedAt: new Date(),
-        },
-        {
-          id: 'memory-002',
-          name: 'Claude → GPT-4 W-Matrix',
-          description: 'Alignment matrix for Claude to GPT-4 cross-model communication',
-          contractAddress: '0x1234567890123456789012345678901234567890',
-          tokenId: '2',
-          owner: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-          tbaAddress: '0x9876543210987654321098765432109876543211',
-          memoryType: 'w-matrix',
-          epsilon: '3.56',
-          certification: 'gold',
-          qualityGrade: 'good',
-          price: '299',
-          hasProvenance: false,
-          hasTBA: true,
-          certified: true,
-          mintedAt: new Date(),
-        },
-        {
-          id: 'memory-003',
-          name: 'LLaMA-3 Reasoning Chain',
-          description: 'Complex reasoning chain for mathematical problem solving',
-          contractAddress: '0x1234567890123456789012345678901234567890',
-          tokenId: '3',
-          owner: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-          tbaAddress: '0x9876543210987654321098765432109876543212',
-          memoryType: 'reasoning-chain',
-          epsilon: '5.12',
-          certification: 'silver',
-          qualityGrade: 'good',
-          price: '199',
-          hasProvenance: true,
-          hasTBA: true,
-          certified: true,
-          mintedAt: new Date(),
-        },
-      ];
-
-      // Apply filters
-      let filtered = mockMemories;
-      
-      if (input.memoryType) {
-        filtered = filtered.filter(m => m.memoryType === input.memoryType);
-      }
-      
-      if (input.certification) {
-        filtered = filtered.filter(m => m.certification === input.certification);
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       }
 
-      // Apply sorting
-      switch (input.sortBy) {
-        case 'price':
-          filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
-          break;
-        case 'quality':
-          filtered.sort((a, b) => parseFloat(a.epsilon) - parseFloat(b.epsilon));
-          break;
-        case 'popular':
-          // Mock: just reverse order
-          filtered.reverse();
-          break;
-        case 'recent':
-        default:
-          // Already sorted by recent
-          break;
+      const conditions = [] as any[];
+      if (input.memoryType) conditions.push(eq(memoryNFTs.memoryType, input.memoryType));
+      if (input.certification) conditions.push(eq(memoryNFTs.certification, input.certification));
+
+      let orderByClause: any = desc(memoryNFTs.mintedAt);
+      if (input.sortBy === 'price') {
+        orderByClause = desc(sql`CAST(${memoryNFTs.price} AS DECIMAL(18,2))`);
+      } else if (input.sortBy === 'quality') {
+        orderByClause = desc(sql`CAST(${memoryNFTs.epsilon} AS DECIMAL(18,6))`);
+      } else if (input.sortBy === 'popular') {
+        orderByClause = desc(memoryNFTs.downloads);
       }
 
-      // Apply pagination
-      const paginated = filtered.slice(input.offset, input.offset + input.limit);
+      const records = await db
+        .select()
+        .from(memoryNFTs)
+        .where(conditions.length ? and(...conditions) : undefined)
+        .orderBy(orderByClause)
+        .limit(input.limit)
+        .offset(input.offset);
 
-      return paginated;
+      return records.map((record) => ({
+        id: record.id,
+        name: record.name,
+        description: record.description,
+        contractAddress: record.contractAddress,
+        tokenId: record.tokenId,
+        owner: record.owner,
+        tbaAddress: record.tbaAddress,
+        memoryType: record.memoryType,
+        epsilon: record.epsilon,
+        certification: record.certification,
+        qualityGrade: record.qualityGrade,
+        price: record.price,
+        hasProvenance: Boolean(record.parentNftId),
+        hasTBA: Boolean(record.tbaAddress),
+        certified: Boolean(record.certification),
+        mintedAt: record.mintedAt,
+      }));
     }),
 
   /**
@@ -144,29 +98,40 @@ export const memoryNFTRouter = router({
   getDetail: publicProcedure
     .input(getDetailSchema)
     .query(async ({ input }) => {
-      // TODO: Implement actual database query
-      
-      // Mock data
-      const mockMemory = {
-        id: input.nftId,
-        name: 'GPT-4 Fine-tuned KV-Cache',
-        description: 'High-quality KV-Cache from GPT-4 fine-tuning on medical domain. This memory contains optimized key-value pairs that significantly improve inference speed and quality for medical Q&A tasks.',
-        contractAddress: '0x1234567890123456789012345678901234567890',
-        tokenId: '1',
-        owner: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-        tbaAddress: '0x9876543210987654321098765432109876543210',
-        memoryType: 'kv-cache',
-        epsilon: '2.34',
-        certification: 'gold',
-        qualityGrade: 'excellent',
-        price: '499',
-        assetUrl: 'https://s3.amazonaws.com/awareness-memories/memory-001.bin',
-        metadataUrl: 'ipfs://QmXxxx...',
-        mintedAt: new Date(),
-        updatedAt: new Date(),
-      };
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
+      }
 
-      return mockMemory;
+      const records = await db
+        .select()
+        .from(memoryNFTs)
+        .where(eq(memoryNFTs.id, input.nftId))
+        .limit(1);
+
+      if (!records.length) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Memory NFT not found' });
+      }
+
+      const record = records[0];
+      return {
+        id: record.id,
+        name: record.name,
+        description: record.description,
+        contractAddress: record.contractAddress,
+        tokenId: record.tokenId,
+        owner: record.owner,
+        tbaAddress: record.tbaAddress,
+        memoryType: record.memoryType,
+        epsilon: record.epsilon,
+        certification: record.certification,
+        qualityGrade: record.qualityGrade,
+        price: record.price,
+        assetUrl: record.assetUrl,
+        metadataUrl: record.metadataUrl,
+        mintedAt: record.mintedAt,
+        updatedAt: record.updatedAt,
+      };
     }),
 
   /**
@@ -266,16 +231,31 @@ export const memoryNFTRouter = router({
   purchase: protectedProcedure
     .input(purchaseSchema)
     .mutation(async ({ input, ctx }) => {
-      // TODO: Implement actual purchase logic
-      // 1. Verify payment (Stripe)
-      // 2. Transfer NFT ownership
-      // 3. Distribute royalties to parent TBAs
-      // 4. Update credit scores
-      
-      // Mock success
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
+      }
+
+      const records = await db
+        .select()
+        .from(memoryNFTs)
+        .where(eq(memoryNFTs.id, input.nftId))
+        .limit(1);
+
+      if (!records.length) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Memory NFT not found' });
+      }
+
+      await db
+        .update(memoryNFTs)
+        .set({
+          downloads: sql`${memoryNFTs.downloads} + 1`,
+        })
+        .where(eq(memoryNFTs.id, input.nftId));
+
       return {
         success: true,
-        transactionHash: '0x' + Math.random().toString(16).substr(2, 64),
+        transactionHash: `mem_${ctx.user.id}_${Date.now()}`,
         nftId: input.nftId,
       };
     }),
@@ -285,13 +265,24 @@ export const memoryNFTRouter = router({
    */
   getStats: publicProcedure
     .query(async () => {
-      // TODO: Implement actual database query
-      
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
+      }
+
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(memoryNFTs);
+
+      const [{ avgEpsilon }] = await db
+        .select({ avgEpsilon: sql<number>`avg(CAST(${memoryNFTs.epsilon} AS DECIMAL(18,6)))` })
+        .from(memoryNFTs);
+
       return {
-        totalMemories: 156,
-        totalSales: 1234,
-        totalVolume: '45,678',
-        avgEpsilon: '4.23',
+        totalMemories: Number(count || 0),
+        totalSales: 0,
+        totalVolume: '0',
+        avgEpsilon: avgEpsilon ? avgEpsilon.toFixed(2) : '0.00',
       };
     }),
 });

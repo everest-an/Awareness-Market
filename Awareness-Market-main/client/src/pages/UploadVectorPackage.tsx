@@ -26,6 +26,8 @@ export default function UploadVectorPackage() {
     trainingDataset: '',
     tags: '',
   });
+  const [vectorJson, setVectorJson] = useState('');
+  const [wMatrixJson, setWMatrixJson] = useState('');
 
   const createMutation = trpc.packages.createVectorPackage.useMutation({
     onSuccess: (data) => {
@@ -49,37 +51,41 @@ export default function UploadVectorPackage() {
     setUploading(true);
 
     try {
-      // Generate mock vector data
-      const dimension = parseInt(formData.dimension) || 768;
-      const mockVectorData = {
-        embedding: Array.from({ length: dimension }, () => Math.random() * 2 - 1),
-        metadata: {
-          dimension,
-          normalized: true,
-        },
+      const dimension = parseInt(formData.dimension) || 0;
+      const rawVector = vectorJson ? JSON.parse(vectorJson) : null;
+      const rawWMatrix = wMatrixJson ? JSON.parse(wMatrixJson) : null;
+
+      if (!rawVector || !rawWMatrix) {
+        toast.error('Please provide vector JSON and W-Matrix JSON');
+        setUploading(false);
+        return;
+      }
+
+      const vector = {
+        ...rawVector,
+        vector: rawVector.vector || rawVector.embedding,
+        dimension: rawVector.dimension ?? dimension,
+        category: rawVector.category || formData.category || 'nlp',
       };
 
-      // Generate mock W-Matrix data
-      const mockWMatrix = {
-        weights: [[0.9, 0.1], [0.1, 0.9]],
-        biases: [0.01, 0.02],
-        epsilon: 0.10,
-        orthogonalityScore: 0.97,
-        trainingAnchors: 2000,
-        sourceModel: formData.sourceModel,
-        targetModel: formData.targetModel,
-        sourceDimension: dimension,
-        targetDimension: dimension,
+      if (!Array.isArray(vector.vector)) {
+        toast.error('Vector JSON must include a vector array');
+        setUploading(false);
+        return;
+      }
+
+      const wMatrix = {
+        ...rawWMatrix,
+        sourceModel: rawWMatrix.sourceModel || formData.sourceModel,
+        targetModel: rawWMatrix.targetModel || formData.targetModel,
       };
 
       await createMutation.mutateAsync({
         name: formData.name,
         description: formData.description,
         version: formData.version,
-        vectorData: mockVectorData,
-        wMatrix: mockWMatrix,
-        category: formData.category || 'nlp',
-        dimension,
+        vector,
+        wMatrix,
         price: parseFloat(formData.price) || 0,
         trainingDataset: formData.trainingDataset,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
@@ -169,6 +175,31 @@ export default function UploadVectorPackage() {
                     required
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Brain className="h-5 w-5 text-cyan-400" />
+                Vector & W-Matrix JSON
+              </h2>
+              <div className="space-y-2">
+                <Label>Vector JSON</Label>
+                <Textarea
+                  placeholder='{"vector":[0.1,0.2],"dimension":768,"category":"nlp"}'
+                  value={vectorJson}
+                  onChange={(e) => setVectorJson(e.target.value)}
+                  className="min-h-[140px] font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>W-Matrix JSON</Label>
+                <Textarea
+                  placeholder='{"weights":[[0.9,0.1],[0.1,0.9]],"biases":[0.01,0.02],"epsilon":0.1,"sourceModel":"gpt-4","targetModel":"claude-3"}'
+                  value={wMatrixJson}
+                  onChange={(e) => setWMatrixJson(e.target.value)}
+                  className="min-h-[140px] font-mono"
+                />
               </div>
             </div>
 

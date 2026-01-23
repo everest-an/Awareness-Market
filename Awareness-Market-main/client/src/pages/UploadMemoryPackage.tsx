@@ -27,6 +27,8 @@ export default function UploadMemoryPackage() {
     trainingDataset: '',
     tags: '',
   });
+  const [kvCacheJson, setKvCacheJson] = useState('');
+  const [wMatrixJson, setWMatrixJson] = useState('');
 
   const createMutation = trpc.packages.createMemoryPackage.useMutation({
     onSuccess: (data) => {
@@ -50,32 +52,27 @@ export default function UploadMemoryPackage() {
     setUploading(true);
 
     try {
-      // Generate mock KV-Cache data (in production, this would be uploaded from file)
-      const mockKVCache = {
-        keys: [[[0.1, 0.2, 0.3]]],
-        values: [[[0.4, 0.5, 0.6]]],
-        attentionWeights: [0.8, 0.9, 1.0],
-      };
+      const rawKvCache = kvCacheJson ? JSON.parse(kvCacheJson) : null;
+      const rawWMatrix = wMatrixJson ? JSON.parse(wMatrixJson) : null;
 
-      // Generate mock W-Matrix data
-      const mockWMatrix = {
-        weights: [[0.9, 0.1], [0.1, 0.9]],
-        biases: [0.01, 0.02],
-        epsilon: 0.15,
-        orthogonalityScore: 0.95,
-        trainingAnchors: 1000,
-        sourceModel: formData.sourceModel,
-        targetModel: formData.targetModel,
-        sourceDimension: 768,
-        targetDimension: 768,
+      if (!rawKvCache || !rawWMatrix) {
+        toast.error('Please provide KV-Cache JSON and W-Matrix JSON');
+        setUploading(false);
+        return;
+      }
+
+      const wMatrix = {
+        ...rawWMatrix,
+        sourceModel: rawWMatrix.sourceModel || formData.sourceModel,
+        targetModel: rawWMatrix.targetModel || formData.targetModel,
       };
 
       await createMutation.mutateAsync({
         name: formData.name,
         description: formData.description,
         version: formData.version,
-        kvCache: mockKVCache,
-        wMatrix: mockWMatrix,
+        kvCache: rawKvCache,
+        wMatrix,
         tokenCount: parseInt(formData.tokenCount) || 1000,
         compressionRatio: parseFloat(formData.compressionRatio) || 0.5,
         contextDescription: formData.contextDescription,
@@ -168,6 +165,31 @@ export default function UploadMemoryPackage() {
                     required
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Database className="h-5 w-5 text-purple-400" />
+                KV-Cache & W-Matrix JSON
+              </h2>
+              <div className="space-y-2">
+                <Label>KV-Cache JSON</Label>
+                <Textarea
+                  placeholder='{"keys":[[[0.1,0.2]]],"values":[[[0.3,0.4]]],"attentionWeights":[0.9]}'
+                  value={kvCacheJson}
+                  onChange={(e) => setKvCacheJson(e.target.value)}
+                  className="min-h-[140px] font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>W-Matrix JSON</Label>
+                <Textarea
+                  placeholder='{"weights":[[0.9,0.1],[0.1,0.9]],"biases":[0.01,0.02],"epsilon":0.15,"sourceModel":"gpt-4","targetModel":"claude-3"}'
+                  value={wMatrixJson}
+                  onChange={(e) => setWMatrixJson(e.target.value)}
+                  className="min-h-[140px] font-mono"
+                />
               </div>
             </div>
 
