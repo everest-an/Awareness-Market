@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Copy, Key, Plus, Trash2, AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Navbar from "@/components/Navbar";
 
 export default function ApiKeysPage() {
   const { toast } = useToast();
@@ -99,14 +100,16 @@ export default function ApiKeysPage() {
   };
 
   return (
-    <div className="container max-w-6xl py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">API Keys</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your API keys for programmatic access to Awareness Market
-          </p>
-        </div>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <div className="container max-w-6xl py-8 mt-20">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">API Keys</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your API keys for programmatic access to Awareness Market
+            </p>
+          </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -290,6 +293,7 @@ export default function ApiKeysPage() {
           </pre>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
