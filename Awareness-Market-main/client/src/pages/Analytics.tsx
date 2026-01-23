@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,13 +8,8 @@ import { Activity, DollarSign, Clock, CheckCircle, AlertCircle } from "lucide-re
 export default function Analytics() {
   const [timePeriod, setTimePeriod] = useState<number>(30);
 
-  // Mock data for now - will be replaced with actual tRPC calls once routers are fixed
-  const stats = {
-    totalInvocations: 0,
-    totalCost: 0,
-    avgResponseTime: 0,
-    successRate: 100,
-  };
+  const { data: stats, isLoading: statsLoading } = trpc.analytics.usageStats.useQuery();
+  const { data: dailyUsage, isLoading: dailyLoading } = trpc.analytics.dailyUsage.useQuery({ days: timePeriod });
 
   return (
     <div className="container mx-auto py-8">
@@ -45,7 +41,7 @@ export default function Analytics() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalInvocations}</div>
+            <div className="text-2xl font-bold">{statsLoading ? "—" : stats?.totalRequests ?? 0}</div>
             <p className="text-xs text-muted-foreground">API calls made</p>
           </CardContent>
         </Card>
@@ -56,8 +52,8 @@ export default function Analytics() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalCost.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Spent on AI capabilities</p>
+            <div className="text-2xl font-bold">${statsLoading ? "—" : "0.00"}</div>
+            <p className="text-xs text-muted-foreground">Cost data not yet available</p>
           </CardContent>
         </Card>
 
@@ -67,7 +63,7 @@ export default function Analytics() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.avgResponseTime.toFixed(0)}ms</div>
+            <div className="text-2xl font-bold">{statsLoading ? "—" : `${stats?.avgResponseTime ?? 0}ms`}</div>
             <p className="text-xs text-muted-foreground">Average latency</p>
           </CardContent>
         </Card>
@@ -78,7 +74,7 @@ export default function Analytics() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.successRate.toFixed(1)}%</div>
+            <div className="text-2xl font-bold">{statsLoading ? "—" : `${stats?.successRate ?? 100}%`}</div>
             <p className="text-xs text-muted-foreground">Successful calls</p>
           </CardContent>
         </Card>
@@ -87,18 +83,21 @@ export default function Analytics() {
       {/* Placeholder for charts */}
       <Card>
         <CardHeader>
-          <CardTitle>Detailed Analytics Coming Soon</CardTitle>
+          <CardTitle>Daily Usage</CardTitle>
           <CardDescription>
-            Usage trends, cost breakdowns, and performance metrics will be available here
+            Requests per day for the selected time range
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="py-12 text-center text-muted-foreground">
             <Activity className="mx-auto mb-4 h-12 w-12" />
-            <p>Analytics dashboard is being built</p>
-            <p className="mt-2 text-sm">
-              Track API calls, response times, cost analysis, and more
-            </p>
+            {dailyLoading ? (
+              <p>Loading usage data...</p>
+            ) : dailyUsage && dailyUsage.length > 0 ? (
+              <p>{dailyUsage.length} days of usage data loaded</p>
+            ) : (
+              <p>No usage data available yet</p>
+            )}
           </div>
         </CardContent>
       </Card>

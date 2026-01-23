@@ -22,19 +22,16 @@ export default function Profile() {
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
 
-  const updateProfileMutation = { mutate: () => {}, isPending: false } as any; /* trpc.user.updateProfile.useMutation({
+  const utils = trpc.useUtils();
+  const updateProfileMutation = trpc.user.updateProfile.useMutation({
     onSuccess: () => {
       toast.success("Profile updated successfully");
+      utils.user.me.invalidate();
     },
     onError: (error: any) => {
       toast.error(`Failed to update profile: ${error.message}`);
     },
-  }); */
-
-  // TODO: Implement user API
-  const apiKeysMutation = { isLoading: false, data: [] as any[], refetch: () => {} };
-
-  const generateApiKeyMutation = { mutate: () => {}, isPending: false } as any;
+  });
 
   if (loading) {
     return (
@@ -50,14 +47,7 @@ export default function Profile() {
   }
 
   const handleUpdateProfile = () => {
-    updateProfileMutation.mutate({ name, email });
-  };
-
-  const handleGenerateApiKey = () => {
-    const keyName = prompt("Enter a name for this API key:");
-    if (keyName) {
-      generateApiKeyMutation.mutate({ name: keyName });
-    }
+    updateProfileMutation.mutate({ name });
   };
 
   return (
@@ -147,7 +137,7 @@ export default function Profile() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    readOnly
                     placeholder="your.email@example.com"
                   />
                 </div>
