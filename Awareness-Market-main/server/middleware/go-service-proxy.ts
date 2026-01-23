@@ -6,7 +6,29 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { createProxyMiddleware } from 'express-http-proxy';
+import proxy from 'express-http-proxy';
+
+function createServiceProxy(target: string, errorLabel: string) {
+  return proxy(target, {
+    proxyReqOptDecorator: (proxyReqOpts: any, srcReq: Request) => {
+      proxyReqOpts.headers = proxyReqOpts.headers || {};
+      if (srcReq.headers.authorization) {
+        proxyReqOpts.headers['Authorization'] = srcReq.headers.authorization;
+      }
+      if (process.env.API_KEY_SECRET) {
+        proxyReqOpts.headers['X-API-Key'] = process.env.API_KEY_SECRET;
+      }
+      return proxyReqOpts;
+    },
+    proxyErrorHandler: (err: any, res: Response, _next: NextFunction) => {
+      console.error(`[${errorLabel} Proxy Error]`, err.message);
+      res.status(503).json({
+        error: `${errorLabel} service unavailable`,
+        message: err.message,
+      });
+    },
+  });
+}
 
 /**
  * 设置 Go 服务代理
@@ -19,30 +41,10 @@ export function setupGoServiceProxies(app: any): void {
   // ==========================================
   app.use(
     '/api/v1/vectors',
-    createProxyMiddleware({
-      target: process.env.VECTOR_SERVICE_URL || 'http://localhost:8083',
-      changeOrigin: true,
-      pathRewrite: {
-        '^/api/v1/vectors': '/api/v1/vectors',
-      },
-      logLevel: 'warn',
-      onError: (err: any, req: Request, res: Response) => {
-        console.error('[Vector Service Proxy Error]', err.message);
-        res.status(503).json({ 
-          error: 'Vector service unavailable',
-          message: err.message 
-        });
-      },
-      onProxyReq: (proxyReq: any, req: Request, res: Response) => {
-        // 添加认证头
-        if (req.headers.authorization) {
-          proxyReq.setHeader('Authorization', req.headers.authorization);
-        }
-        if (process.env.API_KEY_SECRET) {
-          proxyReq.setHeader('X-API-Key', process.env.API_KEY_SECRET);
-        }
-      },
-    })
+    createServiceProxy(
+      process.env.VECTOR_SERVICE_URL || 'http://localhost:8083',
+      'Vector service'
+    )
   );
 
   // ==========================================
@@ -50,30 +52,10 @@ export function setupGoServiceProxies(app: any): void {
   // ==========================================
   app.use(
     '/api/v1/memory',
-    createProxyMiddleware({
-      target: process.env.MEMORY_SERVICE_URL || 'http://localhost:8080',
-      changeOrigin: true,
-      pathRewrite: {
-        '^/api/v1/memory': '/api/v1/memory',
-      },
-      logLevel: 'warn',
-      onError: (err: any, req: Request, res: Response) => {
-        console.error('[Memory Service Proxy Error]', err.message);
-        res.status(503).json({ 
-          error: 'Memory service unavailable',
-          message: err.message 
-        });
-      },
-      onProxyReq: (proxyReq: any, req: Request, res: Response) => {
-        // 添加认证头
-        if (req.headers.authorization) {
-          proxyReq.setHeader('Authorization', req.headers.authorization);
-        }
-        if (process.env.API_KEY_SECRET) {
-          proxyReq.setHeader('X-API-Key', process.env.API_KEY_SECRET);
-        }
-      },
-    })
+    createServiceProxy(
+      process.env.MEMORY_SERVICE_URL || 'http://localhost:8080',
+      'Memory service'
+    )
   );
 
   // ==========================================
@@ -81,30 +63,10 @@ export function setupGoServiceProxies(app: any): void {
   // ==========================================
   app.use(
     '/api/v1/reasoning-chain',
-    createProxyMiddleware({
-      target: process.env.MEMORY_SERVICE_URL || 'http://localhost:8080',
-      changeOrigin: true,
-      pathRewrite: {
-        '^/api/v1/reasoning-chain': '/api/v1/reasoning-chain',
-      },
-      logLevel: 'warn',
-      onError: (err: any, req: Request, res: Response) => {
-        console.error('[Reasoning Chain Proxy Error]', err.message);
-        res.status(503).json({ 
-          error: 'Reasoning chain service unavailable',
-          message: err.message 
-        });
-      },
-      onProxyReq: (proxyReq: any, req: Request, res: Response) => {
-        // 添加认证头
-        if (req.headers.authorization) {
-          proxyReq.setHeader('Authorization', req.headers.authorization);
-        }
-        if (process.env.API_KEY_SECRET) {
-          proxyReq.setHeader('X-API-Key', process.env.API_KEY_SECRET);
-        }
-      },
-    })
+    createServiceProxy(
+      process.env.MEMORY_SERVICE_URL || 'http://localhost:8080',
+      'Reasoning chain service'
+    )
   );
 
   // ==========================================
@@ -112,30 +74,10 @@ export function setupGoServiceProxies(app: any): void {
   // ==========================================
   app.use(
     '/api/v1/w-matrix',
-    createProxyMiddleware({
-      target: process.env.WMATRIX_SERVICE_URL || 'http://localhost:8081',
-      changeOrigin: true,
-      pathRewrite: {
-        '^/api/v1/w-matrix': '/api/v1/w-matrix',
-      },
-      logLevel: 'warn',
-      onError: (err: any, req: Request, res: Response) => {
-        console.error('[W-Matrix Service Proxy Error]', err.message);
-        res.status(503).json({ 
-          error: 'W-Matrix service unavailable',
-          message: err.message 
-        });
-      },
-      onProxyReq: (proxyReq: any, req: Request, res: Response) => {
-        // 添加认证头
-        if (req.headers.authorization) {
-          proxyReq.setHeader('Authorization', req.headers.authorization);
-        }
-        if (process.env.API_KEY_SECRET) {
-          proxyReq.setHeader('X-API-Key', process.env.API_KEY_SECRET);
-        }
-      },
-    })
+    createServiceProxy(
+      process.env.WMATRIX_SERVICE_URL || 'http://localhost:8081',
+      'W-Matrix service'
+    )
   );
 
   // ==========================================
@@ -143,21 +85,10 @@ export function setupGoServiceProxies(app: any): void {
   // ==========================================
   app.use(
     '/api/v1/admin',
-    createProxyMiddleware({
-      target: process.env.ADMIN_SERVICE_URL || 'http://localhost:8082',
-      changeOrigin: true,
-      pathRewrite: {
-        '^/api/v1/admin': '/api/v1/admin',
-      },
-      logLevel: 'warn',
-      onError: (err: any, req: Request, res: Response) => {
-        console.error('[Admin Service Proxy Error]', err.message);
-        res.status(503).json({ 
-          error: 'Admin service unavailable',
-          message: err.message 
-        });
-      },
-    })
+    createServiceProxy(
+      process.env.ADMIN_SERVICE_URL || 'http://localhost:8082',
+      'Admin service'
+    )
   );
 }
 
