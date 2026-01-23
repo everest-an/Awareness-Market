@@ -11,7 +11,6 @@ import {
   subscriptionPlans,
   userSubscriptions,
   apiKeys,
-  mcpTokens,
   apiCallLogs,
   aiMemory,
   notifications,
@@ -28,6 +27,7 @@ import {
   type InsertBrowsingHistory,
   type UserPreference,
 } from "../drizzle/schema";
+import { mcpTokens } from "../drizzle/schema-mcp-tokens";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
