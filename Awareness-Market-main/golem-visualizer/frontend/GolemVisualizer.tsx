@@ -12,8 +12,9 @@
  * - 实时数据流更新
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 interface VectorData {
   id: string;
@@ -30,6 +31,8 @@ interface GolemVisualizerProps {
   backgroundColor?: string;
   showLegend?: boolean;
   autoRotate?: boolean;
+  rotateSpeed?: number;
+  pointScale?: number;
 }
 
 export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
@@ -40,11 +43,16 @@ export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
   backgroundColor = '#0a0e27',
   showLegend = true,
   autoRotate = true,
+  rotateSpeed = 0.5,
+  pointScale = 8,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
+  const geometryRef = useRef<THREE.BufferGeometry | null>(null);
   const pointsRef = useRef<THREE.Points | null>(null);
   const raycasterRef = useRef(new THREE.Raycaster());
   const mouseRef = useRef(new THREE.Vector2());
@@ -56,13 +64,14 @@ export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
     // 场景设置
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(backgroundColor);
+    scene.fog = new THREE.FogExp2(backgroundColor, 0.002);
     sceneRef.current = scene;
 
     // 相机设置
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    camera.position.z = 100;
+    camera.position.set(0, 20, 120);
     cameraRef.current = camera;
 
     // 渲染器设置
@@ -80,21 +89,22 @@ export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
     pointLight.position.set(10, 10, 10);
     scene.add(pointLight);
 
-    // 坐标轴辅助
-    const axesHelper = new THREE.AxesHelper(50);
-    scene.add(axesHelper);
-
-    // 网格
-    const gridHelper = new THREE.GridHelper(200, 10, 0x444444, 0x222222);
-    scene.add(gridHelper);
+    // 轨道控制
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.autoRotate = autoRotate;
+    controls.autoRotateSpeed = rotateSpeed;
+    controlsRef.current = controls;
 
     // 鼠标事件处理
     const onMouseClick = (event: MouseEvent) => {
       if (!containerRef.current) return;
 
       const rect = containerRef.current.getBoundingClientRect();
-      mouseRef.current.x = ((event.clientX - rect.left) / width) * 2 - 1;
-      mouseRef.current.y = -((event.clientY - rect.top) / height) * 2 + 1;
+      const localWidth = rect.width;
+      const localHeight = rect.height;
+      mouseRef.current.x = ((event.clientX - rect.left) / localWidth) * 2 - 1;
+      mouseRef.current.y = -((event.clientY - rect.top) / localHeight) * 2 + 1;
 
       raycasterRef.current.setFromCamera(mouseRef.current, camera);
 
@@ -102,8 +112,11 @@ export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
         const intersects = raycasterRef.current.intersectObject(pointsRef.current);
         if (intersects.length > 0) {
           const index = intersects[0].index;
-          if (index !== null && onPointClick) {
-            onPointClick(data[index]);
+          if (index !== null) {
+            if (onPointClick) {
+              onPointClick(data[index]);
+            }
+            triggerPulse([index]);
           }
         }
       }
@@ -115,8 +128,12 @@ export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
     const animate = () => {
       requestAnimationFrame(animate);
 
-      if (autoRotate && sceneRef.current) {
-        sceneRef.current.rotation.y += 0.0005;
+      if (controlsRef.current) {
+        controlsRef.current.update();
+      }
+
+      if (materialRef.current) {
+        materialRef.current.uniforms.uTime.value = performance.now() / 1000;
       }
 
       renderer.render(scene, camera);
@@ -144,11 +161,72 @@ export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
       if (containerRef.current && renderer.domElement.parentElement === containerRef.current) {
         containerRef.current.removeChild(renderer.domElement);
       }
+      controlsRef.current?.dispose();
       renderer.dispose();
     };
-  }, [backgroundColor, autoRotate, data, onPointClick]);
+  }, [backgroundColor, autoRotate, rotateSpeed, data, onPointClick]);
 
   // 更新点云数据
+  const createShaderMaterial = () => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+      },
+      vertexShader: `
+        attribute vec3 color;
+        attribute float activationTime;
+        varying vec3 vColor;
+        varying float vAlpha;
+        uniform float uTime;
+
+        void main() {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          float timeSinceHit = uTime - activationTime;
+          float intensity = 0.0;
+
+          if (timeSinceHit > 0.0 && timeSinceHit < 3.0) {
+            intensity = 1.0 / (1.0 + timeSinceHit * 3.0);
+            gl_PointSize = (4.0 * (1.0 + intensity * 5.0)) * (300.0 / -mvPosition.z);
+          } else {
+            gl_PointSize = 2.5 * (300.0 / -mvPosition.z);
+          }
+
+          gl_Position = projectionMatrix * mvPosition;
+          vColor = mix(color, vec3(1.0, 1.0, 1.0), intensity);
+          vAlpha = 0.4 + (intensity * 0.6);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        varying float vAlpha;
+
+        void main() {
+          vec2 coord = gl_PointCoord - vec2(0.5);
+          if (length(coord) > 0.5) discard;
+          float strength = 1.0 - (length(coord) * 2.0);
+          gl_FragColor = vec4(vColor, vAlpha * strength);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      vertexColors: true,
+    });
+  };
+
+  const triggerPulse = (indices: number[]) => {
+    if (!geometryRef.current) return;
+    const activationTimes = geometryRef.current.getAttribute('activationTime');
+    if (!activationTimes) return;
+    const currentTime = performance.now() / 1000;
+    const array = activationTimes.array as Float32Array;
+
+    indices.forEach((idx, i) => {
+      array[idx] = currentTime + i * 0.02;
+    });
+    activationTimes.needsUpdate = true;
+  };
+
   useEffect(() => {
     if (!sceneRef.current || data.length === 0) return;
 
@@ -161,29 +239,29 @@ export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
     const geometry = new THREE.BufferGeometry();
     const positions: number[] = [];
     const colors: number[] = [];
+    const activationTimes: number[] = [];
 
     data.forEach((point) => {
-      // 如果向量维度 > 3，使用 UMAP 或 t-SNE 投影到 3D
-      const x = point.vector[0] || 0;
-      const y = point.vector[1] || 0;
-      const z = point.vector[2] || 0;
+      const x = (point.vector[0] || 0) * pointScale;
+      const y = (point.vector[1] || 0) * pointScale;
+      const z = (point.vector[2] || 0) * pointScale;
 
       positions.push(x, y, z);
 
-      // 解析颜色
       const color = new THREE.Color(point.color || '#4a9eff');
       colors.push(color.r, color.g, color.b);
+      activationTimes.push(-100.0);
     });
 
     geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
+    geometry.setAttribute('activationTime', new THREE.BufferAttribute(new Float32Array(activationTimes), 1));
+    geometry.getAttribute('activationTime').setUsage(THREE.DynamicDrawUsage);
 
-    // 创建着色器材质
-    const material = new THREE.PointsMaterial({
-      size: 2,
-      vertexColors: true,
-      sizeAttenuation: true,
-    });
+    const material = createShaderMaterial();
+
+    materialRef.current = material;
+    geometryRef.current = geometry;
 
     const points = new THREE.Points(geometry, material);
     pointsRef.current = points;
