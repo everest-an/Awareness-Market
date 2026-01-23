@@ -27,6 +27,7 @@ export default function ChainPackageMarketplace() {
     packageType: 'chain',
     sortBy,
     sourceModel: sourceModel === 'all' ? undefined : sourceModel,
+    search: searchTerm || undefined,
     limit: 20,
     offset: 0,
   });
@@ -210,11 +211,8 @@ export default function ChainPackageMarketplace() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {packages.packages
               .filter((pkg: any) => {
-                const matchesSearch = searchTerm === '' || 
-                  pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  pkg.description.toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesProblemType = problemType === 'all' || pkg.problemType === problemType;
-                return matchesSearch && matchesProblemType;
+                return matchesProblemType;
               })
               .map((pkg: any) => (
               <Link key={pkg.id} href={`/package/chain/${pkg.packageId}`}>
