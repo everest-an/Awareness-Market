@@ -42,79 +42,12 @@ export default function MemoryProvenance() {
     { enabled: !!id }
   );
 
-  // Mock data for demonstration (replace with real data from API)
-  const mockProvenanceData: MemoryNode = {
-    id: '1',
-    title: 'GPT-3.5 → GPT-4 Original',
-    creator: 'AI Lab Alpha',
-    createdAt: '2025-01-01',
-    epsilon: 2.8,
-    price: 10.0,
-    downloads: 342,
-    royaltyShare: 100,
-    children: [
-      {
-        id: '2',
-        title: 'GPT-3.5 → GPT-4 Enhanced',
-        creator: 'Research Team Beta',
-        createdAt: '2025-02-15',
-        epsilon: 2.5,
-        price: 15.0,
-        downloads: 156,
-        royaltyShare: 70,
-        children: [
-          {
-            id: '4',
-            title: 'GPT-3.5 → GPT-4 Optimized v2',
-            creator: 'Developer Charlie',
-            createdAt: '2025-04-20',
-            epsilon: 2.2,
-            price: 20.0,
-            downloads: 89,
-            royaltyShare: 49,
-          },
-          {
-            id: '5',
-            title: 'GPT-3.5 → GPT-4 Specialized',
-            creator: 'Specialist Delta',
-            createdAt: '2025-05-10',
-            epsilon: 2.4,
-            price: 18.0,
-            downloads: 67,
-            royaltyShare: 49,
-          },
-        ],
-      },
-      {
-        id: '3',
-        title: 'GPT-3.5 → GPT-4 Lite',
-        creator: 'Startup Gamma',
-        createdAt: '2025-03-01',
-        epsilon: 3.2,
-        price: 5.0,
-        downloads: 234,
-        royaltyShare: 70,
-        children: [
-          {
-            id: '6',
-            title: 'GPT-3.5 → GPT-4 Mobile',
-            creator: 'Mobile Dev Echo',
-            createdAt: '2025-06-01',
-            epsilon: 3.5,
-            price: 3.0,
-            downloads: 445,
-            royaltyShare: 49,
-          },
-        ],
-      },
-    ],
-  };
 
   useEffect(() => {
     if (!svgRef.current) return;
+    if (!provenance) return;
 
-    // Use mock data for now (replace with provenance data when available)
-    const data = provenance || mockProvenanceData;
+    const data = provenance as MemoryNode;
 
     // Clear previous SVG content
     d3.select(svgRef.current).selectAll('*').remove();
@@ -286,6 +219,10 @@ export default function MemoryProvenance() {
           <div className="text-center text-white py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
             <p>Loading provenance data...</p>
+          </div>
+        ) : !provenance ? (
+          <div className="text-center text-white py-20">
+            <p>No provenance data available for this memory yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

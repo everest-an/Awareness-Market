@@ -11,69 +11,41 @@ import { Link } from "wouter";
 export default function Subscriptions() {
   const { isAuthenticated, loading: authLoading } = useAuth();
 
-  const { data: plans, isLoading: plansLoading } = trpc.vectors.getCategories.useQuery();
-  
-  // Mock subscription plans data (in production, fetch from backend)
-  const subscriptionPlans = [
-    {
-      id: "basic",
-      name: "Basic",
-      price: 29,
-      interval: "month",
-      features: [
-        "Up to 1,000 API calls/month",
-        "Access to basic AI capabilities",
-        "Standard support",
-        "Usage analytics",
-      ],
-      icon: Zap,
-      color: "text-blue-500",
-    },
-    {
-      id: "pro",
-      name: "Professional",
-      price: 99,
-      interval: "month",
-      popular: true,
-      features: [
-        "Up to 10,000 API calls/month",
-        "Access to all AI capabilities",
-        "Priority support",
-        "Advanced analytics",
-        "Custom integrations",
-        "API rate limit boost",
-      ],
-      icon: TrendingUp,
-      color: "text-purple-500",
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      price: 299,
-      interval: "month",
-      features: [
-        "Unlimited API calls",
-        "Access to premium AI capabilities",
-        "24/7 dedicated support",
-        "Custom model training",
-        "SLA guarantee",
-        "White-label options",
-        "Team collaboration tools",
-      ],
-      icon: Crown,
-      color: "text-amber-500",
-    },
-  ];
+  const { data: subscriptionPlans, isLoading: plansLoading } = trpc.subscriptions.listPlans.useQuery();
 
-  const handleSubscribe = (planId: string) => {
+  const checkoutMutation = trpc.subscriptions.createCheckout.useMutation({
+    onSuccess: (result) => {
+      window.location.href = result.url;
+    },
+    onError: (error) => {
+      toast.error(`Failed to start checkout: ${error.message}`);
+    },
+  });
+
+  const getPlanMeta = (name: string) => {
+    const normalized = name.toLowerCase();
+    if (normalized.includes("enterprise")) {
+      return { icon: Crown, color: "text-amber-500", popular: false };
+    }
+    if (normalized.includes("pro") || normalized.includes("professional")) {
+      return { icon: TrendingUp, color: "text-purple-500", popular: true };
+    }
+    if (normalized.includes("basic") || normalized.includes("starter")) {
+      return { icon: Zap, color: "text-blue-500", popular: false };
+    }
+    return { icon: Shield, color: "text-emerald-500", popular: false };
+  };
+
+  const handleSubscribe = (planId: number) => {
     if (!isAuthenticated) {
       toast.error("Please login to subscribe");
       return;
     }
-    
-    // In production, integrate with Stripe Checkout
-    toast.info("Redirecting to payment...", {
-      description: "This will integrate with Stripe Checkout in production.",
+
+    checkoutMutation.mutate({
+      planId,
+      successUrl: `${window.location.origin}/subscriptions?success=true`,
+      cancelUrl: `${window.location.origin}/subscriptions?canceled=true`,
     });
   };
 
@@ -108,16 +80,20 @@ export default function Subscriptions() {
       <div className="container py-16">
         {/* Pricing Cards */}
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {subscriptionPlans.map((plan) => {
-            const Icon = plan.icon;
+          {(subscriptionPlans || []).map((plan) => {
+            const meta = getPlanMeta(plan.name);
+            const Icon = meta.icon;
+            const features = plan.features ? JSON.parse(plan.features) as string[] : [];
+            const price = Number(plan.price);
+            const interval = plan.billingCycle === "yearly" ? "year" : "month";
             return (
               <Card
                 key={plan.id}
                 className={`relative flex flex-col ${
-                  plan.popular ? "border-primary shadow-lg scale-105" : ""
+                  meta.popular ? "border-primary shadow-lg scale-105" : ""
                 }`}
               >
-                {plan.popular && (
+                {meta.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <Badge className="bg-primary px-4 py-1">Most Popular</Badge>
                   </div>
@@ -125,22 +101,22 @@ export default function Subscriptions() {
 
                 <CardHeader className="text-center">
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                    <Icon className={`h-8 w-8 ${plan.color}`} />
+                    <Icon className={`h-8 w-8 ${meta.color}`} />
                   </div>
                   <CardTitle className="text-2xl">{plan.name}</CardTitle>
                   <CardDescription>
                     <div className="mt-4 flex items-baseline justify-center gap-1">
                       <span className="text-4xl font-bold text-foreground">
-                        ${plan.price}
+                        ${price.toFixed(0)}
                       </span>
-                      <span className="text-muted-foreground">/{plan.interval}</span>
+                      <span className="text-muted-foreground">/{interval}</span>
                     </div>
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="flex-1">
                   <ul className="space-y-3">
-                    {plan.features.map((feature, index) => (
+                    {features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
                         <span className="text-sm">{feature}</span>
@@ -152,11 +128,12 @@ export default function Subscriptions() {
                 <CardFooter>
                   <Button
                     className="w-full"
-                    variant={plan.popular ? "default" : "outline"}
+                    variant={meta.popular ? "default" : "outline"}
                     size="lg"
                     onClick={() => handleSubscribe(plan.id)}
+                    disabled={checkoutMutation.isPending}
                   >
-                    {isAuthenticated ? "Subscribe Now" : "Login to Subscribe"}
+                    {checkoutMutation.isPending ? "Redirecting..." : isAuthenticated ? "Subscribe Now" : "Login to Subscribe"}
                   </Button>
                 </CardFooter>
               </Card>
