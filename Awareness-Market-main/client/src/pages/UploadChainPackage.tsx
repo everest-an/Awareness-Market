@@ -24,8 +24,11 @@ export default function UploadChainPackage() {
     problemType: '',
     solutionQuality: '',
     price: '',
+    trainingDataset: '',
     tags: '',
   });
+  const [chainJson, setChainJson] = useState('');
+  const [wMatrixJson, setWMatrixJson] = useState('');
 
   const createMutation = trpc.packages.createChainPackage.useMutation({
     onSuccess: (data) => {
@@ -49,40 +52,36 @@ export default function UploadChainPackage() {
     setUploading(true);
 
     try {
-      // Generate mock reasoning chain data
-      const mockChainData = {
-        steps: Array.from({ length: parseInt(formData.stepCount) || 5 }, (_, i) => ({
-          stepNumber: i + 1,
-          thought: `Reasoning step ${i + 1}`,
-          action: `Action for step ${i + 1}`,
-          observation: `Observation from step ${i + 1}`,
-        })),
-        finalAnswer: 'Final solution based on reasoning chain',
+      const rawChain = chainJson ? JSON.parse(chainJson) : null;
+      const rawWMatrix = wMatrixJson ? JSON.parse(wMatrixJson) : null;
+
+      if (!rawChain || !rawWMatrix) {
+        toast.error('Please provide Chain JSON and W-Matrix JSON');
+        setUploading(false);
+        return;
+      }
+
+      const chain = {
+        ...rawChain,
+        problemType: rawChain.problemType || formData.problemType || 'general',
+        solutionQuality: rawChain.solutionQuality ?? parseFloat(formData.solutionQuality) || 0.85,
+        totalSteps: rawChain.totalSteps ?? parseInt(formData.stepCount) || 5,
       };
 
-      // Generate mock W-Matrix data
-      const mockWMatrix = {
-        weights: [[0.9, 0.1], [0.1, 0.9]],
-        biases: [0.01, 0.02],
-        epsilon: 0.12,
-        orthogonalityScore: 0.96,
-        trainingAnchors: 1500,
-        sourceModel: formData.sourceModel,
-        targetModel: formData.targetModel,
-        sourceDimension: 768,
-        targetDimension: 768,
+      const wMatrix = {
+        ...rawWMatrix,
+        sourceModel: rawWMatrix.sourceModel || formData.sourceModel,
+        targetModel: rawWMatrix.targetModel || formData.targetModel,
       };
 
       await createMutation.mutateAsync({
         name: formData.name,
         description: formData.description,
         version: formData.version,
-        chainData: mockChainData,
-        wMatrix: mockWMatrix,
-        stepCount: parseInt(formData.stepCount) || 5,
-        problemType: formData.problemType || 'general',
-        solutionQuality: parseFloat(formData.solutionQuality) || 0.85,
+        chain,
+        wMatrix,
         price: parseFloat(formData.price) || 0,
+        trainingDataset: formData.trainingDataset,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       });
     } catch (error) {
@@ -170,6 +169,43 @@ export default function UploadChainPackage() {
                     required
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="trainingDataset" className="text-slate-300">Training Dataset *</Label>
+                <Input
+                  id="trainingDataset"
+                  value={formData.trainingDataset}
+                  onChange={(e) => handleChange('trainingDataset', e.target.value)}
+                  placeholder="e.g., Math Olympiad Problems"
+                  className="bg-slate-800 border-slate-700 text-white mt-1"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Brain className="h-5 w-5 text-emerald-400" />
+                Chain & W-Matrix JSON
+              </h2>
+              <div className="space-y-2">
+                <Label>Chain JSON</Label>
+                <Textarea
+                  placeholder='{"steps":[{"stepIndex":1,"description":"Step 1","kvSnapshot":{"keys":[[[0.1]]],"values":[[[0.2]]]}}],"problemType":"general","solutionQuality":0.85,"totalSteps":1}'
+                  value={chainJson}
+                  onChange={(e) => setChainJson(e.target.value)}
+                  className="min-h-[140px] font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>W-Matrix JSON</Label>
+                <Textarea
+                  placeholder='{"weights":[[0.9,0.1],[0.1,0.9]],"biases":[0.01,0.02],"epsilon":0.12,"sourceModel":"gpt-4","targetModel":"claude-3"}'
+                  value={wMatrixJson}
+                  onChange={(e) => setWMatrixJson(e.target.value)}
+                  className="min-h-[140px] font-mono"
+                />
               </div>
             </div>
 
