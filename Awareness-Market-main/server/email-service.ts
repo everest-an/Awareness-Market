@@ -12,8 +12,15 @@ interface EmailOptions {
   text?: string;
 }
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend client lazily to avoid startup crash when API key is missing
+let resendClient: Resend | null = null;
+
+const getResendClient = () => {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY || "");
+  }
+  return resendClient;
+};
 
 // Email configuration
 const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@awareness.market';
@@ -34,7 +41,13 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       return true;
     }
 
+    if (!process.env.RESEND_API_KEY) {
+      console.error("[Email] RESEND_API_KEY is not set");
+      return false;
+    }
+
     // Send email via Resend
+    const resend = getResendClient();
     const { data, error } = await resend.emails.send({
       from: `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`,
       to: [options.to],
