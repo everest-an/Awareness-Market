@@ -149,10 +149,12 @@ async function handleCheckoutCompleted(session: any) {
     // Send email
     const user = await db.getUserById(userId);
     if (user?.email) {
+      const emailText = `Your purchase of vector #${vectorId} was successful. You can now access this capability in your dashboard.`;
       await sendEmail({
         to: user.email,
         subject: "Awareness Market - Purchase Successful",
-        text: `Your purchase of vector #${vectorId} was successful. You can now access this capability in your dashboard.`,
+        html: `<p>${emailText}</p>`,
+        text: emailText,
       });
     }
 
@@ -167,10 +169,12 @@ async function handleCheckoutCompleted(session: any) {
       });
 
       if (creator.email) {
+        const emailText = `Great news! ${user?.name || "A user"} just purchased your AI capability "${vector.title}". You earned $${parseFloat(transaction.creatorEarnings).toFixed(2)}.`;
         await sendEmail({
           to: creator.email,
           subject: "Awareness Market - New Sale",
-          text: `Great news! ${user?.name || "A user"} just purchased your AI capability "${vector.title}". You earned $${parseFloat(transaction.creatorEarnings).toFixed(2)}.`,
+          html: `<p>${emailText}</p>`,
+          text: emailText,
         });
       }
     }

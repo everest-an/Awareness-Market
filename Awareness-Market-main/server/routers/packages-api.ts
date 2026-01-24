@@ -55,7 +55,7 @@ const CreateVectorPackageSchema = z.object({
     vector: z.array(z.number()),
     dimension: z.number().int().positive(),
     category: z.enum(['nlp', 'vision', 'audio', 'multimodal', 'other']),
-    performanceMetrics: z.record(z.any()).optional(),
+    performanceMetrics: z.record(z.string(), z.any()).optional(),
   }),
   wMatrix: WMatrixSchema,
   price: z.number().positive(),
@@ -172,7 +172,7 @@ export const packagesApiRouter = router({
             name: input.name,
             description: input.description,
             version: input.version,
-            creator: { id: ctx.user.id, name: ctx.user.name },
+            creator: { id: ctx.user.id, name: ctx.user.name || 'Unknown' },
             trainingDataset: input.trainingDataset,
           }
         );
@@ -190,7 +190,6 @@ export const packagesApiRouter = router({
           userId: ctx.user.id,
           name: input.name,
           description: input.description,
-          version: input.version,
           sourceModel: input.wMatrix.sourceModel,
           targetModel: input.wMatrix.targetModel,
           category: input.vector.category,
@@ -199,9 +198,8 @@ export const packagesApiRouter = router({
           vectorUrl: result.vectorUrl || '',
           wMatrixUrl: result.wMatrixUrl || '',
           epsilon: String(input.wMatrix.epsilon),
+          informationRetention: '0.9500',
           dimension: input.vector.dimension,
-          tags: input.tags?.join(',') || null,
-          trainingDataset: input.trainingDataset,
         }).$returningId();
 
         const pkgId = insertResult[0]?.id;
@@ -228,13 +226,13 @@ export const packagesApiRouter = router({
     .mutation(async ({ ctx, input }) => {
       try {
         const result = await createMemoryPackage(
-          input.kvCache as KVCache,
+          input.kvCache as unknown as KVCache,
           input.wMatrix as WMatrixData,
           {
             name: input.name,
             description: input.description,
             version: input.version,
-            creator: { id: ctx.user.id, name: ctx.user.name },
+            creator: { id: ctx.user.id, name: ctx.user.name || 'Unknown' },
             tokenCount: input.tokenCount,
             compressionRatio: input.compressionRatio,
             contextDescription: input.contextDescription,
@@ -244,25 +242,31 @@ export const packagesApiRouter = router({
 
         // Save to database
         const db = await getDb();
-        const [pkg] = await db.insert(memoryPackages).values({
+        if (!db) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Database unavailable',
+          });
+        }
+        const insertResult = await db.insert(memoryPackages).values({
           packageId: result.packageId,
           userId: ctx.user.id,
           name: input.name,
           description: input.description,
-          version: input.version,
           sourceModel: input.wMatrix.sourceModel,
           targetModel: input.wMatrix.targetModel,
           tokenCount: input.tokenCount,
-          compressionRatio: input.compressionRatio,
+          compressionRatio: String(input.compressionRatio),
           contextDescription: input.contextDescription,
-          price: input.price,
+          price: String(input.price),
           packageUrl: result.packageUrl,
-          kvCacheUrl: result.kvCacheUrl,
-          wMatrixUrl: result.wMatrixUrl,
-          epsilon: input.wMatrix.epsilon,
-          tags: input.tags?.join(',') || null,
-          trainingDataset: input.trainingDataset,
-        }).returning();
+          kvCacheUrl: result.kvCacheUrl || '',
+          wMatrixUrl: result.wMatrixUrl || '',
+          epsilon: String(input.wMatrix.epsilon),
+          informationRetention: '0.9500',
+        }).$returningId();
+        const pkgId = insertResult[0]?.id;
+        const [pkg] = pkgId ? await db.select().from(memoryPackages).where(eq(memoryPackages.id, pkgId)).limit(1) : [];
 
         return {
           success: true,
@@ -285,38 +289,44 @@ export const packagesApiRouter = router({
     .mutation(async ({ ctx, input }) => {
       try {
         const result = await createChainPackage(
-          input.chain as ReasoningChainData,
+          input.chain as unknown as ReasoningChainData,
           input.wMatrix as WMatrixData,
           {
             name: input.name,
             description: input.description,
             version: input.version,
-            creator: { id: ctx.user.id, name: ctx.user.name },
+            creator: { id: ctx.user.id, name: ctx.user.name || 'Unknown' },
             trainingDataset: input.trainingDataset,
           }
         );
 
         // Save to database
         const db = await getDb();
-        const [pkg] = await db.insert(chainPackages).values({
+        if (!db) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Database unavailable',
+          });
+        }
+        const insertResult = await db.insert(chainPackages).values({
           packageId: result.packageId,
           userId: ctx.user.id,
           name: input.name,
           description: input.description,
-          version: input.version,
           sourceModel: input.wMatrix.sourceModel,
           targetModel: input.wMatrix.targetModel,
           problemType: input.chain.problemType,
-          solutionQuality: input.chain.solutionQuality,
-          totalSteps: input.chain.totalSteps,
-          price: input.price,
+          solutionQuality: String(input.chain.solutionQuality),
+          stepCount: input.chain.totalSteps,
+          price: String(input.price),
           packageUrl: result.packageUrl,
-          chainUrl: result.chainUrl,
-          wMatrixUrl: result.wMatrixUrl,
-          epsilon: input.wMatrix.epsilon,
-          tags: input.tags?.join(',') || null,
-          trainingDataset: input.trainingDataset,
-        }).returning();
+          chainUrl: result.chainUrl || '',
+          wMatrixUrl: result.wMatrixUrl || '',
+          epsilon: String(input.wMatrix.epsilon),
+          informationRetention: '0.9500',
+        }).$returningId();
+        const pkgId = insertResult[0]?.id;
+        const [pkg] = pkgId ? await db.select().from(chainPackages).where(eq(chainPackages.id, pkgId)).limit(1) : [];
 
         return {
           success: true,
@@ -338,6 +348,7 @@ export const packagesApiRouter = router({
     .input(BrowsePackagesSchema)
     .query(async ({ input }) => {
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
       const table = getPackageTable(input.packageType);
 
       // Build query conditions
@@ -400,6 +411,7 @@ export const packagesApiRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
       const table = getPackageTable(input.packageType);
 
       const [pkg] = await db
@@ -428,6 +440,7 @@ export const packagesApiRouter = router({
     .input(PurchasePackageSchema)
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
       const table = getPackageTable(input.packageType);
 
       // Get package
@@ -471,7 +484,7 @@ export const packagesApiRouter = router({
       const sellerEarnings = (priceNum * 0.9).toFixed(2);
 
       // Create purchase record
-      const [purchase] = await db.insert(packagePurchases).values({
+      const insertResult = await db.insert(packagePurchases).values({
         buyerId: ctx.user.id,
         sellerId: pkg.userId,
         packageId: input.packageId,
@@ -480,7 +493,9 @@ export const packagesApiRouter = router({
         platformFee,
         sellerEarnings,
         status: 'completed',
-      }).returning();
+      }).$returningId();
+      const purchaseId = insertResult[0]?.id;
+      const [purchase] = purchaseId ? await db.select().from(packagePurchases).where(eq(packagePurchases.id, purchaseId)).limit(1) : [];
 
       return {
         success: true,
@@ -496,6 +511,7 @@ export const packagesApiRouter = router({
     .input(DownloadPackageSchema)
     .query(async ({ ctx, input }) => {
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
       const table = getPackageTable(input.packageType);
 
       // Check if purchased
@@ -565,6 +581,7 @@ export const packagesApiRouter = router({
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
       const table = getPackageTable(input.packageType);
 
       const packages = await db
@@ -586,6 +603,7 @@ export const packagesApiRouter = router({
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
 
       const purchases = await db
         .select()
@@ -622,6 +640,7 @@ export const packagesApiRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
       const results: Array<{
         type: 'vector' | 'memory' | 'chain';
         package: any;
@@ -655,7 +674,8 @@ export const packagesApiRouter = router({
 
         // Category filter (only for vector packages)
         if (input.category && packageType === 'vector') {
-          conditions.push(eq(table.category, input.category));
+          // Use sql template for category filter since table type varies
+          conditions.push(sql`${(table as any).category} = ${input.category}`);
         }
 
         // Epsilon range filter

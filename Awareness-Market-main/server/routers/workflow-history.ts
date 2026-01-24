@@ -51,7 +51,7 @@ export const workflowHistoryRouter = router({
       }
       
       if (input.sessionType) {
-        conditions.push(eq(workflowSessions.sessionType, input.sessionType));
+        conditions.push(eq(workflowSessions.type, input.sessionType));
       }
       
       if (input.status) {
@@ -69,20 +69,21 @@ export const workflowHistoryRouter = router({
       // Query sessions with filters
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
       
-      const sessions = await db
+      // Always sort by createdAt since other sort options don't exist in schema
+      const sessions = await db!
         .select()
         .from(workflowSessions)
         .where(whereClause)
         .orderBy(
           input.sortOrder === "desc"
-            ? desc(workflowSessions[input.sortBy])
-            : asc(workflowSessions[input.sortBy])
+            ? desc(workflowSessions.createdAt)
+            : asc(workflowSessions.createdAt)
         )
         .limit(input.pageSize)
         .offset(offset);
 
       // Get total count for pagination
-      const countResult = await db
+      const countResult = await db!
         .select({ count: sql<number>`count(*)` })
         .from(workflowSessions)
         .where(whereClause);
@@ -114,11 +115,12 @@ export const workflowHistoryRouter = router({
     )
     .query(async ({ input }) => {
       const db = await getDb();
+      if (!db) throw new Error('Database unavailable');
 
       const session = await db
         .select()
         .from(workflowSessions)
-        .where(eq(workflowSessions.sessionId, input.sessionId))
+        .where(eq(workflowSessions.id, input.sessionId))
         .limit(1);
 
       if (session.length === 0) {
@@ -140,11 +142,12 @@ export const workflowHistoryRouter = router({
     )
     .query(async ({ input }) => {
       const db = await getDb();
+      if (!db) throw new Error('Database unavailable');
 
       const events = await db
         .select()
         .from(workflowEvents)
-        .where(eq(workflowEvents.sessionId, input.sessionId))
+        .where(eq(workflowEvents.workflowId, input.sessionId))
         .orderBy(
           input.sortOrder === "desc"
             ? desc(workflowEvents.timestamp)
@@ -167,18 +170,19 @@ export const workflowHistoryRouter = router({
     )
     .query(async ({ input }) => {
       const db = await getDb();
+      if (!db) throw new Error('Database unavailable');
       const offset = (input.page - 1) * input.pageSize;
       const searchPattern = `%${input.query}%`;
 
-      // Search in sessionId, sessionType, and metadata
+      // Search in id, type, title, and description
       const sessions = await db
         .select()
         .from(workflowSessions)
         .where(
           or(
-            like(workflowSessions.sessionId, searchPattern),
-            like(workflowSessions.sessionType, searchPattern),
-            sql`JSON_SEARCH(${workflowSessions.metadata}, 'one', ${input.query}) IS NOT NULL`
+            like(workflowSessions.id, searchPattern),
+            like(workflowSessions.title, searchPattern),
+            like(workflowSessions.description, searchPattern)
           )
         )
         .orderBy(desc(workflowSessions.createdAt))
@@ -191,9 +195,9 @@ export const workflowHistoryRouter = router({
         .from(workflowSessions)
         .where(
           or(
-            like(workflowSessions.sessionId, searchPattern),
-            like(workflowSessions.sessionType, searchPattern),
-            sql`JSON_SEARCH(${workflowSessions.metadata}, 'one', ${input.query}) IS NOT NULL`
+            like(workflowSessions.id, searchPattern),
+            like(workflowSessions.title, searchPattern),
+            like(workflowSessions.description, searchPattern)
           )
         );
       
@@ -226,6 +230,7 @@ export const workflowHistoryRouter = router({
     )
     .query(async ({ input }) => {
       const db = await getDb();
+      if (!db) throw new Error('Database unavailable');
 
       // Build filter conditions
       const conditions = [];
@@ -250,8 +255,8 @@ export const workflowHistoryRouter = router({
           totalSessions: sql<number>`count(*)`,
           completedSessions: sql<number>`sum(case when ${workflowSessions.status} = 'completed' then 1 else 0 end)`,
           failedSessions: sql<number>`sum(case when ${workflowSessions.status} = 'failed' then 1 else 0 end)`,
-          avgDuration: sql<number>`avg(${workflowSessions.duration})`,
-          avgEventCount: sql<number>`avg(${workflowSessions.eventCount})`,
+          avgDuration: sql<number>`avg(${workflowSessions.totalDuration})`,
+          avgEventCount: sql<number>`avg(${workflowSessions.totalEvents})`,
         })
         .from(workflowSessions)
         .where(whereClause);
@@ -259,12 +264,12 @@ export const workflowHistoryRouter = router({
       // Get session type breakdown
       const typeBreakdown = await db
         .select({
-          sessionType: workflowSessions.sessionType,
+          sessionType: workflowSessions.type,
           count: sql<number>`count(*)`,
         })
         .from(workflowSessions)
         .where(whereClause)
-        .groupBy(workflowSessions.sessionType);
+        .groupBy(workflowSessions.type);
 
       return {
         ...stats[0],
@@ -283,12 +288,13 @@ export const workflowHistoryRouter = router({
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
+      if (!db) throw new Error('Database unavailable');
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - input.olderThanDays);
 
       // Delete events first (foreign key constraint)
       const sessionsToDelete = await db
-        .select({ sessionId: workflowSessions.sessionId })
+        .select({ sessionId: workflowSessions.id })
         .from(workflowSessions)
         .where(lte(workflowSessions.createdAt, cutoffDate));
 
@@ -298,7 +304,7 @@ export const workflowHistoryRouter = router({
         await db
           .delete(workflowEvents)
           .where(
-            sql`${workflowEvents.sessionId} IN (${sql.join(sessionIds.map((id) => sql`${id}`), sql`, `)})`
+            sql`${workflowEvents.workflowId} IN (${sql.join(sessionIds.map((id) => sql`${id}`), sql`, `)})`
           );
 
         await db

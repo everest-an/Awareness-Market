@@ -1430,7 +1430,7 @@ export const appRouter = router({
         const database = await getDb();
         if (database) {
           await database.insert(alignmentCalculations).values({
-            vectorId: null, // Will be set if vector exists in DB
+            vectorId: 0, // Placeholder when vector doesn't exist in DB yet
             wMatrixVersion: input.wMatrixVersion,
             epsilonValue: result.epsilon.toString(),
             fidelityBoostEstimate: result.improvementPct.toString(),

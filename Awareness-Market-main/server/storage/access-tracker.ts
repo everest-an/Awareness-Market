@@ -5,7 +5,7 @@
  * and optimize storage tier placement
  */
 
-import { db } from '../db';
+import { getDb } from '../db';
 import { packageAccessLog, packageStorageTier } from '../../drizzle/schema-storage-tiers';
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 
