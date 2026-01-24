@@ -5,16 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Navbar from '@/components/Navbar';
-// Temporary mock for GolemVisualizer while fixing TypeScript errors
-const GolemVisualizer = ({ vectors, onPointClick, onPointHover }: any) => (
-  <div className="w-full h-[600px] bg-slate-900 rounded-lg flex items-center justify-center text-slate-400">
-    <div className="text-center">
-      <p>GolemVisualizer</p>
-      <p className="text-sm">3D visualization loading...</p>
-      <p className="text-xs mt-2">{vectors?.length || 0} vectors</p>
-    </div>
-  </div>
-);
+// Production GolemVisualizer for real inference data mapping
+import { GolemVisualizer } from '../../../golem-visualizer/frontend/GolemVisualizer';
 import { trpc } from '@/lib/trpc';
 import {
   Zap,
@@ -94,17 +86,20 @@ export default function GolemVisualizerPage() {
     // 已登录但数据未加载
     if (!packagesData?.packages) return;
 
-    // 已登录 - 映射真实客户数据
+    // 已登录 - 映射真实客户数据（实际推理数据）
     const vectorizedPackages = packagesData.packages.map((pkg: any, index: number) => ({
-      id: pkg.packageId,
+      id: pkg.packageId || pkg.id,
       vector: [
-        // 基于实际数据属性生成3D坐标
-        (pkg.epsilon || Math.random()) * 10,
-        (pkg.downloads || 0) / 100,
-        (pkg.rating || 3) * 10 + (index * 0.5),
+        // 基于实际推理数据属性生成3D坐标
+        // X轴: 基于 alignmentLoss (epsilon ε) 或下载量 - 表示对齐损失
+        parseFloat(pkg.alignmentLoss || pkg.epsilon || '0') * 50 + (Math.random() - 0.5) * 2,
+        // Y轴: 基于 fidelityScore 或评分 - 表示保真度
+        parseFloat(pkg.fidelityScore || '0') * 30 + (pkg.rating || 3) * 5,
+        // Z轴: 基于 hiddenDim 或使用次数 - 表示模型复杂度
+        (pkg.hiddenDim ? pkg.hiddenDim / 200 : 0) + (pkg.usageCount || pkg.downloads || 0) / 50 + index * 0.3,
       ],
-      label: pkg.name,
-      color: getColorByCategory(pkg.category),
+      label: pkg.name || pkg.title,
+      color: getColorByCategory(pkg.category || pkg.vectorType || pkg.memoryType),
     }));
 
     // 如果真实数据不足，补充演示数据
@@ -127,11 +122,23 @@ export default function GolemVisualizerPage() {
 
   const getColorByCategory = (category?: string): string => {
     const colors: Record<string, string> = {
+      // 包类型
       nlp: '#4a9eff',
       vision: '#a855f7',
       audio: '#10b981',
       multimodal: '#f59e0b',
       other: '#6366f1',
+      // 向量类型 (vectorType)
+      embedding: '#4a9eff',
+      kv_cache: '#ef4444',
+      reasoning_chain: '#22c55e',
+      // 记忆类型 (memoryType)
+      latent_vector: '#3b82f6',
+      expert_knowledge: '#f97316',
+      // 模型类别
+      finance: '#10b981',
+      'code-generation': '#8b5cf6',
+      medical: '#ec4899',
     };
     return colors[category as string] || '#4a9eff';
   };
