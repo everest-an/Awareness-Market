@@ -797,7 +797,7 @@ export async function getCreatorRevenueTrend(userId: number, days: number = 30) 
     ORDER BY DATE(t.createdAt)
   `);
 
-  return rows as Array<{ date: string; revenue: number | string }>;
+  return (rows as unknown) as Array<{ date: string; revenue: number | string }>;
 }
 
 export async function getCreatorCallTrend(userId: number, days: number = 30) {
@@ -818,7 +818,7 @@ export async function getCreatorCallTrend(userId: number, days: number = 30) {
     ORDER BY DATE(a.createdAt)
   `);
 
-  return rows as Array<{ date: string; calls: number | string }>;
+  return (rows as unknown) as Array<{ date: string; calls: number | string }>;
 }
 
 export async function getConsumerUsageStats(userId: number, days: number = 30) {

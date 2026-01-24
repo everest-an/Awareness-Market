@@ -92,9 +92,13 @@ export async function registerAIAgent(params: {
       emailVerified: true, // AI agents don't need email verification
       createdAt: new Date(),
       updatedAt: new Date(),
-    }).returning();
+    }).$returningId();
     
-    const user = result[0];
+    const userId = result[0]?.id;
+    
+    // Fetch the created user
+    const userRecords = await db.select().from(users).where(eq(users.id, userId as number)).limit(1);
+    const user = userRecords[0];
     
     return {
       success: true,

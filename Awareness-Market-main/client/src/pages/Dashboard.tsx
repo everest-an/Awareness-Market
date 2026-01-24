@@ -23,7 +23,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
 
   // Redirect to auth if not logged in
@@ -44,11 +44,14 @@ export default function Dashboard() {
     { enabled: !!user }
   );
 
-  // Fetch user's purchases
-  const { data: purchases, isLoading: purchasesLoading } = trpc.transactions.myTransactions.useQuery(
+  // Fetch user's purchases (same as transactions for buyers)
+  const { data: purchasesRaw, isLoading: purchasesLoading } = trpc.transactions.myTransactions.useQuery(
     undefined,
     { enabled: !!user }
   );
+  
+  // Normalize purchases data to handle both joined and non-joined formats
+  const purchases = purchasesRaw?.map((p: any) => p.transactions || p) || [];
 
   // Calculate statistics
   const totalRevenue = myVectors?.reduce((sum, v) => sum + Number(v.totalRevenue || 0), 0) || 0;
@@ -58,7 +61,7 @@ export default function Dashboard() {
     ? myVectors.reduce((sum, v) => sum + Number(v.averageRating || 0), 0) / myVectors.length
     : 0;
 
-  const totalSpent = purchases?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
+  const totalSpent = purchases?.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0) || 0;
   const totalPurchases = purchases?.length || 0;
 
   if (authLoading) {
@@ -278,7 +281,7 @@ export default function Dashboard() {
                   </div>
                 ) : purchases && purchases.length > 0 ? (
                   <div className="space-y-3">
-                    {purchases.map((purchase) => (
+                    {purchases.map((purchase: any) => (
                       <div
                         key={purchase.id}
                         className="flex items-center justify-between p-4 border rounded-lg"
@@ -339,7 +342,9 @@ export default function Dashboard() {
                   </div>
                 ) : transactions && transactions.length > 0 ? (
                   <div className="space-y-2">
-                    {transactions.map((tx) => (
+                    {transactions.map((txData: any) => {
+                      const tx = txData.transactions || txData;
+                      return (
                       <div
                         key={tx.id}
                         className="flex items-center justify-between p-3 border rounded-lg"
@@ -368,7 +373,7 @@ export default function Dashboard() {
                           </Badge>
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 ) : (
                   <div className="text-center py-12">

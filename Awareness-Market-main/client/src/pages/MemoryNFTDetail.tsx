@@ -34,7 +34,7 @@ export default function MemoryNFTDetail() {
 
   // Fetch provenance (family tree)
   const { data: provenance } = trpc.memoryNFT.getProvenance.useQuery(
-    { nftId },
+    { memoryId: nftId },
     { enabled: !!nftId }
   );
 
@@ -221,7 +221,7 @@ export default function MemoryNFTDetail() {
                     <div>
                       <div className="text-sm text-slate-400 mb-1">Asset URL</div>
                       <a
-                        href={nft.assetUrl}
+                        href={nft.assetUrl || undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
@@ -254,9 +254,9 @@ export default function MemoryNFTDetail() {
                     <h3 className="text-lg font-semibold text-white">Memory Lineage</h3>
                   </div>
 
-                  {provenance && provenance.length > 0 ? (
+                  {provenance && Array.isArray(provenance) && provenance.length > 0 ? (
                     <div className="space-y-4">
-                      {provenance.map((edge: any, idx: number) => (
+                      {(provenance as any[]).map((edge: any, idx: number) => (
                         <div key={idx} className="flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg">
                           <div className="flex-shrink-0 mt-1">
                             <div className="h-8 w-8 rounded-full bg-cyan-500/20 flex items-center justify-center">
@@ -345,7 +345,7 @@ export default function MemoryNFTDetail() {
                 {purchaseMutation.isPending ? 'Processing...' : 'Purchase Memory'}
               </Button>
 
-              {nft.hasProvenance && (
+              {(nft as any).hasProvenance && (
                 <Link href={`/memory-provenance/${nftId}`}>
                   <Button
                     className="w-full mt-3 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"

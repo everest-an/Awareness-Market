@@ -885,26 +885,26 @@ export const appRouter = router({
 
     // User API usage statistics
     usageStats: protectedProcedure.query(async ({ ctx }) => {
-      return await userAnalytics.getUserUsageStats(ctx.user.id);
+      return await userAnalytics.getUserUsageStats(String(ctx.user.id));
     }),
 
     // Popular endpoints
     popularEndpoints: protectedProcedure
       .input(z.object({ limit: z.number().positive().default(10) }).optional())
       .query(async ({ ctx, input }) => {
-        return await userAnalytics.getPopularEndpoints(ctx.user.id, input?.limit);
+        return await userAnalytics.getPopularEndpoints(String(ctx.user.id), input?.limit);
       }),
 
     // Daily usage over time
     dailyUsage: protectedProcedure
       .input(z.object({ days: z.number().positive().default(30) }).optional())
       .query(async ({ ctx, input }) => {
-        return await userAnalytics.getDailyUsage(ctx.user.id, input?.days);
+        return await userAnalytics.getDailyUsage(String(ctx.user.id), input?.days);
       }),
 
     // API key usage breakdown
     apiKeyUsage: protectedProcedure.query(async ({ ctx }) => {
-      return await userAnalytics.getApiKeyUsage(ctx.user.id);
+      return await userAnalytics.getApiKeyUsage(String(ctx.user.id));
     }),
 
     // Consumer dashboard stats
@@ -982,14 +982,10 @@ export const appRouter = router({
         offset: z.number().nonnegative().default(0),
       }))
       .query(async ({ input }) => {
-        // Delegate to Go Memory Exchange service via adapter
-        return await goServiceAdapter.browseMemoryPackages({
-          sourceModel: input.sourceModel,
-          minQuality: input.minQuality,
-          maxPrice: input.maxPrice,
-          limit: input.limit,
-          offset: input.offset,
-        });
+        // Map memoryType to Go service type
+        const goType = input.memoryType === 'reasoning_chain' ? 'attention' : 
+                       input.memoryType === 'kv_cache' ? 'kv_cache' : 'all';
+        return await goServiceAdapter.browseMemoryPackages(goType, input.limit, input.offset);
       }),
 
     // Publish a memory for sale (with S3 storage)
@@ -1019,14 +1015,17 @@ export const appRouter = router({
         const { url: storageUrl } = await storagePut(fileKey, kvCacheJson, "application/json");
         
         // Publish to Go Memory Exchange service
-        return await goServiceAdapter.publishMemoryPackage({
-          ownerId: ctx.user.id,
-          memoryType: input.memoryType,
-          kvCacheData: input.kvCacheData,
-          price: input.price,
-          description: input.description,
-          storageUrl,
-        });
+        const description = input.description || 'Memory Package';
+        return await goServiceAdapter.publishMemoryPackage(
+          String(ctx.user.id),
+          {
+            name: description.substring(0, 50),
+            description: description,
+            type: input.memoryType === 'kv_cache' ? 'kv_cache' : 'attention',
+            price: input.price,
+            model_type: input.kvCacheData.sourceModel,
+          }
+        );
       }),
 
     // Purchase and align memory to target model
@@ -1037,11 +1036,10 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         // Call Go Memory Exchange service via adapter
-        return await goServiceAdapter.purchaseMemoryPackage({
-          memoryId: input.memoryId,
-          buyerId: ctx.user.id,
-          targetModel: input.targetModel,
-        });
+        return await goServiceAdapter.purchaseMemoryPackage(
+          String(ctx.user.id),
+          String(input.memoryId)
+        );
       }),
 
     // Get user's memory exchange history (from Go service)
@@ -1052,10 +1050,7 @@ export const appRouter = router({
       }))
       .query(async ({ ctx, input }) => {
         // Delegate to Go Memory Exchange service via adapter
-        const allPackages = await goServiceAdapter.browseMemoryPackages({
-          limit: input.limit,
-          offset: 0,
-        });
+        const allPackages = await goServiceAdapter.browseMemoryPackages('all', input.limit, 0);
         // Filter by user and role if needed
         return allPackages;
       }),
@@ -1063,18 +1058,18 @@ export const appRouter = router({
     // Get memory exchange statistics (from Go service)
     stats: publicProcedure.query(async () => {
       // Get statistics from Go Memory Exchange service
-      const packages = await goServiceAdapter.browseMemoryPackages({
-        limit: 1000,
-        offset: 0,
-      });
+      const packages = await goServiceAdapter.browseMemoryPackages('all', 1000, 0);
+      const packagesArray = (packages as any).packages || packages.data || [];
       return {
-        totalPackages: packages.length,
-        averagePrice: packages.length > 0 
-          ? packages.reduce((sum, p) => sum + p.price, 0) / packages.length 
+        totalPackages: Array.isArray(packagesArray) ? packagesArray.length : 0,
+        averagePrice: Array.isArray(packagesArray) && packagesArray.length > 0 
+          ? packagesArray.reduce((sum: number, p: any) => sum + (p.price || 0), 0) / packagesArray.length 
           : 0,
-        totalTransactions: packages.reduce((sum, p) => sum + (p.total_transactions || 0), 0, 0),
-        averageRating: packages.length > 0
-          ? packages.reduce((sum, p) => sum + (p.average_rating || 0), 0) / packages.length
+        totalTransactions: Array.isArray(packagesArray) 
+          ? packagesArray.reduce((sum: number, p: any) => sum + (p.total_transactions || 0), 0) 
+          : 0,
+        averageRating: Array.isArray(packagesArray) && packagesArray.length > 0
+          ? packagesArray.reduce((sum: number, p: any) => sum + (p.average_rating || 0), 0) / packagesArray.length
           : 0,
       };
     }),
@@ -1094,14 +1089,11 @@ export const appRouter = router({
       }))
       .query(async ({ input }) => {
         // Delegate to Go Reasoning Chains service via adapter
-        return await goServiceAdapter.browseReasoningChains({
-          category: input.category,
-          sourceModel: input.sourceModel,
-          minQuality: input.minQuality,
-          maxPrice: input.maxPrice,
-          limit: input.limit,
-          offset: input.offset,
-        });
+        return await goServiceAdapter.browseReasoningChains(
+          input.sourceModel,
+          input.limit,
+          input.offset
+        );
       }),
 
     // Publish a reasoning chain (with S3 storage)
@@ -1134,17 +1126,16 @@ export const appRouter = router({
         const { url: storageUrl } = await storagePut(fileKey, kvCacheJson, "application/json");
         
         // Publish to Go Reasoning Chains service
-        return await goServiceAdapter.publishReasoningChain({
-          creatorId: ctx.user.id,
-          chainName: input.chainName,
-          description: input.description,
-          category: input.category,
-          inputExample: input.inputExample,
-          outputExample: input.outputExample,
-          kvCacheSnapshot: input.kvCacheSnapshot,
-          pricePerUse: input.pricePerUse,
-          storageUrl,
-        });
+        return await goServiceAdapter.publishReasoningChain(
+          String(ctx.user.id),
+          {
+            name: input.chainName,
+            description: input.description,
+            chain_steps: [input.inputExample, input.outputExample],
+            model_type: input.kvCacheSnapshot.sourceModel,
+            price: input.pricePerUse,
+          }
+        );
       }),
 
     // Use (purchase) a reasoning chain
@@ -1155,11 +1146,10 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         // Call Go Reasoning Chains service via adapter
-        return await goServiceAdapter.useReasoningChain({
-          chainId: input.chainId,
-          userId: ctx.user.id,
-          targetModel: input.targetModel,
-        });
+        return await goServiceAdapter.useReasoningChain(
+          String(ctx.user.id),
+          String(input.chainId)
+        );
       }),
   }),
 
@@ -1437,14 +1427,16 @@ export const appRouter = router({
         );
         
         // Log to database
-        const database = getDb();
-        await database.insert(alignmentCalculations).values({
-          vectorId: null, // Will be set if vector exists in DB
-          wMatrixVersion: input.wMatrixVersion,
-          epsilonValue: result.epsilon.toString(),
-          fidelityBoostEstimate: result.improvementPct.toString(),
-          computationTimeMs: result.computationTimeMs,
-        });
+        const database = await getDb();
+        if (database) {
+          await database.insert(alignmentCalculations).values({
+            vectorId: null, // Will be set if vector exists in DB
+            wMatrixVersion: input.wMatrixVersion,
+            epsilonValue: result.epsilon.toString(),
+            fidelityBoostEstimate: result.improvementPct.toString(),
+            computationTimeMs: result.computationTimeMs,
+          });
+        }
         
         return result;
       }),
@@ -1518,7 +1510,7 @@ export const appRouter = router({
             output: {
               epsilon: result.metrics.epsilon,
               fidelityScore: result.metrics.fidelityScore,
-              trainingTimeMs: result.metrics.trainingTimeMs,
+              trainingTimeMs: result.metrics.computationTimeMs,
             },
           });
           
@@ -1529,17 +1521,19 @@ export const appRouter = router({
             input: { version: input.version },
           });
           
-          const database = getDb();
-          await database.insert(wMatrixVersions).values({
-            version: input.version,
-            standardDim: parseInt(input.standardDim),
-            matrixData: result.serializedMatrix,
-            matrixFormat: 'numpy',
-            sourceModels: JSON.stringify(input.sourceModels),
-            alignmentPairsCount: input.sourceVectors.length,
-            avgReconstructionError: result.metrics.epsilon.toString(),
-            isActive: true,
-          });
+          const database = await getDb();
+          if (database) {
+            await database.insert(wMatrixVersions).values({
+              version: input.version,
+              standardDim: parseInt(input.standardDim),
+              matrixData: result.serializedMatrix,
+              matrixFormat: 'numpy',
+              sourceModels: JSON.stringify(input.sourceModels),
+              alignmentPairsCount: input.sourceVectors.length,
+              avgReconstructionError: result.metrics.epsilon.toString(),
+              isActive: true,
+            });
+          }
           
           workflowManager.updateEvent(workflowId, saveEvent.id, {
             status: 'completed',
@@ -1617,17 +1611,21 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const database = await getDb();
         if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-        let query = database
+        
+        if (input.vectorId) {
+          return await database
+            .select()
+            .from(alignmentCalculations)
+            .where(eq(alignmentCalculations.vectorId, input.vectorId))
+            .orderBy(desc(alignmentCalculations.computedAt))
+            .limit(input.limit);
+        }
+        
+        return await database
           .select()
           .from(alignmentCalculations)
           .orderBy(desc(alignmentCalculations.computedAt))
           .limit(input.limit);
-        
-        if (input.vectorId) {
-          query = query.where(eq(alignmentCalculations.vectorId, input.vectorId));
-        }
-        
-        return await query;
       }),
   }),
 

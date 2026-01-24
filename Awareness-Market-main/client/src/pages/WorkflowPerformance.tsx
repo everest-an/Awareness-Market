@@ -108,12 +108,12 @@ export function WorkflowPerformance() {
 
     const sessions = sessionsData.sessions;
     const durations = sessions
-      .filter((s) => s.duration !== null)
-      .map((s) => s.duration!)
-      .sort((a, b) => a - b);
+      .filter((s) => (s as any).duration !== null && (s as any).duration !== undefined)
+      .map((s) => (s as any).duration!)
+      .sort((a: number, b: number) => a - b);
 
     const avgResponseTime = durations.length > 0
-      ? durations.reduce((sum, d) => sum + d, 0) / durations.length
+      ? durations.reduce((sum: number, d: number) => sum + d, 0) / durations.length
       : 0;
 
     const p95Index = Math.floor(durations.length * 0.95);
@@ -126,19 +126,19 @@ export function WorkflowPerformance() {
 
     // Find bottlenecks (sessions with duration > p95)
     const bottlenecks = sessions
-      .filter((s) => s.duration && s.duration > p95ResponseTime)
+      .filter((s) => (s as any).duration && (s as any).duration > p95ResponseTime)
       .slice(0, 5)
-      .map((s) => ({
-        sessionId: s.sessionId,
+      .map((s: any) => ({
+        sessionId: s.id,
         duration: s.duration!,
-        type: s.sessionType,
+        type: s.type,
         eventCount: s.eventCount,
       }));
 
     // Type comparison
     const typeStats = new Map<string, { total: number; avgDuration: number; completed: number }>();
-    sessions.forEach((s) => {
-      const existing = typeStats.get(s.sessionType) || { total: 0, avgDuration: 0, completed: 0 };
+    sessions.forEach((s: any) => {
+      const existing = typeStats.get(s.type) || { total: 0, avgDuration: 0, completed: 0 };
       existing.total++;
       if (s.duration) {
         existing.avgDuration += s.duration;
@@ -146,7 +146,7 @@ export function WorkflowPerformance() {
       if (s.status === "completed") {
         existing.completed++;
       }
-      typeStats.set(s.sessionType, existing);
+      typeStats.set(s.type, existing);
     });
 
     const typeComparison = Array.from(typeStats.entries()).map(([type, stats]) => ({

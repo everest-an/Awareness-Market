@@ -213,6 +213,7 @@ export interface TrainingResult {
   finalEpsilon: number; // Alignment loss on validation set
   convergenceEpoch: number;
   orthogonalityScore: number; // How close W is to orthogonal
+  trainingAnchors?: number; // Number of anchor points used for training
 }
 
 /**

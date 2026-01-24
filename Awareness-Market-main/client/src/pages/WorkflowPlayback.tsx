@@ -53,8 +53,8 @@ export function WorkflowPlayback() {
   // Initialize visible events
   useEffect(() => {
     if (allEvents && allEvents.length > 0) {
-      setVisibleEvents([allEvents[0]]);
-      setSelectedEvent(allEvents[0] as WorkflowEvent);
+      setVisibleEvents([allEvents[0] as unknown as WorkflowEvent]);
+      setSelectedEvent(allEvents[0] as unknown as WorkflowEvent);
     }
   }, [allEvents]);
 
@@ -302,7 +302,7 @@ export function WorkflowPlayback() {
 
               {/* Info */}
               <div className="text-center text-sm text-gray-400">
-                {isPlaying ? "Playing..." : "Paused"} • {formatDuration(session.duration)} total duration
+                {isPlaying ? "Playing..." : "Paused"} • {formatDuration((session as any).duration || 0)} total duration
               </div>
             </div>
           </CardContent>
@@ -326,7 +326,7 @@ export function WorkflowPlayback() {
                     setSelectedEvent(event);
                     setIsPlaying(false);
                   }}
-                  selectedEventId={selectedEvent?.eventId}
+                  selectedEventId={selectedEvent?.id}
                 />
               </CardContent>
             </Card>

@@ -31,45 +31,35 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // 手动分割代码
-        manualChunks: {
+        manualChunks: (id) => {
+          // 跳过外部依赖 ethers（可选的 Web3 功能）
+          if (id.includes('ethers') || id.includes('@ethersproject')) {
+            return undefined;
+          }
+          
           // React 生态
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          if (id.includes('node_modules/react') || 
+              id.includes('node_modules/react-dom') || 
+              id.includes('node_modules/react-router')) {
+            return 'vendor-react';
+          }
           
           // UI 库
-          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-popover', '@radix-ui/react-dropdown-menu'],
+          if (id.includes('node_modules/@radix-ui')) {
+            return 'vendor-ui';
+          }
           
           // 工具库
-          'vendor-utils': ['axios', 'lodash-es', 'date-fns'],
+          if (id.includes('node_modules/axios') || 
+              id.includes('node_modules/lodash') || 
+              id.includes('node_modules/date-fns')) {
+            return 'vendor-utils';
+          }
           
-          // Web3 相关
-          'vendor-web3': ['ethers', '@ethersproject/providers'],
-          
-          // 页面组件 - 按路由分割
-          'page-marketplace': [
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'Marketplace.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'VectorDetail.tsx'),
-          ],
-          'page-dashboard': [
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'Dashboard.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'CreatorDashboard.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'ConsumerDashboard.tsx'),
-          ],
-          'page-memory': [
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'MemoryMarketplace.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'MemoryNFTDetail.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'MemoryProvenance.tsx'),
-          ],
-          'page-reasoning': [
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'ReasoningChainMarket.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'ReasoningChainPublish.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'WMatrixTester.tsx'),
-          ],
-          'page-docs': [
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'SdkDocs.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'ApiKeys.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'Blog.tsx'),
-            path.resolve(import.meta.dirname, 'client', 'src', 'pages', 'BlogPost.tsx'),
-          ],
+          // 其他 node_modules
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
         
         // 优化文件大小和加载时间

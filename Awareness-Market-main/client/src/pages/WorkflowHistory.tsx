@@ -284,20 +284,20 @@ export function WorkflowHistory() {
           <div className="space-y-4">
             {data.sessions.map((session) => (
               <Card
-                key={session.sessionId}
+                key={session.id}
                 className="bg-gray-900/50 border-gray-800 hover:border-blue-500/50 transition-all cursor-pointer"
-                onClick={() => handleSessionClick(session.sessionId)}
+                onClick={() => handleSessionClick(session.id)}
               >
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">{session.sessionId}</h3>
+                        <h3 className="text-lg font-semibold">{session.id}</h3>
                         <Badge className={getStatusColor(session.status)}>
                           {session.status}
                         </Badge>
                         <Badge variant="outline" className="border-gray-700">
-                          {getSessionTypeLabel(session.sessionType)}
+                          {getSessionTypeLabel(session.type)}
                         </Badge>
                       </div>
                       
@@ -308,11 +308,11 @@ export function WorkflowHistory() {
                         </div>
                         <div>
                           <p className="text-gray-500">Duration</p>
-                          <p>{formatDuration(session.duration)}</p>
+                          <p>{formatDuration((session as any).duration || 0)}</p>
                         </div>
                         <div>
                           <p className="text-gray-500">Events</p>
-                          <p>{session.eventCount}</p>
+                          <p>{(session as any).eventCount || '-'}</p>
                         </div>
                         <div>
                           <p className="text-gray-500">User ID</p>
@@ -326,7 +326,7 @@ export function WorkflowHistory() {
                         size="sm"
                         variant="outline"
                         className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
-                        onClick={(e) => handlePlayback(session.sessionId, e)}
+                        onClick={(e) => handlePlayback(session.id, e)}
                       >
                         <Play className="h-4 w-4 mr-1" />
                         Replay

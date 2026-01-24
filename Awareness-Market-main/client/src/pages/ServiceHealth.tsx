@@ -78,7 +78,7 @@ export default function ServiceHealth() {
     const updatedStatuses = await Promise.all(
       serviceStatuses.map(async (service) => ({
         ...service,
-        status: await checkServiceHealth(service),
+        status: await checkServiceHealth(service) as "running" | "stopped" | "error",
       }))
     );
     setServiceStatuses(updatedStatuses);

@@ -29,7 +29,13 @@ export default function WorkflowDemo() {
     },
   });
 
-  const demoScenarios = [
+  const demoScenarios: {
+    id: "ai_reasoning" | "memory_transfer" | "package_processing";
+    title: string;
+    description: string;
+    icon: typeof Brain;
+    color: string;
+  }[] = [
     {
       id: "ai_reasoning",
       title: "AI Reasoning Chain",

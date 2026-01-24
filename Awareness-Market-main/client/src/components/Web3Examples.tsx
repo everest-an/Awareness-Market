@@ -3,7 +3,7 @@
  * 展示如何在应用中使用钱包和 NFT 合约功能
  */
 
-import { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useWeb3 } from '../context/Web3Context';
 import { getMemoryNFTManager } from '../lib/nft-contract';
 
@@ -70,8 +70,8 @@ export function BuyLicenseExample() {
  */
 export function UserNFTsExample() {
   const { state } = useWeb3();
-  const [nfts, setNfts] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  const [nfts, setNfts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const handleGetNFTs = async () => {
     if (!state.isConnected || !state.address) {
@@ -158,7 +158,7 @@ export function NFTEventListenerExample() {
  */
 export function SignMessageExample() {
   const { state, signMessage } = useWeb3();
-  const [signature, setSignature] = React.useState('');
+  const [signature, setSignature] = useState('');
 
   const handleSign = async () => {
     if (!state.isConnected) {

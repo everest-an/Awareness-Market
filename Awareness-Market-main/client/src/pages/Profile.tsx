@@ -181,7 +181,7 @@ export default function Profile() {
                 <div className="space-y-2">
                   <Label>Last Sign In</Label>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(user.lastSignedIn).toLocaleString()}
+                    {user.lastSignedIn ? new Date(user.lastSignedIn).toLocaleString() : 'Never'}
                   </p>
                 </div>
               </CardContent>

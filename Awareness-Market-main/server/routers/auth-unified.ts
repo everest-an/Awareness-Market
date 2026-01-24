@@ -79,7 +79,7 @@ export const authUnifiedRouter = router({
       
       return {
         success: true,
-        userId: result.userId,
+        userId: result.user?.id,
         accessToken: result.accessToken,
       };
     }),

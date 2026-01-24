@@ -89,12 +89,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       message: {
         role: choice.message.role,
         content: choice.message.content,
-        tool_calls: choice.message.tool_calls?.map((tc) => ({
+        tool_calls: choice.message.tool_calls?.map((tc: any) => ({
           id: tc.id,
           type: tc.type,
           function: {
-            name: tc.function.name,
-            arguments: tc.function.arguments,
+            name: tc.function?.name || '',
+            arguments: tc.function?.arguments || '',
           },
         })),
       },

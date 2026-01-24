@@ -228,7 +228,7 @@ export async function getRateLimitConfig(apiKeyId: number) {
   });
 
   return {
-    id: Number(result[0]?.insertId || result.insertId),
+    id: Number((result as any)[0]?.insertId || (result as any).insertId || 0),
     apiKeyId,
     requestsPerHour: 1000,
     requestsPerDay: 10000,
