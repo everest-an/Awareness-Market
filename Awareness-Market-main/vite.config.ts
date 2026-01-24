@@ -72,7 +72,8 @@ export default defineConfig({
         
         entryFileNames: 'js/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
-          const info = assetInfo.name.split('.');
+          const name = assetInfo.name || 'asset';
+          const info = name.split('.');
           const ext = info[info.length - 1];
           if (/png|jpe?g|gif|tiff|bmp|ico/i.test(ext)) {
             return `images/[name]-[hash][extname]`;
@@ -113,8 +114,8 @@ export default defineConfig({
     reportCompressedSize: true, // 显示压缩后的大小
     chunkSizeWarningLimit: 500, // 警告阈值 500KB
     sourcemap: true, // 生产环境保留 sourcemap 便于调试
-    assetsInclude: ['**/*.wasm'], // 包含 WebAssembly 文件
   },
+  assetsInclude: ['**/*.wasm'], // 包含 WebAssembly 文件
   server: {
     host: true,
     allowedHosts: [

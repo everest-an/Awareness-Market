@@ -4,7 +4,7 @@
  * Analyzes storage costs and provides optimization recommendations
  */
 
-import { db } from '../db';
+import { getDb } from '../db';
 import { storageCostMetrics, packageStorageTier } from '../../drizzle/schema-storage-tiers';
 import { sql, eq, gte, and } from 'drizzle-orm';
 import type { DataTier } from './access-tracker';

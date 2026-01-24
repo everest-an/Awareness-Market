@@ -5,7 +5,7 @@
  * based on access patterns to optimize costs
  */
 
-import { db } from '../db';
+import { getDb } from '../db';
 import { migrationQueue } from '../../drizzle/schema-storage-tiers';
 import { eq, and, sql, or } from 'drizzle-orm';
 import type { PackageType, DataTier } from './access-tracker';
