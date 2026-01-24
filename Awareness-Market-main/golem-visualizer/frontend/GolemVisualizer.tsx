@@ -112,7 +112,7 @@ export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
         const intersects = raycasterRef.current.intersectObject(pointsRef.current);
         if (intersects.length > 0) {
           const index = intersects[0].index;
-          if (index !== null) {
+          if (typeof index === 'number') {
             if (onPointClick) {
               onPointClick(data[index]);
             }
@@ -256,7 +256,8 @@ export const GolemVisualizer: React.FC<GolemVisualizerProps> = ({
     geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
     geometry.setAttribute('activationTime', new THREE.BufferAttribute(new Float32Array(activationTimes), 1));
-    geometry.getAttribute('activationTime').setUsage(THREE.DynamicDrawUsage);
+    const activationAttr = geometry.getAttribute('activationTime') as THREE.BufferAttribute;
+    activationAttr.setUsage(THREE.DynamicDrawUsage);
 
     const material = createShaderMaterial();
 
