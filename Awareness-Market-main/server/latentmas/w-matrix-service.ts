@@ -35,12 +35,12 @@ export class WMatrixService {
    * Get or generate W-Matrix for model pair
    */
   static getWMatrix(
-    sourceModel: ModelType,
-    targetModel: ModelType,
+    sourceModel: ModelType | string,
+    targetModel: ModelType | string,
     version: string = "1.0.0",
     method: WMatrixMethod = "orthogonal"
   ): WMatrixStandard {
-    const cacheKey = getCacheKey(sourceModel, targetModel, version);
+    const cacheKey = getCacheKey(sourceModel as ModelType, targetModel as ModelType, version);
 
     // Check cache first
     if (wMatrixCache.has(cacheKey)) {
@@ -48,7 +48,7 @@ export class WMatrixService {
     }
 
     // Generate new W-Matrix
-    const wMatrix = generateWMatrix(sourceModel, targetModel, method, version);
+    const wMatrix = generateWMatrix(sourceModel as ModelType, targetModel as ModelType, method, version);
 
     // Cache it
     wMatrixCache.set(cacheKey, wMatrix);
@@ -130,7 +130,7 @@ export class WMatrixService {
     const wMatrix = this.getWMatrix(sourceModel, targetModel, version);
 
     // If models are already compatible, no transformation needed
-    if (areModelsCompatible(sourceModel, targetModel)) {
+    if (areModelsCompatible(sourceModel as ModelType, targetModel)) {
       return {
         ...kvCache,
         targetModel,
@@ -187,11 +187,11 @@ export class WMatrixService {
   private static transformTensor(
     tensor: number[][][][],
     wMatrix: WMatrixStandard,
-    sourceModel: ModelType,
-    targetModel: ModelType
+    sourceModel: ModelType | string,
+    targetModel: ModelType | string
   ): number[][][][] {
-    const sourceSpec = getModelSpec(sourceModel);
-    const targetSpec = getModelSpec(targetModel);
+    const sourceSpec = getModelSpec(sourceModel as ModelType);
+    const targetSpec = getModelSpec(targetModel as ModelType);
     const sourceDim = sourceSpec.keyDimension;
     const targetDim = targetSpec.keyDimension;
 

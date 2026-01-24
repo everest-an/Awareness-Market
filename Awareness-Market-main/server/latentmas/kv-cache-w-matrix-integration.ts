@@ -8,8 +8,23 @@
  * Paper Reference: LatentMAS Section 3.2 "Cross-Model KV-Cache Transfer"
  */
 
-import type { KVCache, CompressedKVCache } from './kv-cache-compressor';
+import type { CompressedKVCache as BaseCompressedKVCache } from './kv-cache-compressor';
+import type { KVCache } from './types';
 import type { TrainingResult } from './w-matrix-trainer';
+
+// ============================================================================
+// Internal Types for Compression
+// ============================================================================
+
+interface InternalCompressedKVCache {
+  selectedKeys: number[][][][]; // Preserves 4D structure: [num_layers][num_heads][num_selected_tokens][dimension]
+  selectedValues: number[][][][];
+  selectedIndices: number[];
+  attentionWeights: number[][];
+  originalSize: number;
+  compressedSize: number;
+  compressionRatio: number;
+}
 
 // ============================================================================
 // KV-Cache Transformation
@@ -38,16 +53,16 @@ export function transformKVCache(
   const { weights, biases } = wMatrix;
   
   // Transform keys
-  const transformedKeys = kvCache.keys.map(layer =>
-    layer.map(token =>
-      applyWMatrix(token, weights, biases)
+  const transformedKeys = kvCache.keys.map((layer: number[][][]) =>
+    layer.map((token: number[][]) =>
+      applyWMatrix(token.flat(), weights, biases)
     )
   );
   
   // Transform values
-  const transformedValues = kvCache.values.map(layer =>
-    layer.map(token =>
-      applyWMatrix(token, weights, biases)
+  const transformedValues = kvCache.values.map((layer: number[][][]) =>
+    layer.map((token: number[][]) =>
+      applyWMatrix(token.flat(), weights, biases)
     )
   );
   
@@ -88,7 +103,7 @@ function applyWMatrix(
 // ============================================================================
 
 export interface CompressedTransformedKVCache {
-  compressed: CompressedKVCache;
+  compressed: InternalCompressedKVCache;
   transformed: TransformedKVCache;
   compressionRatio: number;
   transformationQuality: number;
@@ -115,17 +130,25 @@ export async function compressAndTransformKVCache(
   // Step 2: Transform compressed cache to target model
   const transformed = transformKVCache(
     {
-      keys: compressed.selectedKeys,
-      values: compressed.selectedValues,
-      attentionWeights: compressed.attentionWeights,
-    },
+      keys: compressed.selectedKeys as unknown as number[][][][],
+      values: compressed.selectedValues as unknown as number[][][][],
+      attentionMask: undefined,
+      positionEncodings: undefined,
+      sourceModel: 'unknown',
+      metadata: {
+        sequenceLength: compressed.originalSize,
+        contextDescription: '',
+        tokenCount: compressed.compressedSize,
+        createdAt: new Date(),
+      }
+    } as KVCache,
     wMatrix,
     sourceModel,
     targetModel
   );
   
   // Calculate metrics
-  const compressionRatio = compressed.selectedIndices.length / kvCache.keys[0].length;
+  const compressionRatio = compressed.compressedSize / compressed.originalSize;
   const transformationQuality = 1 - wMatrix.finalEpsilon;
   const totalBandwidthSaving = (1 - compressionRatio) * 100;
   
@@ -145,7 +168,7 @@ export async function compressAndTransformKVCache(
 async function compressKVCacheByAttention(
   kvCache: KVCache,
   threshold: number
-): Promise<CompressedKVCache> {
+): Promise<InternalCompressedKVCache> {
   const { keys, values, attentionWeights } = kvCache;
   
   if (!attentionWeights || attentionWeights.length === 0) {
@@ -372,9 +395,16 @@ export async function exampleLatentMASWorkflow() {
   
   // 2. Prepare KV-Cache
   const kvCache: KVCache = {
-    keys: [[[]]],
-    values: [[[]]],
+    keys: [[[[]]]],
+    values: [[[[]]]],
     attentionWeights: [[]],
+    sourceModel: 'gpt-3.5',
+    metadata: {
+      sequenceLength: 0,
+      contextDescription: 'Example KV-Cache',
+      tokenCount: 0,
+      createdAt: new Date(),
+    },
   };
   
   // 3. Compress and transform

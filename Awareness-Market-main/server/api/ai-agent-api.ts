@@ -316,7 +316,7 @@ export const aiAgentRouter = router({
         .from(packagePurchases)
         .where(
           and(
-            eq(packagePurchases.userId, ctx.user.id),
+            eq(packagePurchases.buyerId, ctx.user.id),
             eq(packagePurchases.packageType, packageType),
             eq(packagePurchases.packageId, packageId)
           )

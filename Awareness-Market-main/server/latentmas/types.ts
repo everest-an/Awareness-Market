@@ -174,7 +174,7 @@ export interface WMatrixStandard {
  */
 export interface KVCache {
   /** Model that generated this KV-Cache */
-  sourceModel: ModelType;
+  sourceModel: ModelType | string;
   
   /** Key tensors [layers][heads][sequence][key_dim] */
   keys: number[][][][];
@@ -188,12 +188,16 @@ export interface KVCache {
   /** Position encodings */
   positionEncodings?: number[][];
   
+  /** Attention weights for selective compression */
+  attentionWeights?: number[][];
+  
   /** Metadata */
   metadata: {
     sequenceLength: number;
     contextDescription: string;
     tokenCount: number;
-    generatedAt: Date;
+    generatedAt?: Date;
+    createdAt?: Date;
   };
 }
 

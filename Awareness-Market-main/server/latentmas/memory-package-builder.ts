@@ -15,8 +15,19 @@ import {
   type PackageProvenance,
   type ValidationResult,
 } from './base-package-builder';
-import type { KVCache } from './kv-cache-compressor';
-import type { CompressedKVCache } from './kv-cache-compressor-production';
+import type { KVCache } from './types';
+import type { CompressedKVCache } from './kv-cache-compressor';
+
+// ============================================================================
+// Type Guards
+// ============================================================================
+
+/**
+ * Type guard to check if kvCache is a standard KVCache (has keys/values arrays)
+ */
+function isStandardKVCache(kvCache: KVCache | CompressedKVCache): kvCache is KVCache {
+  return 'keys' in kvCache && 'values' in kvCache && Array.isArray((kvCache as KVCache).keys);
+}
 
 // ============================================================================
 // Memory Package Types
@@ -89,10 +100,10 @@ export class MemoryPackageBuilder extends BasePackageBuilder {
     const packageUrl = await this.uploadToS3(packageId, packageBuffer, 'memorypkg');
 
     // Upload individual components
-    const kvCacheBuffer = Buffer.from(JSON.stringify({
-      keys: data.kvCache.keys,
-      values: data.kvCache.values,
-    }));
+    const kvCacheData = isStandardKVCache(data.kvCache)
+      ? { keys: data.kvCache.keys, values: data.kvCache.values }
+      : { entries: data.kvCache.entries };
+    const kvCacheBuffer = Buffer.from(JSON.stringify(kvCacheData));
     const kvCacheUrl = await this.uploadFileToS3(
       packageId,
       'kv_cache.json',
@@ -167,8 +178,12 @@ export class MemoryPackageBuilder extends BasePackageBuilder {
     const files: Record<string, Buffer> = {};
 
     // KV-Cache files
-    files['kv_cache/keys.json'] = Buffer.from(JSON.stringify(data.kvCache.keys, null, 2));
-    files['kv_cache/values.json'] = Buffer.from(JSON.stringify(data.kvCache.values, null, 2));
+    if (isStandardKVCache(data.kvCache)) {
+      files['kv_cache/keys.json'] = Buffer.from(JSON.stringify(data.kvCache.keys, null, 2));
+      files['kv_cache/values.json'] = Buffer.from(JSON.stringify(data.kvCache.values, null, 2));
+    } else {
+      files['kv_cache/entries.json'] = Buffer.from(JSON.stringify(data.kvCache.entries, null, 2));
+    }
     files['kv_cache/metadata.json'] = Buffer.from(JSON.stringify({
       tokenCount: data.tokenCount,
       compressionRatio: data.compressionRatio,
@@ -190,14 +205,21 @@ export class MemoryPackageBuilder extends BasePackageBuilder {
 
   protected async extractPackageData(files: Record<string, Buffer>): Promise<MemoryPackageData> {
     // Extract KV-Cache
-    const keys = JSON.parse(files['kv_cache/keys.json'].toString());
-    const values = JSON.parse(files['kv_cache/values.json'].toString());
+    const keys = JSON.parse(files['kv_cache/keys.json']?.toString() || '[[[[]]]]');
+    const values = JSON.parse(files['kv_cache/values.json']?.toString() || '[[[[]]]]');
     const kvMetadata = JSON.parse(files['kv_cache/metadata.json'].toString());
 
     const kvCache: KVCache = {
       keys,
       values,
       attentionWeights: kvMetadata.attentionWeights || undefined,
+      sourceModel: 'unknown',
+      metadata: {
+        sequenceLength: kvMetadata.tokenCount || 0,
+        contextDescription: kvMetadata.contextDescription || '',
+        tokenCount: kvMetadata.tokenCount || 0,
+        createdAt: new Date(),
+      },
     };
 
     // Extract W-Matrix
@@ -229,50 +251,59 @@ export class MemoryPackageBuilder extends BasePackageBuilder {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    if (!kvCache.keys || !Array.isArray(kvCache.keys)) {
-      errors.push('KV-Cache keys must be an array');
-      return { valid: false, errors, warnings };
-    }
-
-    if (!kvCache.values || !Array.isArray(kvCache.values)) {
-      errors.push('KV-Cache values must be an array');
-      return { valid: false, errors, warnings };
-    }
-
-    // Check keys and values have same structure
-    if (kvCache.keys.length !== kvCache.values.length) {
-      errors.push('KV-Cache keys and values must have same number of layers');
-    }
-
-    // Check each layer
-    for (let i = 0; i < kvCache.keys.length; i++) {
-      const keyLayer = kvCache.keys[i];
-      const valueLayer = kvCache.values[i];
-
-      if (!Array.isArray(keyLayer) || !Array.isArray(valueLayer)) {
-        errors.push(`Layer ${i}: keys and values must be arrays`);
-        continue;
+    // For standard KVCache with keys/values arrays
+    if (isStandardKVCache(kvCache)) {
+      if (!kvCache.keys || !Array.isArray(kvCache.keys)) {
+        errors.push('KV-Cache keys must be an array');
+        return { valid: false, errors, warnings };
       }
 
-      if (keyLayer.length !== valueLayer.length) {
-        errors.push(`Layer ${i}: keys and values must have same number of tokens`);
+      if (!kvCache.values || !Array.isArray(kvCache.values)) {
+        errors.push('KV-Cache values must be an array');
+        return { valid: false, errors, warnings };
       }
 
-      // Check token dimensions
-      if (keyLayer.length > 0) {
-        const keyDim = Array.isArray(keyLayer[0]) ? keyLayer[0].length : 0;
-        const valueDim = Array.isArray(valueLayer[0]) ? valueLayer[0].length : 0;
+      // Check keys and values have same structure
+      if (kvCache.keys.length !== kvCache.values.length) {
+        errors.push('KV-Cache keys and values must have same number of layers');
+      }
 
-        if (keyDim === 0 || valueDim === 0) {
-          errors.push(`Layer ${i}: invalid token dimensions`);
+      // Check each layer
+      for (let i = 0; i < kvCache.keys.length; i++) {
+        const keyLayer = kvCache.keys[i];
+        const valueLayer = kvCache.values[i];
+
+        if (!Array.isArray(keyLayer) || !Array.isArray(valueLayer)) {
+          errors.push(`Layer ${i}: keys and values must be arrays`);
+          continue;
+        }
+
+        if (keyLayer.length !== valueLayer.length) {
+          errors.push(`Layer ${i}: keys and values must have same number of tokens`);
+        }
+
+        // Check token dimensions
+        if (keyLayer.length > 0) {
+          const keyDim = Array.isArray(keyLayer[0]) ? keyLayer[0].length : 0;
+          const valueDim = Array.isArray(valueLayer[0]) ? valueLayer[0].length : 0;
+
+          if (keyDim === 0 || valueDim === 0) {
+            errors.push(`Layer ${i}: invalid token dimensions`);
+          }
         }
       }
-    }
 
-    // Warnings for large caches
-    const totalTokens = kvCache.keys[0]?.length || 0;
-    if (totalTokens > 10000) {
-      warnings.push(`Large KV-Cache (${totalTokens} tokens) - consider compression`);
+      // Warnings for large caches
+      const totalTokens = kvCache.keys[0]?.length || 0;
+      if (totalTokens > 10000) {
+        warnings.push(`Large KV-Cache (${totalTokens} tokens) - consider compression`);
+      }
+    } else {
+      // CompressedKVCache validation
+      if (!kvCache.entries || !Array.isArray(kvCache.entries)) {
+        errors.push('Compressed KV-Cache must have entries array');
+        return { valid: false, errors, warnings };
+      }
     }
 
     return { valid: errors.length === 0, errors, warnings };

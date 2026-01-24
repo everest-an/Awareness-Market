@@ -25,7 +25,7 @@ import {
   type VectorData,
   type WMatrixData,
 } from '../latentmas/package-builders';
-import type { KVCache } from '../latentmas/kv-cache-compressor';
+import type { KVCache } from '../latentmas/types';
 import type { ReasoningChainData } from '../latentmas/package-builders';
 
 // ============================================================================
@@ -179,7 +179,13 @@ export const packagesApiRouter = router({
 
         // Save to database
         const db = await getDb();
-        const [pkg] = await db.insert(vectorPackages).values({
+        if (!db) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Database unavailable',
+          });
+        }
+        const insertResult = await db.insert(vectorPackages).values({
           packageId: result.packageId,
           userId: ctx.user.id,
           name: input.name,
@@ -188,15 +194,18 @@ export const packagesApiRouter = router({
           sourceModel: input.wMatrix.sourceModel,
           targetModel: input.wMatrix.targetModel,
           category: input.vector.category,
-          price: input.price,
+          price: String(input.price),
           packageUrl: result.packageUrl,
-          vectorUrl: result.vectorUrl,
-          wMatrixUrl: result.wMatrixUrl,
-          epsilon: input.wMatrix.epsilon,
+          vectorUrl: result.vectorUrl || '',
+          wMatrixUrl: result.wMatrixUrl || '',
+          epsilon: String(input.wMatrix.epsilon),
           dimension: input.vector.dimension,
           tags: input.tags?.join(',') || null,
           trainingDataset: input.trainingDataset,
-        }).returning();
+        }).$returningId();
+
+        const pkgId = insertResult[0]?.id;
+        const [pkg] = pkgId ? await db.select().from(vectorPackages).where(eq(vectorPackages.id, pkgId)).limit(1) : [];
 
         return {
           success: true,

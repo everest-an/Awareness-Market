@@ -11,9 +11,10 @@ import { cn } from "@/lib/utils";
 interface EventDetailsPanelProps {
   event: WorkflowEvent | null;
   className?: string;
+  onClose?: () => void;
 }
 
-export function EventDetailsPanel({ event, className }: EventDetailsPanelProps) {
+export function EventDetailsPanel({ event, className, onClose }: EventDetailsPanelProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (!event) {

@@ -14,7 +14,7 @@ import { ethers, BrowserProvider, Contract } from 'ethers';
 export type WalletProvider = BrowserProvider | null;
 export type WalletSigner = ethers.Signer | null;
 
-interface WalletState {
+export interface WalletState {
   isConnected: boolean;
   address: string | null;
   chainId: number | null;
@@ -23,9 +23,10 @@ interface WalletState {
   provider: WalletProvider;
   signer: WalletSigner;
   error: string | null;
+  isOnAmoy?: boolean;
 }
 
-interface WalletCallbacks {
+export interface WalletCallbacks {
   onAccountsChanged?: (accounts: string[]) => void;
   onChainChanged?: (chainId: string) => void;
   onConnect?: (address: string) => void;

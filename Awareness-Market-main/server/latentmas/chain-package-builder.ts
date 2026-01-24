@@ -15,7 +15,7 @@ import {
   type PackageProvenance,
   type ValidationResult,
 } from './base-package-builder';
-import type { KVCache } from './kv-cache-compressor';
+import type { KVCache } from './types';
 
 // ============================================================================
 // Chain Package Types

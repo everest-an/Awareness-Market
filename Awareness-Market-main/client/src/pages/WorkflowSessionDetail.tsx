@@ -205,7 +205,7 @@ export function WorkflowSessionDetail() {
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader className="pb-2">
               <CardDescription>Type</CardDescription>
-              <CardTitle className="text-lg">{getSessionTypeLabel(session.sessionType)}</CardTitle>
+              <CardTitle className="text-lg">{getSessionTypeLabel(session.type)}</CardTitle>
             </CardHeader>
           </Card>
           
@@ -214,7 +214,7 @@ export function WorkflowSessionDetail() {
               <CardDescription>Duration</CardDescription>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                {formatDuration(session.duration)}
+                {formatDuration((session as any).duration || 0)}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -224,7 +224,7 @@ export function WorkflowSessionDetail() {
               <CardDescription>Events</CardDescription>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Activity className="h-4 w-4" />
-                {session.eventCount}
+                {(session as any).eventCount || 0}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -245,7 +245,7 @@ export function WorkflowSessionDetail() {
                 <EventTimeline
                   events={events as WorkflowEvent[]}
                   onEventClick={setSelectedEvent}
-                  selectedEventId={selectedEvent?.eventId}
+                  selectedEventId={selectedEvent?.id}
                 />
               </CardContent>
             </Card>
@@ -261,14 +261,14 @@ export function WorkflowSessionDetail() {
         </div>
 
         {/* Session Metadata */}
-        {session.metadata && (
+        {(session as any).metadata && (
           <Card className="bg-gray-900/50 border-gray-800 mt-6">
             <CardHeader>
               <CardTitle>Session Metadata</CardTitle>
             </CardHeader>
             <CardContent>
               <pre className="text-sm text-gray-400 overflow-x-auto">
-                {JSON.stringify(session.metadata, null, 2)}
+                {JSON.stringify((session as any).metadata, null, 2)}
               </pre>
             </CardContent>
           </Card>
@@ -286,13 +286,11 @@ export function WorkflowSessionDetail() {
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader>
               <CardDescription>Updated At</CardDescription>
-              <CardTitle className="text-lg">{formatDate(session.updatedAt)}</CardTitle>
+              <CardTitle className="text-lg">{formatDate((session as any).updatedAt || session.createdAt)}</CardTitle>
             </CardHeader>
           </Card>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 }

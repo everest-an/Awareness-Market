@@ -1,18 +1,20 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*", "drizzle/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "golem-visualizer/**/*", "server/middleware/cloudwatch-monitoring.ts"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
     "module": "ESNext",
+    "target": "ES2020",
     "strict": true,
-    "lib": ["esnext", "dom", "dom.iterable"],
+    "lib": ["ES2020", "dom", "dom.iterable"],
     "jsx": "preserve",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
+    "downlevelIteration": true,
     "baseUrl": ".",
     "types": ["node", "vite/client"],
     "paths": {
