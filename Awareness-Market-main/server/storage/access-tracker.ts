@@ -34,6 +34,9 @@ export interface TierInfo {
  */
 export async function recordPackageAccess(record: AccessRecord): Promise<void> {
   try {
+    const db = await getDb();
+    if (!db) throw new Error('Database unavailable');
+    
     // Insert access log
     await db.insert(packageAccessLog).values({
       packageId: record.packageId,
@@ -100,6 +103,9 @@ export async function getAccessFrequency(
   days: number = 7
 ): Promise<number> {
   try {
+    const db = await getDb();
+    if (!db) return 0;
+    
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
     const result = await db
@@ -128,6 +134,9 @@ export async function determineDataTemperature(
   packageType: PackageType
 ): Promise<DataTier> {
   try {
+    const db = await getDb();
+    if (!db) return 'warm';
+    
     const tierInfo = await db
       .select()
       .from(packageStorageTier)
@@ -175,6 +184,9 @@ export async function getTierInfo(
   packageType: PackageType
 ): Promise<TierInfo | null> {
   try {
+    const db = await getDb();
+    if (!db) return null;
+    
     const result = await db
       .select()
       .from(packageStorageTier)
@@ -214,6 +226,9 @@ export async function updateTierAssignment(
   newBackend: string
 ): Promise<void> {
   try {
+    const db = await getDb();
+    if (!db) throw new Error('Database unavailable');
+    
     await db
       .update(packageStorageTier)
       .set({
@@ -246,6 +261,9 @@ export async function getPackagesNeedingMigration(): Promise<Array<{
   daysSinceAccess: number;
 }>> {
   try {
+    const db = await getDb();
+    if (!db) return [];
+    
     const allTiers = await db.select().from(packageStorageTier);
     
     const migrations: Array<{
@@ -325,6 +343,9 @@ export async function getAccessStats(
  */
 export async function getHotPackages(limit: number = 10): Promise<TierInfo[]> {
   try {
+    const db = await getDb();
+    if (!db) return [];
+    
     const result = await db
       .select()
       .from(packageStorageTier)
@@ -332,7 +353,7 @@ export async function getHotPackages(limit: number = 10): Promise<TierInfo[]> {
       .orderBy(desc(packageStorageTier.accessCount))
       .limit(limit);
 
-    return result.map(r => ({
+    return result.map((r: typeof result[0]) => ({
       packageId: r.packageId,
       packageType: r.packageType as PackageType,
       currentTier: r.currentTier as DataTier,
@@ -351,6 +372,9 @@ export async function getHotPackages(limit: number = 10): Promise<TierInfo[]> {
  */
 export async function getColdPackages(limit: number = 10): Promise<TierInfo[]> {
   try {
+    const db = await getDb();
+    if (!db) return [];
+    
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
     
     const result = await db
@@ -365,7 +389,7 @@ export async function getColdPackages(limit: number = 10): Promise<TierInfo[]> {
       .orderBy(packageStorageTier.lastAccessAt)
       .limit(limit);
 
-    return result.map(r => ({
+    return result.map((r: typeof result[0]) => ({
       packageId: r.packageId,
       packageType: r.packageType as PackageType,
       currentTier: r.currentTier as DataTier,

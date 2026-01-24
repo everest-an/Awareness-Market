@@ -38,7 +38,7 @@ export interface StorageBackend {
   /**
    * Check if backend is healthy
    */
-  healthCheck(): Promise<boolean>;
+  healthCheck(): Promise<boolean | { healthy: boolean; message: string }>;
 
   /**
    * Get cost metrics for this backend

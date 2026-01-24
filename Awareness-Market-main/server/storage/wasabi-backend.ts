@@ -181,6 +181,17 @@ export class WasabiBackend implements StorageBackend {
   }
 
   /**
+   * Get cost metrics for this backend
+   */
+  getCostMetrics(): { storageCostPerGB: number; bandwidthCostPerGB: number; apiCostPer1000: number } {
+    return {
+      storageCostPerGB: 0.0059,  // $0.0059/GB/month
+      bandwidthCostPerGB: 0,      // Free egress!
+      apiCostPer1000: 0.004,      // ~$0.004 per 1000 requests
+    };
+  }
+
+  /**
    * Get storage statistics
    */
   async getStats(): Promise<{ totalFiles: number; totalSize: number }> {

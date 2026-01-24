@@ -103,7 +103,8 @@ export class StorageRouter {
     const results: Record<string, boolean> = {};
     
     for (const [name, backend] of this.backends.entries()) {
-      results[name] = await backend.healthCheck();
+      const health = await backend.healthCheck();
+      results[name] = typeof health === 'boolean' ? health : health.healthy;
     }
     
     return results;
