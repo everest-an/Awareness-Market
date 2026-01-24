@@ -1,6 +1,6 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*", "drizzle/**/*", "golem-visualizer/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "server/middleware/cloudwatch-monitoring.ts", "server/storage/**/*"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "server/middleware/cloudwatch-monitoring.ts"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",

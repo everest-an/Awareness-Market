@@ -55,6 +55,9 @@ export class CostOptimizer {
    */
   async recordDailyCosts(): Promise<void> {
     try {
+      const db = await getDb();
+      if (!db) throw new Error('Database unavailable');
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -131,6 +134,9 @@ export class CostOptimizer {
    */
   async getCostComparison(): Promise<CostComparison> {
     try {
+      const db = await getDb();
+      if (!db) throw new Error('Database unavailable');
+      
       // Get current month's costs
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       
@@ -243,6 +249,9 @@ export class CostOptimizer {
    */
   async generateRecommendations(): Promise<OptimizationRecommendation[]> {
     try {
+      const db = await getDb();
+      if (!db) return [];
+      
       const recommendations: OptimizationRecommendation[] = [];
 
       // Get all packages with tier info
@@ -367,6 +376,9 @@ export class CostOptimizer {
     bandwidthCost: number;
   }>> {
     try {
+      const db = await getDb();
+      if (!db) return [];
+      
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       
       const metrics = await db
@@ -416,6 +428,9 @@ export class CostOptimizer {
     monthlyCost: number;
   }>> {
     try {
+      const db = await getDb();
+      if (!db) return [];
+      
       const distribution = await db
         .select({
           tier: packageStorageTier.currentTier,
@@ -427,7 +442,7 @@ export class CostOptimizer {
 
       const avgFileSizeGB = 0.1;
 
-      return distribution.map(d => ({
+      return distribution.map((d: typeof distribution[0]) => ({
         tier: d.tier as DataTier,
         backend: d.backend,
         fileCount: d.count,

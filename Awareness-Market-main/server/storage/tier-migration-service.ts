@@ -102,6 +102,9 @@ export class TierMigrationService {
    */
   async queueMigration(task: MigrationTask): Promise<number> {
     try {
+      const db = await getDb();
+      if (!db) throw new Error('Database unavailable');
+      
       const result = await db.insert(migrationQueue).values({
         packageId: task.packageId,
         packageType: task.packageType,
@@ -113,10 +116,11 @@ export class TierMigrationService {
         priority: task.priority,
         estimatedSavings: task.estimatedSavings.toString(),
         createdAt: new Date(),
-      });
+      }).$returningId();
 
-      const taskId = Number(result.insertId);
+      const taskId = result[0]?.id || 0;
       console.log(`[TierMigration] Queued migration task ${taskId} for ${task.packageType}:${task.packageId}`);
+      return taskId;
       return taskId;
     } catch (error) {
       console.error('[TierMigration] Failed to queue migration:', error);
@@ -136,6 +140,12 @@ export class TierMigrationService {
     this.isProcessing = true;
 
     try {
+      const db = await getDb();
+      if (!db) {
+        console.log('[TierMigration] Database unavailable');
+        return;
+      }
+      
       // Get pending tasks
       const pendingTasks = await db
         .select()
@@ -153,11 +163,11 @@ export class TierMigrationService {
 
       // Process tasks in parallel
       const results = await Promise.allSettled(
-        pendingTasks.map(task => this.executeMigration(task.id))
+        pendingTasks.map((task: typeof pendingTasks[0]) => this.executeMigration(task.id))
       );
 
-      const succeeded = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
+      const succeeded = results.filter((r: PromiseSettledResult<MigrationResult>) => r.status === 'fulfilled').length;
+      const failed = results.filter((r: PromiseSettledResult<MigrationResult>) => r.status === 'rejected').length;
 
       console.log(`[TierMigration] Completed: ${succeeded} succeeded, ${failed} failed`);
     } catch (error) {
@@ -174,6 +184,9 @@ export class TierMigrationService {
     const startTime = Date.now();
 
     try {
+      const db = await getDb();
+      if (!db) throw new Error('Database unavailable');
+      
       // Get task details
       const tasks = await db
         .select()
@@ -227,18 +240,21 @@ export class TierMigrationService {
         timeTaken,
       };
     } catch (error) {
+      const db = await getDb();
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[TierMigration] Task ${taskId} failed:`, error);
 
       // Mark as failed
-      await db
-        .update(migrationQueue)
-        .set({
-          status: 'failed',
-          errorMessage,
-          completedAt: new Date(),
-        })
-        .where(eq(migrationQueue.id, taskId));
+      if (db) {
+        await db
+          .update(migrationQueue)
+          .set({
+            status: 'failed',
+            errorMessage,
+            completedAt: new Date(),
+          })
+          .where(eq(migrationQueue.id, taskId));
+      }
 
       return {
         success: false,
@@ -341,6 +357,11 @@ export class TierMigrationService {
     totalSavings: number;
   }> {
     try {
+      const db = await getDb();
+      if (!db) {
+        return { pending: 0, processing: 0, completed: 0, failed: 0, totalSavings: 0 };
+      }
+      
       const [pending, processing, completed, failed] = await Promise.all([
         db.select({ count: sql<number>`COUNT(*)` })
           .from(migrationQueue)
@@ -362,7 +383,7 @@ export class TierMigrationService {
         .from(migrationQueue)
         .where(eq(migrationQueue.status, 'completed'));
 
-      const totalSavings = completedTasks.reduce((sum, task) => {
+      const totalSavings = completedTasks.reduce((sum: number, task: typeof completedTasks[0]) => {
         return sum + (parseFloat(task.estimatedSavings || '0') || 0);
       }, 0);
 
