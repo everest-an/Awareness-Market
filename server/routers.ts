@@ -19,6 +19,10 @@ import * as goServiceAdapter from "./adapters/go-service-adapter";
 import * as semanticIndex from "./semantic-index";
 import { GENESIS_MEMORIES } from "../shared/genesis-memories";
 import * as authStandalone from "./auth-standalone";
+import * as authOAuth from "./auth-oauth";
+import * as authRateLimiter from "./auth-rate-limiter";
+import * as authPasswordValidator from "./auth-password-validator";
+import * as authEmailVerification from "./auth-email-verification";
 import * as adminAnalytics from "./admin-analytics";
 import * as userAnalytics from "./user-analytics";
 import { latentmasRouter } from "./routers/latentmas";
@@ -36,6 +40,15 @@ import { userRouter } from './routers/user';
 import { authUnifiedRouter } from './routers/auth-unified';
 import { createSubscriptionCheckout } from "./stripe-client";
 // Memory Exchange moved to Go microservice
+
+// Helper to get client IP from request
+function getClientIp(req: any): string {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
+    || req.headers['x-real-ip'] 
+    || req.socket?.remoteAddress 
+    || req.ip 
+    || '127.0.0.1';
+}
 
 // Helper to ensure user is a creator
 const creatorProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -61,18 +74,69 @@ export const appRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie('jwt_token', { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie('jwt_refresh', { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
     
-    // Email/Password Authentication
+    // Email/Password Authentication with rate limiting and password validation
     registerEmail: publicProcedure
       .input(z.object({
         email: z.string().email(),
         password: z.string().min(8),
         name: z.string().optional(),
       }))
+      .mutation(async ({ input, ctx }) => {
+        // Validate password strength
+        const passwordValidation = authPasswordValidator.validatePassword(input.password, input.email);
+        if (!passwordValidation.valid) {
+          return { 
+            success: false, 
+            error: passwordValidation.errors[0],
+            passwordErrors: passwordValidation.errors,
+          };
+        }
+        
+        const result = await authStandalone.registerWithEmail(input);
+        
+        // Send verification email if registration successful
+        if (result.success && result.userId) {
+          await authEmailVerification.sendVerificationEmail(result.userId, input.email);
+        }
+        
+        return {
+          ...result,
+          requiresVerification: result.success,
+        };
+      }),
+    
+    // Email verification endpoints
+    sendVerificationEmail: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        if (!ctx.user.email) {
+          return { success: false, error: "No email associated with account" };
+        }
+        if (ctx.user.emailVerified) {
+          return { success: false, error: "Email already verified" };
+        }
+        return await authEmailVerification.sendVerificationEmail(ctx.user.id, ctx.user.email);
+      }),
+    
+    verifyEmail: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+      }))
       .mutation(async ({ input }) => {
-        return await authStandalone.registerWithEmail(input);
+        return await authEmailVerification.verifyEmail(input.email, input.code);
+      }),
+    
+    verificationStatus: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+      }))
+      .query(({ input }) => {
+        return authEmailVerification.getVerificationStatus(input.email);
       }),
     
     loginEmail: publicProcedure
@@ -81,15 +145,42 @@ export const appRouter = router({
         password: z.string(),
       }))
       .mutation(async ({ input, ctx }) => {
+        const clientIp = getClientIp(ctx.req);
+        
+        // Check rate limit
+        const rateLimitCheck = await authRateLimiter.checkLoginAllowed(clientIp, input.email);
+        if (!rateLimitCheck.allowed) {
+          return { 
+            success: false, 
+            error: rateLimitCheck.reason,
+            retryAfter: rateLimitCheck.retryAfter,
+          };
+        }
+        
         const result = await authStandalone.loginWithEmail(input);
+        
         if (result.success && result.accessToken) {
+          // Record successful login
+          await authRateLimiter.recordSuccessfulLogin(clientIp, input.email);
+          
           // Set JWT token in HTTP-only cookie
           const cookieOptions = getSessionCookieOptions(ctx.req);
           ctx.res.cookie('jwt_token', result.accessToken, cookieOptions);
           ctx.res.cookie('jwt_refresh', result.refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
+        } else {
+          // Record failed attempt
+          await authRateLimiter.recordFailedAttempt(clientIp, input.email);
+          
+          // Add remaining attempts info
+          const remaining = await authRateLimiter.getRemainingAttempts(clientIp, input.email);
+          if (remaining <= 2 && remaining > 0) {
+            result.error = `${result.error}. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining.`;
+          }
         }
+        
         return result;
       }),
+    
     updateRole: protectedProcedure
       .input(z.object({ role: z.enum(["creator", "consumer"]) }))
       .mutation(async ({ ctx, input }) => {
@@ -122,8 +213,100 @@ export const appRouter = router({
         newPassword: z.string().min(8),
       }))
       .mutation(async ({ input }) => {
+        // Validate new password strength
+        const passwordValidation = authPasswordValidator.validatePassword(input.newPassword, input.email);
+        if (!passwordValidation.valid) {
+          return { 
+            success: false, 
+            error: passwordValidation.errors[0],
+          };
+        }
+        
         return await authStandalone.resetPassword(input.email, input.code, input.newPassword);
       }),
+    
+    // Password validation endpoint (for real-time feedback)
+    validatePassword: publicProcedure
+      .input(z.object({
+        password: z.string(),
+        email: z.string().email().optional(),
+      }))
+      .query(({ input }) => {
+        const result = authPasswordValidator.validatePassword(input.password, input.email);
+        const strength = authPasswordValidator.getPasswordStrengthLabel(result.score);
+        return {
+          ...result,
+          strength: strength.label,
+          strengthColor: strength.color,
+        };
+      }),
+    
+    // OAuth endpoints
+    oauthStatus: publicProcedure.query(() => {
+      return authOAuth.getOAuthStatus();
+    }),
+    
+    oauthAuthorizeUrl: publicProcedure
+      .input(z.object({
+        provider: z.enum(["github", "google"]),
+      }))
+      .query(({ input, ctx }) => {
+        const state = authOAuth.generateOAuthState();
+        
+        // Store state in cookie for CSRF protection
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie('oauth_state', state, { ...cookieOptions, maxAge: 10 * 60 * 1000 }); // 10 min
+        
+        const url = authOAuth.getOAuthAuthorizeUrl(input.provider, state);
+        return { url, state };
+      }),
+    
+    oauthCallback: publicProcedure
+      .input(z.object({
+        provider: z.enum(["github", "google"]),
+        code: z.string(),
+        state: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Verify state matches (CSRF protection)
+        const storedState = ctx.req.cookies?.oauth_state;
+        if (!storedState || storedState !== input.state) {
+          return { success: false, error: "Invalid state parameter. Please try again." };
+        }
+        
+        // Clear state cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.clearCookie('oauth_state', cookieOptions);
+        
+        // Handle OAuth callback
+        const result = await authOAuth.handleOAuthCallback(input.provider, input.code);
+        
+        if (result.success && result.accessToken) {
+          // Set JWT tokens
+          ctx.res.cookie('jwt_token', result.accessToken, cookieOptions);
+          ctx.res.cookie('jwt_refresh', result.refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
+        }
+        
+        return result;
+      }),
+    
+    // Token refresh endpoint
+    refreshToken: publicProcedure.mutation(async ({ ctx }) => {
+      const refreshToken = ctx.req.cookies?.jwt_refresh;
+      
+      if (!refreshToken) {
+        return { success: false, error: "No refresh token" };
+      }
+      
+      const result = await authStandalone.refreshAccessToken(refreshToken);
+      
+      if (result.success && result.accessToken) {
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie('jwt_token', result.accessToken, cookieOptions);
+      }
+      
+      return result;
+    }),
   }),
 
   // API Key Management

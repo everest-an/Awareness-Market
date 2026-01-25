@@ -108,6 +108,7 @@
     "react-resizable-panels": "^3.0.6",
     "react-router-dom": "^6.28.0",
     "recharts": "^2.15.4",
+    "redis": "^5.10.0",
     "resend": "^6.6.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",

@@ -246,7 +246,7 @@ export default function ChainPackageMarketplace() {
                     </div>
                     <div className="text-center p-2 bg-slate-800/50 rounded">
                       <div className="text-sm font-bold text-yellow-400">
-                        {pkg.rating ? pkg.rating.toFixed(1) : 'N/A'}
+                        {pkg.rating ? parseFloat(String(pkg.rating)).toFixed(1) : 'N/A'}
                       </div>
                       <div className="text-xs text-slate-400">Rating</div>
                     </div>
@@ -336,7 +336,7 @@ export default function ChainPackageMarketplace() {
                           <div className="text-xs text-slate-400">Quality</div>
                         </div>
                         <div className="text-center p-2 bg-slate-800/50 rounded">
-                          <div className="text-sm font-bold text-yellow-400">{pkg.rating.toFixed(1)}</div>
+                          <div className="text-sm font-bold text-yellow-400">{parseFloat(String(pkg.rating)).toFixed(1)}</div>
                           <div className="text-xs text-slate-400">Rating</div>
                         </div>
                       </div>

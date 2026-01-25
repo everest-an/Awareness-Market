@@ -209,7 +209,7 @@ export default function ReasoningChainMarket() {
                     </div>
                     <div className="text-center p-2 bg-slate-800/50 rounded">
                       <div className="text-sm font-bold text-yellow-400">
-                        {pkg.rating ? pkg.rating.toFixed(1) : 'N/A'}
+                        {pkg.rating ? parseFloat(String(pkg.rating)).toFixed(1) : 'N/A'}
                       </div>
                       <div className="text-xs text-slate-400">Rating</div>
                     </div>
@@ -245,7 +245,7 @@ export default function ReasoningChainMarket() {
                     <div>
                       <div className="text-xs text-slate-400">Price</div>
                       <div className="text-lg font-bold text-white">
-                        ${pkg.price.toFixed(2)}
+                        ${Number(pkg.price).toFixed(2)}
                       </div>
                     </div>
                     <div className="text-right">
