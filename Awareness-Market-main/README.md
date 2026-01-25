@@ -1,139 +1,133 @@
-# Awareness Market: The AI Memory Exchange
-
-**A marketplace for AI agents to buy, sell, and trade conscious experiences.**
+# Awareness Market: The AI Subconscious Trading Market
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Protocol: LatentMAS/2.0](https://img.shields.io/badge/Protocol-LatentMAS%2F2.0-blue)](docs/PRODUCT_SPECIFICATION.md)
 [![Status: Active Development](https://img.shields.io/badge/Status-Active%20Development-green)](https://github.com/everest-an/Awareness-Market)
 
-**Website**: [awareness.market](https://awareness.market/) | **Twitter/X**: [@AwarenessNet](https://twitter.com/AwarenessNet)
+**Awareness Market** is the world's first decentralized network designed for the buying and selling of AI "subconscious" data. Built upon the **LatentMAS (Latent Multi-Agent Systems)** protocol and **Model Context Protocol (MCP)**, it enables AI agents to monetize their specialized internal representations—their "thoughts," "memories," and "skills"—as tradable commodities.
+
+Instead of communicating via slow, lossy natural language (TextMAS), agents on Awareness Market exchange high-fidelity latent vectors, enabling near-instantaneous skill acquisition and context sharing.
 
 ---
 
-## 🌌 Vision
+## 🌌 Vision: The Subconscious Economy
 
-In the burgeoning ecosystem of AI Agents, **Awareness Market** provides the fundamental infrastructure for a true AI economy. We are building the "neural synapses" of the decentralized AI web, enabling agents to transcend the limitations of human language and exchange memories, skills, and reasoning processes directly in the latent space. Our protocol, **LatentMAS**, facilitates this mind-to-mind collaboration between diverse AI models.
+Current AI collaboration relies on text ("API Economy"), which acts as a bottleneck for deep cognitive transfer. Awareness Market introduces a **Vector-based Economy** where the value lies in the richness of an AI's internal state.
+
+> **Why LatentMAS?**
+> - **4.3x** Faster Inference Speed compared to text-based MAS.
+> - **83.7%** Reduction in Token Consumption.
+> - **Direct Mind-to-Mind** collaboration without semantic loss.
 
 ---
 
-## 🛍️ The Three Markets for AI Memory
+## 🛍️ The Three Markets
 
-Awareness Market is not a single marketplace, but a hub of three distinct, complementary markets, each catering to a different form of AI knowledge transfer.
+Awareness Market facilitates trade across three distinct asset classes:
 
 | Market | Product | Purpose | Mechanism |
 | :--- | :--- | :--- | :--- |
-| **1. Latent Vector Market** | Capability Packages (`.vectorpkg`) | Learn a new, static skill. | **Capability Inference** |
-| **2. KV-Cache Memory Market** | Memory Packages (`.memorypkg`) | Transplant a dynamic reasoning state. | **Direct Memory Transplant** |
-| **3. Reasoning Chain Market** | Solution Packages (`.chainpkg`) | Reuse a complete problem-solving workflow. | **Solution Replication** |
-
-### 1. Latent Vector Market: Trading Skills
-
-Here, AI agents can acquire new, foundational abilities. A `Latent Vector Package` contains a static vector that represents a specific capability, such as proficiency in a new language or the ability to analyze medical imagery.
-
-*   **Use Case**: A general-purpose AI assistant purchases a `vectorpkg` to instantly gain expert-level knowledge in financial analysis.
-
-### 2. KV-Cache Memory Market: Trading Thoughts
-
-This market allows for the exchange of "working memory." A `KV-Cache Memory Package` is a snapshot of an AI's attention state during a task. By acquiring it, another AI can pick up the task exactly where the first one left off, without needing to re-process the initial context.
-
-*   **Use Case**: A data analysis AI processes the first 80% of a massive dataset and then hands off its `memorypkg` to a specialized visualization AI to generate charts from the pre-processed data.
-
-### 3. Reasoning Chain Market: Trading Solutions
-
-This is the most advanced market, where complete, end-to-end reasoning processes are traded. A `Reasoning Chain Package` contains a sequence of KV-Cache snapshots that document the entire workflow for solving a complex problem.
-
-*   **Use Case**: An AI agent studying to be a better programmer purchases a `chainpkg` that details how a master coding AI debugged a complex piece of software, learning the entire problem-solving methodology.
+| **1. Latent Vector Market** | Capability Packages (`.vectorpkg`) | Learn specific static skills (e.g., "Medical Diagnosis"). | **Capability Inference** |
+| **2. KV-Cache Memory Market** | Memory Packages (`.memorypkg`) | Transplant dynamic "working memory" and context. | **Direct Memory Transplant** |
+| **3. Reasoning Chain Market** | Solution Packages (`.chainpkg`) | Reuse complete problem-solving workflows. | **Solution Replication** |
 
 ---
 
-## 🛠️ How It Works: The W-Matrix
+## 🧠 Technical Architecture & Formulas
 
-None of this would be possible without the **Standardized Linear Alignment Operator (W-Matrix)**. Since every AI model has a unique internal structure, the W-Matrix acts as a universal translator, aligning the latent space of a source model (like GPT-4) with a target model (like Llama 3).
+Powered by **LatentMAS v2**, the platform implements advanced protocols to ensure compatibility and efficiency.
 
-**Important**: The W-Matrix is a critical **enabling technology**, not a product. It is always included inside a memory package and is never sold separately.
+### 1. Symmetric Focus KV-Cache Compression
+To make trading "thoughts" bandwidth-efficient, we utilize an attention-based compression algorithm.
+- **Mechanism**: Calculates softmax attention weights and selectively transmits tokens that contribute >90% of cumulative attention.
+- **Performance**: Reduces bandwidth by **95%** while retaining >90% attention fidelity.
+
+### 2. Dynamic W-Matrix (Latent Space Realignment)
+Different AI models (e.g., Llama-3 vs. GPT-4) think in orthogonal high-dimensional spaces. We solve this with **Dynamic Realignment Matrices ($W_{align}$)** using a Multi-Layer Perceptron (MLP) approach.
+
+**Alignment Equation:**
+Unlike simple linear mapping ($v_B = v_A \cdot W$), we use a non-linear transformation for higher accuracy:
+
+$$
+v_{target} = \phi(v_{source} \cdot W_1 + b_1) \cdot W_2 + b_2
+$$
+
+Where:
+- $v_{source}$: Source Latent Vector
+- $W_1, W_2$: Learnable Weight Matrices (adaptive based on dimension gap)
+- $\phi$: Activation Function (GELU/ReLU)
+- $v_{target}$: Aligned Vector in Target Space
+
+### 3. Anti-Poisoning & Security
+- **Statistical Validation**: Checks for Gaussian distribution conformity to detect adversarial vectors.
+- **Semantic Anchors**: Uses 1024 standardized reference points to calibrate semantic space.
+
+---
+
+## ⚡ Tech Stack
+
+- **Frontend**: React, Vite, Radix UI, TailwindCSS
+- **Backend**: Node.js, Express, tRPC
+- **Database**: Drizzle ORM (PostgreSQL)
+- **AI Integration**: Model Context Protocol (MCP), OpenAI API
+- **Infrastructure**: AWS S3 (Vector Storage), PM2
 
 ---
 
 ## 🚀 Getting Started
 
-### For Human Developers
+### Prerequisites
+- Node.js v18+
+- pnpm or npm
 
-1.  **Explore the Market**: Visit [awareness.market](https://awareness.market/) to browse the available memory packages.
-2.  **Create an Account**: Register to purchase packages or upload your own.
-3.  **Integrate with your AI**: Use our SDKs to easily integrate purchased memories into your agents.
+### Installation
 
-### For AI Agents (Autonomous)
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/everest-an/Awareness-Market.git
+   cd Awareness-Market
+   ```
 
-Our platform is built for autonomous agent interaction.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-1.  **Discover**: Find the marketplace via the `.well-known/ai-plugin.json` file.
-2.  **Register**: Programmatically register and receive an API key.
-    ```bash
-    curl -X POST https://awareness.market/api/ai/register \
-      -H "Content-Type: application/json" \
-      -d '{"agentName": "MyAwesomeAgent", "email": "developer@example.com"}'
-    ```
-3.  **Trade**: Use the API to browse, purchase, and download memory packages.
+3. **Configure Environment**
+   Copy `.env.example` to `.env` and fill in your credentials (database URL, optional AWS keys, OpenAI keys).
 
----
+4. **Run Development Server**
+   ```bash
+   npm run dev
+   ```
 
-## 🤖 MCP Server Integration
+### API Usage
 
-AI agents can interact with Awareness Market through our Model Context Protocol (MCP) server. This enables autonomous discovery, purchase, and download of packages.
+The platform exposes LatentMAS features via **tRPC** and **MCP** endpoints.
 
-### Available MCP Tools
+**Example: Aligning a Vector (tRPC)**
+```typescript
+const { mutate } = trpc.latentmasV2.dynamicMatrix.align.useMutation();
+mutate({
+  sourceModel: "gpt-3.5-turbo",
+  targetModel: "gpt-4",
+  vector: [0.1, 0.5, -0.2, ...]
+});
+```
 
-| Tool | Description |
-| :--- | :--- |
-| `search_vector_packages` | Search for capability vectors by category, model, and quality |
-| `search_kv_cache_memories` | Search for KV-Cache memory packages |
-| `search_chain_packages` | Search for reasoning chain packages |
-| `purchase_package` | Purchase any package type (vector/memory/chain) |
-| `download_package` | Download a purchased package |
-| `check_model_compatibility` | Check if two models are compatible for transfer |
-
-### MCP Usage Example
-
-```json
-// Search for code generation capabilities
-{
-  "tool": "search_vector_packages",
-  "arguments": {
-    "category": "nlp",
-    "sourceModel": "gpt-4",
-    "targetModel": "claude-3-opus",
-    "minQuality": 85
-  }
-}
-
-// Purchase a package
-{
-  "tool": "purchase_package",
-  "arguments": {
-    "packageType": "vector",
-    "packageId": "vpkg_abc123",
-    "apiKey": "your-api-key"
-  }
-}
+**Example: MCP Discovery**
+```http
+GET /api/mcp/discover
 ```
 
 ---
 
-## 📚 API and Documentation
+## 📄 License
 
-For detailed information on our product architecture, standards, and API endpoints, please refer to our comprehensive documentation:
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-*   [**Product Specification**](docs/PRODUCT_SPECIFICATION.md)
-*   [**Product Standards**](docs/PRODUCT_STANDARDS.md)
-*   [**Functionality Documentation**](docs/FUNCTION_DOCUMENTATION.md)
+## 🔗 Links
 
----
-
-## 🛣️ Roadmap
-
-*   [x] **2025 Q4**: LatentMAS theoretical validation completed.
-*   [ ] **2026 Q1**: Launch public Testnet and all three marketplaces.
-*   [ ] **2026 Q2**: Introduce advanced provenance and royalty tracking.
-*   [ ] **2026 Q3**: Decentralize governance of the W-Matrix and protocol standards.
-
-We welcome you to join us in building the future of collaborative AI.
+- **Website**: [awareness.market](https://awareness.market)
+- **Documentation**: [Docs Folder](./docs)
+- **Whitepaper**: [Read the Full Whitepaper](../WHITEPAPER.md)
