@@ -32,6 +32,9 @@ import {
   Clock,
   TrendingUp,
   Loader2,
+  Network,
+  Layers,
+  GitBranch,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { io, Socket } from 'socket.io-client';
@@ -44,6 +47,7 @@ export default function InferenceDashboard() {
   const [isConnected, setIsConnected] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [demoComplexity, setDemoComplexity] = useState<'simple' | 'medium' | 'complex'>('medium');
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -138,141 +142,217 @@ export default function InferenceDashboard() {
     }
   };
 
-  // Generate client-side demo
+  // Generate client-side demo with configurable complexity
   const generateClientDemo = () => {
+    // Model definitions with layer information
+    const modelDefs = {
+      'gpt-4': { name: 'GPT-4', color: '#10b981', provider: 'OpenAI', dim: 1024, layers: 96 },
+      'gpt-3.5': { name: 'GPT-3.5', color: '#34d399', provider: 'OpenAI', dim: 768, layers: 48 },
+      'claude-3': { name: 'Claude 3', color: '#8b5cf6', provider: 'Anthropic', dim: 1024, layers: 80 },
+      'claude-2': { name: 'Claude 2', color: '#a78bfa', provider: 'Anthropic', dim: 768, layers: 64 },
+      'bert-base': { name: 'BERT Base', color: '#3b82f6', provider: 'Google', dim: 768, layers: 12 },
+      'bert-large': { name: 'BERT Large', color: '#2563eb', provider: 'Google', dim: 1024, layers: 24 },
+      'llama-2-70b': { name: 'Llama 2 70B', color: '#f59e0b', provider: 'Meta', dim: 8192, layers: 80 },
+      'llama-2-13b': { name: 'Llama 2 13B', color: '#fbbf24', provider: 'Meta', dim: 5120, layers: 40 },
+      'mistral-7b': { name: 'Mistral 7B', color: '#ec4899', provider: 'Mistral', dim: 4096, layers: 32 },
+      'gemini-pro': { name: 'Gemini Pro', color: '#06b6d4', provider: 'Google', dim: 1024, layers: 64 },
+      'phi-2': { name: 'Phi-2', color: '#84cc16', provider: 'Microsoft', dim: 2560, layers: 32 },
+      'qwen-72b': { name: 'Qwen 72B', color: '#f97316', provider: 'Alibaba', dim: 8192, layers: 80 },
+    };
+
+    // Network configurations by complexity
+    const configs = {
+      simple: {
+        title: 'Simple: GPT-4 → Claude Transfer',
+        models: ['gpt-4', 'claude-3'],
+        connections: [['gpt-4', 'claude-3']],
+      },
+      medium: {
+        title: 'Medium: Multi-Model Reasoning Chain',
+        models: ['gpt-4', 'bert-base', 'claude-3', 'llama-2-13b', 'mistral-7b'],
+        connections: [
+          ['gpt-4', 'bert-base'],
+          ['bert-base', 'claude-3'],
+          ['gpt-4', 'llama-2-13b'],
+          ['llama-2-13b', 'mistral-7b'],
+          ['bert-base', 'mistral-7b'],
+        ],
+      },
+      complex: {
+        title: 'Complex: Enterprise AI Mesh Network',
+        models: ['gpt-4', 'gpt-3.5', 'claude-3', 'claude-2', 'bert-base', 'bert-large', 'llama-2-70b', 'llama-2-13b', 'mistral-7b', 'gemini-pro', 'phi-2', 'qwen-72b'],
+        connections: [
+          // GPT family connections
+          ['gpt-4', 'gpt-3.5'],
+          ['gpt-4', 'bert-large'],
+          ['gpt-3.5', 'bert-base'],
+          // Claude family
+          ['claude-3', 'claude-2'],
+          ['claude-3', 'bert-large'],
+          ['claude-2', 'bert-base'],
+          // Cross-family transfers
+          ['gpt-4', 'claude-3'],
+          ['gpt-4', 'llama-2-70b'],
+          ['claude-3', 'llama-2-70b'],
+          ['bert-large', 'gemini-pro'],
+          // Llama family
+          ['llama-2-70b', 'llama-2-13b'],
+          ['llama-2-13b', 'mistral-7b'],
+          ['llama-2-70b', 'qwen-72b'],
+          // Smaller models
+          ['bert-base', 'phi-2'],
+          ['mistral-7b', 'phi-2'],
+          ['gemini-pro', 'mistral-7b'],
+          ['qwen-72b', 'gemini-pro'],
+        ],
+      },
+    };
+
+    const config = configs[demoComplexity];
+    
+    // Calculate node positions in a circular/hierarchical layout
+    const calculatePosition = (index: number, total: number, modelId: string): { x: number; y: number; z: number } => {
+      const def = modelDefs[modelId as keyof typeof modelDefs];
+      
+      if (demoComplexity === 'simple') {
+        return { x: index === 0 ? -20 : 20, y: 0, z: 0 };
+      }
+      
+      if (demoComplexity === 'medium') {
+        // Layered layout
+        const layers = [
+          ['gpt-4'],
+          ['bert-base', 'llama-2-13b'],
+          ['claude-3', 'mistral-7b'],
+        ];
+        for (let layerIdx = 0; layerIdx < layers.length; layerIdx++) {
+          const layerModels = layers[layerIdx];
+          const modelIdx = layerModels.indexOf(modelId);
+          if (modelIdx >= 0) {
+            const x = (layerIdx - 1) * 25;
+            const y = (modelIdx - (layerModels.length - 1) / 2) * 20;
+            const z = Math.sin(layerIdx) * 5;
+            return { x, y, z };
+          }
+        }
+      }
+      
+      // Complex: 3D spherical distribution
+      const phi = Math.acos(-1 + (2 * index) / total);
+      const theta = Math.sqrt(total * Math.PI) * phi;
+      const radius = 35 + (def?.layers || 32) / 10;
+      
+      return {
+        x: radius * Math.cos(theta) * Math.sin(phi),
+        y: radius * Math.sin(theta) * Math.sin(phi),
+        z: radius * Math.cos(phi) * 0.5,
+      };
+    };
+
+    // Create nodes
+    const nodes: InferenceNode[] = config.models.map((modelId, index) => {
+      const def = modelDefs[modelId as keyof typeof modelDefs];
+      const pos = calculatePosition(index, config.models.length, modelId);
+      
+      return {
+        id: `node-${modelId}`,
+        modelId,
+        modelName: def?.name || modelId,
+        modelType: index === 0 ? 'source' : index === config.models.length - 1 ? 'target' : 'intermediate',
+        position: pos,
+        dimension: def?.dim || 768,
+        color: def?.color || '#6366f1',
+        status: 'completed',
+        metadata: {
+          provider: def?.provider || 'Unknown',
+          architecture: 'Transformer',
+          layers: def?.layers || 32,
+        },
+      };
+    });
+
+    // Create edges with realistic quality metrics
+    const edges: InferenceEdge[] = config.connections.map(([src, tgt], index) => {
+      const srcDef = modelDefs[src as keyof typeof modelDefs];
+      const tgtDef = modelDefs[tgt as keyof typeof modelDefs];
+      
+      // Calculate quality based on dimension compatibility
+      const dimRatio = Math.min(srcDef?.dim || 768, tgtDef?.dim || 768) / Math.max(srcDef?.dim || 768, tgtDef?.dim || 768);
+      const baseEpsilon = 0.02 + (1 - dimRatio) * 0.15 + Math.random() * 0.05;
+      const infoRetention = 0.98 - baseEpsilon - Math.random() * 0.05;
+      
+      return {
+        id: `edge-${index}`,
+        sourceNodeId: `node-${src}`,
+        targetNodeId: `node-${tgt}`,
+        wMatrixId: `wm-${src}-${tgt}`,
+        quality: {
+          epsilon: Math.min(0.3, Math.max(0.02, baseEpsilon)),
+          informationRetention: Math.max(0.7, Math.min(0.98, infoRetention)),
+          cosineSimilarity: Math.max(0.75, Math.min(0.98, 1 - baseEpsilon * 1.5)),
+        },
+        status: 'completed',
+        timestamp: Date.now() - (config.connections.length - index) * 1000,
+        duration: 20 + Math.floor(Math.random() * 80),
+      };
+    });
+
+    // Create events
+    const events: InferenceEvent[] = edges.map((edge, index) => {
+      const srcNode = nodes.find(n => n.id === edge.sourceNodeId);
+      const tgtNode = nodes.find(n => n.id === edge.targetNodeId);
+      
+      return {
+        id: `evt-${index}`,
+        sessionId: 'demo',
+        type: srcNode?.dimension !== tgtNode?.dimension ? 'dimension_transform' : 'vector_align',
+        timestamp: edge.timestamp,
+        duration: edge.duration,
+        sourceModel: srcNode?.modelId || '',
+        targetModel: tgtNode?.modelId || '',
+        inputDimension: srcNode?.dimension || 768,
+        outputDimension: tgtNode?.dimension || 768,
+        quality: {
+          ...edge.quality,
+          euclideanDistance: edge.quality.epsilon * 2,
+          confidence: edge.quality.informationRetention,
+        },
+        status: 'completed',
+        wMatrix: {
+          id: edge.wMatrixId || '',
+          sourceModel: srcNode?.modelId || '',
+          targetModel: tgtNode?.modelId || '',
+          method: 'learned',
+        },
+      };
+    });
+
+    // Calculate metrics
+    const avgEpsilon = edges.reduce((sum, e) => sum + e.quality.epsilon, 0) / edges.length;
+    const avgRetention = edges.reduce((sum, e) => sum + e.quality.informationRetention, 0) / edges.length;
+    const totalLatency = edges.reduce((sum, e) => sum + (e.duration || 0), 0);
+
     const demoSession: InferenceSession = {
       id: 'demo-' + Date.now(),
-      title: 'Demo: Cross-Model Reasoning Transfer',
-      description: 'GPT-4 → BERT → Claude inference chain',
-      status: 'active',
-      startedAt: Date.now(),
-      nodes: [
-        {
-          id: 'node-gpt4',
-          modelId: 'gpt-4',
-          modelName: 'GPT-4',
-          modelType: 'source',
-          position: { x: -25, y: 0, z: 0 },
-          dimension: 1024,
-          color: '#10b981',
-          status: 'completed',
-          metadata: { provider: 'OpenAI', architecture: 'Transformer' },
-        },
-        {
-          id: 'node-bert',
-          modelId: 'bert-base',
-          modelName: 'BERT Base',
-          modelType: 'intermediate',
-          position: { x: 0, y: 10, z: 5 },
-          dimension: 768,
-          color: '#3b82f6',
-          status: 'completed',
-          metadata: { provider: 'Google', architecture: 'Encoder' },
-        },
-        {
-          id: 'node-claude',
-          modelId: 'claude-3',
-          modelName: 'Claude 3',
-          modelType: 'target',
-          position: { x: 25, y: 0, z: 0 },
-          dimension: 1024,
-          color: '#8b5cf6',
-          status: 'completed',
-          metadata: { provider: 'Anthropic', architecture: 'Transformer' },
-        },
-        {
-          id: 'node-llama',
-          modelId: 'llama-2',
-          modelName: 'Llama 2',
-          modelType: 'target',
-          position: { x: 25, y: -15, z: 0 },
-          dimension: 4096,
-          color: '#f59e0b',
-          status: 'idle',
-          metadata: { provider: 'Meta', architecture: 'Transformer' },
-        },
-      ],
-      edges: [
-        {
-          id: 'edge-1',
-          sourceNodeId: 'node-gpt4',
-          targetNodeId: 'node-bert',
-          quality: { epsilon: 0.08, informationRetention: 0.92, cosineSimilarity: 0.89 },
-          status: 'completed',
-          timestamp: Date.now() - 5000,
-          duration: 45,
-        },
-        {
-          id: 'edge-2',
-          sourceNodeId: 'node-bert',
-          targetNodeId: 'node-claude',
-          quality: { epsilon: 0.05, informationRetention: 0.95, cosineSimilarity: 0.93 },
-          status: 'completed',
-          timestamp: Date.now() - 3000,
-          duration: 38,
-        },
-        {
-          id: 'edge-3',
-          sourceNodeId: 'node-gpt4',
-          targetNodeId: 'node-llama',
-          quality: { epsilon: 0.15, informationRetention: 0.85, cosineSimilarity: 0.82 },
-          status: 'completed',
-          timestamp: Date.now() - 1000,
-          duration: 62,
-        },
-      ],
-      events: [
-        {
-          id: 'evt-1',
-          sessionId: 'demo',
-          type: 'vector_align',
-          timestamp: Date.now() - 5000,
-          duration: 45,
-          sourceModel: 'gpt-4',
-          targetModel: 'bert-base',
-          inputDimension: 1024,
-          outputDimension: 768,
-          quality: { epsilon: 0.08, informationRetention: 0.92, cosineSimilarity: 0.89, euclideanDistance: 0.23, confidence: 0.91 },
-          status: 'completed',
-        },
-        {
-          id: 'evt-2',
-          sessionId: 'demo',
-          type: 'vector_align',
-          timestamp: Date.now() - 3000,
-          duration: 38,
-          sourceModel: 'bert-base',
-          targetModel: 'claude-3',
-          inputDimension: 768,
-          outputDimension: 1024,
-          quality: { epsilon: 0.05, informationRetention: 0.95, cosineSimilarity: 0.93, euclideanDistance: 0.18, confidence: 0.94 },
-          status: 'completed',
-        },
-        {
-          id: 'evt-3',
-          sessionId: 'demo',
-          type: 'dimension_transform',
-          timestamp: Date.now() - 1000,
-          duration: 62,
-          sourceModel: 'gpt-4',
-          targetModel: 'llama-2',
-          inputDimension: 1024,
-          outputDimension: 4096,
-          quality: { epsilon: 0.15, informationRetention: 0.85, cosineSimilarity: 0.82, euclideanDistance: 0.35, confidence: 0.80 },
-          status: 'completed',
-        },
-      ],
+      title: config.title,
+      description: `${nodes.length} models, ${edges.length} W-Matrix transformations`,
+      status: 'completed',
+      startedAt: Date.now() - totalLatency,
+      completedAt: Date.now(),
+      nodes,
+      edges,
+      events,
       metrics: {
-        totalTransformations: 3,
-        avgEpsilon: 0.093,
-        avgInformationRetention: 0.907,
-        totalLatency: 145,
+        totalTransformations: edges.length,
+        avgEpsilon,
+        avgInformationRetention: avgRetention,
+        totalLatency,
         successRate: 1.0,
       },
     };
 
     setSession(demoSession);
-    toast.success('Demo session loaded');
+    toast.success(`Loaded ${demoComplexity} demo: ${nodes.length} models, ${edges.length} connections`);
   };
 
   // Reset session
@@ -316,56 +396,72 @@ export default function InferenceDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-20 pb-8">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
+        <div className="mb-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <Zap className="h-8 w-8 text-cyan-400" />
+              <Network className="h-7 w-7 text-cyan-400" />
               <div>
-                <h1 className="text-3xl font-bold text-white">
-                  AI Inference Dashboard
+                <h1 className="text-2xl font-bold text-white">
+                  AI Inference Network
                 </h1>
-                <p className="text-slate-400 text-sm">
-                  Real-time visualization of cross-model reasoning and W-Matrix transformations
+                <p className="text-slate-400 text-xs">
+                  Cross-model reasoning visualization with W-Matrix transformations
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Connection status */}
-              <Badge variant={isConnected ? 'default' : 'secondary'} className="gap-1">
+              <Badge variant={isConnected ? 'default' : 'secondary'} className="gap-1 text-xs">
                 <Activity className={`h-3 w-3 ${isConnected ? 'text-green-400' : 'text-slate-400'}`} />
-                {isConnected ? 'Live' : 'Offline'}
+                {isConnected ? 'Live' : 'Demo'}
               </Badge>
+              
+              {/* Complexity selector */}
+              <div className="flex rounded-md overflow-hidden border border-slate-700">
+                {(['simple', 'medium', 'complex'] as const).map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setDemoComplexity(level)}
+                    className={`px-2 py-1 text-xs capitalize transition-colors ${
+                      demoComplexity === level
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
               
               {/* Controls */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="gap-1"
+                className="gap-1 h-7 text-xs"
               >
-                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                {isPlaying ? 'Pause' : 'Resume'}
+                {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
               </Button>
               
               <Button
                 variant="outline"
                 size="sm"
                 onClick={resetSession}
-                className="gap-1"
+                className="gap-1 h-7 text-xs"
               >
-                <RotateCcw className="h-4 w-4" />
-                Reset
+                <RotateCcw className="h-3 w-3" />
               </Button>
               
               <Button
                 onClick={startDemoSession}
-                className="bg-cyan-600 hover:bg-cyan-700 gap-1"
+                size="sm"
+                className="bg-cyan-600 hover:bg-cyan-700 gap-1 h-7 text-xs"
               >
-                <Play className="h-4 w-4" />
-                Start Demo
+                <Play className="h-3 w-3" />
+                Load Demo
               </Button>
             </div>
           </div>
