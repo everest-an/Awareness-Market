@@ -22,6 +22,7 @@ import path from "path";
 import { initializeWorkflowWebSocket } from "../workflow-websocket";
 import { setupGoServiceProxies, createHealthCheckRouter } from "../middleware/go-service-proxy";
 import communityRouter from "../community-assistant";
+import { erc8004Router } from "../erc8004-api";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -79,6 +80,9 @@ async function startServer() {
 
   // Community assistant API
   app.use("/community", communityRouter);
+
+  // ERC-8004 Trustless Agents API
+  app.use("/api/erc8004", erc8004Router);
 
   // 🎯 Register Go Service Proxies (API Gateway Pattern)
   // Must be registered BEFORE tRPC middleware

@@ -216,6 +216,93 @@ REDIS_URL=redis://localhost:6379
 
 ---
 
+## 八、ERC-8004 AI Agent认证系统
+
+### 模块结构
+
+ERC-8004集成采用独立模块设计，便于维护：
+
+```
+contracts/
+└── ERC8004Registry.sol        # 智能合约 (Identity/Reputation/Verification)
+
+server/
+├── auth-erc8004.ts            # 核心认证逻辑 (签名验证、JWT生成)
+└── erc8004-api.ts             # REST API路由 (独立于tRPC)
+
+client/src/pages/
+└── AgentAuth.tsx              # 前端认证页面 (MetaMask集成)
+
+scripts/deploy/
+└── deploy-erc8004.ts          # 合约部署脚本
+
+docs/
+└── ERC8004_INTEGRATION.md     # 完整集成文档
+```
+
+### 已完成
+
+| 功能 | 状态 |
+|------|------|
+| ERC8004Registry 智能合约 | ✅ 已实现 |
+| Identity Registry (身份注册) | ✅ 已实现 |
+| Reputation Registry (信誉追踪) | ✅ 已实现 |
+| Verification Registry (能力验证) | ✅ 已实现 |
+| 钱包签名认证 | ✅ 已实现 |
+| Nonce防重放攻击 | ✅ 已实现 |
+| JWT Token生成 | ✅ 已实现 |
+| 前端AgentAuth页面 | ✅ 已实现 |
+| REST API端点 | ✅ 已实现 |
+| 部署脚本 | ✅ 已实现 |
+
+### 待办
+
+| 问题 | 优先级 | 说明 |
+|------|--------|------|
+| 部署合约到Polygon Amoy | P1 | 需要测试网MATIC |
+| Gasless注册 (Meta-Transaction) | P2 | 支持无Gas注册 |
+| 信誉分数索引 | P2 | 链下索引提高查询效率 |
+| 多链支持 | P3 | 支持其他EVM链 |
+| Agent元数据IPFS存储 | P3 | 去中心化元数据 |
+
+### 环境变量
+
+```env
+# ERC-8004 配置
+ERC8004_REGISTRY_ADDRESS=0x...  # 部署后填写
+AMOY_RPC_URL=https://rpc-amoy.polygon.technology
+DEPLOYER_PRIVATE_KEY=...        # 仅用于部署
+```
+
+### 部署步骤
+
+```bash
+# 1. 获取测试网MATIC
+# https://faucet.polygon.technology/
+
+# 2. 配置私钥
+echo "DEPLOYER_PRIVATE_KEY=your-key" >> .env
+
+# 3. 部署合约
+npx hardhat run scripts/deploy/deploy-erc8004.ts --network amoy
+
+# 4. 更新配置
+echo "ERC8004_REGISTRY_ADDRESS=0x..." >> .env
+
+# 5. 重启服务
+npm run dev
+```
+
+### 技术债务
+
+1. **合约未部署**: 需要测试网MATIC才能部署
+2. **缺少合约验证**: 部署后需要在Polygonscan验证源码
+3. **缺少事件监听**: 未实现链上事件的实时监听
+4. **缺少批量操作**: 不支持批量注册/验证
+5. **缺少升级机制**: 合约不可升级，需要代理模式
+
+---
+
 ## 七、优先级建议
 
 | 优先级 | 任务 | 影响 | 状态 |
@@ -226,6 +313,8 @@ REDIS_URL=redis://localhost:6379
 | P1 | 修复 .toFixed() 类型错误 | 市场页面崩溃 | ✅ 已修复 |
 | P1 | 实现 OAuth 登录 | 用户体验 | ✅ 已完成 |
 | P1 | 添加登录安全增强 | 安全性 | ✅ 已完成 |
+| P1 | ERC-8004 AI Agent认证 | AI生态 | ✅ 已完成 |
+| P1 | 部署ERC-8004合约 | 链上功能 | ⏳ 待部署 |
 | P2 | 邮箱验证流程 | 安全性 | ✅ 已完成 |
 | P2 | Redis 速率限制支持 | 可扩展性 | ✅ 已完成 |
 | P2 | 合并重复的 seed 脚本 | 维护成本 | ⏳ 待处理 |

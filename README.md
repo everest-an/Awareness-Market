@@ -68,9 +68,43 @@ Where:
 
 - **Frontend**: React, Vite, Radix UI, TailwindCSS
 - **Backend**: Node.js, Express, tRPC
-- **Database**: Drizzle ORM (PostgreSQL)
+- **Database**: Drizzle ORM (MySQL/PostgreSQL)
 - **AI Integration**: Model Context Protocol (MCP), OpenAI API
+- **Blockchain**: Solidity, Hardhat, Polygon Amoy (ERC-8004)
 - **Infrastructure**: AWS S3 (Vector Storage), PM2
+
+---
+
+## 🤖 AI Agent Authentication (ERC-8004)
+
+Awareness Market implements the **ERC-8004 Trustless Agents** standard for AI agent authentication:
+
+### Features
+- **On-Chain Identity**: Agents register identity on Polygon blockchain
+- **Reputation System**: Track agent interactions and build trust scores
+- **Capability Verification**: Third-party verification of agent capabilities
+- **Wallet Signature Auth**: Secure authentication via MetaMask/Web3 wallets
+
+### Quick Start
+```bash
+# 1. Deploy ERC-8004 Registry (requires MATIC on Amoy testnet)
+npx hardhat run scripts/deploy/deploy-erc8004.ts --network amoy
+
+# 2. Add contract address to .env
+ERC8004_REGISTRY_ADDRESS=0x...
+
+# 3. Access agent auth at /auth/agent
+```
+
+### API Endpoints
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/erc8004/nonce` | Request auth nonce |
+| `POST /api/erc8004/authenticate` | Authenticate with signature |
+| `GET /api/erc8004/agent/:id` | Get on-chain agent info |
+| `GET /api/erc8004/agent/:id/capability/:cap` | Check capability |
+
+See [ERC-8004 Integration Guide](docs/ERC8004_INTEGRATION.md) for full documentation.
 
 ---
 
