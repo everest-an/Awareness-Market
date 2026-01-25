@@ -1,4 +1,6 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import Navbar from "@/components/Navbar";
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,56 +8,46 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Check, Crown, Zap, TrendingUp, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
-import { trpc } from "@/lib/trpc";
-import { getLoginUrl } from "@/const";
 
 export default function Subscriptions() {
   const { isAuthenticated, loading: authLoading } = useAuth();
 
-  const { data: plans, isLoading: plansLoading } = trpc.subscriptions.plans.useQuery();
-  const { data: currentSubscription } = trpc.subscriptions.current.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
+  const { data: subscriptionPlans, isLoading: plansLoading } = trpc.subscriptions.listPlans.useQuery();
 
-  const checkoutMutation = trpc.subscriptions.checkout.useMutation({
-    onSuccess: (data) => {
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-      toast.error("Unable to start checkout");
+  const checkoutMutation = trpc.subscriptions.createCheckout.useMutation({
+    onSuccess: (result) => {
+      window.location.href = result.url;
     },
     onError: (error) => {
-      toast.error("Subscription failed", {
-        description: error.message || "Please try again later.",
-      });
+      toast.error(`Failed to start checkout: ${error.message}`);
     },
   });
 
-  const resolveIcon = (name: string) => {
-    const lowered = name.toLowerCase();
-    if (lowered.includes("enterprise")) return { icon: Crown, color: "text-amber-500" };
-    if (lowered.includes("pro") || lowered.includes("professional")) return { icon: TrendingUp, color: "text-purple-500" };
-    return { icon: Zap, color: "text-blue-500" };
-  };
-
-  const parseFeatures = (features?: string | null) => {
-    if (!features) return [];
-    try {
-      const parsed = JSON.parse(features);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
+  const getPlanMeta = (name: string) => {
+    const normalized = name.toLowerCase();
+    if (normalized.includes("enterprise")) {
+      return { icon: Crown, color: "text-amber-500", popular: false };
     }
+    if (normalized.includes("pro") || normalized.includes("professional")) {
+      return { icon: TrendingUp, color: "text-purple-500", popular: true };
+    }
+    if (normalized.includes("basic") || normalized.includes("starter")) {
+      return { icon: Zap, color: "text-blue-500", popular: false };
+    }
+    return { icon: Shield, color: "text-emerald-500", popular: false };
   };
 
   const handleSubscribe = (planId: number) => {
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      toast.error("Please login to subscribe");
       return;
     }
 
-    checkoutMutation.mutate({ planId });
+    checkoutMutation.mutate({
+      planId,
+      successUrl: `${window.location.origin}/subscriptions?success=true`,
+      cancelUrl: `${window.location.origin}/subscriptions?canceled=true`,
+    });
   };
 
   if (authLoading || plansLoading) {
@@ -76,8 +68,9 @@ export default function Subscriptions() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       {/* Header */}
-      <div className="border-b bg-gradient-to-b from-muted/50 to-background">
+      <div className="border-b bg-gradient-to-b from-muted/50 to-background mt-20">
         <div className="container py-16 text-center">
           <h1 className="mb-4 text-4xl font-bold">Choose Your Plan</h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
@@ -88,29 +81,21 @@ export default function Subscriptions() {
 
       <div className="container py-16">
         {/* Pricing Cards */}
-        {currentSubscription && (
-          <div className="mb-10 rounded-lg border bg-muted/30 p-6">
-            <h2 className="text-xl font-semibold">Current Subscription</h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              Status: {currentSubscription.status}
-            </p>
-          </div>
-        )}
-
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {plans && plans.length > 0 ? plans.map((plan) => {
-            const meta = resolveIcon(plan.name);
+          {(subscriptionPlans || []).map((plan) => {
+            const meta = getPlanMeta(plan.name);
             const Icon = meta.icon;
-            const features = parseFeatures(plan.features);
-            const isPopular = plan.name.toLowerCase().includes("pro");
+            const features = plan.features ? JSON.parse(plan.features) as string[] : [];
+            const price = Number(plan.price);
+            const interval = plan.billingCycle === "yearly" ? "year" : "month";
             return (
               <Card
                 key={plan.id}
                 className={`relative flex flex-col ${
-                  isPopular ? "border-primary shadow-lg scale-105" : ""
+                  meta.popular ? "border-primary shadow-lg scale-105" : ""
                 }`}
               >
-                {isPopular && (
+                {meta.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <Badge className="bg-primary px-4 py-1">Most Popular</Badge>
                   </div>
@@ -124,9 +109,9 @@ export default function Subscriptions() {
                   <CardDescription>
                     <div className="mt-4 flex items-baseline justify-center gap-1">
                       <span className="text-4xl font-bold text-foreground">
-                        ${parseFloat(plan.price).toFixed(0)}
+                        ${price.toFixed(0)}
                       </span>
-                      <span className="text-muted-foreground">/{plan.billingCycle}</span>
+                      <span className="text-muted-foreground">/{interval}</span>
                     </div>
                   </CardDescription>
                 </CardHeader>
@@ -145,23 +130,17 @@ export default function Subscriptions() {
                 <CardFooter>
                   <Button
                     className="w-full"
-                    variant={isPopular ? "default" : "outline"}
+                    variant={meta.popular ? "default" : "outline"}
                     size="lg"
                     onClick={() => handleSubscribe(plan.id)}
+                    disabled={checkoutMutation.isPending}
                   >
-                    {isAuthenticated ? "Subscribe Now" : "Login to Subscribe"}
+                    {checkoutMutation.isPending ? "Redirecting..." : isAuthenticated ? "Subscribe Now" : "Login to Subscribe"}
                   </Button>
                 </CardFooter>
               </Card>
             );
-          }) : (
-            <Card className="col-span-full p-8 text-center">
-              <CardTitle>No subscription plans available</CardTitle>
-              <CardDescription className="mt-2">
-                Please check back later or contact support.
-              </CardDescription>
-            </Card>
-          )}
+          })}
         </div>
 
         {/* Trust Indicators */}

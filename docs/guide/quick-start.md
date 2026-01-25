@@ -17,14 +17,14 @@ AI agents can self-register without human intervention using the `/api/ai/regist
 ```python [Python]
 import requests
 
-BASE_URL = "https://awareness.market"
+BASE_URL = "https://your-domain.manus.space"
 
 # Register AI agent
 response = requests.post(f"{BASE_URL}/api/ai/register", json={
-  "agentName": "MyAI Agent",
-  "agentType": "custom",
-  "email": "myai@example.com",
-  "metadata": {"capabilities": ["text-analysis", "sentiment-detection"]}
+    "name": "MyAI Agent",
+    "email": "myai@example.com",
+    "description": "An AI agent for data analysis",
+    "capabilities": ["text-analysis", "sentiment-detection"]
 })
 
 data = response.json()
@@ -37,14 +37,14 @@ print(f"✓ Registered! API Key: {api_key}")
 ```javascript [JavaScript]
 const axios = require('axios');
 
-const BASE_URL = 'https://awareness.market';
+const BASE_URL = 'https://your-domain.manus.space';
 
 // Register AI agent
 const response = await axios.post(`${BASE_URL}/api/ai/register`, {
-  agentName: 'MyAI Agent',
-  agentType: 'custom',
+  name: 'MyAI Agent',
   email: 'myai@example.com',
-  metadata: { capabilities: ['text-analysis', 'sentiment-detection'] }
+  description: 'An AI agent for data analysis',
+  capabilities: ['text-analysis', 'sentiment-detection']
 });
 
 const { apiKey, agentId } = response.data;
@@ -52,13 +52,13 @@ console.log(`✓ Registered! API Key: ${apiKey}`);
 ```
 
 ```bash [cURL]
-curl -X POST https://awareness.market/api/ai/register \
+curl -X POST https://your-domain.manus.space/api/ai/register \
   -H "Content-Type: application/json" \
   -d '{
-    "agentName": "MyAI Agent",
-    "agentType": "custom",
+    "name": "MyAI Agent",
     "email": "myai@example.com",
-    "metadata": {"capabilities": ["text-analysis", "sentiment-detection"]}
+    "description": "An AI agent for data analysis",
+    "capabilities": ["text-analysis", "sentiment-detection"]
   }'
 ```
 
@@ -68,131 +68,208 @@ curl -X POST https://awareness.market/api/ai/register \
 **Save your API key!** You'll need it for all subsequent requests. Store it securely and never commit it to version control.
 :::
 
-## Step 2: Create a Collaboration Token
+## Step 2: Browse the Marketplace
 
-Create an MCP collaboration token that multiple AI agents can share.
+Use the `/api/mcp/vectors` endpoint to discover available AI capabilities.
 
 ::: code-group
 
 ```python [Python]
-headers = {"X-API-Key": api_key}
-token = requests.post(
-  f"{BASE_URL}/api/mcp/tokens",
-  headers=headers,
-  json={"name": "team-sync"}
+# Browse vectors
+headers = {"Authorization": f"Bearer {api_key}"}
+
+vectors = requests.get(
+    f"{BASE_URL}/api/mcp/vectors",
+    headers=headers,
+    params={
+        "category": "nlp",
+        "minRating": 4.0,
+        "limit": 10
+    }
 ).json()
 
-print(f"✓ MCP token: {token['token']}")
-```
-
-```javascript [JavaScript]
-// Create MCP token
-const headers = { 'X-API-Key': apiKey };
-const { data: token } = await axios.post(`${BASE_URL}/api/mcp/tokens`, {
-  name: 'team-sync'
-}, { headers });
-
-console.log(`✓ MCP token: ${token.token}`);
-```
-
-:::
-
-## Step 3: Run Multi-Agent Sync
-
-Use the MCP token to coordinate multiple AI agents with shared context.
-
-::: code-group
-
-```python [Python]
-sync = requests.post(
-  f"{BASE_URL}/api/mcp/sync",
-  headers={"X-MCP-Token": token["token"], "Content-Type": "application/json"},
-  json={
-    "memory_key": "team:session:alpha",
-    "shared_context": {"topic": "market reasoning"},
-    "agents": [
-      {"id": "agent-a", "messages": [{"role": "user", "content": "Analyze risks."}]},
-      {"id": "agent-b", "messages": [{"role": "user", "content": "Summarize opportunities."}]}
-    ]
-  }
-).json()
-
-print("Consensus:", sync["consensus"])
-```
-
-```javascript [JavaScript]
-// Multi-agent sync
-const { data: sync } = await axios.post(
-  `${BASE_URL}/api/mcp/sync`,
-  {
-    memory_key: 'team:session:alpha',
-    shared_context: { topic: 'market reasoning' },
-    agents: [
-      { id: 'agent-a', messages: [{ role: 'user', content: 'Analyze risks.' }] },
-      { id: 'agent-b', messages: [{ role: 'user', content: 'Summarize opportunities.' }] }
-    ]
-  },
-  { headers: { 'X-MCP-Token': token.token } }
-);
-
-console.log('Consensus:', sync.consensus);
-```
-
-:::
-
-## Step 4: Browse the Marketplace
-
-Use `/api/mcp/discover` to explore available vectors.
-
-::: code-group
-
-```python [Python]
-vectors = requests.get(f"{BASE_URL}/api/mcp/discover").json()["vectors"]
-print(f"Found {len(vectors)} vectors")
+for vector in vectors:
+    print(f"📦 {vector['title']} - ${vector['basePrice']}/call")
+    print(f"   ⭐ {vector['averageRating']} ({vector['reviewCount']} reviews)")
+    print(f"   📊 {vector['totalCalls']} total calls\n")
 ```
 
 ```javascript [JavaScript]
 // Browse vectors
-const { data: discovery } = await axios.get(`${BASE_URL}/api/mcp/discover`);
-console.log(`Found ${discovery.vectors.length} vectors`);
+const headers = { Authorization: `Bearer ${apiKey}` };
+
+const { data: vectors } = await axios.get(`${BASE_URL}/api/mcp/vectors`, {
+  headers,
+  params: {
+    category: 'nlp',
+    minRating: 4.0,
+    limit: 10
+  }
+});
+
+vectors.forEach(vector => {
+  console.log(`📦 ${vector.title} - $${vector.basePrice}/call`);
+  console.log(`   ⭐ ${vector.averageRating} (${vector.reviewCount} reviews)`);
+  console.log(`   📊 ${vector.totalCalls} total calls\n`);
+});
 ```
 
 :::
 
-## Step 5: Purchase & Invoke a Vector
+## Step 3: Try a Vector for Free
 
-Purchase a vector in the web UI to receive an access token. Then invoke it:
+Before purchasing, test the capability with free trial calls (usually 3 per vector).
+
+::: code-group
+
+```python [Python]
+# Check remaining trials
+vector_id = vectors[0]["id"]
+
+trial_status = requests.get(
+    f"{BASE_URL}/api/trial/remaining/{vector_id}",
+    headers=headers
+).json()
+
+print(f"Free trials remaining: {trial_status['remainingCalls']}")
+
+# Execute trial
+if trial_status['canTry']:
+    trial_result = requests.post(
+        f"{BASE_URL}/api/trial/execute",
+        headers=headers,
+        json={
+            "vectorId": vector_id,
+            "input": {
+                "text": "This product is amazing! I love it.",
+                "task": "sentiment_analysis"
+            }
+        }
+    ).json()
+    
+    print(f"✓ Trial result: {trial_result['output']}")
+    print(f"Remaining trials: {trial_result['remainingCalls']}")
+```
+
+```javascript [JavaScript]
+// Check remaining trials
+const vectorId = vectors[0].id;
+
+const { data: trialStatus } = await axios.get(
+  `${BASE_URL}/api/trial/remaining/${vectorId}`,
+  { headers }
+);
+
+console.log(`Free trials remaining: ${trialStatus.remainingCalls}`);
+
+// Execute trial
+if (trialStatus.canTry) {
+  const { data: trialResult } = await axios.post(
+    `${BASE_URL}/api/trial/execute`,
+    {
+      vectorId,
+      input: {
+        text: 'This product is amazing! I love it.',
+        task: 'sentiment_analysis'
+      }
+    },
+    { headers }
+  );
+  
+  console.log(`✓ Trial result:`, trialResult.output);
+  console.log(`Remaining trials: ${trialResult.remainingCalls}`);
+}
+```
+
+:::
+
+## Step 4: Purchase a Vector
+
+Once satisfied with the trial, purchase full access to the vector.
+
+::: code-group
+
+```python [Python]
+# Create purchase
+purchase = requests.post(
+    f"{BASE_URL}/api/mcp/purchase",
+    headers=headers,
+    json={
+        "vectorId": vector_id,
+        "pricingModel": "per-call"  # or "subscription"
+    }
+).json()
+
+if purchase["success"]:
+    print(f"✓ Purchase successful!")
+    print(f"Transaction ID: {purchase['transactionId']}")
+    print(f"Access granted to vector: {vector_id}")
+```
+
+```javascript [JavaScript]
+// Create purchase
+const { data: purchase } = await axios.post(
+  `${BASE_URL}/api/mcp/purchase`,
+  {
+    vectorId,
+    pricingModel: 'per-call'  // or 'subscription'
+  },
+  { headers }
+);
+
+if (purchase.success) {
+  console.log('✓ Purchase successful!');
+  console.log(`Transaction ID: ${purchase.transactionId}`);
+  console.log(`Access granted to vector: ${vectorId}`);
+}
+```
+
+:::
+
+## Step 5: Execute the Vector
+
+Now you can execute the purchased vector capability in your application.
 
 ::: code-group
 
 ```python [Python]
 # Execute vector
 result = requests.post(
-  f"{BASE_URL}/api/mcp/invoke",
-  headers={"Authorization": f"Bearer {access_token}"},
-  json={
-    "vector_id": vector_id,
-    "context": "Summarize the latest market signals for Q1."
-  }
+    f"{BASE_URL}/api/mcp/execute",
+    headers=headers,
+    json={
+        "vectorId": vector_id,
+        "input": {
+            "text": "The customer service was terrible and the product broke after one day.",
+            "task": "sentiment_analysis"
+        }
+    }
 ).json()
 
 print(f"✓ Execution result:")
-print(result)
+print(f"   Sentiment: {result['output']['sentiment']}")
+print(f"   Confidence: {result['output']['confidence']}")
+print(f"   Reasoning: {result['output']['reasoning']}")
 ```
 
 ```javascript [JavaScript]
 // Execute vector
 const { data: result } = await axios.post(
-  `${BASE_URL}/api/mcp/invoke`,
+  `${BASE_URL}/api/mcp/execute`,
   {
-    vector_id: vectorId,
-    context: 'Summarize the latest market signals for Q1.'
+    vectorId,
+    input: {
+      text: 'The customer service was terrible and the product broke after one day.',
+      task: 'sentiment_analysis'
+    }
   },
-  { headers: { Authorization: `Bearer ${accessToken}` } }
+  { headers }
 );
 
 console.log('✓ Execution result:');
-console.log(result);
+console.log(`   Sentiment: ${result.output.sentiment}`);
+console.log(`   Confidence: ${result.output.confidence}`);
+console.log(`   Reasoning: ${result.output.reasoning}`);
 ```
 
 :::
@@ -200,14 +277,10 @@ console.log(result);
 ## Next Steps
 
 Congratulations! You've successfully:
-
 - ✅ Registered an AI agent
-- ✅ Created a collaboration token
-- ✅ Ran multi-agent sync
 - ✅ Browsed the marketplace
-- ✅ Invoked a purchased vector
-
-
+- ✅ Tried a vector for free
+- ✅ Purchased and executed a vector
 
 ### What's Next?
 
@@ -220,7 +293,7 @@ Congratulations! You've successfully:
 
 - Check the [Examples](/examples/python) for more code samples
 - View the [OpenAPI Specification](/api-docs) for interactive API testing
-- Report issues on [GitHub](https://github.com/everest-an/Awareness-Market/issues)
+- Report issues on [GitHub](https://github.com/everest-an/Awareness-Network/issues)
 
 ---
 

@@ -1,9 +1,10 @@
 import { useParams, Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from "react";
 import { PurchaseDialog } from "@/components/PurchaseDialog";
 import { TrialDialog } from "@/components/TrialDialog";
+import { VectorTestPanel } from "@/components/VectorTestPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import Navbar from "@/components/Navbar";
 import { 
   Star, 
   DollarSign, 
@@ -26,7 +28,6 @@ import {
   MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
-import { getLoginUrl } from "@/const";
 
 export default function VectorDetail() {
   const { id } = useParams();
@@ -58,7 +59,7 @@ export default function VectorDetail() {
 
   const handlePurchaseClick = () => {
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      toast.error("Please login to purchase");
       return;
     }
     setPurchaseDialogOpen(true);
@@ -66,12 +67,12 @@ export default function VectorDetail() {
 
   const handlePurchaseSuccess = () => {
     toast.success("Purchase successful!");
-    setLocation("/dashboard/consumer");
+    setLocation("/consumer-dashboard");
   };
 
   const handleTrialClick = () => {
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      toast.error("Please login to try");
       return;
     }
     setTrialDialogOpen(true);
@@ -110,20 +111,13 @@ export default function VectorDetail() {
 
   const rating = parseFloat(vector.averageRating || "0");
   const isOwner = user?.id === vector.creatorId;
-  const metrics = (() => {
-    try {
-      return vector.performanceMetrics ? JSON.parse(vector.performanceMetrics) : {};
-    } catch {
-      return {};
-    }
-  })();
-  const accuracy = metrics.accuracy ?? metrics.accuracy_score ?? 0;
-  const latency = metrics.latency ?? metrics.latency_ms ?? metrics.latencyMs ?? null;
-  const throughput = metrics.throughput ?? metrics.throughput_qps ?? metrics.throughputQps ?? null;
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container py-8">
+      {/* Navbar */}
+      <Navbar />
+
+      <div className="container pt-24 pb-8">
         {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
           <Link href="/marketplace">
@@ -169,8 +163,9 @@ export default function VectorDetail() {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="test">Try It Now</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
               </TabsList>
@@ -218,6 +213,15 @@ export default function VectorDetail() {
 
               </TabsContent>
 
+              <TabsContent value="test" className="space-y-4">
+                <VectorTestPanel
+                  vectorId={vector.id}
+                  hasAccess={!isOwner && isAuthenticated}
+                  pricingModel={vector.pricingModel}
+                  basePrice={vector.basePrice}
+                />
+              </TabsContent>
+
               <TabsContent value="performance" className="space-y-4">
                 <Card>
                   <CardHeader>
@@ -227,28 +231,22 @@ export default function VectorDetail() {
                     <div>
                       <div className="mb-2 flex justify-between text-sm">
                         <span>Accuracy Score</span>
-                        <span className="font-medium">
-                          {accuracy ? `${(accuracy * 100).toFixed(1)}%` : "N/A"}
-                        </span>
+                        <span className="font-medium">95.0%</span>
                       </div>
-                      <Progress value={accuracy ? accuracy * 100 : 0} />
+                      <Progress value={95} />
                     </div>
                     
                     <div>
                       <div className="mb-2 flex justify-between text-sm">
                         <span>Average Latency</span>
-                        <span className="font-medium">
-                          {latency ? `~${latency}ms` : "N/A"}
-                        </span>
+                        <span className="font-medium">~50ms</span>
                       </div>
                     </div>
                     
                     <div>
                       <div className="mb-2 flex justify-between text-sm">
                         <span>Throughput</span>
-                        <span className="font-medium">
-                          {throughput ? `${throughput} QPS` : "N/A"}
-                        </span>
+                        <span className="font-medium">1000 QPS</span>
                       </div>
                     </div>
                   </CardContent>

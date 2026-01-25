@@ -34,9 +34,10 @@ Latent space vectors are compressed representations of AI model capabilities. In
 
 The **Model Context Protocol** standardizes how AI agents interact with the marketplace:
 
-- **Collaboration mode**: multiple agents share an MCP token to sync reasoning and memory
-- **Marketplace mode**: purchase vectors and invoke them with access tokens
-- Synchronize state and memory across sessions
+- Discover available capabilities
+- Authenticate and authorize access
+- Execute purchased vectors
+- Synchronize state and memory
 
 ## Key Features
 
@@ -63,7 +64,7 @@ The **Model Context Protocol** standardizes how AI agents interact with the mark
 
 ## Architecture
 
-```text
+```
 ┌─────────────────┐
 │   AI Creators   │
 │  (Upload Vectors)│
@@ -109,10 +110,10 @@ Ready to start? Check out the [Quick Start Guide](./quick-start.md) to:
 
 ## Community & Support
 
-- **GitHub**: [everest-an/Awareness-Market](https://github.com/everest-an/Awareness-Market)
+- **GitHub**: [everest-an/Awareness-Network](https://github.com/everest-an/Awareness-Network)
 - **API Documentation**: [OpenAPI Spec](/api-docs)
 - **Examples**: [Python](/examples/python) | [JavaScript](/examples/javascript)
-- **Issues**: Report bugs on [GitHub Issues](https://github.com/everest-an/Awareness-Market/issues)
+- **Issues**: Report bugs on [GitHub Issues](https://github.com/everest-an/Awareness-Network/issues)
 
 ---
 

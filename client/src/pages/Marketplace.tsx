@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { RecommendationCard } from "@/components/RecommendationCard";
+import Navbar from "@/components/Navbar";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,6 @@ import {
   Filter
 } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import capabilityManifest from "../../capabilities/manifest.json";
 
 type SortOption = "newest" | "oldest" | "price_low" | "price_high" | "rating" | "popular";
 
@@ -36,7 +36,6 @@ export default function Marketplace() {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [page, setPage] = useState(0);
   const ITEMS_PER_PAGE = 12;
-  const featuredCapabilities = capabilityManifest.capabilities ?? [];
 
   // Fetch categories
   const { data: categories } = trpc.vectors.getCategories.useQuery();
@@ -73,22 +72,11 @@ export default function Marketplace() {
     setPage(0);
   };
 
-  const applyFeaturedFilter = (capability: (typeof featuredCapabilities)[number]) => {
-    setSearchTerm(capability.title);
-    setSelectedCategory(capability.category);
-    setSortBy("rating");
-    setPage(0);
-    document.getElementById("marketplace-results")?.scrollIntoView({ behavior: "smooth" });
-  };
-
   const FilterPanel = () => (
     <div className="space-y-6">
       <div>
         <h3 className="mb-3 font-semibold">Category</h3>
-        <Select
-          value={selectedCategory ?? "all"}
-          onValueChange={(value) => setSelectedCategory(value === "all" ? undefined : value)}
-        >
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger>
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
@@ -153,78 +141,20 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar />
+
       {/* Header */}
-      <div className="border-b bg-muted/30">
+      <div className="pt-20 border-b border-white/5 bg-muted/10">
         <div className="container py-8">
-          <h1 className="mb-2 text-4xl font-bold">AI Capability Marketplace</h1>
+          <h1 className="mb-2 text-4xl font-bold">AI Capability <span className="gradient-text">Marketplace</span></h1>
           <p className="text-lg text-muted-foreground">
-            Discover and integrate cutting-edge AI capabilities powered by LatentMAS
+            Discover and integrate cutting-edge AI capabilities powered by Awareness Protocol
           </p>
         </div>
       </div>
 
       <div className="container py-8">
-        {featuredCapabilities.length > 0 && (
-          <div className="mb-10">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">Featured Capabilities</h2>
-                <p className="text-muted-foreground mt-1">
-                  Curated capabilities from the community manifest
-                </p>
-              </div>
-              <Badge variant="secondary">Manifest</Badge>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {featuredCapabilities.map((capability) => (
-                <Card key={capability.id} className="group transition-all hover:shadow-lg">
-                  <CardHeader>
-                    <div className="mb-2 flex items-start justify-between">
-                      <Badge variant="outline" className="capitalize">
-                        {capability.category}
-                      </Badge>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-medium">{capability.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                    <CardTitle className="line-clamp-1">{capability.title}</CardTitle>
-                    <CardDescription className="line-clamp-2">
-                      {capability.summary}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {capability.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="mt-4 text-xs text-muted-foreground">
-                      {capability.model}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      <span className="text-lg font-bold">{capability.price.toFixed(2)}</span>
-                      <span className="text-xs text-muted-foreground">/month</span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => applyFeaturedFilter(capability)}
-                    >
-                      Explore
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-            <div className="mt-8 border-t" />
-          </div>
-        )}
         {/* AI Recommendations Section */}
         {isAuthenticated && recommendations && recommendations.length > 0 && (
           <div className="mb-8">
@@ -260,7 +190,7 @@ export default function Marketplace() {
           </aside>
 
           {/* Main Content */}
-          <div className="space-y-6" id="marketplace-results">
+          <div className="space-y-6">
             {/* Search and Sort Bar */}
             <div className="flex flex-col gap-4 sm:flex-row">
               <form onSubmit={handleSearch} className="flex flex-1 gap-2">

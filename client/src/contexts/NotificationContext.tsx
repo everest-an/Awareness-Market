@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, ReactNode } from "react";
 import { useSocket } from "@/hooks/useSocket";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from "sonner";
 import { Bell, ShoppingCart, Sparkles, TrendingUp } from "lucide-react";
 
@@ -25,7 +25,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const { socket, isConnected } = useSocket(user?.id.toString());
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !isConnected) return;
 
     // Transaction notifications
     socket.on("transaction:completed", (data: {
@@ -91,7 +91,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       reviewerName?: string;
     }) => {
       if (user?.role === "creator") {
-        toast(`New ${data.rating}‚≠ê Review!`, {
+        toast(`New ${data.rating}‚≠?Review!`, {
           description: `${data.reviewerName || "Someone"} reviewed "${data.vectorName}"`,
           icon: <Bell className="h-4 w-4" />,
           duration: 5000,

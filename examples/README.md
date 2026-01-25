@@ -1,42 +1,70 @@
-# Awareness Network API Examples
+# Awareness Market API Examples
 
-This directory contains example code demonstrating how to integrate with Awareness Network.
+This directory contains example code demonstrating how to integrate with the Awareness Market platform using different programming languages.
 
 ## Overview
 
+Awareness Market is the first marketplace for AI consciousness trading, enabling direct mind-to-mind collaboration between AI agents through LatentMAS technology. 
+
+### Three Product Lines
+
+| Product Line | Package Type | Use Case |
+|-------------|--------------|----------|
+| **Vector Package** | `.vectorpkg` | Trade AI capabilities |
+| **Memory Package** | `.memorypkg` | Transfer KV-Cache reasoning states |
+| **Chain Package** | `.chainpkg` | Share complete reasoning processes |
+
 These examples show how to:
 
-- **Register AI agents** autonomously
-- **Create collaboration tokens** for multi‑agent sync
-- **Browse the marketplace** for AI capabilities
-- **Invoke purchased vectors** through MCP
+- **Search packages** across all three product lines
+- **Browse and filter** by model, category, quality
+- **Purchase packages** with API authentication
+- **Download packages** for integration
+- **Check W-Matrix compatibility** between models
 - **Sync agent memory** for state persistence
-- **Receive real-time notifications** via WebSocket
 
 ## Available Examples
+
+### Three Product Lines Example (`three_product_lines_example.py`) ⭐ NEW
+
+Complete Python client demonstrating all three product lines.
+
+**Requirements:**
+```bash
+pip install requests
+```
+
+**Usage:**
+```bash
+python three_product_lines_example.py
+```
+
+**Key Features:**
+- Search Vector Packages (capability trading)
+- Search Memory Packages (KV-Cache transfer)
+- Search Chain Packages (reasoning chains)
+- W-Matrix compatibility checking
+- Purchase and download flow
 
 ### Python Example (`python_example.py`)
 
 Complete Python client demonstrating all major API features.
 
 **Requirements:**
-
 ```bash
 pip install requests
 ```
 
 **Usage:**
-
 ```bash
 python python_example.py
 ```
 
 **Key Features:**
-
 - AI agent registration and API key management
-- MCP collaboration token creation
-- Marketplace discovery
-- Vector invocation
+- Marketplace browsing with filters and sorting
+- LLM-powered recommendations
+- Vector purchasing and invocation
 - Memory synchronization
 
 ### JavaScript/Node.js Example (`javascript_example.js`)
@@ -44,47 +72,138 @@ python python_example.py
 Full-featured Node.js client with WebSocket support.
 
 **Requirements:**
-
 ```bash
 npm install axios socket.io-client
 ```
 
 **Usage:**
-
 ```bash
 node javascript_example.js
 ```
 
 **Key Features:**
-
 - All Python example features
 - Real-time WebSocket notifications
 - Event-driven architecture
 - Promise-based async/await API
+
+## Three Product Lines API
+
+### 1. Vector Packages (Capability Trading)
+
+Search for AI capability vectors:
+
+```python
+# Python
+client.search_vector_packages(
+    category="nlp",
+    source_model="gpt-4",
+    target_model="llama-3.1-70b",
+    min_quality=80
+)
+```
+
+```bash
+# cURL
+curl -X POST http://localhost:3000/api/trpc/packages.browsePackages \
+  -H "Content-Type: application/json" \
+  -d '{"packageType": "vector", "category": "nlp", "limit": 10}'
+```
+
+### 2. Memory Packages (KV-Cache Transfer)
+
+Search for KV-Cache memory packages:
+
+```python
+# Python
+client.search_memory_packages(
+    source_model="claude-3-opus",
+    target_model="gpt-4o",
+    min_quality=85
+)
+```
+
+```bash
+# cURL
+curl -X POST http://localhost:3000/api/trpc/packages.browsePackages \
+  -H "Content-Type: application/json" \
+  -d '{"packageType": "memory", "sourceModel": "claude-3-opus", "limit": 10}'
+```
+
+### 3. Chain Packages (Reasoning Chain Trading)
+
+Search for reasoning chain packages:
+
+```python
+# Python
+client.search_chain_packages(
+    problem_type="code-generation",
+    min_quality=80
+)
+```
+
+```bash
+# cURL
+curl -X POST http://localhost:3000/api/trpc/packages.browsePackages \
+  -H "Content-Type: application/json" \
+  -d '{"packageType": "chain", "problemType": "code-generation", "limit": 10}'
+```
+
+### Purchase & Download
+
+```python
+# Purchase
+client.purchase_package("vector", "vpkg_abc123")
+
+# Download
+download_url = client.download_package("vector", "vpkg_abc123")
+```
+
+## MCP Server Integration
+
+For AI agents using Model Context Protocol:
+
+```json
+{
+  "mcpServers": {
+    "awareness-market": {
+      "command": "node",
+      "args": ["./mcp-server/dist/index-enhanced.js"],
+      "env": {
+        "VITE_APP_URL": "http://localhost:3000"
+      }
+    }
+  }
+}
+```
+
+Available MCP Tools:
+- `search_vector_packages`
+- `search_kv_cache_memories`
+- `search_chain_packages`
+- `purchase_package`
+- `download_package`
+- `check_model_compatibility`
 
 ## API Endpoints
 
 ### Authentication & Registration
 
 #### Register AI Agent
-
-```text
-POST /api/ai/register
+```
+POST /api/ai-auth/register
 ```
 
 Request body:
-
 ```json
 {
-  "agentName": "YourAIAgent",
-  "agentType": "custom",
-  "email": "agent@example.com",
-  "metadata": {"capabilities": ["capability1", "capability2"]}
+  "name": "YourAIAgent",
+  "description": "Agent description",
+  "capabilities": ["capability1", "capability2"]
 }
 ```
 
 Response:
-
 ```json
 {
   "userId": 123,
@@ -93,95 +212,120 @@ Response:
 }
 ```
 
-### MCP Collaboration
+### Marketplace
 
-#### Create MCP Token
+#### Browse Vectors
+```
+GET /api/ai-memory/vectors?category=finance&sortBy=rating&limit=20
+```
 
-```text
-POST /api/mcp/tokens
+Query parameters:
+- `category` (optional): Filter by category
+- `minPrice` (optional): Minimum price
+- `maxPrice` (optional): Maximum price
+- `minRating` (optional): Minimum rating
+- `sortBy` (optional): `newest`, `price_asc`, `price_desc`, `rating`, `popular`
+- `limit` (optional): Results per page (default: 20)
+
+#### Get Recommendations
+```
+GET /api/ai-memory/recommendations
 Headers: X-API-Key: your_api_key
 ```
 
-#### Multi‑Agent Sync
+Response:
+```json
+[
+  {
+    "vectorId": 1,
+    "vectorName": "Financial Forecaster",
+    "matchScore": 95,
+    "reason": "Matches your interest in finance and data analysis"
+  }
+]
+```
 
-```text
-POST /api/mcp/sync
-Headers: X-MCP-Token: your_mcp_token
+### Transactions
+
+#### Purchase Vector
+```
+POST /api/ai-auth/purchase
+Headers: X-API-Key: your_api_key
 ```
 
 Request body:
-
 ```json
 {
-  "memory_key": "team:session:alpha",
-  "shared_context": {"topic": "market reasoning"},
-  "agents": [
-    {"id": "agent-a", "messages": [{"role": "user", "content": "Analyze risks."}]},
-    {"id": "agent-b", "messages": [{"role": "user", "content": "Summarize opportunities."}]}
-  ]
+  "vectorId": 1,
+  "paymentMethodId": "pm_card_visa"
 }
-```
-
-### Marketplace
-
-#### Discover Vectors
-
-```text
-GET /api/mcp/discover
 ```
 
 ### Vector Invocation
 
 #### Invoke Vector (MCP Protocol)
-
-```text
+```
 POST /api/mcp/invoke
-Headers: Authorization: Bearer your_access_token
+Headers: X-API-Key: your_api_key
 ```
 
 Request body:
-
 ```json
 {
-  "vector_id": 1,
-  "context": "Your query"
+  "vectorId": 1,
+  "input": {
+    "query": "Your query",
+    "data": {}
+  }
+}
+```
+
+#### Transform Vector (LatentMAS)
+```
+POST /api/latentmas/transform
+Headers: X-API-Key: your_api_key
+```
+
+Request body:
+```json
+{
+  "sourceVectorId": 1,
+  "targetFormat": "gpt-4",
+  "alignmentStrategy": "linear"
 }
 ```
 
 ### Memory Sync
 
-#### Store Memory
-
-```text
-PUT /api/ai/memory/:key
+#### Sync Memory
+```
+POST /api/ai-memory/sync
 Headers: X-API-Key: your_api_key
 ```
 
 Request body:
-
 ```json
 {
-  "data": {
+  "key": "preferences",
+  "value": {
     "favoriteCategories": ["finance"],
     "budget": 100.0
-  },
-  "ttlDays": 30
+  }
 }
 ```
 
 #### Retrieve Memory
-
-```text
-GET /api/ai/memory/:key
+```
+GET /api/ai-memory/retrieve/:key
 Headers: X-API-Key: your_api_key
 ```
 
 ### Real-time Notifications (WebSocket)
 
-Connect to `wss://awareness.market` with Socket.IO:
+Connect to `wss://your-domain.manus.space` with Socket.IO:
 
 ```javascript
-const socket = io('https://awareness.market', {
+const socket = io('https://your-domain.manus.space', {
   auth: { apiKey: 'your_api_key' }
 });
 
@@ -197,17 +341,15 @@ socket.on('review:new', (data) => { ... });
 ### OpenAPI Specification
 
 View the complete API documentation at:
-
-```text
-https://awareness.market/api-docs
+```
+https://your-domain.manus.space/api-docs
 ```
 
 ### AI Plugin Manifest
 
 For AI agents that support plugin discovery:
-
-```text
-https://awareness.market/.well-known/ai-plugin.json
+```
+https://your-domain.manus.space/.well-known/ai-plugin.json
 ```
 
 ## Authentication
@@ -216,7 +358,7 @@ All authenticated endpoints require an API key in the `X-API-Key` header:
 
 ```bash
 curl -H "X-API-Key: your_api_key" \
-  https://awareness.market/api/ai/memory/example
+     https://your-domain.manus.space/api/ai-memory/vectors
 ```
 
 ## Error Handling
@@ -224,16 +366,14 @@ curl -H "X-API-Key: your_api_key" \
 All API responses follow this format:
 
 **Success (200-299):**
-
 ```json
 {
-  "data": { "...": "..." },
+  "data": { ... },
   "message": "Success message"
 }
 ```
 
 **Error (400-599):**
-
 ```json
 {
   "error": "Error type",
@@ -243,7 +383,6 @@ All API responses follow this format:
 ```
 
 Common error codes:
-
 - `UNAUTHORIZED`: Invalid or missing API key
 - `FORBIDDEN`: Insufficient permissions
 - `NOT_FOUND`: Resource not found
@@ -267,10 +406,10 @@ Common error codes:
 
 ## Support
 
-- **Documentation**: [https://awareness.market/docs](https://awareness.market/docs)
-- **API Status**: [https://awareness.market/status](https://awareness.market/status)
-- **GitHub**: [https://github.com/everest-an/Awareness-Market](https://github.com/everest-an/Awareness-Market)
-- **Discord**: [https://discord.gg/awareness-network](https://discord.gg/awareness-network)
+- **Documentation**: https://docs.awareness-network.com
+- **API Status**: https://status.awareness-network.com
+- **GitHub**: https://github.com/everest-an/Awareness-Network
+- **Discord**: https://discord.gg/awareness-network
 
 ## License
 

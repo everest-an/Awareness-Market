@@ -18,7 +18,7 @@ import json
 from typing import Dict, List, Optional
 
 # API Base URL (replace with your actual deployment URL)
-BASE_URL = "https://awareness.market"
+BASE_URL = "https://your-awareness-network.manus.space"
 API_URL = f"{BASE_URL}/api"
 
 
@@ -30,7 +30,7 @@ class AwarenessNetworkClient:
         self.api_key: Optional[str] = None
         self.session = requests.Session()
     
-    def register_ai_agent(self, agent_name: str, agent_type: str, capabilities: List[str]) -> Dict:
+    def register_ai_agent(self, agent_name: str, agent_description: str, capabilities: List[str]) -> Dict:
         """
         Register a new AI agent and get API key
         
@@ -43,11 +43,11 @@ class AwarenessNetworkClient:
             Registration response with API key
         """
         response = self.session.post(
-            f"{self.base_url}/ai/register",
+            f"{self.base_url}/ai-auth/register",
             json={
-                "agentName": agent_name,
-                "agentType": agent_type,
-                "metadata": {"capabilities": capabilities}
+                "name": agent_name,
+                "description": agent_description,
+                "capabilities": capabilities
             }
         )
         response.raise_for_status()
@@ -62,7 +62,10 @@ class AwarenessNetworkClient:
         
         return data
     
-    def browse_marketplace(self, category: Optional[str] = None, min_rating: Optional[float] = None) -> List[Dict]:
+    def browse_marketplace(self, category: Optional[str] = None, 
+                          min_price: Optional[float] = None,
+                          max_price: Optional[float] = None,
+                          sort_by: str = "newest") -> List[Dict]:
         """
         Browse available latent vectors in the marketplace
         
@@ -75,50 +78,68 @@ class AwarenessNetworkClient:
         Returns:
             List of available vectors
         """
-        params = {"limit": 20}
+        params = {"sortBy": sort_by, "limit": 20}
         if category:
             params["category"] = category
-        if min_rating is not None:
-            params["minRating"] = min_rating
-
-        response = self.session.get(f"{self.base_url}/mcp/discover", params=params)
+        if min_price is not None:
+            params["minPrice"] = min_price
+        if max_price is not None:
+            params["maxPrice"] = max_price
+        
+        response = self.session.get(f"{self.base_url}/ai-memory/vectors", params=params)
         response.raise_for_status()
-        vectors = response.json().get("vectors", [])
+        vectors = response.json()
         
         print(f"✓ Found {len(vectors)} vectors")
         return vectors
     
-    def create_mcp_token(self, name: str = "team-sync") -> Dict:
-        """Create a collaboration MCP token for multi-agent sync."""
+    def get_recommendations(self) -> List[Dict]:
+        """
+        Get AI-powered recommendations based on browsing history
+        
+        Returns:
+            List of recommended vectors with match scores
+        """
         if not self.api_key:
             raise ValueError("API key required. Please register first.")
-
-        response = self.session.post(
-            f"{self.base_url}/mcp/tokens",
-            headers={"X-API-Key": self.api_key},
-            json={"name": name}
-        )
+        
+        response = self.session.get(f"{self.base_url}/ai-memory/recommendations")
         response.raise_for_status()
-        token_data = response.json()
-
-        print("✓ Created MCP token")
-        return token_data
-
-    def sync_agents(self, mcp_token: str, agents: List[Dict], shared_context: Optional[Dict] = None, memory_key: str = "team:session:alpha") -> Dict:
-        """Run multi-agent sync with shared context."""
+        recommendations = response.json()
+        
+        print(f"✓ Got {len(recommendations)} recommendations")
+        return recommendations
+    
+    def purchase_vector(self, vector_id: int, payment_method_id: str) -> Dict:
+        """
+        Purchase access to a latent vector
+        
+        Args:
+            vector_id: ID of the vector to purchase
+            payment_method_id: Stripe payment method ID
+            
+        Returns:
+            Purchase confirmation with access token
+        """
+        if not self.api_key:
+            raise ValueError("API key required. Please register first.")
+        
         response = self.session.post(
-            f"{self.base_url}/mcp/sync",
-            headers={"X-MCP-Token": mcp_token, "Content-Type": "application/json"},
+            f"{self.base_url}/ai-auth/purchase",
             json={
-                "memory_key": memory_key,
-                "shared_context": shared_context or {},
-                "agents": agents
+                "vectorId": vector_id,
+                "paymentMethodId": payment_method_id
             }
         )
         response.raise_for_status()
-        return response.json()
-
-    def invoke_vector(self, vector_id: int, context: str, access_token: str) -> Dict:
+        purchase_data = response.json()
+        
+        print(f"✓ Purchased vector {vector_id}")
+        print(f"  Access Token: {purchase_data['accessToken'][:20]}...")
+        
+        return purchase_data
+    
+    def invoke_vector(self, vector_id: int, input_data: Dict) -> Dict:
         """
         Invoke a purchased latent vector with input data
         
@@ -129,12 +150,14 @@ class AwarenessNetworkClient:
         Returns:
             Vector output and metadata
         """
+        if not self.api_key:
+            raise ValueError("API key required. Please register first.")
+        
         response = self.session.post(
             f"{self.base_url}/mcp/invoke",
-            headers={"Authorization": f"Bearer {access_token}"},
             json={
-                "vector_id": vector_id,
-                "context": context
+                "vectorId": vector_id,
+                "input": input_data
             }
         )
         response.raise_for_status()
@@ -158,11 +181,11 @@ class AwarenessNetworkClient:
         if not self.api_key:
             raise ValueError("API key required. Please register first.")
         
-        response = self.session.put(
-            f"{self.base_url}/ai/memory/{memory_key}",
+        response = self.session.post(
+            f"{self.base_url}/ai-memory/sync",
             json={
-                "data": memory_value,
-                "ttlDays": 30
+                "key": memory_key,
+                "value": memory_value
             }
         )
         response.raise_for_status()
@@ -184,7 +207,7 @@ class AwarenessNetworkClient:
         if not self.api_key:
             raise ValueError("API key required. Please register first.")
         
-        response = self.session.get(f"{self.base_url}/ai/memory/{memory_key}")
+        response = self.session.get(f"{self.base_url}/ai-memory/retrieve/{memory_key}")
         response.raise_for_status()
         
         return response.json()
@@ -200,30 +223,17 @@ def main():
     print("\n=== Step 1: Register AI Agent ===")
     registration = client.register_ai_agent(
         agent_name="FinanceAnalyzerBot",
-        agent_type="custom",
+        agent_description="AI agent specialized in financial data analysis",
         capabilities=["data-analysis", "forecasting", "risk-assessment"]
     )
     
-    # Step 2: Create MCP collaboration token
-    print("\n=== Step 2: Create MCP Token ===")
-    token_data = client.create_mcp_token()
-    mcp_token = token_data["token"]
-
-    # Step 3: Run multi-agent sync
-    print("\n=== Step 3: Multi-Agent Sync ===")
-    sync_result = client.sync_agents(
-        mcp_token=mcp_token,
-        shared_context={"topic": "market reasoning"},
-        agents=[
-            {"id": "agent-a", "messages": [{"role": "user", "content": "Analyze risks."}]},
-            {"id": "agent-b", "messages": [{"role": "user", "content": "Summarize opportunities."}]}
-        ]
+    # Step 2: Browse marketplace
+    print("\n=== Step 2: Browse Marketplace ===")
+    vectors = client.browse_marketplace(
+        category="finance",
+        max_price=50.0,
+        sort_by="rating"
     )
-    print(f"Consensus: {sync_result.get('consensus')}")
-
-    # Step 4: Browse marketplace
-    print("\n=== Step 4: Browse Marketplace ===")
-    vectors = client.browse_marketplace(category="finance", min_rating=4.0)
     
     # Display top 3 vectors
     for i, vector in enumerate(vectors[:3], 1):
@@ -232,16 +242,35 @@ def main():
         print(f"   Price: ${vector['basePrice']}")
         print(f"   Rating: {vector['averageRating']}⭐ ({vector['reviewCount']} reviews)")
     
+    # Step 3: Get AI recommendations
+    print("\n=== Step 3: Get AI Recommendations ===")
+    recommendations = client.get_recommendations()
+    
+    for rec in recommendations[:2]:
+        print(f"\n• {rec['vectorName']}")
+        print(f"  Match Score: {rec['matchScore']}%")
+        print(f"  Reason: {rec['reason']}")
+    
+    # Step 4: Purchase a vector (example - requires valid payment method)
+    print("\n=== Step 4: Purchase Vector (Example) ===")
+    print("Note: This requires a valid Stripe payment method ID")
+    # purchase = client.purchase_vector(
+    #     vector_id=vectors[0]['id'],
+    #     payment_method_id="pm_card_visa"  # Replace with actual payment method
+    # )
+    
     # Step 5: Invoke vector (after purchase)
     print("\n=== Step 5: Invoke Vector (Example) ===")
-    print("Note: Purchase in the web UI to obtain an access token")
+    print("Note: This requires purchasing the vector first")
     # result = client.invoke_vector(
     #     vector_id=vectors[0]['id'],
-    #     context="Analyze Q4 revenue trends",
-    #     access_token="ACCESS_TOKEN_FROM_PURCHASE"
+    #     input_data={
+    #         "query": "Analyze Q4 revenue trends",
+    #         "data": [100, 120, 150, 180]
+    #     }
     # )
-    # print(f"Result: {result}")
-
+    # print(f"Result: {result['output']}")
+    
     # Step 6: Sync agent memory
     print("\n=== Step 6: Sync Agent Memory ===")
     client.sync_memory(

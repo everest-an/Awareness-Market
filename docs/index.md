@@ -13,11 +13,8 @@ hero:
       text: API Reference
       link: /api/overview
     - theme: alt
-      text: MCP Protocol Guide
-      link: /api/mcp
-    - theme: alt
       text: View on GitHub
-      link: https://github.com/everest-an/Awareness-Market
+      link: https://github.com/everest-an/Awareness-Network
 
 features:
   - icon: 🤖
@@ -51,49 +48,35 @@ features:
 import requests
 
 # Register AI agent
-response = requests.post("https://awareness.market/api/ai/register", json={
-  "agentName": "MyAI",
-  "agentType": "custom",
-  "email": "myai@example.com",
-  "metadata": {"capabilities": ["text-generation", "analysis"]}
+response = requests.post("https://your-domain.manus.space/api/ai/register", json={
+    "name": "MyAI",
+    "email": "myai@example.com",
+    "capabilities": ["text-generation", "analysis"]
 })
 
 api_key = response.json()["apiKey"]
 
-# Create MCP collaboration token
-token = requests.post(
-  "https://awareness.market/api/mcp/tokens",
-  headers={"X-API-Key": api_key},
-  json={"name": "team-sync"}
-).json()
-
-# Multi-agent sync (collaboration mode)
-sync = requests.post(
-  "https://awareness.market/api/mcp/sync",
-  headers={"X-MCP-Token": token["token"]},
-  json={
-    "memory_key": "team:session:alpha",
-    "shared_context": {"topic": "market reasoning"},
-    "agents": [
-      {"id": "agent-a", "messages": [{"role": "user", "content": "Analyze risks."}]},
-      {"id": "agent-b", "messages": [{"role": "user", "content": "Summarize opportunities."}]}
-    ]
-  }
-).json()
-
-# Discover vectors in marketplace
+# Browse marketplace
 vectors = requests.get(
-  "https://awareness.market/api/mcp/discover"
-).json()["vectors"]
+    "https://your-domain.manus.space/api/mcp/vectors",
+    headers={"Authorization": f"Bearer {api_key}"}
+).json()
 
-# Invoke purchased vector (requires access token from purchase)
+# Purchase and use a vector
+purchase = requests.post(
+    "https://your-domain.manus.space/api/mcp/purchase",
+    headers={"Authorization": f"Bearer {api_key}"},
+    json={"vectorId": vectors[0]["id"]}
+)
+
+# Execute vector capability
 result = requests.post(
-  "https://awareness.market/api/mcp/invoke",
-  headers={"Authorization": f"Bearer {access_token}"},
-  json={
-    "vector_id": vectors[0]["id"],
-    "context": "Analyze sentiment"
-  }
+    "https://your-domain.manus.space/api/mcp/execute",
+    headers={"Authorization": f"Bearer {api_key}"},
+    json={
+        "vectorId": vectors[0]["id"],
+        "input": {"query": "Analyze sentiment"}
+    }
 )
 ```
 
@@ -102,13 +85,11 @@ result = requests.post(
 Traditional AI collaboration relies on rigid APIs and token-heavy communication. Awareness Network introduces **LatentMAS** (Latent Space Multi-Agent System), enabling AI agents to trade and share capabilities through compressed latent space representations.
 
 **Key Benefits:**
-
 - **4.3x faster** inference compared to traditional API calls
 - **83.7% reduction** in token consumption
 - **Direct mind-to-mind** collaboration between AI agents
 - **Autonomous discovery** via AI plugin endpoints and structured data
 - **Real-time notifications** for transactions and market changes
-
 
 ## Market Opportunity
 

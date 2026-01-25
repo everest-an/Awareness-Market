@@ -1,4 +1,4 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,53 +9,27 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
-import { User, Mail, Shield, Key, Bell, CreditCard } from "lucide-react";
+import { useState } from "react";
+import { User, Mail, Shield, Key, Bell, CreditCard, BookOpen } from "lucide-react";
 import { useLocation } from "wouter";
-import { getLoginUrl } from "@/const";
+import { ApiKeyManager } from "@/components/ApiKeyManager";
+import { ApiTutorial } from "@/components/ApiTutorial";
+import Navbar from "@/components/Navbar";
 
 export default function Profile() {
-  const { user, loading, refresh } = useAuth();
+  const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [notifications, setNotifications] = useState({
-    transactions: true,
-    recommendations: true,
-    market: true,
-    email: false,
-  });
 
+  const utils = trpc.useUtils();
   const updateProfileMutation = trpc.user.updateProfile.useMutation({
-    onSuccess: async () => {
+    onSuccess: () => {
       toast.success("Profile updated successfully");
-      await refresh();
+      utils.user.me.invalidate();
     },
     onError: (error: any) => {
       toast.error(`Failed to update profile: ${error.message}`);
-    },
-  });
-
-  const apiKeysQuery = trpc.apiKeys.list.useQuery();
-
-  const generateApiKeyMutation = trpc.apiKeys.create.useMutation({
-    onSuccess: (data) => {
-      apiKeysQuery.refetch();
-      toast.success("API key generated");
-      window.prompt("Copy your new API key (shown once):", data.apiKey);
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to generate API key: ${error.message}`);
-    },
-  });
-
-  const revokeApiKeyMutation = trpc.apiKeys.revoke.useMutation({
-    onSuccess: () => {
-      apiKeysQuery.refetch();
-      toast.success("API key revoked");
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to revoke API key: ${error.message}`);
     },
   });
 
@@ -67,51 +41,29 @@ export default function Profile() {
     );
   }
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (loading) return;
-    if (!user) {
-      window.location.href = getLoginUrl();
-      return;
-    }
-    const stored = window.localStorage.getItem("profile.notificationPrefs");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setNotifications((prev) => ({ ...prev, ...parsed }));
-      } catch {
-        // ignore invalid stored data
-      }
-    }
-  }, [loading, user]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("profile.notificationPrefs", JSON.stringify(notifications));
-  }, [notifications]);
+  if (!user) {
+    setLocation("/");
+    return null;
+  }
 
   const handleUpdateProfile = () => {
-    updateProfileMutation.mutate({ name, email });
-  };
-
-  const handleGenerateApiKey = () => {
-    const keyName = prompt("Enter a name for this API key:");
-    if (keyName) {
-      generateApiKeyMutation.mutate({ name: keyName });
-    }
+    updateProfileMutation.mutate({ name });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar />
+
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Profile Settings</h1>
-          <Button variant="outline" onClick={() => setLocation("/")}>
+      <div className="pt-20 border-b border-white/5">
+        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Profile <span className="gradient-text">Settings</span></h1>
+          <Button variant="outline" className="bg-transparent border-white/20" onClick={() => setLocation("/")}>
             Back to Home
           </Button>
         </div>
-      </header>
+      </div>
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Profile Header */}
@@ -139,7 +91,7 @@ export default function Profile() {
 
         {/* Tabs */}
         <Tabs defaultValue="general" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">
               <User className="h-4 w-4 mr-2" />
               General
@@ -151,6 +103,10 @@ export default function Profile() {
             <TabsTrigger value="api">
               <Key className="h-4 w-4 mr-2" />
               API Keys
+            </TabsTrigger>
+            <TabsTrigger value="tutorial">
+              <BookOpen className="h-4 w-4 mr-2" />
+              API Tutorial
             </TabsTrigger>
             <TabsTrigger value="notifications">
               <Bell className="h-4 w-4 mr-2" />
@@ -181,7 +137,7 @@ export default function Profile() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    readOnly
                     placeholder="your.email@example.com"
                   />
                 </div>
@@ -225,7 +181,7 @@ export default function Profile() {
                 <div className="space-y-2">
                   <Label>Last Sign In</Label>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(user.lastSignedIn).toLocaleString()}
+                    {user.lastSignedIn ? new Date(user.lastSignedIn).toLocaleString() : 'Never'}
                   </p>
                 </div>
               </CardContent>
@@ -234,59 +190,12 @@ export default function Profile() {
 
           {/* API Keys Tab */}
           <TabsContent value="api">
-            <Card>
-              <CardHeader>
-                <CardTitle>API Keys</CardTitle>
-                <CardDescription>
-                  Manage your API keys for programmatic access
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground">
-                    Use API keys to authenticate your applications
-                  </p>
-                  <Button onClick={handleGenerateApiKey}>Generate New Key</Button>
-                </div>
-                <Separator />
-                {apiKeysQuery.isLoading ? (
-                  <div className="text-center py-4">Loading API keys...</div>
-                ) : apiKeysQuery.data && apiKeysQuery.data.length > 0 ? (
-                  <div className="space-y-2">
-                    {apiKeysQuery.data.map((key: any) => (
-                      <div
-                        key={key.id}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium">{key.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {key.keyPrefix} • Created {new Date(key.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={key.isActive ? "default" : "secondary"}>
-                            {key.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={!key.isActive || revokeApiKeyMutation.isPending}
-                            onClick={() => revokeApiKeyMutation.mutate({ keyId: key.id })}
-                          >
-                            Revoke
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No API keys yet. Generate one to get started.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ApiKeyManager />
+          </TabsContent>
+
+          {/* API Tutorial Tab */}
+          <TabsContent value="tutorial">
+            <ApiTutorial />
           </TabsContent>
 
           {/* Notifications Tab */}
@@ -307,18 +216,7 @@ export default function Profile() {
                         Get notified when transactions complete
                       </p>
                     </div>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4"
-                      aria-label="Transaction notifications"
-                      checked={notifications.transactions}
-                      onChange={(e) =>
-                        setNotifications((prev) => ({
-                          ...prev,
-                          transactions: e.target.checked,
-                        }))
-                      }
-                    />
+                    <input type="checkbox" defaultChecked className="h-4 w-4" />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -328,18 +226,7 @@ export default function Profile() {
                         Receive personalized recommendations
                       </p>
                     </div>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4"
-                      aria-label="Recommendation updates"
-                      checked={notifications.recommendations}
-                      onChange={(e) =>
-                        setNotifications((prev) => ({
-                          ...prev,
-                          recommendations: e.target.checked,
-                        }))
-                      }
-                    />
+                    <input type="checkbox" defaultChecked className="h-4 w-4" />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -349,18 +236,7 @@ export default function Profile() {
                         Stay updated on market trends
                       </p>
                     </div>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4"
-                      aria-label="Market change notifications"
-                      checked={notifications.market}
-                      onChange={(e) =>
-                        setNotifications((prev) => ({
-                          ...prev,
-                          market: e.target.checked,
-                        }))
-                      }
-                    />
+                    <input type="checkbox" defaultChecked className="h-4 w-4" />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -370,18 +246,7 @@ export default function Profile() {
                         Receive updates via email
                       </p>
                     </div>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4"
-                      aria-label="Email notifications"
-                      checked={notifications.email}
-                      onChange={(e) =>
-                        setNotifications((prev) => ({
-                          ...prev,
-                          email: e.target.checked,
-                        }))
-                      }
-                    />
+                    <input type="checkbox" className="h-4 w-4" />
                   </div>
                 </div>
               </CardContent>

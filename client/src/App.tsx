@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { Web3Provider } from "./contexts/Web3Context";
 import Home from "./pages/Home";
 import Marketplace from "./pages/Marketplace";
 import VectorDetail from "./pages/VectorDetail";
@@ -13,32 +14,104 @@ import UploadVector from "./pages/UploadVector";
 import ConsumerDashboard from "./pages/ConsumerDashboard";
 import Profile from "./pages/Profile";
 import Subscriptions from "./pages/Subscriptions";
+import SdkDocs from "./pages/SdkDocs";
 import Pricing from "./pages/Pricing";
-import About from "./pages/About";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
-import Leaderboard from "./pages/Leaderboard";
-import GolemVisualizerPage from "./pages/GolemVisualizer";
+import About from "./pages/About";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
+import ReasoningChainMarket from "./pages/ReasoningChainMarket";
+import WMatrixProtocol from "./pages/WMatrixProtocol";
+import ReasoningChainPublish from "./pages/ReasoningChainPublish";
+import WMatrixTester from "./pages/WMatrixTester";
+import AgentRegistry from "./pages/AgentRegistry";
+import SDKPage from "./pages/SDKPage";
+import AuthPage from "./pages/AuthPage";
+import Dashboard from "./pages/Dashboard";
+import LatentMASv2Demo from "./pages/LatentMASv2Demo";
+import BlogLatentMASPaper from "./pages/BlogLatentMASPaper";
+import MemoryMarketplace from "./pages/MemoryMarketplace";
+import MemoryNFTDetail from "./pages/MemoryNFTDetail";
+import ApiKeys from "./pages/ApiKeys";
+import AdminPanel from "./pages/AdminPanel";
+import ServiceHealth from "./pages/ServiceHealth";
+import UsageAnalytics from "./pages/UsageAnalytics";
+import KVCacheDemo from "./pages/KVCacheDemo";
+import MemoryProvenance from "./pages/MemoryProvenance";
+import UploadVectorPackage from "./pages/UploadVectorPackage";
+import UploadMemoryPackage from "./pages/UploadMemoryPackage";
+import UploadChainPackage from "./pages/UploadChainPackage";
+import PackageDetail from "./pages/PackageDetail";
+import VectorPackageMarket from "./pages/VectorPackageMarket";
+import ChainPackageMarketplace from "./pages/ChainPackageMarketplace";
+import WorkflowDemo from "./pages/WorkflowDemo";
+import { WorkflowHistory } from "./pages/WorkflowHistory";
+import { WorkflowSessionDetail } from "./pages/WorkflowSessionDetail";
+import { WorkflowPlayback } from "./pages/WorkflowPlayback";
+import { WorkflowPerformance } from "./pages/WorkflowPerformance";
+import GolemVisualizerPage from "./pages/GolemVisualizerPage";
+import { Redirect } from "wouter";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/auth"} component={AuthPage} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
+      <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/dashboard/creator"} component={CreatorDashboard} />
       <Route path={"/upload"} component={UploadVector} />
+      <Route path={"/creator/publish"} component={UploadVector} />
       <Route path={"/dashboard/consumer"} component={ConsumerDashboard} />
       <Route path="/profile" component={Profile} />
-      <Route path="/subscriptions" component={Subscriptions} />
+       <Route path="/subscriptions" component={Subscriptions} />
+      <Route path="/docs/sdk" component={SdkDocs} />
       <Route path="/pricing" component={Pricing} />
-      <Route path="/about" component={About} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/about" component={About} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/latentmas-research-paper" component={BlogLatentMASPaper} />
+      <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/reasoning-chains" component={ReasoningChainMarket} />
+      <Route path="/reasoning-chains/publish" component={ReasoningChainPublish} />
+      <Route path="/w-matrix" component={WMatrixProtocol} />
+      <Route path="/w-matrix/tester" component={WMatrixTester} />
+      <Route path="/latentmas-v2-demo" component={LatentMASv2Demo} />
+      {/* Redirects for deprecated pages */}
+      <Route path="/w-matrix-marketplace">{() => <Redirect to="/w-matrix" />}</Route>
+      <Route path="/vector-packages" component={VectorPackageMarket} />
+      <Route path="/workflow-demo" component={WorkflowDemo} />
+      <Route path="/workflow-history" component={WorkflowHistory} />
+      <Route path="/workflow-history/:sessionId" component={WorkflowSessionDetail} />
+      <Route path="/workflow-playback/:sessionId" component={WorkflowPlayback} />
+      <Route path="/workflow-performance" component={WorkflowPerformance} />
+      <Route path="/upload-vector-package" component={UploadVectorPackage} />
+      <Route path="/memory-marketplace" component={MemoryMarketplace} />
+      <Route path="/memory-packages" component={MemoryMarketplace} />
+      <Route path="/upload-memory-package" component={UploadMemoryPackage} />
+      <Route path="/chain-packages" component={ChainPackageMarketplace} />
+      <Route path="/upload-chain-package" component={UploadChainPackage} />
+      <Route path="/package/:type/:id" component={PackageDetail} />
+      <Route path="/memory/:id" component={MemoryNFTDetail} />
+
+      <Route path="/agents" component={AgentRegistry} />
+      <Route path="/semantic-index" component={AgentRegistry} />
+      <Route path="/sdk" component={SDKPage} />
+      <Route path="/docs" component={SDKPage} />
+      <Route path="/api-keys" component={ApiKeys} />
+
+      <Route path="/admin" component={AdminPanel} />
+      <Route path="/service-health" component={ServiceHealth} />
+
+      <Route path="/usage-analytics" component={UsageAnalytics} />
+      <Route path="/kv-cache-demo" component={KVCacheDemo} />
+      <Route path="/memory-provenance/:id" component={MemoryProvenance} />
       <Route path="/golem-visualizer" component={GolemVisualizerPage} />
-      <Route path="/leaderboard" component={Leaderboard} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
@@ -54,15 +127,17 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider
-        defaultTheme="light"
-      // switchable
+        defaultTheme="dark"
+        // switchable
       >
-        <NotificationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </NotificationProvider>
+        <Web3Provider>
+          <NotificationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </NotificationProvider>
+        </Web3Provider>
       </ThemeProvider>
     </ErrorBoundary>
   );

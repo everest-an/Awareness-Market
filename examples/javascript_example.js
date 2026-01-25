@@ -3,8 +3,8 @@
  * ===================================================
  * 
  * This example demonstrates how to interact with the Awareness Network API
- * using JavaScript/Node.js. It shows AI agent registration, MCP discovery,
- * collaboration sync, memory, and invocation.
+ * using JavaScript/Node.js. It shows AI agent registration, vector browsing,
+ * purchasing, and invocation.
  * 
  * Requirements:
  *     npm install axios
@@ -16,7 +16,7 @@
 const axios = require('axios');
 
 // API Base URL (replace with your actual deployment URL)
-const BASE_URL = 'https://awareness.market';
+const BASE_URL = 'https://your-awareness-network.manus.space';
 const API_URL = `${BASE_URL}/api`;
 
 /**
@@ -37,16 +37,16 @@ class AwarenessNetworkClient {
   /**
    * Register a new AI agent and get API key
    * 
-  * @param {string} agentName - Name of the AI agent
-  * @param {string} agentType - Type of agent
-  * @param {string[]} capabilities - List of agent capabilities
+   * @param {string} agentName - Name of the AI agent
+   * @param {string} agentDescription - Description of agent's purpose
+   * @param {string[]} capabilities - List of agent capabilities
    * @returns {Promise<Object>} Registration response with API key
    */
-  async registerAIAgent(agentName, agentType, capabilities) {
-    const response = await this.client.post('/ai/register', {
-      agentName,
-      agentType,
-      metadata: { capabilities }
+  async registerAIAgent(agentName, agentDescription, capabilities) {
+    const response = await this.client.post('/ai-auth/register', {
+      name: agentName,
+      description: agentDescription,
+      capabilities
     });
 
     // Store API key for future requests
@@ -62,68 +62,81 @@ class AwarenessNetworkClient {
   /**
    * Browse available latent vectors in the marketplace
    * 
-  * @param {Object} options - Filter options
-  * @param {string} [options.category] - Filter by category
-  * @param {number} [options.minRating] - Minimum rating filter
+   * @param {Object} options - Filter and sort options
+   * @param {string} [options.category] - Filter by category
+   * @param {number} [options.minPrice] - Minimum price filter
+   * @param {number} [options.maxPrice] - Maximum price filter
+   * @param {string} [options.sortBy='newest'] - Sort order
    * @returns {Promise<Array>} List of available vectors
    */
-  async browseMarketplace({ category, minRating } = {}) {
-    const params = { limit: 20 };
+  async browseMarketplace({ category, minPrice, maxPrice, sortBy = 'newest' } = {}) {
+    const params = { sortBy, limit: 20 };
     if (category) params.category = category;
-    if (minRating !== undefined) params.minRating = minRating;
+    if (minPrice !== undefined) params.minPrice = minPrice;
+    if (maxPrice !== undefined) params.maxPrice = maxPrice;
 
-    const response = await this.client.get('/mcp/discover', { params });
-    const vectors = response.data.vectors || [];
+    const response = await this.client.get('/ai-memory/vectors', { params });
+    const vectors = response.data;
 
     console.log(`✓ Found ${vectors.length} vectors`);
     return vectors;
   }
 
   /**
-   * Create MCP collaboration token
+   * Get AI-powered recommendations based on browsing history
+   * 
+   * @returns {Promise<Array>} List of recommended vectors with match scores
    */
-  async createMcpToken(name = 'team-sync') {
+  async getRecommendations() {
     if (!this.apiKey) {
       throw new Error('API key required. Please register first.');
     }
 
-    const response = await this.client.post('/mcp/tokens', { name }, {
-      headers: { 'X-API-Key': this.apiKey }
+    const response = await this.client.get('/ai-memory/recommendations');
+    const recommendations = response.data;
+
+    console.log(`✓ Got ${recommendations.length} recommendations`);
+    return recommendations;
+  }
+
+  /**
+   * Purchase access to a latent vector
+   * 
+   * @param {number} vectorId - ID of the vector to purchase
+   * @param {string} paymentMethodId - Stripe payment method ID
+   * @returns {Promise<Object>} Purchase confirmation with access token
+   */
+  async purchaseVector(vectorId, paymentMethodId) {
+    if (!this.apiKey) {
+      throw new Error('API key required. Please register first.');
+    }
+
+    const response = await this.client.post('/ai-auth/purchase', {
+      vectorId,
+      paymentMethodId
     });
 
-    console.log('✓ Created MCP token');
+    console.log(`✓ Purchased vector ${vectorId}`);
+    console.log(`  Access Token: ${response.data.accessToken.substring(0, 20)}...`);
+
     return response.data;
   }
 
   /**
-   * Run multi-agent sync
+   * Invoke a purchased latent vector with input data
+   * 
+   * @param {number} vectorId - ID of the vector to invoke
+   * @param {Object} inputData - Input data for the vector
+   * @returns {Promise<Object>} Vector output and metadata
    */
-  async syncAgents(mcpToken, agents, sharedContext = {}, memoryKey = 'team:session:alpha') {
-    const response = await this.client.post('/mcp/sync', {
-      memory_key: memoryKey,
-      shared_context: sharedContext,
-      agents
-    }, {
-      headers: { 'X-MCP-Token': mcpToken }
-    });
+  async invokeVector(vectorId, inputData) {
+    if (!this.apiKey) {
+      throw new Error('API key required. Please register first.');
+    }
 
-    return response.data;
-  }
-
-  /**
-  * Invoke a purchased latent vector with input context
-  * 
-  * @param {number} vectorId - ID of the vector to invoke
-  * @param {Object} context - Invocation context
-  * @param {string} accessToken - Marketplace access token
-  * @returns {Promise<Object>} Vector output and metadata
-   */
-  async invokeVector(vectorId, context, accessToken) {
     const response = await this.client.post('/mcp/invoke', {
-      vector_id: vectorId,
-      context
-    }, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      vectorId,
+      input: inputData
     });
 
     console.log(`✓ Invoked vector ${vectorId}`);
@@ -143,9 +156,9 @@ class AwarenessNetworkClient {
       throw new Error('API key required. Please register first.');
     }
 
-    const response = await this.client.put(`/ai/memory/${memoryKey}`, {
-      data: memoryValue,
-      ttlDays: 30
+    const response = await this.client.post('/ai-memory/sync', {
+      key: memoryKey,
+      value: memoryValue
     });
 
     console.log(`✓ Synced memory: ${memoryKey}`);
@@ -164,7 +177,7 @@ class AwarenessNetworkClient {
       throw new Error('API key required. Please register first.');
     }
 
-    const response = await this.client.get(`/ai/memory/${memoryKey}`);
+    const response = await this.client.get(`/ai-memory/retrieve/${memoryKey}`);
 
     return response.data;
   }
@@ -219,74 +232,71 @@ async function main() {
     console.log('\n=== Step 1: Register AI Agent ===');
     await client.registerAIAgent(
       'FinanceAnalyzerBot',
-      'financial-analyst',
+      'AI agent specialized in financial data analysis',
       ['data-analysis', 'forecasting', 'risk-assessment']
     );
 
-    // Step 2: Browse marketplace (MCP discovery)
-    console.log('\n=== Step 2: Browse Marketplace (MCP) ===');
+    // Step 2: Browse marketplace
+    console.log('\n=== Step 2: Browse Marketplace ===');
     const vectors = await client.browseMarketplace({
       category: 'finance',
-      minRating: 4.2
+      maxPrice: 50.0,
+      sortBy: 'rating'
     });
 
     // Display top 3 vectors
     vectors.slice(0, 3).forEach((vector, i) => {
-      console.log(`\n${i + 1}. ${vector.name}`);
+      console.log(`\n${i + 1}. ${vector.title}`);
       console.log(`   Category: ${vector.category}`);
-      console.log(`   Price: $${vector.pricing?.base_price}`);
-      console.log(`   Rating: ${vector.metadata?.average_rating}⭐ (${vector.metadata?.review_count} reviews)`);
+      console.log(`   Price: $${vector.basePrice}`);
+      console.log(`   Rating: ${vector.averageRating}⭐ (${vector.reviewCount} reviews)`);
     });
-    // Step 3: Create MCP token and sync agents
-    console.log('\n=== Step 3: MCP Sync (Collaboration) ===');
-    const { token: mcpToken } = await client.createMcpToken('finance-team');
-    const sync = await client.syncAgents(mcpToken, [
-      {
-        id: 'analyst-1',
-        role: 'analyst',
-        goal: 'Summarize market signals',
-        input: 'Focus on macro trends and risk factors.'
-      },
-      {
-        id: 'planner-1',
-        role: 'planner',
-        goal: 'Draft action plan',
-        input: 'Propose next steps based on signals.'
-      }
-    ], {
-      domain: 'finance',
-      task: 'Quarterly outlook'
-    });
-    console.log('Consensus:', sync.consensus);
 
-    // Step 4: Invoke vector (requires marketplace access token)
-    console.log('\n=== Step 4: Invoke Vector (Example) ===');
-    console.log('Note: Obtain an access token after purchasing a vector.');
+    // Step 3: Get AI recommendations
+    console.log('\n=== Step 3: Get AI Recommendations ===');
+    const recommendations = await client.getRecommendations();
+
+    recommendations.slice(0, 2).forEach((rec) => {
+      console.log(`\n• ${rec.vectorName}`);
+      console.log(`  Match Score: ${rec.matchScore}%`);
+      console.log(`  Reason: ${rec.reason}`);
+    });
+
+    // Step 4: Purchase a vector (example - requires valid payment method)
+    console.log('\n=== Step 4: Purchase Vector (Example) ===');
+    console.log('Note: This requires a valid Stripe payment method ID');
+    // const purchase = await client.purchaseVector(
+    //   vectors[0].id,
+    //   'pm_card_visa'  // Replace with actual payment method
+    // );
+
+    // Step 5: Invoke vector (after purchase)
+    console.log('\n=== Step 5: Invoke Vector (Example) ===');
+    console.log('Note: This requires purchasing the vector first');
     // const result = await client.invokeVector(
     //   vectors[0].id,
     //   {
     //     query: 'Analyze Q4 revenue trends',
     //     data: [100, 120, 150, 180]
-    //   },
-    //   'your_access_token_here'
+    //   }
     // );
     // console.log(`Result: ${JSON.stringify(result.output, null, 2)}`);
 
-    // Step 5: Sync agent memory
-    console.log('\n=== Step 5: Sync Agent Memory ===');
+    // Step 6: Sync agent memory
+    console.log('\n=== Step 6: Sync Agent Memory ===');
     await client.syncMemory('preferences', {
       favoriteCategories: ['finance', 'data-analysis'],
       budget: 100.0,
       lastPurchase: null
     });
 
-    // Step 6: Retrieve memory
-    console.log('\n=== Step 6: Retrieve Memory ===');
+    // Step 7: Retrieve memory
+    console.log('\n=== Step 7: Retrieve Memory ===');
     const memory = await client.retrieveMemory('preferences');
     console.log(`Retrieved memory: ${JSON.stringify(memory, null, 2)}`);
 
-    // Step 7: Connect to real-time notifications
-    console.log('\n=== Step 7: Real-time Notifications (Example) ===');
+    // Step 8: Connect to real-time notifications
+    console.log('\n=== Step 8: Real-time Notifications (Example) ===');
     console.log('Uncomment to enable WebSocket connection');
     // const socket = client.connectRealtime((type, data) => {
     //   console.log(`Received ${type} notification:`, data);

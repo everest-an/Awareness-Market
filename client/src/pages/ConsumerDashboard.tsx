@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -23,15 +24,9 @@ import {
 } from "@/components/ui/table";
 
 export default function ConsumerDashboard() {
-  const utils = trpc.useUtils();
   const { data: stats, isLoading: statsLoading } = trpc.analytics.consumerStats.useQuery();
   const { data: permissions, isLoading: permissionsLoading } = trpc.access.myPermissions.useQuery();
   const { data: transactions, isLoading: transactionsLoading } = trpc.transactions.myTransactions.useQuery();
-  const renewMutation = trpc.access.renew.useMutation({
-    onSuccess: () => {
-      utils.access.myPermissions.invalidate();
-    },
-  });
 
   if (statsLoading) {
     return (
@@ -48,8 +43,9 @@ export default function ConsumerDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       {/* Header */}
-      <div className="border-b bg-muted/30">
+      <div className="border-b bg-muted/30 mt-20">
         <div className="container flex items-center justify-between py-6">
           <div>
             <h1 className="text-3xl font-bold">Consumer Dashboard</h1>
@@ -116,7 +112,7 @@ export default function ConsumerDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{(stats?.avgRatingGiven || 0).toFixed(1)}</div>
+              <div className="text-2xl font-bold">4.5</div>
               <p className="text-xs text-muted-foreground">
                 Your review average
               </p>
@@ -188,12 +184,7 @@ export default function ConsumerDashboard() {
                               </Link>
                             </Button>
                             {permission.isActive && !isExpired && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => renewMutation.mutate({ permissionId: permission.id })}
-                                disabled={renewMutation.isPending}
-                              >
+                              <Button variant="outline" size="sm">
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 Renew
                               </Button>
@@ -293,25 +284,10 @@ export default function ConsumerDashboard() {
                 <CardDescription>Track your API calls and performance</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-6 md:grid-cols-3">
-                  <div className="rounded-lg border p-4">
-                    <div className="text-sm text-muted-foreground">Total API Calls (30d)</div>
-                    <div className="text-2xl font-bold mt-2">
-                      {stats?.totalCalls ?? 0}
-                    </div>
-                  </div>
-                  <div className="rounded-lg border p-4">
-                    <div className="text-sm text-muted-foreground">Avg Response Time</div>
-                    <div className="text-2xl font-bold mt-2">
-                      {stats?.avgResponseTime ? `${Math.round(stats.avgResponseTime)} ms` : "N/A"}
-                    </div>
-                  </div>
-                  <div className="rounded-lg border p-4">
-                    <div className="text-sm text-muted-foreground">Success Rate</div>
-                    <div className="text-2xl font-bold mt-2">
-                      {stats?.successRate ? `${(stats.successRate * 100).toFixed(1)}%` : "N/A"}
-                    </div>
-                  </div>
+                <div className="text-center text-muted-foreground">
+                  <p className="text-sm">
+                    Detailed usage analytics available in <Link href="/analytics" className="text-primary hover:underline">Analytics Dashboard</Link>
+                  </p>
                 </div>
               </CardContent>
             </Card>

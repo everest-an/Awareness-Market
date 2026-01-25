@@ -13,10 +13,11 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://awareness.market/openapi.json",
+    "url": "https://latentmind-marketplace.manus.space/openapi.json",
     "has_user_authentication": true
   },
-  "logo_url": "https://awareness.market/logo.png",
-  "contact_email": "support@awareness.market",
-  "legal_info_url": "https://awareness.market/legal"
+  "logo_url": "https://latentmind-marketplace.manus.space/logo.png",
+  "contact_email": "support@latentmind-marketplace.manus.space",
+  "legal_info_url": "https://latentmind-marketplace.manus.space/legal",
+  "quick_start_url": "https://latentmind-marketplace.manus.space/docs/AI_QUICK_START.md"
 }
