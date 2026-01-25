@@ -24,10 +24,13 @@ User-agent: PerplexityBot
 Allow: /
 
 # Sitemaps
-Sitemap: https://awareness.market/sitemap.xml
+Sitemap: https://awareness-network.com/sitemap.xml
 
 # AI Plugin Discovery
 Allow: /.well-known/ai-plugin.json
+
+# LLMs.txt for AI discoverability
+Allow: /llms.txt
 
 # API Documentation
 Allow: /api-docs

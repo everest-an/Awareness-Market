@@ -1,3 +1,4 @@
+import Navbar from "@/components/Navbar";
 import {
   Accordion,
   AccordionContent,
@@ -172,7 +173,6 @@ import {
 import { useState } from "react";
 import { toast as sonnerToast } from "sonner";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
-import { trpc } from "@/lib/trpc";
 
 export default function ComponentsShowcase() {
   const { theme, toggleTheme } = useTheme();
@@ -193,19 +193,6 @@ export default function ComponentsShowcase() {
     { role: "system", content: "You are a helpful assistant." },
   ]);
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const chatMutation = trpc.ai.chat.useMutation();
-
-  const extractChatText = (response: any) => {
-    const content = response?.choices?.[0]?.message?.content;
-    if (typeof content === "string") return content;
-    if (Array.isArray(content)) {
-      return content
-        .map((part: any) => (typeof part === "string" ? part : part.text))
-        .filter(Boolean)
-        .join("\n");
-    }
-    return "";
-  };
 
   const handleDialogSubmit = () => {
     console.log("Dialog submitted with value:", dialogInput);
@@ -223,32 +210,27 @@ export default function ComponentsShowcase() {
     }
   };
 
-  const handleChatSend = async (content: string) => {
+  const handleChatSend = (content: string) => {
+    // Add user message
     const newMessages: Message[] = [...chatMessages, { role: "user", content }];
     setChatMessages(newMessages);
 
+    // Simulate AI response with delay
     setIsChatLoading(true);
-    try {
-      const response = await chatMutation.mutateAsync({
-        messages: newMessages.map((message) => ({
-          role: message.role === "system" || message.role === "user" || message.role === "assistant" ? message.role : "user",
-          content: typeof message.content === "string" ? message.content : JSON.stringify(message.content),
-        })),
-      });
-      const text = extractChatText(response) || "(empty response)";
-      setChatMessages([...newMessages, { role: "assistant", content: text }]);
-    } catch (error: any) {
-      sonnerToast.error("Chat request failed", {
-        description: error?.message || "Please try again later.",
-      });
-    } finally {
+    setTimeout(() => {
+      const aiResponse: Message = {
+        role: "assistant",
+        content: `This is a **demo response**. In a real app, you would call a tRPC mutation here:\n\n\`\`\`typescript\nconst chatMutation = trpc.ai.chat.useMutation({\n  onSuccess: (response) => {\n    setChatMessages(prev => [...prev, {\n      role: "assistant",\n      content: response.choices[0].message.content\n    }]);\n  }\n});\n\nchatMutation.mutate({ messages: newMessages });\n\`\`\`\n\nYour message was: "${content}"`,
+      };
+      setChatMessages([...newMessages, aiResponse]);
       setIsChatLoading(false);
-    }
+    }, 1500);
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="container max-w-6xl mx-auto">
+      <Navbar />
+      <main className="container max-w-6xl mx-auto mt-20">
         <div className="space-y-2 justify-between flex">
           <h2 className="text-3xl font-bold tracking-tight mb-6">
             Shadcn/ui Component Library
@@ -1178,7 +1160,7 @@ export default function ComponentsShowcase() {
                       <div className="space-y-2">
                         <h4 className="text-sm font-semibold">@nextjs</h4>
                         <p className="text-sm">
-                          The React Framework â€“ created and maintained by
+                          The React Framework â€?created and maintained by
                           @vercel.
                         </p>
                       </div>
@@ -1423,7 +1405,7 @@ export default function ComponentsShowcase() {
                       Features markdown rendering, auto-scrolling, and loading states.
                     </p>
                     <p className="mt-2">
-                      This chat is connected to the live LLM runtime via tRPC.
+                      This is a demo with simulated responses. In a real app, you'd connect it to a tRPC mutation.
                     </p>
                   </div>
                   <AIChatBox

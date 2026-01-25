@@ -115,3 +115,14 @@ ai-service/__pycache__/
 .Python
 __pycache__/
 .vercel
+.browser_data_dir
+.browser_data_dir/
+.browser_data_dir
+
+# Ignore pnpm local tools
+.local/
+
+# Go compiled binaries
+go-services/*/memory-exchange
+go-services/*/w-matrix-marketplace
+go-services/*/*.exe

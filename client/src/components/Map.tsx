@@ -52,7 +52,7 @@
  * const dist = google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
  *
  * -------------------------------
- * 🛣️ ROUTES (from `routes` library)
+ * 🛣�?ROUTES (from `routes` library)
  * - Combines DirectionsService (standalone) + DirectionsRenderer (map-attached)
  * const directionsService = new google.maps.DirectionsService();
  * const directionsRenderer = new google.maps.DirectionsRenderer({ map });
@@ -62,16 +62,16 @@
  * );
  *
  * -------------------------------
- * 🌦️ MAP LAYERS (attach directly to map)
+ * 🌦�?MAP LAYERS (attach directly to map)
  * - new google.maps.TrafficLayer().setMap(map);
  * - new google.maps.TransitLayer().setMap(map);
  * - new google.maps.BicyclingLayer().setMap(map);
  *
  * -------------------------------
- * ✅ SUMMARY
- * - “map-attached” → AdvancedMarkerElement, DirectionsRenderer, Layers.
- * - “standalone” → Geocoder, DirectionsService, DistanceMatrixService, ElevationService.
- * - “data-only” → Place, Geometry utilities.
+ * �?SUMMARY
+ * - “map-attached�?�?AdvancedMarkerElement, DirectionsRenderer, Layers.
+ * - “standalone�?�?Geocoder, DirectionsService, DistanceMatrixService, ElevationService.
+ * - “data-only�?�?Place, Geometry utilities.
  */
 
 /// <reference types="@types/google.maps" />

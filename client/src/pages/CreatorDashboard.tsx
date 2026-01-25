@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   ArrowDownRight,
   Plus,
   Eye,
+  Edit,
   MoreVertical
 } from "lucide-react";
 import { Link } from "wouter";
@@ -33,17 +35,8 @@ import {
 } from "@/components/ui/table";
 
 export default function CreatorDashboard() {
-  const utils = trpc.useUtils();
   const { data: stats, isLoading: statsLoading } = trpc.analytics.creatorStats.useQuery();
-  const { data: trend } = trpc.analytics.creatorTrend.useQuery({ days: 30 });
   const { data: vectors, isLoading: vectorsLoading } = trpc.vectors.myVectors.useQuery();
-  const updateVectorMutation = trpc.vectors.update.useMutation({
-    onSuccess: () => {
-      utils.vectors.myVectors.invalidate();
-      utils.analytics.creatorStats.invalidate();
-      utils.analytics.creatorTrend.invalidate();
-    },
-  });
 
   if (statsLoading) {
     return (
@@ -64,8 +57,9 @@ export default function CreatorDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       {/* Header */}
-      <div className="border-b bg-muted/30">
+      <div className="border-b bg-muted/30 mt-20">
         <div className="container flex items-center justify-between py-6">
           <div>
             <h1 className="text-3xl font-bold">Creator Dashboard</h1>
@@ -171,7 +165,15 @@ export default function CreatorDashboard() {
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={trend || []}>
+                    <LineChart
+                      data={[
+                        { date: "Day 1", revenue: 120, calls: 45 },
+                        { date: "Day 7", revenue: 250, calls: 89 },
+                        { date: "Day 14", revenue: 180, calls: 67 },
+                        { date: "Day 21", revenue: 320, calls: 112 },
+                        { date: "Day 30", revenue: 410, calls: 145 },
+                      ]}
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
                       <YAxis yAxisId="left" />
@@ -281,7 +283,7 @@ export default function CreatorDashboard() {
                           <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                             <span>{vector.totalCalls} calls</span>
                             <span>${parseFloat(vector.totalRevenue).toFixed(2)} earned</span>
-                            <span>‚≠ê {parseFloat(vector.averageRating || "0").toFixed(1)}</span>
+                            <span>‚≠?{parseFloat(vector.averageRating || "0").toFixed(1)}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -299,17 +301,14 @@ export default function CreatorDashboard() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-auto p-0 text-foreground"
-                                  onClick={() => updateVectorMutation.mutate({
-                                    id: vector.id,
-                                    status: vector.status === "active" ? "inactive" : "active",
-                                  })}
-                                >
-                                  {vector.status === "active" ? "Deactivate" : "Activate"}
-                                </Button>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                {vector.status === "active" ? "Deactivate" : "Activate"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600">
+                                Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

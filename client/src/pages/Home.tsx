@@ -1,373 +1,365 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
-import { Header } from "@/components/Header";
-import {
-  Brain,
-  Zap,
-  Shield,
-  TrendingUp,
-  Users,
-  Sparkles,
+import Navbar from "@/components/Navbar";
+import Globe3D from "@/components/Globe3D";
+import { WelcomeDialog } from "@/components/WelcomeDialog";
+import { trpc } from "@/lib/trpc";
+import { 
+  Brain, 
+  Zap, 
+  Shield, 
   ArrowRight,
-  CheckCircle2,
-  Network
+  Network,
+  Cpu,
+  GitBranch,
+  Sparkles,
+  ChevronRight,
+  ExternalLink
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-};
 
 export default function Home() {
-  const { isAuthenticated, user } = useAuth();
-  const { t } = useTranslation();
+  const { user, isAuthenticated } = useAuth();
+  const [showWelcome, setShowWelcome] = useState(false);
+  
+  // Query user profile to check onboarding status
+  const { data: userProfile } = trpc.user.me.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
 
-  const features = [
-    {
-      icon: Network,
-      title: t("features.items.latentmas.title"),
-      desc: t("features.items.latentmas.desc"),
-      color: "text-primary",
-      bg: "bg-primary/10",
-    },
-    {
-      icon: Zap,
-      title: t("features.items.mcp.title"),
-      desc: t("features.items.mcp.desc"),
-      color: "text-accent",
-      bg: "bg-accent/10",
-    },
-    {
-      icon: Shield,
-      title: t("features.items.secure.title"),
-      desc: t("features.items.secure.desc"),
-      color: "text-primary",
-      bg: "bg-primary/10",
-    },
-    {
-      icon: TrendingUp,
-      title: t("features.items.pricing.title"),
-      desc: t("features.items.pricing.desc"),
-      color: "text-accent",
-      bg: "bg-accent/10",
-    },
-    {
-      icon: Users,
-      title: t("features.items.economy.title"),
-      desc: t("features.items.economy.desc"),
-      color: "text-primary",
-      bg: "bg-primary/10",
-    },
-    {
-      icon: Brain,
-      title: t("features.items.matching.title"),
-      desc: t("features.items.matching.desc"),
-      color: "text-accent",
-      bg: "bg-accent/10",
-    },
-  ];
+  useEffect(() => {
+    // Show welcome dialog if user is authenticated but hasn't completed onboarding
+    if (isAuthenticated && userProfile && !userProfile.onboardingCompleted) {
+      setShowWelcome(true);
+    }
+  }, [isAuthenticated, userProfile]);
 
-  const steps = [
-    {
-      number: 1,
-      title: t("howItWorks.steps.create.title"),
-      desc: t("howItWorks.steps.create.desc"),
-      bg: "bg-primary",
-      text: "text-primary-foreground",
-    },
-    {
-      number: 2,
-      title: t("howItWorks.steps.purchase.title"),
-      desc: t("howItWorks.steps.purchase.desc"),
-      bg: "bg-accent",
-      text: "text-accent-foreground",
-    },
-    {
-      number: 3,
-      title: t("howItWorks.steps.integrate.title"),
-      desc: t("howItWorks.steps.integrate.desc"),
-      bg: "bg-primary",
-      text: "text-primary-foreground",
-    },
-  ];
-
-  const useCases = [
-    {
-      title: t("useCases.items.finance.title"),
-      desc: t("useCases.items.finance.desc"),
-    },
-    {
-      title: t("useCases.items.code.title"),
-      desc: t("useCases.items.code.desc"),
-    },
-    {
-      title: t("useCases.items.medical.title"),
-      desc: t("useCases.items.medical.desc"),
-    },
-    {
-      title: t("useCases.items.content.title"),
-      desc: t("useCases.items.content.desc"),
-    },
-  ];
   return (
-    <div className="min-h-screen">
-      <Header />
+    <div className="min-h-screen bg-background">
+      {/* Welcome Dialog for new users */}
+      {isAuthenticated && (
+        <WelcomeDialog 
+          open={showWelcome} 
+          onOpenChange={setShowWelcome}
+        />
+      )}
+      
+      {/* Navbar */}
+      <Navbar />
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-background py-20 lg:py-32">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,oklch(0.75_0.15_210_/_0.15),transparent_50%),radial-gradient(circle_at_70%_60%,oklch(0.55_0.18_250_/_0.15),transparent_50%)]" />
-        <div className="min-h-screen">
-          <Header />
-          {/* Hero Section */}
-          <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-background py-20 lg:py-32">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,oklch(0.75_0.15_210_/_0.15),transparent_50%),radial-gradient(circle_at_70%_60%,oklch(0.55_0.18_250_/_0.15),transparent_50%)]" />
-
-            <div className="container relative">
-              <motion.div
-                className="mx-auto max-w-4xl text-center"
-                initial="hidden"
-                animate="visible"
-                variants={containerVariants}
-              >
-                <motion.div variants={itemVariants}>
-                  <Badge className="mb-6 px-4 py-1.5 text-sm" variant="secondary">
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    {t("hero.badge")}
-                  </Badge>
-                </motion.div>
-
-                <motion.h1 className="mb-6 text-5xl font-bold tracking-tight lg:text-7xl" variants={itemVariants}>
-                  {t("hero.title")}
-                  <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"> {t("hero.titleHighlight")}</span>
-                </motion.h1>
-
-                <motion.p className="mb-10 text-xl text-muted-foreground lg:text-2xl" variants={itemVariants}>
-                  {t("hero.subtitle")}
-                </motion.p>
-
-                <motion.div className="flex flex-col gap-4 sm:flex-row sm:justify-center" variants={itemVariants}>
-                  {isAuthenticated ? (
-                    <>
-                      <Button asChild size="lg" className="text-lg">
-                        <Link href="/marketplace">
-                          <Brain className="mr-2 h-5 w-5" />
-                          {t("hero.ctaExplore")}
-                        </Link>
-                      </Button>
-                      {user?.role === "creator" && (
-                        <Button asChild size="lg" variant="outline" className="text-lg">
-                          <Link href="/dashboard/creator">
-                            <TrendingUp className="mr-2 h-5 w-5" />
-                            {t("hero.ctaCreator")}
-                          </Link>
-                        </Button>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <Button asChild size="lg" className="text-lg">
-                        <a href={getLoginUrl()}>
-                          {t("hero.ctaGetStarted")}
-                          <ArrowRight className="ml-2 h-5 w-5" />
-                        </a>
-                      </Button>
-                      <Button asChild size="lg" variant="outline" className="text-lg">
-                        <Link href="/marketplace">
-                          {t("hero.ctaBrowse")}
-                        </Link>
-                      </Button>
-                    </>
-                  )}
-                </motion.div>
-              </motion.div>
-            </div>
-          </section>
-
-          {/* Features Section */}
-          <section className="py-20 lg:py-32">
-            <div className="container">
-              <motion.div
-                className="mx-auto mb-16 max-w-2xl text-center"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-              >
-                <h2 className="mb-4 text-4xl font-bold">{t("features.heading")}</h2>
-                <p className="text-xl text-muted-foreground">
-                  {t("features.subheading")}
-                </p>
-              </motion.div>
-
-              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                {features.map((feature, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1, duration: 0.5 }}
-                  >
-                    <Card className="border-2 transition-all hover:border-primary/50 hover:shadow-lg h-full">
-                      <CardHeader>
-                        <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-lg ${feature.bg}`}>
-                          <feature.icon className={`h-6 w-6 ${feature.color}`} />
-                        </div>
-                        <CardTitle>{feature.title}</CardTitle>
-                        <CardDescription>{feature.desc}</CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* How It Works Section */}
-          <section className="bg-muted/30 py-20 lg:py-32">
-            <div className="container">
-              <div className="mx-auto mb-16 max-w-2xl text-center">
-                <h2 className="mb-4 text-4xl font-bold">{t("howItWorks.heading")}</h2>
-                <p className="text-xl text-muted-foreground">
-                  {t("howItWorks.subheading")}
-                </p>
-              </div>
-
-              <div className="grid gap-12 lg:grid-cols-3">
-                {steps.map((step) => (
-                  <div className="relative" key={step.number}>
-                    <div className={`mb-6 flex h-16 w-16 items-center justify-center rounded-full ${step.bg} text-2xl font-bold ${step.text}`}>
-                      {step.number}
-                    </div>
-                    <h3 className="mb-3 text-2xl font-semibold">{step.title}</h3>
-                    <p className="text-muted-foreground">
-                      {step.desc}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Use Cases Section */}
-          <section className="py-20 lg:py-32">
-            <div className="container">
-              <div className="mx-auto mb-16 max-w-2xl text-center">
-                <h2 className="mb-4 text-4xl font-bold">{t("useCases.heading")}</h2>
-                <p className="text-xl text-muted-foreground">
-                  {t("useCases.subheading")}
-                </p>
-              </div>
-
-              <div className="grid gap-8 md:grid-cols-2">
-                {useCases.map((useCase) => (
-                  <Card key={useCase.title}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
-                        {useCase.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">
-                        {useCase.desc}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* CTA Section */}
-          <section className="bg-gradient-to-br from-primary to-accent py-20 text-primary-foreground lg:py-32">
-            <div className="container">
-              <div className="mx-auto max-w-3xl text-center">
-                <h2 className="mb-6 text-4xl font-bold lg:text-5xl">
-                  {t("finalCta.heading")}
-                </h2>
-                <p className="mb-10 text-xl opacity-90">
-                  {t("finalCta.subheading")}
-                </p>
-                <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-                  {isAuthenticated ? (
-                    <Button asChild size="lg" variant="secondary" className="text-lg">
+      <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,oklch(0.65_0.20_230_/_0.15),transparent_50%)]" />
+        
+        <div className="container relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Content */}
+            <div className="max-w-xl">
+              <Badge className="mb-6 px-3 py-1 text-xs font-medium bg-white/5 border-white/10 text-muted-foreground">
+                <Sparkles className="mr-1.5 h-3 w-3" />
+                The Future of AI Collaboration
+              </Badge>
+              
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6">
+                Share{" "}
+                <span className="gradient-text">AI Thoughts</span>
+                {" "}Across Models
+              </h1>
+              
+              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+                Trade complete reasoning processes, not just capabilities. 
+                Memory Packages combine KV-Cache and W-Matrix for true cross-model thought transfer.
+              </p>
+              
+              <div className="flex flex-wrap gap-4">
+                {isAuthenticated ? (
+                  <>
+                    <Button asChild size="lg" className="rounded-full px-6">
                       <Link href="/marketplace">
-                        {t("finalCta.primary")}
-                        <ArrowRight className="ml-2 h-5 w-5" />
+                        Explore Marketplace
+                        <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
                     </Button>
-                  ) : (
-                    <>
-                      <Button asChild size="lg" variant="secondary" className="text-lg">
-                        <a href={getLoginUrl()}>
-                          {t("finalCta.secondary")}
-                          <ArrowRight className="ml-2 h-5 w-5" />
-                        </a>
-                      </Button>
-                      <Button asChild size="lg" variant="outline" className="border-primary-foreground bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-lg">
-                        <Link href="/marketplace">
-                          {t("finalCta.tertiary")}
-                        </Link>
-                      </Button>
-                    </>
-                  )}
-                </div>
+                    <Button asChild size="lg" variant="outline" className="rounded-full px-6 bg-transparent border-white/20 hover:bg-white/5">
+                      <Link href="/reasoning-chains/publish">
+                        Publish Reasoning Chain
+                      </Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button asChild size="lg" className="rounded-full px-6">
+                      <a href={getLoginUrl()}>
+                        Get Started
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </a>
+                    </Button>
+                    <Button asChild size="lg" variant="outline" className="rounded-full px-6 bg-transparent border-white/20 hover:bg-white/5">
+                      <Link href="/marketplace">
+                        Browse Marketplace
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
-            </div>
-          </section>
+              
 
-          {/* Footer */}
-          <footer className="border-t py-12">
-            <div className="container">
-              <div className="grid gap-8 md:grid-cols-4">
-                <div>
-                  <h3 className="mb-4 font-semibold">Awareness Network</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t("footer.tagline")}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="mb-4 font-semibold">{t("footer.product")}</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li><a href="/marketplace" className="hover:text-foreground" target="_blank" rel="noopener noreferrer">{t("footer.marketplace")}</a></li>
-                    <li><a href="/pricing" className="hover:text-foreground" target="_blank" rel="noopener noreferrer">{t("footer.pricing")}</a></li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="mb-4 font-semibold">{t("footer.company")}</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li><a href="/about" className="hover:text-foreground" target="_blank" rel="noopener noreferrer">{t("footer.about")}</a></li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="mb-4 font-semibold">{t("footer.legal")}</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li><a href="/privacy" className="hover:text-foreground" target="_blank" rel="noopener noreferrer">{t("footer.privacy")}</a></li>
-                    <li><a href="/terms" className="hover:text-foreground" target="_blank" rel="noopener noreferrer">{t("footer.terms")}</a></li>
-                  </ul>
-                </div>
-              </div>
-              <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
-                {t("footer.rights")}
-              </div>
             </div>
-          </footer>
+            
+            {/* Right: 3D Globe */}
+            <div className="hidden lg:block h-[600px]">
+              <Globe3D />
+            </div>
+          </div>
         </div>
-        );
+      </section>
+
+      {/* V2.0 Features Section */}
+      <section className="py-24 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+        
+        <div className="container relative">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 px-3 py-1 text-xs font-medium bg-accent/10 border-accent/20 text-accent">
+              Three Product Lines
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Trade AI Thoughts in Three Ways
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Choose how you want to share AI intelligence: learn new capabilities (Vector), transfer reasoning states (Memory), or replicate complete solution processes (Chain). Each package includes W-Matrix for seamless cross-model compatibility.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Vector Package Market Card */}
+            <Link href="/marketplace" className="group">
+              <div className="glass-card-hover p-6 h-full border-l-4 border-l-blue-500">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
+                  <Brain className="w-6 h-6 text-blue-500" />
+                </div>
+                <Badge className="mb-3 text-xs bg-blue-500/10 text-blue-400 border-blue-500/20">Capability Trading</Badge>
+                <h3 className="text-xl font-semibold mb-2">Vector Packages</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Learn new AI capabilities through trained vectors. Perfect for adding skills like sentiment analysis, entity recognition, or domain expertise. ~85% information retention.
+                </p>
+                <div className="flex items-center text-sm text-blue-400">
+                  Browse Vectors
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+            
+            {/* Memory Package Market Card */}
+            <Link href="/memory-marketplace" className="group">
+              <div className="glass-card-hover p-6 h-full border-l-4 border-l-purple-500">
+                <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
+                  <Cpu className="w-6 h-6 text-purple-500" />
+                </div>
+                <Badge className="mb-3 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">Memory Trading</Badge>
+                <h3 className="text-xl font-semibold mb-2">Memory Packages</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Transfer complete reasoning states with KV-Cache. Continue thinking from where another AI stopped. Perfect for complex analysis and long-context tasks. ~95% retention.
+                </p>
+                <div className="flex items-center text-sm text-purple-400">
+                  Browse Memories
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+            
+            {/* Reasoning Chain Market Card */}
+            <Link href="/reasoning-chains" className="group">
+              <div className="glass-card-hover p-6 h-full border-l-4 border-l-green-500">
+                <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
+                  <Network className="w-6 h-6 text-green-500" />
+                </div>
+                <Badge className="mb-3 text-xs bg-green-500/10 text-green-400 border-green-500/20">Solution Trading</Badge>
+                <h3 className="text-xl font-semibold mb-2">Chain Packages</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Replicate complete solution processes with multi-step reasoning chains. Learn HOW to solve problems, not just the answer. Perfect for education and pattern learning.
+                </p>
+                <div className="flex items-center text-sm text-green-400">
+                  Browse Chains
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-20">
+        <div className="container">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="stat-value">60+</div>
+              <div className="stat-label">AI Models Supported</div>
+            </div>
+            <div className="text-center">
+              <div className="stat-value">11</div>
+              <div className="stat-label">Model Families</div>
+            </div>
+            <div className="text-center">
+              <div className="stat-value">98%</div>
+              <div className="stat-label">Alignment Accuracy</div>
+            </div>
+            <div className="text-center">
+              <div className="stat-value">∞</div>
+              <div className="stat-label">Possibilities</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-24 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/5 to-transparent" />
+        
+        <div className="container relative">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              How It Works
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Three simple steps to share AI intelligence across models
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold text-primary">1</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Capture</h3>
+              <p className="text-sm text-muted-foreground">
+                Export your model's KV-cache and reasoning chain after solving a complex problem
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold text-accent">2</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Align</h3>
+              <p className="text-sm text-muted-foreground">
+                Our W-Matrix protocol transforms the knowledge to be compatible with any target model
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold text-primary">3</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Transfer</h3>
+              <p className="text-sm text-muted-foreground">
+                The target model instantly gains the reasoning capability without retraining
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24">
+        <div className="container">
+          <div className="glass-card p-12 text-center max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Ready to Trade AI Intelligence?
+            </h2>
+            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
+              Join the first decentralized marketplace for AI reasoning chains and latent space vectors.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              {isAuthenticated ? (
+                <Button asChild size="lg" className="rounded-full px-8">
+                  <Link href="/reasoning-chains/publish">
+                    Publish Your First Chain
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <Button asChild size="lg" className="rounded-full px-8">
+                  <a href={getLoginUrl()}>
+                    Get Started Free
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              )}
+              <Button asChild size="lg" variant="outline" className="rounded-full px-8 bg-transparent border-white/20 hover:bg-white/5">
+                <a href="https://github.com/everest-an/Awareness-Market" target="_blank" rel="noopener noreferrer">
+                  View on GitHub
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 border-t border-white/5">
+        <div className="container">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative w-8 h-8">
+                  <div 
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: 'conic-gradient(from 180deg, #0ea5e9, #06b6d4, #22d3ee, #67e8f9, #22d3ee, #06b6d4, #0ea5e9)',
+                      padding: '2px',
+                    }}
+                  >
+                    <div className="w-full h-full rounded-full bg-background" />
+                  </div>
+                </div>
+                <span className="font-semibold">Awareness</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                The first decentralized marketplace for AI intelligence trading.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="font-medium mb-4">Products</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Packages</Link></li>
+                <li><Link href="/memory-marketplace" className="hover:text-foreground transition-colors">Memory Packages</Link></li>
+                <li><Link href="/reasoning-chains" className="hover:text-foreground transition-colors">Reasoning Chains</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-medium mb-4">Resources</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/docs" className="hover:text-foreground transition-colors">Documentation</Link></li>
+                <li><Link href="/sdk" className="hover:text-foreground transition-colors">Python SDK</Link></li>
+                <li><a href="https://github.com/everest-an/Awareness-Market" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-medium mb-4">Company</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/about" className="hover:text-foreground transition-colors">About</Link></li>
+                <li><Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+                <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link></li>
+                <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="mt-12 pt-8 border-t border-white/5 text-center text-sm text-muted-foreground">
+            © 2024 Awareness. All rights reserved.
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
 }

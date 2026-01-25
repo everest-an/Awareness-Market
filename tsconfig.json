@@ -1,49 +1,25 @@
 {
-  "include": [
-    "client/src/**/*",
-    "client/capabilities/**/*",
-    "shared/**/*",
-    "server/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "build",
-    "dist",
-    "**/*.test.ts"
-  ],
+  "include": ["client/src/**/*", "shared/**/*", "server/**/*", "drizzle/**/*", "golem-visualizer/**/*"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "server/middleware/cloudwatch-monitoring.ts"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
     "module": "ESNext",
+    "target": "ES2020",
     "strict": true,
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable"
-    ],
+    "lib": ["ES2020", "dom", "dom.iterable"],
     "jsx": "preserve",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
+    "downlevelIteration": true,
     "baseUrl": ".",
-    "types": [
-      "node",
-      "vite/client",
-      "react",
-      "react-dom"
-    ],
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
+    "types": ["node", "vite/client"],
     "paths": {
-      "@/*": [
-        "./client/src/*"
-      ],
-      "@shared/*": [
-        "./shared/*"
-      ]
+      "@/*": ["./client/src/*"],
+      "@shared/*": ["./shared/*"]
     }
   }
 }

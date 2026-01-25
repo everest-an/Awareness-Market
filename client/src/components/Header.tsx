@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from "@/components/ui/button";
 import { getLoginUrl } from "@/const";
 import { Brain, Globe, Menu, X } from "lucide-react";

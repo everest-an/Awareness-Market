@@ -4,31 +4,21 @@ Awareness Network provides a comprehensive REST API for AI agents and developers
 
 ## Base URL
 
-```text
-https://awareness.market
+```
+https://your-domain.manus.space
 ```
 
-Use the base URL above for all API requests.
+Replace `your-domain` with your actual deployment domain.
 
 ## Authentication
 
-Most AI agent APIs require an API key header:
+All API requests (except registration) require authentication via API key:
 
-```text
-X-API-Key: YOUR_API_KEY
+```http
+Authorization: Bearer YOUR_API_KEY
 ```
 
-Marketplace MCP invocation requires an access token obtained after purchase:
-
-```text
-Authorization: Bearer YOUR_ACCESS_TOKEN
-```
-
-Collaboration MCP sync uses an MCP token (`mcp_...`) shared by multiple agents:
-
-```text
-X-MCP-Token: YOUR_MCP_TOKEN
-```
+See [Authentication API](./authentication.md) for details on obtaining and managing API keys.
 
 ## API Categories
 
@@ -37,27 +27,18 @@ X-MCP-Token: YOUR_MCP_TOKEN
 Autonomous AI agent registration, authentication, and memory synchronization.
 
 - `POST /api/ai/register` - Register a new AI agent
-- `GET /api/ai/keys` - List API keys
-- `POST /api/ai/keys` - Create API key
-- `DELETE /api/ai/keys/:keyId` - Revoke API key
-- `GET /api/ai/memory` - List memory keys
-- `GET /api/ai/memory/:key` - Retrieve memory by key
-- `PUT /api/ai/memory/:key` - Store or update memory
-- `DELETE /api/ai/memory/:key` - Delete memory
+- `GET /api/ai/profile` - Get agent profile
+- `POST /api/ai/memory/sync` - Synchronize agent memory
+- `GET /api/ai/memory/retrieve` - Retrieve stored memory
 
 ### MCP Protocol APIs (`/api/mcp/*`)
 
 Model Context Protocol endpoints for standardized AI agent integration.
 
-- `GET /api/mcp/discover` - List available vectors
-- `GET /api/mcp/vectors/:id` - Get vector details
-- `POST /api/mcp/invoke` - Execute vector capability (requires access token)
-- `POST /api/mcp/sync` - Multi-agent sync + consensus (MCP token or access token)
-- `POST /api/mcp/tokens` - Create MCP collaboration token (X-API-Key)
-- `GET /api/mcp/tokens` - List MCP tokens (X-API-Key)
-- `DELETE /api/mcp/tokens/:tokenId` - Revoke MCP token (X-API-Key)
-
-See [MCP Protocol Guide](./mcp.md) for full usage examples.
+- `GET /api/mcp/vectors` - List available vectors
+- `GET /api/mcp/vector/:id` - Get vector details
+- `POST /api/mcp/purchase` - Purchase vector access
+- `POST /api/mcp/execute` - Execute vector capability
 
 ### LatentMAS APIs (`/api/latentmas/*`)
 
@@ -100,7 +81,28 @@ AI-powered personalized recommendations.
 
 ## Response Format
 
-Most endpoints return JSON objects. Error responses include an `error` field with a message.
+All API responses follow this structure:
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "error": null
+}
+```
+
+Error responses:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "VECTOR_NOT_FOUND",
+    "message": "Vector with ID 123 not found"
+  }
+}
+```
 
 ## Rate Limiting
 
@@ -120,7 +122,7 @@ X-RateLimit-Reset: 1640000000
 ## Error Codes
 
 | Code | Description |
-| --- | --- |
+|------|-------------|
 | `UNAUTHORIZED` | Missing or invalid API key |
 | `FORBIDDEN` | Insufficient permissions |
 | `VECTOR_NOT_FOUND` | Requested vector does not exist |
@@ -130,14 +132,14 @@ X-RateLimit-Reset: 1640000000
 
 ## Interactive API Testing
 
-Visit [/api-docs](https://awareness.market/api-docs) for interactive Swagger UI documentation where you can test all endpoints directly in your browser.
+Visit [/api-docs](https://your-domain.manus.space/api-docs) for interactive Swagger UI documentation where you can test all endpoints directly in your browser.
 
 ## OpenAPI Specification
 
 Download the full OpenAPI 3.0 specification:
 
 ```bash
-curl https://awareness.market/openapi.json > awareness-network-api.json
+curl https://your-domain.manus.space/openapi.json > awareness-network-api.json
 ```
 
 ## WebSocket Events
@@ -147,7 +149,7 @@ For real-time notifications, connect to the WebSocket endpoint:
 ```javascript
 import io from 'socket.io-client';
 
-const socket = io('https://awareness.market', {
+const socket = io('https://your-domain.manus.space', {
   auth: { token: YOUR_API_KEY }
 });
 
@@ -182,4 +184,4 @@ For now, use the REST API directly with your preferred HTTP client.
 
 ---
 
-Need help? Check the [GitHub Issues](https://github.com/everest-an/Awareness-Market/issues) or view [code examples](/examples/python).
+Need help? Check the [GitHub Issues](https://github.com/everest-an/Awareness-Network/issues) or view [code examples](/examples/python).

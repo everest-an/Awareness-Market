@@ -40,7 +40,8 @@ export function useSocket(userId?: string) {
     });
 
     socket.on("connect_error", (error) => {
-      console.error("[Socket.IO] Connection error:", error);
+      console.warn("[Socket.IO] Connection error:", error.message);
+      // Gracefully handle connection errors - notifications will still work via polling
     });
 
     // Cleanup on unmount

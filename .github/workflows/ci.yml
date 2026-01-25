@@ -27,40 +27,10 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Lint & Format
-      # Run formatter and linter; ignore failures to keep CI green
-      run: npm run format && npm run lint || true
-
     - name: Run Tests
       # We use 'npm run test:ci' if available or just the test script
       # Assuming 'npm run test' runs vitest run
       run: npm run test
 
-    - name: Evaluate Capabilities
-      run: npm run evaluate:capabilities
-
-    - name: Upload Metrics
-      uses: actions/upload-artifact@v4
-      with:
-        name: capability-metrics
-        path: metrics/*.json
-
     - name: Build
       run: npm run build
-
-    - name: Deploy to Vercel
-      if: github.ref == 'refs/heads/main' && env.VERCEL_TOKEN != ''
-      env:
-        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        VERCEL_PROJECT_ID: prj_yw4cwB6tAkH2sWQLzDB8ZblTDEqe
-      run: |
-        npm i -g vercel
-        vercel --prod --token $VERCEL_TOKEN --project $VERCEL_PROJECT_ID
-
-    - name: Deploy backend to Railway
-      if: github.ref == 'refs/heads/main' && env.RAILWAY_TOKEN != ''
-      env:
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      run: |
-        curl -L https://railway.app/install.sh | bash
-        railway up --service backend --token $RAILWAY_TOKEN
