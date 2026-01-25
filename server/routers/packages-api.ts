@@ -14,7 +14,7 @@ import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { eq, desc, and, or, like, sql } from 'drizzle-orm';
 import { getDb } from '../db';
-import { vectorPackages, memoryPackages, chainPackages, packageDownloads, packagePurchases } from '../../drizzle/schema';
+import { vectorPackages, memoryPackages, chainPackages, packageDownloads, packagePurchases, users } from '../../drizzle/schema';
 import {
   createVectorPackage,
   extractVectorPackage,
@@ -28,6 +28,7 @@ import {
 import type { KVCache } from '../latentmas/types';
 import type { ReasoningChainData } from '../latentmas/package-builders';
 import { storageGet } from '../storage';
+import { sendPurchaseConfirmationEmail, sendSaleNotificationEmail } from '../email-service';
 
 // ============================================================================
 // Input Schemas
@@ -497,6 +498,36 @@ export const packagesApiRouter = router({
       }).$returningId();
       const purchaseId = insertResult[0]?.id;
       const [purchase] = purchaseId ? await db.select().from(packagePurchases).where(eq(packagePurchases.id, purchaseId)).limit(1) : [];
+
+      // Send email notifications (async, don't block response)
+      try {
+        // Get buyer and seller info
+        const [buyer] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+        const [seller] = await db.select().from(users).where(eq(users.id, pkg.userId)).limit(1);
+
+        // Send purchase confirmation to buyer
+        if (buyer?.email) {
+          sendPurchaseConfirmationEmail(
+            buyer.email,
+            pkg.name,
+            input.packageType,
+            priceNum.toFixed(2)
+          ).catch(err => console.error('[Email] Failed to send purchase confirmation:', err));
+        }
+
+        // Send sale notification to seller
+        if (seller?.email) {
+          sendSaleNotificationEmail(
+            seller.email,
+            pkg.name,
+            buyer?.name || 'Anonymous',
+            priceNum.toFixed(2),
+            sellerEarnings
+          ).catch(err => console.error('[Email] Failed to send sale notification:', err));
+        }
+      } catch (emailError) {
+        console.error('[Email] Error sending notifications:', emailError);
+      }
 
       return {
         success: true,

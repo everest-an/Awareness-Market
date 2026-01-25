@@ -7,6 +7,9 @@ export * from './schema-memory-nft';
 // Import Workflow History tables
 export * from './schema-workflow';
 
+// Import API Usage Logging tables
+export * from './schema-api-usage';
+
 /**
  * Core user table backing auth flow.
  * Extended with role field for Creator/Consumer distinction.

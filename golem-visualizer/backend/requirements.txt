@@ -1,5 +1,13 @@
-numpy==1.24.3
-scikit-learn==1.3.0
-flask==3.0.0
-flask-cors==4.0.0
-python-dotenv==1.0.0
+# Golem Backend Dependencies
+
+# Core
+numpy>=1.24.0
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# ML/Embeddings (optional - for vector search)
+torch>=2.0.0
+sentence-transformers>=2.2.0
+
+# Utilities
+python-dotenv>=1.0.0

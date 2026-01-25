@@ -1,167 +1,202 @@
 """
-Project Golem - 可集成的Python后端模块
-用于与其他项目集成的向量查询服务
+Golem Backend - Vector Query Service
 
-使用方法:
+A Python backend module for vector similarity search and visualization support.
+Integrates with the Golem 3D Visualizer frontend.
+
+Usage:
     from golem_backend import GolemBackend
     
     backend = GolemBackend(
-        model_id="google/embedding-gemma-300m",
-        vector_file="golem_vectors.npy",
-        json_file="golem_cortex.json"
+        model_id="sentence-transformers/all-MiniLM-L6-v2",
+        vector_file="vectors.npy",
+        json_file="nodes.json"
     )
     
-    results = backend.query("Julius Caesar")
-    print(results)  # {'indices': [...], 'scores': [...]}
+    results = backend.query("search query")
+    print(results)  # {'indices': [...], 'scores': [...], 'nodes': [...]}
 """
 
 import os
 import json
 import numpy as np
-import torch
-from typing import Dict, List, Tuple
-from sentence_transformers import SentenceTransformer
+from typing import Dict, List, Optional, Any
+
+# Optional imports - gracefully handle missing dependencies
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+
+try:
+    from sentence_transformers import SentenceTransformer
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
 
 
 class GolemBackend:
     """
-    Project Golem 后端查询服务类
+    Golem Backend Query Service
     
-    属性:
-        model_id (str): 向量化模型ID
-        device (str): 计算设备 ('cpu', 'cuda', 'mps')
-        memory_matrix (np.ndarray): 向量矩阵
-        cortex_data (list): 节点数据
-        model (SentenceTransformer): 向量化模型实例
+    Provides vector similarity search capabilities for the Golem Visualizer.
+    
+    Attributes:
+        model_id (str): Sentence transformer model ID
+        device (str): Compute device ('cpu', 'cuda', 'mps')
+        memory_matrix (np.ndarray): Normalized vector matrix
+        cortex_data (list): Node metadata
+        model (SentenceTransformer): Embedding model instance
     """
     
     def __init__(self, 
-                 model_id: str = "google/embedding-gemma-300m",
-                 vector_file: str = "golem_vectors.npy",
-                 json_file: str = "golem_cortex.json",
-                 device: str = None,
+                 model_id: str = "sentence-transformers/all-MiniLM-L6-v2",
+                 vector_file: str = "vectors.npy",
+                 json_file: str = "nodes.json",
+                 device: Optional[str] = None,
                  trust_remote_code: bool = True):
         """
-        初始化GolemBackend
+        Initialize GolemBackend
         
-        参数:
-            model_id: 向量化模型ID (默认: google/embedding-gemma-300m)
-            vector_file: 向量矩阵文件路径
-            json_file: 节点数据JSON文件路径
-            device: 计算设备('cpu', 'cuda', 'mps', 自动检测)
-            trust_remote_code: 是否信任远程代码
+        Args:
+            model_id: Sentence transformer model ID
+            vector_file: Path to numpy vector matrix file
+            json_file: Path to node metadata JSON file
+            device: Compute device ('cpu', 'cuda', 'mps', or auto-detect)
+            trust_remote_code: Whether to trust remote code for models
         """
-        
         self.model_id = model_id
         self.vector_file = vector_file
         self.json_file = json_file
         self.trust_remote_code = trust_remote_code
         
-        # 自动检测设备
+        # Auto-detect device
         if device is None:
             self.device = self._detect_device()
         else:
             self.device = device
         
-        print(f"🧠 GolemBackend Initialization")
-        print(f"   📊 Model: {model_id}")
-        print(f"   💻 Device: {self.device.upper()}")
+        print(f"GolemBackend Initialization")
+        print(f"  Model: {model_id}")
+        print(f"  Device: {self.device.upper()}")
         
-        # 加载数据
-        self.memory_matrix = None
-        self.cortex_data = None
+        # Initialize data structures
+        self.memory_matrix: Optional[np.ndarray] = None
+        self.cortex_data: List[Dict] = []
         self.model = None
         
         self._load_resources()
     
     @staticmethod
     def _detect_device() -> str:
-        """自动检测可用的计算设备"""
-        if torch.cuda.is_available():
-            return "cuda"
-        elif torch.backends.mps.is_available():
-            return "mps"
-        else:
-            return "cpu"
+        """Auto-detect available compute device"""
+        if TORCH_AVAILABLE:
+            if torch.cuda.is_available():
+                return "cuda"
+            elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                return "mps"
+        return "cpu"
     
     def _load_resources(self):
-        """加载向量矩阵、节点数据和模型"""
+        """Load vector matrix, node data, and embedding model"""
         
-        # 检查文件存在
+        # Check if files exist
         if not os.path.exists(self.vector_file):
-            raise FileNotFoundError(f"Vector file not found: {self.vector_file}")
+            print(f"  Warning: Vector file not found: {self.vector_file}")
+            print(f"  Backend will work in demo mode without vector search")
+            return
+            
         if not os.path.exists(self.json_file):
-            raise FileNotFoundError(f"JSON file not found: {self.json_file}")
+            print(f"  Warning: JSON file not found: {self.json_file}")
+            print(f"  Backend will work in demo mode without node data")
+            return
         
-        # 加载向量矩阵
-        print(f"   ↳ Loading memory matrix from {self.vector_file}...")
+        # Load vector matrix
+        print(f"  Loading memory matrix from {self.vector_file}...")
         self.memory_matrix = np.load(self.vector_file)
         
-        # 规范化向量矩阵
+        # Normalize vectors for cosine similarity
         norm = np.linalg.norm(self.memory_matrix, axis=1, keepdims=True)
+        norm = np.where(norm == 0, 1, norm)  # Avoid division by zero
         self.memory_matrix = self.memory_matrix / norm
-        print(f"      ✓ Shape: {self.memory_matrix.shape}")
+        print(f"    Shape: {self.memory_matrix.shape}")
         
-        # 加载节点数据
-        print(f"   ↳ Loading cortex data from {self.json_file}...")
-        with open(self.json_file, 'r') as f:
+        # Load node metadata
+        print(f"  Loading node data from {self.json_file}...")
+        with open(self.json_file, 'r', encoding='utf-8') as f:
             self.cortex_data = json.load(f)
-        print(f"      ✓ Nodes: {len(self.cortex_data)}")
+        print(f"    Nodes: {len(self.cortex_data)}")
         
-        # 加载模型
-        print(f"   ↳ Loading model {self.model_id}...")
-        self.model = SentenceTransformer(
-            self.model_id,
-            device=self.device,
-            trust_remote_code=self.trust_remote_code
-        )
-        print(f"      ✓ Model loaded successfully")
-        print(f"   ✅ GolemBackend ready\n")
+        # Load embedding model
+        if SENTENCE_TRANSFORMERS_AVAILABLE:
+            print(f"  Loading model {self.model_id}...")
+            try:
+                self.model = SentenceTransformer(
+                    self.model_id,
+                    device=self.device,
+                    trust_remote_code=self.trust_remote_code
+                )
+                print(f"    Model loaded successfully")
+            except Exception as e:
+                print(f"    Warning: Failed to load model: {e}")
+                self.model = None
+        else:
+            print(f"  Warning: sentence-transformers not installed")
+            
+        print(f"  GolemBackend ready\n")
     
     def query(self, 
               text: str, 
               top_k: int = 50,
-              min_score: float = None) -> Dict[str, List]:
+              min_score: Optional[float] = None) -> Dict[str, List]:
         """
-        查询向量数据库
+        Query the vector database
         
-        参数:
-            text: 查询文本
-            top_k: 返回的前K个结果数量 (默认: 50)
-            min_score: 最小相似度阈值 (可选)
+        Args:
+            text: Query text
+            top_k: Number of top results to return (default: 50)
+            min_score: Minimum similarity threshold (optional)
         
-        返回:
+        Returns:
             {
-                'indices': [节点索引列表],
-                'scores': [相似度分数列表],
-                'nodes': [完整节点数据列表]
+                'indices': [node indices],
+                'scores': [similarity scores],
+                'nodes': [full node data]
             }
         """
-        
         if not text or not text.strip():
             return {'indices': [], 'scores': [], 'nodes': []}
         
-        # 向量化查询文本
+        if self.model is None or self.memory_matrix is None:
+            return {'indices': [], 'scores': [], 'nodes': [], 'error': 'Model not loaded'}
+        
+        # Encode query text
         query_vec = self.model.encode(
-            [f"Represent this query for retrieval: {text}"],
+            [text],
             convert_to_numpy=True
         )[0]
         
-        # 余弦相似度计算
+        # Normalize query vector
+        query_norm = np.linalg.norm(query_vec)
+        if query_norm > 0:
+            query_vec = query_vec / query_norm
+        
+        # Compute cosine similarity
         scores = np.dot(self.memory_matrix, query_vec)
         
-        # 获取前K个结果
+        # Get top-k results
         top_indices = np.argsort(scores)[-top_k:][::-1]
         top_scores = scores[top_indices]
         
-        # 可选的阈值过滤
+        # Apply threshold filter if specified
         if min_score is not None:
             mask = top_scores >= min_score
             top_indices = top_indices[mask]
             top_scores = top_scores[mask]
         
-        # 获取完整节点数据
-        nodes = [self.cortex_data[idx] for idx in top_indices]
+        # Get full node data
+        nodes = [self.cortex_data[idx] for idx in top_indices if idx < len(self.cortex_data)]
         
         return {
             'indices': top_indices.tolist(),
@@ -172,31 +207,29 @@ class GolemBackend:
     def query_advanced(self,
                       text: str,
                       top_k: int = 50,
-                      category_filter: str = None,
-                      min_score: float = None) -> Dict:
+                      category_filter: Optional[str] = None,
+                      min_score: Optional[float] = None) -> Dict[str, Any]:
         """
-        高级查询函数，支持分类过滤
+        Advanced query with category filtering
         
-        参数:
-            text: 查询文本
-            top_k: 返回的前K个结果
-            category_filter: 按分类过滤 (None表示不过滤)
-            min_score: 最小相似度
+        Args:
+            text: Query text
+            top_k: Number of results to return
+            category_filter: Filter by category (None for no filter)
+            min_score: Minimum similarity score
         
-        返回:
-            包含过滤后结果的字典
+        Returns:
+            Filtered query results
         """
-        
         result = self.query(text, top_k=top_k*2, min_score=min_score)
         
-        # 分类过滤
         if category_filter:
             filtered_indices = []
             filtered_scores = []
             filtered_nodes = []
             
             for idx, score, node in zip(result['indices'], result['scores'], result['nodes']):
-                if node.get('cat') == category_filter:
+                if node.get('cat') == category_filter or node.get('category') == category_filter:
                     filtered_indices.append(idx)
                     filtered_scores.append(score)
                     filtered_nodes.append(node)
@@ -204,221 +237,203 @@ class GolemBackend:
                 if len(filtered_indices) >= top_k:
                     break
             
-            result = {
+            return {
                 'indices': filtered_indices,
                 'scores': filtered_scores,
                 'nodes': filtered_nodes
             }
-        else:
-            # 仅保留前K个
-            result = {
-                'indices': result['indices'][:top_k],
-                'scores': result['scores'][:top_k],
-                'nodes': result['nodes'][:top_k]
-            }
         
-        return result
+        return {
+            'indices': result['indices'][:top_k],
+            'scores': result['scores'][:top_k],
+            'nodes': result['nodes'][:top_k]
+        }
     
-    def batch_query(self, 
-                   texts: List[str], 
-                   top_k: int = 10) -> List[Dict]:
+    def batch_query(self, texts: List[str], top_k: int = 10) -> List[Dict]:
         """
-        批量查询
+        Batch query multiple texts
         
-        参数:
-            texts: 查询文本列表
-            top_k: 每个查询返回的结果数
+        Args:
+            texts: List of query texts
+            top_k: Results per query
         
-        返回:
-            查询结果列表
+        Returns:
+            List of query results
         """
-        
         return [self.query(text, top_k=top_k) for text in texts]
     
-    def get_node(self, index: int) -> Dict:
-        """获取指定索引的节点数据"""
+    def get_node(self, index: int) -> Optional[Dict]:
+        """Get node by index"""
         if 0 <= index < len(self.cortex_data):
             return self.cortex_data[index]
         return None
     
     def get_all_nodes(self) -> List[Dict]:
-        """获取所有节点数据"""
+        """Get all nodes"""
         return self.cortex_data
     
     def get_nodes_by_category(self, category: str) -> List[Dict]:
-        """获取指定分类的所有节点"""
-        return [node for node in self.cortex_data if node.get('cat') == category]
+        """Get all nodes in a category"""
+        return [
+            node for node in self.cortex_data 
+            if node.get('cat') == category or node.get('category') == category
+        ]
     
     def get_categories(self) -> List[str]:
-        """获取所有分类"""
+        """Get all unique categories"""
         categories = set()
         for node in self.cortex_data:
-            if 'cat' in node:
-                categories.add(node['cat'])
+            cat = node.get('cat') or node.get('category')
+            if cat:
+                categories.add(cat)
         return sorted(list(categories))
     
-    def get_statistics(self) -> Dict:
-        """获取统计信息"""
-        categories = {}
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get backend statistics"""
+        categories: Dict[str, int] = {}
         for node in self.cortex_data:
-            cat = node.get('cat', 'Unknown')
+            cat = node.get('cat') or node.get('category') or 'Unknown'
             categories[cat] = categories.get(cat, 0) + 1
         
         return {
             'total_nodes': len(self.cortex_data),
             'categories': categories,
-            'vector_dimension': self.memory_matrix.shape[1],
+            'vector_dimension': self.memory_matrix.shape[1] if self.memory_matrix is not None else 0,
             'model_id': self.model_id,
-            'device': self.device
+            'device': self.device,
+            'model_loaded': self.model is not None
         }
     
     def search_by_title(self, title_query: str) -> List[Dict]:
-        """按标题搜索节点"""
+        """Search nodes by title"""
         results = []
         query_lower = title_query.lower()
         
         for node in self.cortex_data:
-            if query_lower in node.get('title', '').lower():
+            title = node.get('title') or node.get('label') or ''
+            if query_lower in title.lower():
                 results.append(node)
         
         return results
     
     def get_neighbors(self, node_index: int, k: int = 8) -> List[Dict]:
-        """获取节点的邻居"""
+        """Get neighboring nodes"""
         node = self.get_node(node_index)
         if not node:
             return []
         
-        neighbor_indices = node.get('nbs', [])[:k]
+        neighbor_indices = node.get('nbs', node.get('neighbors', []))[:k]
         return [self.get_node(idx) for idx in neighbor_indices if self.get_node(idx)]
 
 
-# ==================== Flask集成示例 ====================
-
 def create_flask_app(backend: GolemBackend):
     """
-    创建Flask应用，集成GolemBackend
+    Create Flask application with GolemBackend integration
     
-    使用方法:
+    Usage:
         backend = GolemBackend()
         app = create_flask_app(backend)
-        app.run(port=8000)
+        app.run(port=5000)
     """
     from flask import Flask, request, jsonify
+    from flask_cors import CORS
     
     app = Flask(__name__)
+    CORS(app)
     
-    @app.route('/query', methods=['POST'])
+    @app.route('/api/query', methods=['POST'])
     def query_endpoint():
-        """查询端点"""
+        """Query endpoint"""
         try:
-            data = request.json
-            query_text = data.get('query', '')
-            top_k = data.get('top_k', 50)
-            min_score = data.get('min_score', None)
-            
-            result = backend.query(query_text, top_k=top_k, min_score=min_score)
-            
-            return jsonify({
-                'success': True,
-                'indices': result['indices'],
-                'scores': result['scores']
-            })
+            data = request.json or {}
+            result = backend.query(
+                text=data.get('query', ''),
+                top_k=data.get('top_k', 50),
+                min_score=data.get('min_score')
+            )
+            return jsonify({'success': True, **result})
         except Exception as e:
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 400
+            return jsonify({'success': False, 'error': str(e)}), 400
     
-    @app.route('/query/advanced', methods=['POST'])
+    @app.route('/api/query/advanced', methods=['POST'])
     def query_advanced_endpoint():
-        """高级查询端点"""
+        """Advanced query endpoint"""
         try:
-            data = request.json
+            data = request.json or {}
             result = backend.query_advanced(
                 text=data.get('query', ''),
                 top_k=data.get('top_k', 50),
-                category_filter=data.get('category', None),
-                min_score=data.get('min_score', None)
+                category_filter=data.get('category'),
+                min_score=data.get('min_score')
             )
-            
-            return jsonify({
-                'success': True,
-                'indices': result['indices'],
-                'scores': result['scores'],
-                'nodes': result['nodes']
-            })
+            return jsonify({'success': True, **result})
         except Exception as e:
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 400
+            return jsonify({'success': False, 'error': str(e)}), 400
     
-    @app.route('/node/<int:index>', methods=['GET'])
-    def get_node_endpoint(index):
-        """获取节点信息"""
+    @app.route('/api/node/<int:index>', methods=['GET'])
+    def get_node_endpoint(index: int):
+        """Get node by index"""
         node = backend.get_node(index)
         if node:
             return jsonify({'success': True, 'node': node})
         return jsonify({'success': False, 'error': 'Node not found'}), 404
     
-    @app.route('/categories', methods=['GET'])
+    @app.route('/api/categories', methods=['GET'])
     def get_categories_endpoint():
-        """获取所有分类"""
+        """Get all categories"""
         return jsonify({
             'success': True,
             'categories': backend.get_categories()
         })
     
-    @app.route('/statistics', methods=['GET'])
+    @app.route('/api/statistics', methods=['GET'])
     def get_statistics_endpoint():
-        """获取统计信息"""
+        """Get statistics"""
         return jsonify({
             'success': True,
             'statistics': backend.get_statistics()
         })
     
-    @app.route('/health', methods=['GET'])
+    @app.route('/api/health', methods=['GET'])
     def health_check():
-        """健康检查"""
+        """Health check endpoint"""
+        stats = backend.get_statistics()
         return jsonify({
             'success': True,
             'status': 'healthy',
-            'nodes': len(backend.cortex_data)
+            'nodes': stats['total_nodes'],
+            'model_loaded': stats['model_loaded']
         })
     
     return app
 
 
-# ==================== 使用示例 ====================
-
 if __name__ == "__main__":
-    # 初始化后端
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Golem Backend Server')
+    parser.add_argument('--port', type=int, default=5000, help='Server port')
+    parser.add_argument('--model', type=str, default='sentence-transformers/all-MiniLM-L6-v2', help='Model ID')
+    parser.add_argument('--vectors', type=str, default='vectors.npy', help='Vector file path')
+    parser.add_argument('--nodes', type=str, default='nodes.json', help='Nodes JSON file path')
+    args = parser.parse_args()
+    
+    # Initialize backend
     backend = GolemBackend(
-        model_id="google/embedding-gemma-300m",
-        vector_file="golem_vectors.npy",
-        json_file="golem_cortex.json"
+        model_id=args.model,
+        vector_file=args.vectors,
+        json_file=args.nodes
     )
     
-    # 示例1: 简单查询
-    print("📊 查询示例:")
-    result = backend.query("Julius Caesar", top_k=5)
-    print(f"   找到 {len(result['indices'])} 个结果")
-    for i, node in enumerate(result['nodes'][:3]):
-        print(f"   {i+1}. {node['title']} ({node['cat']}) - 相似度: {result['scores'][i]:.4f}")
-    
-    # 示例2: 分类过滤
-    print("\n📂 按分类过滤:")
-    categories = backend.get_categories()
-    print(f"   可用分类: {', '.join(categories)}")
-    
-    # 示例3: 统计信息
-    print("\n📈 统计信息:")
+    # Print statistics
+    print("Statistics:")
     stats = backend.get_statistics()
+    print(f"  Total nodes: {stats['total_nodes']}")
+    print(f"  Categories: {len(stats['categories'])}")
     for cat, count in stats['categories'].items():
-        print(f"   {cat}: {count}")
+        print(f"    {cat}: {count}")
     
-    # 示例4: 启动Flask应用
-    print("\n🚀 启动Flask应用...")
+    # Start Flask server
+    print(f"\nStarting server on port {args.port}...")
     app = create_flask_app(backend)
-    app.run(port=8000, debug=False)
+    app.run(host='0.0.0.0', port=args.port, debug=False)

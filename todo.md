@@ -48,7 +48,7 @@
 - [x] packagePurchases table - Track all purchases
 - [x] packageDownloads table - Track download history
 - [ ] Stripe payment integration (currently mock)
-- [ ] Email notification on purchase
+- [x] Email notification on purchase
 
 #### Search & Discovery
 - [x] globalSearch API - Search across all package types
@@ -168,7 +168,7 @@
 - [x] API Key format: ak_ai_[32_hex_chars]
 - [x] Bearer token authentication
 - [x] ApiKeys.tsx - Management page
-- [ ] API usage logging and analytics
+- [x] API usage logging and analytics
 - [ ] Rate limiting per API key
 
 ### 4.3 OpenAPI Specification
@@ -227,18 +227,18 @@
 - [x] awareness_sdk package structure
 - [x] Basic client implementation
 - [x] README documentation
-- [ ] client.vector_packages.* methods
-- [ ] client.memory_packages.* methods
-- [ ] client.chain_packages.* methods
+- [x] client.vector_packages.* methods
+- [x] client.memory_packages.* methods
+- [x] client.chain_packages.* methods
 - [ ] PyPI publication
 
 ### 6.2 MCP Server
 - [x] mcp-server/index.ts - Basic implementation
 - [x] mcp-server/index-enhanced.ts - Enhanced version
-- [ ] search_vector_packages tool
-- [ ] search_memory_packages tool
-- [ ] search_chain_packages tool
-- [ ] purchase_package tool
+- [x] search_vector_packages tool
+- [x] search_memory_packages tool
+- [x] search_chain_packages tool
+- [x] purchase_package tool
 - [ ] NPM publication
 
 ### 6.3 Framework Integrations
@@ -326,9 +326,10 @@
 
 ### P1 - Important (Next Week)
 1. Stripe payment integration
-2. Email notifications
-3. Python SDK completion
-4. MCP Server tools
+2. ~~Email notifications~~ ✅ Done
+3. ~~Python SDK completion~~ ✅ Done
+4. ~~MCP Server tools~~ ✅ Done
+5. ~~API usage logging~~ ✅ Done
 
 ### P2 - Nice to Have (Later)
 1. Package ratings and reviews
@@ -341,6 +342,18 @@
 ## Changelog
 
 ### 2026-01-26
+- Cleaned up Golem Visualizer technical debt:
+  - Moved GolemVisualizer component to client/src/components/visualizer/
+  - Deleted duplicate files (frontend/GolemVisualizer.tsx, frontend/GolemVisualizer.js)
+  - Deleted redundant docs (docs/integration.md, docs/analysis.md, examples/integration.html)
+  - Rewrote golem_backend.py with English comments
+  - Updated requirements.txt with correct dependencies
+  - Updated README.md and INTEGRATION_GUIDE.md in English
+- Added MCP Server tools: search_vector_packages, search_memory_packages, search_chain_packages, purchase_package
+- Added API usage logging middleware and analytics router
+- Created api_usage_logs, api_usage_daily_stats, api_endpoints tables
+- Completed Python SDK with VectorPackageClient, MemoryPackageClient, ChainPackageClient
+- Added purchase email notifications (buyer confirmation + seller notification)
 - Merged 7 seed scripts into unified scripts/seed.ts
 - Organized docs/ directory into subdirectories (technical/, product/, integration/)
 - Consolidated 3 env templates into single .env.example

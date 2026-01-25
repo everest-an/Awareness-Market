@@ -155,3 +155,171 @@ For security reasons, never share this code with anyone.
 export function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
+
+
+/**
+ * Send purchase confirmation email to buyer
+ */
+export async function sendPurchaseConfirmationEmail(
+  buyerEmail: string,
+  packageName: string,
+  packageType: 'vector' | 'memory' | 'chain',
+  price: string,
+  downloadUrl?: string
+): Promise<boolean> {
+  const subject = `Purchase Confirmed: ${packageName}`;
+  const packageTypeLabel = packageType === 'vector' ? 'Vector Package' : 
+                           packageType === 'memory' ? 'Memory Package' : 'Chain Package';
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .package-box { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .price { font-size: 24px; font-weight: bold; color: #10b981; }
+        .download-btn { display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin-top: 15px; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Purchase Confirmed!</h1>
+        </div>
+        <div class="content">
+          <p>Thank you for your purchase on Awareness Market!</p>
+          
+          <div class="package-box">
+            <h3 style="margin-top: 0;">${packageName}</h3>
+            <p><strong>Type:</strong> ${packageTypeLabel}</p>
+            <p><strong>Price:</strong> <span class="price">$${price}</span></p>
+            ${downloadUrl ? `<a href="${downloadUrl}" class="download-btn">Download Package</a>` : ''}
+          </div>
+          
+          <h3>What's Next?</h3>
+          <ul>
+            <li>Download your package from your dashboard</li>
+            <li>Extract the W-Matrix and data files</li>
+            <li>Integrate with your AI pipeline</li>
+            <li>Check our SDK documentation for integration guides</li>
+          </ul>
+          
+          <p>If you have any questions, visit our <a href="https://awareness.market/docs">documentation</a> or contact support.</p>
+          
+          <div class="footer">
+            <p>© 2026 Awareness Market. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Purchase Confirmed!
+
+Thank you for your purchase on Awareness Market!
+
+Package: ${packageName}
+Type: ${packageTypeLabel}
+Price: $${price}
+
+${downloadUrl ? `Download: ${downloadUrl}` : 'Download from your dashboard'}
+
+What's Next?
+- Download your package from your dashboard
+- Extract the W-Matrix and data files
+- Integrate with your AI pipeline
+- Check our SDK documentation for integration guides
+
+© 2026 Awareness Market. All rights reserved.
+  `;
+
+  return sendEmail({
+    to: buyerEmail,
+    subject,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send sale notification email to seller
+ */
+export async function sendSaleNotificationEmail(
+  sellerEmail: string,
+  packageName: string,
+  buyerName: string,
+  price: string,
+  earnings: string
+): Promise<boolean> {
+  const subject = `New Sale: ${packageName}`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .sale-box { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .earnings { font-size: 28px; font-weight: bold; color: #8b5cf6; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>💰 You Made a Sale!</h1>
+        </div>
+        <div class="content">
+          <p>Great news! Someone just purchased your package.</p>
+          
+          <div class="sale-box">
+            <h3 style="margin-top: 0;">${packageName}</h3>
+            <p><strong>Buyer:</strong> ${buyerName}</p>
+            <p><strong>Sale Price:</strong> $${price}</p>
+            <p><strong>Your Earnings:</strong> <span class="earnings">$${earnings}</span></p>
+            <p style="color: #6b7280; font-size: 14px;">(10% platform fee deducted)</p>
+          </div>
+          
+          <p>Keep creating great packages to grow your earnings!</p>
+          
+          <div class="footer">
+            <p>© 2026 Awareness Market. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+You Made a Sale!
+
+Great news! Someone just purchased your package.
+
+Package: ${packageName}
+Buyer: ${buyerName}
+Sale Price: $${price}
+Your Earnings: $${earnings} (10% platform fee deducted)
+
+Keep creating great packages to grow your earnings!
+
+© 2026 Awareness Market. All rights reserved.
+  `;
+
+  return sendEmail({
+    to: sellerEmail,
+    subject,
+    html,
+    text,
+  });
+}
