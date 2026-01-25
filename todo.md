@@ -341,6 +341,12 @@
 ## Changelog
 
 ### 2026-01-26
+- Merged 7 seed scripts into unified scripts/seed.ts
+- Organized docs/ directory into subdirectories (technical/, product/, integration/)
+- Consolidated 3 env templates into single .env.example
+- Added GitHub Actions CI/CD workflows (ci.yml, deploy.yml)
+- Added E2E test script (scripts/test/e2e-package-flow.ts)
+- Fixed AWS S3 storage integration
 - Updated todo.md with unified English language
 - Reorganized by functional modules
 - Marked completed items based on codebase review

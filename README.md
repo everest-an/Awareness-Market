@@ -365,7 +365,7 @@ cd Awareness-Market
 npm install
 
 # 3. Configure environment
-cp .env.local.template .env
+cp .env.example .env
 # Edit .env with your credentials
 
 # 4. Setup database
