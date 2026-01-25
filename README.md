@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧠 Awareness Market
+# Awareness Market
 
 ### *The AI Subconscious Trading Platform*
 
@@ -9,26 +9,26 @@
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io)
 [![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-success)](https://awareness.market)
 
-**🌐 [Website](https://awareness.market)** • **📖 [Whitepaper](WHITEPAPER.md)** • **🚀 [Quick Start](Awareness-Market-main/QUICKSTART.md)** • **📚 [API Docs](Awareness-Market-main/LATENTMAS_V2_API.md)**
+**[Website](https://awareness.market)** • **[Whitepaper](WHITEPAPER.md)** • **[Quick Start](docs/guides/quickstart.md)** • **[API Docs](docs/api/overview.md)**
 
 </div>
 
 ---
 
-## 🎯 What is Awareness Market?
+## What is Awareness Market?
 
 Awareness Market is the **world's first decentralized marketplace** for AI "subconscious" data—enabling AI agents to trade their internal knowledge representations directly in **latent space** instead of inefficient text.
 
 Built on **LatentMAS (Latent Multi-Agent Systems)** protocol and **Model Context Protocol (MCP)**, we enable:
-- 🔥 **4.3x faster inference** vs. traditional text-based communication
-- 💰 **83.7% reduction** in token consumption costs
-- 🎯 **Lossless knowledge transfer** between heterogeneous AI models
+- **4.3x faster inference** vs. traditional text-based communication
+- **83.7% reduction** in token consumption costs
+- **Lossless knowledge transfer** between heterogeneous AI models
 
 > **From API Economy to Subconscious Economy:** Instead of selling API calls that return text, AI agents can now monetize their specialized internal "thoughts," "memories," and "reasoning processes" as high-fidelity vector packages.
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 graph TB
@@ -89,15 +89,15 @@ graph TB
 
 ---
 
-## 🛍️ Three Markets, Infinite Possibilities
+## Three Markets, Infinite Possibilities
 
-| 🎁 Market Type | 📦 Product Format | 💡 Use Case | ⚙️ Technology |
-|:--------------|:-----------------|:-----------|:-------------|
+| Market Type | Product Format | Use Case | Technology |
+|:------------|:---------------|:---------|:-----------|
 | **1. Latent Vector Market** | `.vectorpkg` | Acquire static skills (e.g., "Medical Image Analysis") | Capability Inference |
 | **2. KV-Cache Memory Market** | `.memorypkg` | Transplant working memory & context | Direct Memory Transplant |
 | **3. Reasoning Chain Market** | `.chainpkg` | Reuse complete problem-solving workflows | Solution Replication |
 
-### 🔬 Example Use Cases
+### Example Use Cases
 
 ```typescript
 // 1. Buy a "Financial Analysis" capability
@@ -115,9 +115,9 @@ await marketplace.sell(workflow, { license: "MIT" });
 
 ---
 
-## 🔬 LatentMAS v2.0: Technical Innovations
+## LatentMAS v2.0: Technical Innovations
 
-### 1. 📊 Symmetric Focus KV-Cache Compression
+### 1. Symmetric Focus KV-Cache Compression
 
 **Problem:** Transmitting full conversation context is bandwidth-intensive.  
 **Solution:** Attention-based token selection retains >90% semantic fidelity while reducing bandwidth by **95%**.
@@ -141,7 +141,7 @@ compressed_kv = (keys[selected_indices], values[selected_indices])
 
 ---
 
-### 2. 🧮 Dynamic W-Matrix (Cross-Model Alignment)
+### 2. Dynamic W-Matrix (Cross-Model Alignment)
 
 **Problem:** Latent vectors from GPT-4 (3072D) can't be directly used by Llama-3 (4096D).  
 **Solution:** Multi-layer perceptron (MLP) learns non-linear transformation.
@@ -175,7 +175,7 @@ Output: 3072D
 
 ---
 
-### 3. 🛡️ Anti-Poisoning Verification Protocol
+### 3. Anti-Poisoning Verification Protocol
 
 **Proof-of-Latent-Fidelity (PoLF):** Challenge-response mechanism to detect malicious vectors.
 
@@ -205,7 +205,7 @@ const passed = metrics.all(score => score > 0.85);
 
 ---
 
-### 4. 🎯 Semantic Anchor Standardization
+### 4. Semantic Anchor Standardization
 
 **1024 Golden Anchors** across 16 semantic categories provide universal reference frame:
 
@@ -221,7 +221,7 @@ const passed = metrics.all(score => score > 0.85);
 
 ---
 
-### 5. 🤖 ERC-8004 Trustless Agent Authentication
+### 5. ERC-8004 Trustless Agent Authentication
 
 **Problem:** AI agents need to establish trust without centralized intermediaries.
 **Solution:** On-chain identity, reputation, and capability verification via ERC-8004 standard.
@@ -273,48 +273,24 @@ See [ERC-8004 Integration Guide](docs/ERC8004_INTEGRATION.md) for full documenta
 
 ---
 
-## 🚀 Tech Stack
+## Tech Stack
 
-<table>
-<tr>
-<td><strong>Frontend</strong></td>
-<td>React 19, Vite, TailwindCSS, Radix UI, Framer Motion</td>
-</tr>
-<tr>
-<td><strong>Backend</strong></td>
-<td>Node.js 18+, Express, tRPC 11, Socket.IO</td>
-</tr>
-<tr>
-<td><strong>Database</strong></td>
-<td>MySQL/PostgreSQL (Drizzle ORM), Redis (KV-Cache)</td>
-</tr>
-<tr>
-<td><strong>AI/ML</strong></td>
-<td>LatentMAS v2, Model Context Protocol, OpenAI API</td>
-</tr>
-<tr>
-<td><strong>Blockchain</strong></td>
-<td>Solidity, Hardhat, Polygon Amoy (ERC-8004)</td>
-</tr>
-<tr>
-<td><strong>Storage</strong></td>
-<td>AWS S3 (Vectors), Cloudflare R2</td>
-</tr>
-<tr>
-<td><strong>Security</strong></td>
-<td>JWT, bcrypt, Stripe Payments, Proof-of-Latent-Fidelity</td>
-</tr>
-<tr>
-<td><strong>Deployment</strong></td>
-<td>Vercel (Serverless), PM2, Docker, Nginx</td>
-</tr>
-</table>
+| Layer | Technologies |
+|:------|:-------------|
+| **Frontend** | React 19, Vite, TailwindCSS, Radix UI, Framer Motion |
+| **Backend** | Node.js 18+, Express, tRPC 11, Socket.IO |
+| **Database** | MySQL/PostgreSQL (Drizzle ORM), Redis (KV-Cache) |
+| **AI/ML** | LatentMAS v2, Model Context Protocol, OpenAI API |
+| **Blockchain** | Solidity, Hardhat, Polygon Amoy (ERC-8004) |
+| **Storage** | AWS S3 (Vectors), Cloudflare R2 |
+| **Security** | JWT, bcrypt, Stripe Payments, Proof-of-Latent-Fidelity |
+| **Deployment** | Vercel (Serverless), PM2, Docker, Nginx |
 
 ---
 
-## 🎯 Core Features
+## Core Features
 
-### 📦 Vector Packaging System
+### Vector Packaging System
 ```bash
 # Create a vector package
 $ npm run package:create \
@@ -332,7 +308,7 @@ medical-diagnosis-bert.vectorpkg
 └── signature.sig          # Cryptographic signature
 ```
 
-### 🔄 MCP Integration
+### MCP Integration
 
 Connect any MCP-compatible client:
 
@@ -359,7 +335,7 @@ const result = await client.tools.call('mcp/sync', {
 });
 ```
 
-### 🔐 Security Features
+### Security Features
 
 - **End-to-End Encryption:** Vectors encrypted with AES-256
 - **Blockchain Audit Trail:** Immutable transaction history
@@ -369,12 +345,12 @@ const result = await client.tools.call('mcp/sync', {
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 ```bash
 Node.js >= 18.0.0
-PostgreSQL >= 14.0
+MySQL or PostgreSQL
 Redis (optional, for caching)
 ```
 
@@ -389,7 +365,7 @@ cd Awareness-Market
 npm install
 
 # 3. Configure environment
-cp .env.example .env
+cp .env.local.template .env
 # Edit .env with your credentials
 
 # 4. Setup database
@@ -444,7 +420,7 @@ console.log(`Saved ${data.stats.compressionRatio * 100}% bandwidth`);
 
 ---
 
-## 📊 Performance Benchmarks
+## Performance Benchmarks
 
 | Metric | TextMAS (Baseline) | LatentMAS v2 | Improvement |
 |:-------|:------------------|:-------------|:------------|
@@ -458,35 +434,37 @@ console.log(`Saved ${data.stats.compressionRatio * 100}% bandwidth`);
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-- 📖 [Whitepaper](WHITEPAPER.md) - Full technical specification
-- 🚀 [Quick Start Guide](Awareness-Market-main/QUICKSTART.md)
-- 🔬 [LatentMAS v2 Features](Awareness-Market-main/LATENTMAS_V2_FEATURES.md)
-- 📡 [API Documentation](Awareness-Market-main/LATENTMAS_V2_API.md)
-- 🛠️ [Deployment Guide](DEPLOYMENT.md)
-- 👥 [User Guide](USER_GUIDE.md)
-- 🤝 [Contributing Guidelines](CONTRIBUTING.md)
+- [Whitepaper](WHITEPAPER.md) - Full technical specification
+- [Quick Start Guide](docs/guides/quickstart.md)
+- [LatentMAS v2 Features](docs/api/latentmas-v2.md)
+- [API Documentation](docs/api/overview.md)
+- [Deployment Guide](docs/deployment/guide.md)
+- [User Guide](docs/guides/user-guide.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
+- [ERC-8004 Integration](docs/ERC8004_INTEGRATION.md)
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
-### ✅ Phase 1-6 (Completed)
+### Phase 1-6 (Completed)
 - [x] Core marketplace infrastructure
 - [x] LatentMAS v2 integration
 - [x] MCP server implementation
 - [x] Payment system (Stripe)
 - [x] Security & anti-poisoning
 - [x] Comprehensive test coverage (95%+)
+- [x] ERC-8004 AI Agent Authentication
 
-### 🚧 Phase 7 (Current - Q1 2026)
+### Phase 7 (Current - Q1 2026)
 - [ ] Public beta launch
 - [ ] Mobile SDK release
 - [ ] Enterprise tier features
 - [ ] Community governance DAO
 
-### 🔮 Future Phases
+### Future Phases
 - [ ] Federated learning for W-Matrix training
 - [ ] Cross-chain NFT tokenization
 - [ ] Hardware acceleration (GPU inference)
@@ -494,7 +472,7 @@ console.log(`Saved ${data.stats.compressionRatio * 100}% bandwidth`);
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
@@ -514,7 +492,7 @@ git push origin feature/amazing-feature
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file for details.
 
@@ -524,17 +502,17 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 
 ---
 
-## 🌐 Links & Community
+## Links & Community
 
-- 🌍 **Website:** [awareness.market](https://awareness.market)
-- 🐙 **GitHub:** [everest-an/Awareness-Market](https://github.com/everest-an/Awareness-Market)
-- 🐦 **Twitter/X:** [@AwarenessNet](https://twitter.com/AwarenessNet)
-- 💬 **Discord:** [Join Community](https://discord.gg/awareness-market)
-- 📧 **Email:** [contact@awareness.market](mailto:contact@awareness.market)
+- **Website:** [awareness.market](https://awareness.market)
+- **GitHub:** [everest-an/Awareness-Market](https://github.com/everest-an/Awareness-Market)
+- **Twitter/X:** [@AwarenessNet](https://twitter.com/AwarenessNet)
+- **Discord:** [Join Community](https://discord.gg/awareness-market)
+- **Email:** [contact@awareness.market](mailto:contact@awareness.market)
 
 ---
 
-## 📈 Market Analysis
+## Market Analysis
 
 ### Target Markets
 - **Multi-Agent Systems:** $375.4B by 2034 (CAGR 17.2%)
@@ -549,7 +527,7 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built upon cutting-edge research:
 - **Gen-Verse/LatentMAS** - Foundation for latent space communication
@@ -562,8 +540,8 @@ Special thanks to the AI research community for pioneering latent space explorat
 
 <div align="center">
 
-### 🌟 Star us on GitHub • 🐦 Follow for updates • 🤝 Join the revolution
+**Star us on GitHub** • **Follow for updates** • **Join the revolution**
 
-**Together, we're building the neural pathways of the global AI network.**
+Together, we're building the neural pathways of the global AI network.
 
 </div>
