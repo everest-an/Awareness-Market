@@ -130,8 +130,15 @@ export default function GolemVisualizerPage() {
   };
 
   // 将包数据转换为向量用于可视化
-  // 未登录: 显示丰富的演示数据 (500+ 节点) | 已登录: 显示真实客户数据
+  // 未登录: 显示丰富的演示数据 (600+ 节点) | 已登录: 显示真实客户数据
   useEffect(() => {
+    // 如果 auth 还在加载中，先显示演示数据
+    if (authLoading) {
+      setVectors(generateDemoVectors(600));
+      setDataSource('demo');
+      return;
+    }
+
     const minPoints = isAuthenticated ? 300 : 600; // 未登录显示更多演示数据
 
     // 未登录 - 显示精心设计的演示数据
@@ -176,7 +183,7 @@ export default function GolemVisualizerPage() {
 
     setVectors(vectorizedPackages);
     setDataSource('live');
-  }, [packagesData, packageType, isAuthenticated]);
+  }, [packagesData, packageType, isAuthenticated, authLoading]); // 添加 authLoading 依赖
 
   const getColorByCategory = (category?: string): string => {
     const colors: Record<string, string> = {
