@@ -23,6 +23,7 @@ import { initializeWorkflowWebSocket } from "../workflow-websocket";
 import { setupGoServiceProxies, createHealthCheckRouter } from "../middleware/go-service-proxy";
 import communityRouter from "../community-assistant";
 import { erc8004Router } from "../erc8004-api";
+import inferenceRouter from "../inference-api";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -83,6 +84,9 @@ async function startServer() {
 
   // ERC-8004 Trustless Agents API
   app.use("/api/erc8004", erc8004Router);
+
+  // AI Inference Visualization API
+  app.use("/api/inference", inferenceRouter);
 
   // 🎯 Register Go Service Proxies (API Gateway Pattern)
   // Must be registered BEFORE tRPC middleware
