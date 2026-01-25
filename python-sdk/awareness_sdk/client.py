@@ -5,6 +5,7 @@ Unified Awareness SDK Client
 from .memory_exchange import MemoryExchangeClient
 from .w_matrix import WMatrixClient
 from .kv_cache import KVCacheClient
+from .packages import VectorPackageClient, MemoryPackageClient, ChainPackageClient
 
 
 class AwarenessClient:
@@ -91,6 +92,25 @@ class AwarenessClient:
             api_key=api_key,
             timeout=timeout
         )
+        
+        # Package clients for Three Product Lines
+        self._vector_packages = VectorPackageClient(
+            base_url=base_url,
+            api_key=api_key,
+            timeout=timeout
+        )
+        
+        self._memory_packages = MemoryPackageClient(
+            base_url=base_url,
+            api_key=api_key,
+            timeout=timeout
+        )
+        
+        self._chain_packages = ChainPackageClient(
+            base_url=base_url,
+            api_key=api_key,
+            timeout=timeout
+        )
     
     @property
     def memory_exchange(self) -> MemoryExchangeClient:
@@ -136,6 +156,51 @@ class AwarenessClient:
             ... )
         """
         return self._kv_cache
+    
+    @property
+    def vector_packages(self) -> VectorPackageClient:
+        """
+        Access Vector Package client for capability trading
+        
+        Returns:
+            VectorPackageClient instance
+            
+        Example:
+            >>> client = AwarenessClient(api_key="your_api_key")
+            >>> vectors = client.vector_packages.search(category="nlp")
+            >>> client.vector_packages.purchase("vpkg_abc123")
+        """
+        return self._vector_packages
+    
+    @property
+    def memory_packages(self) -> MemoryPackageClient:
+        """
+        Access Memory Package client for KV-Cache transfer
+        
+        Returns:
+            MemoryPackageClient instance
+            
+        Example:
+            >>> client = AwarenessClient(api_key="your_api_key")
+            >>> memories = client.memory_packages.search(source_model="gpt-4")
+            >>> client.memory_packages.purchase("mpkg_abc123")
+        """
+        return self._memory_packages
+    
+    @property
+    def chain_packages(self) -> ChainPackageClient:
+        """
+        Access Chain Package client for reasoning chain trading
+        
+        Returns:
+            ChainPackageClient instance
+            
+        Example:
+            >>> client = AwarenessClient(api_key="your_api_key")
+            >>> chains = client.chain_packages.search(problem_type="code-generation")
+            >>> client.chain_packages.purchase("cpkg_abc123")
+        """
+        return self._chain_packages
     
     # ========== Three Product Lines API ==========
     

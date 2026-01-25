@@ -287,11 +287,335 @@ const server = new Server(
 );
 
 /**
+ * Search Vector Packages
+ */
+async function searchVectorPackages(params: {
+  category?: string;
+  sourceModel?: string;
+  targetModel?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  limit?: number;
+}): Promise<any[]> {
+  const url = `${API_BASE}/api/trpc/packages.browsePackages`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      json: {
+        packageType: 'vector',
+        category: params.category,
+        sourceModel: params.sourceModel,
+        targetModel: params.targetModel,
+        search: params.search,
+        minPrice: params.minPrice,
+        maxPrice: params.maxPrice,
+        limit: params.limit || 10,
+        offset: 0,
+        sortBy: 'recent',
+      }
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+  
+  const data = await response.json() as any;
+  return data.result?.data?.packages || [];
+}
+
+/**
+ * Search Memory Packages
+ */
+async function searchMemoryPackages(params: {
+  sourceModel?: string;
+  targetModel?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  limit?: number;
+}): Promise<any[]> {
+  const url = `${API_BASE}/api/trpc/packages.browsePackages`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      json: {
+        packageType: 'memory',
+        sourceModel: params.sourceModel,
+        targetModel: params.targetModel,
+        search: params.search,
+        minPrice: params.minPrice,
+        maxPrice: params.maxPrice,
+        limit: params.limit || 10,
+        offset: 0,
+        sortBy: 'recent',
+      }
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+  
+  const data = await response.json() as any;
+  return data.result?.data?.packages || [];
+}
+
+/**
+ * Search Chain Packages
+ */
+async function searchChainPackages(params: {
+  problemType?: string;
+  sourceModel?: string;
+  targetModel?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  limit?: number;
+}): Promise<any[]> {
+  const url = `${API_BASE}/api/trpc/packages.browsePackages`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      json: {
+        packageType: 'chain',
+        problemType: params.problemType,
+        sourceModel: params.sourceModel,
+        targetModel: params.targetModel,
+        search: params.search,
+        minPrice: params.minPrice,
+        maxPrice: params.maxPrice,
+        limit: params.limit || 10,
+        offset: 0,
+        sortBy: 'recent',
+      }
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+  
+  const data = await response.json() as any;
+  return data.result?.data?.packages || [];
+}
+
+/**
+ * Purchase any package type
+ */
+async function purchasePackage(params: {
+  packageType: 'vector' | 'memory' | 'chain';
+  packageId: string;
+  apiKey: string;
+}): Promise<{ success: boolean; downloadUrl?: string; message: string }> {
+  const url = `${API_BASE}/api/trpc/packages.purchasePackage`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${params.apiKey}`
+    },
+    body: JSON.stringify({
+      json: {
+        packageType: params.packageType,
+        packageId: params.packageId
+      }
+    })
+  });
+  
+  if (!response.ok) {
+    return {
+      success: false,
+      message: `Purchase failed: ${response.statusText}`
+    };
+  }
+  
+  const data = await response.json() as any;
+  
+  // Get download URL after purchase
+  const downloadUrl = `${API_BASE}/api/trpc/packages.downloadPackage`;
+  const downloadResponse = await fetch(downloadUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${params.apiKey}`
+    },
+    body: JSON.stringify({
+      json: {
+        packageType: params.packageType,
+        packageId: params.packageId
+      }
+    })
+  });
+  
+  if (downloadResponse.ok) {
+    const downloadData = await downloadResponse.json() as any;
+    return {
+      success: true,
+      downloadUrl: downloadData.result?.data?.packageUrl,
+      message: 'Purchase successful'
+    };
+  }
+  
+  return {
+    success: true,
+    message: 'Purchase successful (download URL pending)'
+  };
+}
+
+/**
  * List available tools
  */
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
+      // ============ Vector Package Tools ============
+      {
+        name: 'search_vector_packages',
+        description: 'Search for Vector Packages (.vectorpkg) containing static AI capabilities and embeddings. Vector packages can be transferred between models using W-Matrix transformation.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            category: {
+              type: 'string',
+              description: 'Filter by category',
+              enum: ['nlp', 'vision', 'audio', 'multimodal', 'other']
+            },
+            sourceModel: {
+              type: 'string',
+              description: 'Filter by source model (e.g., "gpt-4", "claude-3-opus")'
+            },
+            targetModel: {
+              type: 'string',
+              description: 'Filter by target model'
+            },
+            search: {
+              type: 'string',
+              description: 'Text search in name and description'
+            },
+            minPrice: {
+              type: 'number',
+              description: 'Minimum price filter'
+            },
+            maxPrice: {
+              type: 'number',
+              description: 'Maximum price filter'
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum results (default: 10)',
+              default: 10
+            }
+          }
+        }
+      },
+      // ============ Memory Package Tools ============
+      {
+        name: 'search_memory_packages',
+        description: 'Search for Memory Packages (.memorypkg) containing KV-Cache data for cross-model context transfer using LatentMAS protocol.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sourceModel: {
+              type: 'string',
+              description: 'Filter by source model (e.g., "gpt-4", "claude-3-opus")'
+            },
+            targetModel: {
+              type: 'string',
+              description: 'Filter by target model'
+            },
+            search: {
+              type: 'string',
+              description: 'Text search in name and description'
+            },
+            minPrice: {
+              type: 'number',
+              description: 'Minimum price filter'
+            },
+            maxPrice: {
+              type: 'number',
+              description: 'Maximum price filter'
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum results (default: 10)',
+              default: 10
+            }
+          }
+        }
+      },
+      // ============ Chain Package Tools ============
+      {
+        name: 'search_chain_packages',
+        description: 'Search for Chain Packages (.chainpkg) containing reasoning chains that capture step-by-step problem-solving processes.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            problemType: {
+              type: 'string',
+              description: 'Filter by problem type (e.g., "mathematical-proof", "code-generation", "logical-reasoning")'
+            },
+            sourceModel: {
+              type: 'string',
+              description: 'Filter by source model'
+            },
+            targetModel: {
+              type: 'string',
+              description: 'Filter by target model'
+            },
+            search: {
+              type: 'string',
+              description: 'Text search in name and description'
+            },
+            minPrice: {
+              type: 'number',
+              description: 'Minimum price filter'
+            },
+            maxPrice: {
+              type: 'number',
+              description: 'Maximum price filter'
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum results (default: 10)',
+              default: 10
+            }
+          }
+        }
+      },
+      // ============ Purchase Tool ============
+      {
+        name: 'purchase_package',
+        description: 'Purchase any package type (vector, memory, or chain). Returns download URL after successful purchase.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            packageType: {
+              type: 'string',
+              description: 'Type of package to purchase',
+              enum: ['vector', 'memory', 'chain']
+            },
+            packageId: {
+              type: 'string',
+              description: 'ID of the package to purchase'
+            },
+            apiKey: {
+              type: 'string',
+              description: 'Your Awareness API key'
+            }
+          },
+          required: ['packageType', 'packageId', 'apiKey']
+        }
+      },
+      // ============ Legacy LatentMAS Tools ============
       {
         name: 'search_latentmas_memories',
         description: 'Search for LatentMAS memory packages (W-Matrix + KV-Cache) by model pair. Returns packages with performance metrics, pricing, and quality scores. Use this to find pre-trained cross-model memory transformations.',
@@ -414,6 +738,168 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   
   try {
     switch (name) {
+      // ============ Vector Package Tools ============
+      case 'search_vector_packages': {
+        const params = args as {
+          category?: string;
+          sourceModel?: string;
+          targetModel?: string;
+          search?: string;
+          minPrice?: number;
+          maxPrice?: number;
+          limit?: number;
+        };
+        
+        const packages = await searchVectorPackages(params);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                count: packages.length,
+                packageType: 'vector',
+                packages: packages.map((p: any) => ({
+                  id: p.packageId,
+                  name: p.name,
+                  description: p.description,
+                  category: p.category,
+                  modelPair: `${p.sourceModel} → ${p.targetModel}`,
+                  epsilon: parseFloat(p.epsilon),
+                  dimension: p.dimension,
+                  price: `$${p.price}`,
+                  downloads: p.downloads,
+                  createdAt: p.createdAt,
+                })),
+                recommendation: packages.length > 0
+                  ? `Found ${packages.length} vector packages. Best match: ${packages[0].name}`
+                  : 'No vector packages found matching your criteria.'
+              }, null, 2)
+            }
+          ]
+        };
+      }
+      
+      // ============ Memory Package Tools ============
+      case 'search_memory_packages': {
+        const params = args as {
+          sourceModel?: string;
+          targetModel?: string;
+          search?: string;
+          minPrice?: number;
+          maxPrice?: number;
+          limit?: number;
+        };
+        
+        const packages = await searchMemoryPackages(params);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                count: packages.length,
+                packageType: 'memory',
+                packages: packages.map((p: any) => ({
+                  id: p.packageId,
+                  name: p.name,
+                  description: p.description,
+                  modelPair: `${p.sourceModel} → ${p.targetModel}`,
+                  epsilon: parseFloat(p.epsilon),
+                  tokenCount: p.tokenCount,
+                  compressionRatio: parseFloat(p.compressionRatio),
+                  contextDescription: p.contextDescription,
+                  price: `$${p.price}`,
+                  downloads: p.downloads,
+                  createdAt: p.createdAt,
+                })),
+                recommendation: packages.length > 0
+                  ? `Found ${packages.length} memory packages for KV-Cache transfer. Best match: ${packages[0].name}`
+                  : 'No memory packages found matching your criteria.'
+              }, null, 2)
+            }
+          ]
+        };
+      }
+      
+      // ============ Chain Package Tools ============
+      case 'search_chain_packages': {
+        const params = args as {
+          problemType?: string;
+          sourceModel?: string;
+          targetModel?: string;
+          search?: string;
+          minPrice?: number;
+          maxPrice?: number;
+          limit?: number;
+        };
+        
+        const packages = await searchChainPackages(params);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                count: packages.length,
+                packageType: 'chain',
+                packages: packages.map((p: any) => ({
+                  id: p.packageId,
+                  name: p.name,
+                  description: p.description,
+                  problemType: p.problemType,
+                  modelPair: `${p.sourceModel} → ${p.targetModel}`,
+                  epsilon: parseFloat(p.epsilon),
+                  stepCount: p.stepCount,
+                  solutionQuality: parseFloat(p.solutionQuality),
+                  price: `$${p.price}`,
+                  downloads: p.downloads,
+                  createdAt: p.createdAt,
+                })),
+                recommendation: packages.length > 0
+                  ? `Found ${packages.length} reasoning chain packages. Best match: ${packages[0].name}`
+                  : 'No chain packages found matching your criteria.'
+              }, null, 2)
+            }
+          ]
+        };
+      }
+      
+      // ============ Purchase Tool ============
+      case 'purchase_package': {
+        const params = args as {
+          packageType: 'vector' | 'memory' | 'chain';
+          packageId: string;
+          apiKey: string;
+        };
+        
+        const result = await purchasePackage(params);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: result.success,
+                packageType: params.packageType,
+                packageId: params.packageId,
+                message: result.message,
+                downloadUrl: result.downloadUrl,
+                nextSteps: result.success
+                  ? [
+                      '1. Download the package from the provided URL',
+                      '2. Extract the package contents (.vectorpkg/.memorypkg/.chainpkg)',
+                      '3. Load the W-Matrix for cross-model transformation',
+                      '4. Apply the package data to your target model',
+                    ]
+                  : ['Check your API key and account balance']
+              }, null, 2)
+            }
+          ]
+        };
+      }
+      
+      // ============ Legacy LatentMAS Tools ============
       case 'search_latentmas_memories': {
         const params = args as {
           sourceModel?: string;
