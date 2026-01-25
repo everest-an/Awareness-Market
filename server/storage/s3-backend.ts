@@ -6,38 +6,39 @@
  */
 
 import { StorageBackend } from './storage-backend';
-import { storagePut as originalStoragePut } from '../storage';
+import { storagePut, storageGet, storageDelete } from '../storage';
 
 export class S3Backend implements StorageBackend {
   name = 'S3';
 
   async put(key: string, data: Buffer, contentType: string): Promise<{ url: string; key: string }> {
-    // Use existing S3 storage implementation
-    const result = await originalStoragePut(key, data, contentType);
+    const result = await storagePut(key, data, contentType);
     return {
       url: result.url,
-      key,
+      key: result.key,
     };
   }
 
   async get(key: string, expiresIn: number = 3600): Promise<{ url: string }> {
-    // For S3, the URL is already public or can be signed
-    // In production, implement S3 presigned URL generation
-    const url = `${process.env.VITE_FRONTEND_FORGE_API_URL}/storage/${key}`;
-    return { url };
+    const result = await storageGet(key, expiresIn);
+    return { url: result.url };
   }
 
   async delete(key: string): Promise<void> {
-    // Implement S3 delete
-    // For now, we don't delete files (for data retention)
-    console.log(`[S3Backend] Delete requested for key: ${key}`);
+    await storageDelete(key);
   }
 
   async healthCheck(): Promise<boolean> {
     try {
-      // Try to list buckets or perform a simple operation
+      // Simple health check - try to generate a presigned URL
+      await storageGet('health-check-test', 60);
       return true;
     } catch (error) {
+      // If the error is just "key not found", that's fine - S3 is working
+      const errorMessage = (error as Error).message || '';
+      if (errorMessage.includes('NoSuchKey') || errorMessage.includes('AccessDenied')) {
+        return true; // S3 is reachable
+      }
       console.error('[S3Backend] Health check failed:', error);
       return false;
     }
