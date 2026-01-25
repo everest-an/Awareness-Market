@@ -52,6 +52,7 @@ import { WorkflowPlayback } from "./pages/WorkflowPlayback";
 import { WorkflowPerformance } from "./pages/WorkflowPerformance";
 import GolemVisualizerPage from "./pages/GolemVisualizerPage";
 import InferenceDashboard from "./pages/InferenceDashboard";
+import NeuralCortex from "./pages/NeuralCortex";
 import OAuthCallback from "./pages/OAuthCallback";
 import EmailVerification from "./pages/EmailVerification";
 import AgentAuth from "./pages/AgentAuth";
@@ -120,6 +121,8 @@ function Router() {
       <Route path="/golem-visualizer" component={GolemVisualizerPage} />
       <Route path="/inference" component={InferenceDashboard} />
       <Route path="/inference-dashboard" component={InferenceDashboard} />
+      <Route path="/neural-cortex" component={NeuralCortex} />
+      <Route path="/cortex" component={NeuralCortex} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
