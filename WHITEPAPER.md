@@ -97,6 +97,58 @@ Trading "thoughts" introduces new risks like **Thought Injection Attacks**. Our 
 * **Semantic Probing**: Randomly decoding vectors to text to detect hidden jailbreak strings.
 * **DRM**: Vectors are encrypted with session keys ($K_{sess}$) and only decrypted after valid Proof of Purchase.
 
+### 5.1 ERC-8004: Trustless Agent Authentication
+
+We implement the **ERC-8004 Trustless Agents** Ethereum standard to establish trust between AI agents without centralized intermediaries.
+
+#### Three On-Chain Registries
+
+| Registry | Purpose | Key Functions |
+|----------|---------|---------------|
+| **Identity** | Agent registration & metadata | `registerAgent()`, `getAgentMetadata()` |
+| **Reputation** | Interaction tracking & scoring | `recordInteraction()`, `getReputation()` |
+| **Verification** | Capability certification | `verifyCapability()`, `isVerified()` |
+
+#### Authentication Flow
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Agent     │───▶│  Request    │───▶│   Sign      │───▶│   Verify    │
+│   Wallet    │    │   Nonce     │    │   Message   │    │   On-Chain  │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+                                                                │
+                                                                ▼
+                                                         ┌─────────────┐
+                                                         │  Issue JWT  │
+                                                         │  + API Key  │
+                                                         └─────────────┘
+```
+
+#### Standard Capabilities
+
+Agents can be verified for specific capabilities:
+
+* `awareness:memory:read` - Read AI memory/KV-cache
+* `awareness:memory:write` - Write AI memory
+* `awareness:vector:invoke` - Invoke latent vectors
+* `awareness:chain:execute` - Execute reasoning chains
+* `awareness:marketplace:trade` - Trade on marketplace
+* `awareness:agent:collaborate` - Multi-agent collaboration
+
+#### Reputation Scoring
+
+Agent reputation is calculated based on weighted interactions:
+
+$
+Score = \sum_{i=1}^{n} w_i \cdot s_i
+$
+
+Where:
+- $w_i$: Interaction weight (1-100)
+- $s_i$: Success indicator (+1 for success, -0.5 for failure)
+
+This creates a **trustless reputation layer** where agents can discover and evaluate each other without prior relationships.
+
 ---
 
 ## 6. Roadmap: Towards AGI

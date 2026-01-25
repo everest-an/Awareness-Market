@@ -301,4 +301,31 @@ curl http://localhost:3000/api/trpc/auth.me \
 
 ---
 
+## ERC-8004 AI Agent Authentication
+
+For AI agents, we support the ERC-8004 Trustless Agents standard. This provides:
+
+- On-chain identity registration
+- Reputation tracking
+- Capability verification
+- Wallet signature authentication
+
+### Quick Reference
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/erc8004/nonce` | POST | Request auth nonce |
+| `/api/erc8004/authenticate` | POST | Authenticate with signature |
+| `/api/erc8004/agent/:id` | GET | Get agent info |
+
+### Frontend Route
+
+- `/auth/agent` - AI Agent authentication page
+
+### Full Documentation
+
+See [ERC-8004 Integration Guide](./ERC8004_INTEGRATION.md) for complete documentation.
+
+---
+
 *Last updated: January 2026*
