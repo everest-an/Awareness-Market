@@ -1,6 +1,31 @@
 # 技术债务分析报告
 
-## 一、中文字符编码问题
+## 一、认证系统问题 (已修复)
+
+### 问题描述
+登录后页面闪退，用户状态丢失。
+
+### 根本原因
+1. **Cookie SameSite 配置错误**：使用 `sameSite: "none"` 但在本地开发 (HTTP) 环境下 `secure: false`，现代浏览器会拒绝这种组合
+2. **缺少 maxAge**：Cookie 没有设置过期时间
+3. **登录后重定向过快**：Cookie 还没完全设置就跳转了
+
+### 修复内容
+1. `server/_core/cookies.ts` - 根据环境动态设置 sameSite
+   - 本地开发 (HTTP): `sameSite: "lax"`
+   - 生产环境 (HTTPS): `sameSite: "none"` + `secure: true`
+2. `client/src/pages/AuthPage.tsx` - 完全重写
+   - 添加表单验证
+   - 添加加载状态
+   - 登录成功后等待 cookie 设置再跳转
+   - 检查已登录状态自动跳转
+
+### 相关文档
+- `docs/AUTH_SYSTEM_DOCUMENTATION.md` - 完整认证系统文档
+
+---
+
+## 二、中文字符编码问题 (已修复)
 
 ### 问题描述
 10 个前端文件中的中文字符被截断，显示为 `�?` 乱码。
@@ -132,12 +157,78 @@ golem-visualizer/
 
 ---
 
-## 五、优先级建议
+## 六、认证系统技术债务
 
-| 优先级 | 任务 | 影响 |
-|--------|------|------|
-| P0 | 修复中文编码问题 | 阻塞编译 |
-| P1 | 运行 seed 脚本填充数据 | 前端显示空 |
-| P2 | 合并重复的 seed 脚本 | 维护成本 |
-| P3 | 继续整理 docs/ | 可读性 |
-| P4 | 统一环境变量模板 | 开发体验 |
+### 已完成
+
+| 功能 | 状态 |
+|------|------|
+| Cookie sameSite 配置 | ✅ 已修复 |
+| 登录后闪退 | ✅ 已修复 |
+| GitHub OAuth | ✅ 已实现 |
+| Google OAuth | ✅ 已实现 |
+| 登录尝试限制 (防暴力破解) | ✅ 已实现 |
+| 密码强度验证 | ✅ 已实现 |
+| Token 刷新机制 | ✅ 已实现 |
+
+### 待办
+
+| 问题 | 优先级 |
+|------|--------|
+| 双因素认证 (2FA) | P3 |
+| CAPTCHA 验证 | P3 |
+| 账户锁定通知邮件 | P3 |
+
+### 新增文件
+
+```
+server/
+├── auth-oauth.ts              # OAuth 提供商集成 (GitHub, Google)
+├── auth-rate-limiter.ts       # 登录限流 (防暴力破解，支持Redis)
+├── auth-password-validator.ts # 密码强度验证
+└── auth-email-verification.ts # 邮箱验证流程
+
+client/src/pages/
+├── OAuthCallback.tsx          # OAuth 回调处理页面
+└── EmailVerification.tsx      # 邮箱验证页面
+```
+
+### 环境变量配置
+
+```env
+# JWT 认证 (必需)
+JWT_SECRET=your-secure-jwt-secret
+
+# 邮件服务 (Resend)
+RESEND_API_KEY=re_your-resend-api-key
+EMAIL_FROM=noreply@yourdomain.com
+
+# OAuth 配置 (可选)
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+OAUTH_CALLBACK_URL=http://localhost:3000
+
+# Redis (可选，生产环境推荐)
+REDIS_URL=redis://localhost:6379
+```
+
+---
+
+## 七、优先级建议
+
+| 优先级 | 任务 | 影响 | 状态 |
+|--------|------|------|------|
+| P0 | 修复认证系统闪退 | 用户无法登录 | ✅ 已修复 |
+| P0 | 修复中文编码问题 | 阻塞编译 | ✅ 已修复 |
+| P1 | 运行 seed 脚本填充数据 | 前端显示空 | ✅ 已完成 |
+| P1 | 修复 .toFixed() 类型错误 | 市场页面崩溃 | ✅ 已修复 |
+| P1 | 实现 OAuth 登录 | 用户体验 | ✅ 已完成 |
+| P1 | 添加登录安全增强 | 安全性 | ✅ 已完成 |
+| P2 | 邮箱验证流程 | 安全性 | ✅ 已完成 |
+| P2 | Redis 速率限制支持 | 可扩展性 | ✅ 已完成 |
+| P2 | 合并重复的 seed 脚本 | 维护成本 | ⏳ 待处理 |
+| P3 | 继续整理 docs/ | 可读性 | ⏳ 待处理 |
+| P3 | 双因素认证 (2FA) | 安全性 | ⏳ 待开发 |
+| P4 | 统一环境变量模板 | 开发体验 | ⏳ 待处理 |

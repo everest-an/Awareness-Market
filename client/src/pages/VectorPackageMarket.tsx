@@ -162,7 +162,7 @@ export default function VectorPackageMarket() {
           <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
             <div className="text-3xl font-bold text-yellow-400 mb-2">
               {packages.length > 0
-                ? ((packages.reduce((sum: number, p: any) => sum + p.epsilon, 0) / packages.length) * 100).toFixed(1)
+                ? ((packages.reduce((sum: number, p: any) => sum + Number(p.epsilon || 0), 0) / packages.length) * 100).toFixed(1)
                 : '0'}%
             </div>
             <div className="text-sm text-slate-400">Avg Epsilon</div>
@@ -268,8 +268,8 @@ export default function VectorPackageMarket() {
                   {/* Metrics */}
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     <div className="text-center p-2 bg-slate-800/50 rounded">
-                      <div className={`text-sm font-bold ${getEpsilonColor(pkg.epsilon)}`}>
-                        {(pkg.epsilon * 100).toFixed(1)}%
+                      <div className={`text-sm font-bold ${getEpsilonColor(Number(pkg.epsilon || 0))}`}>
+                        {(Number(pkg.epsilon || 0) * 100).toFixed(1)}%
                       </div>
                       <div className="text-xs text-slate-400">Epsilon</div>
                     </div>

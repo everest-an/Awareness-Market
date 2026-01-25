@@ -51,6 +51,8 @@ import { WorkflowSessionDetail } from "./pages/WorkflowSessionDetail";
 import { WorkflowPlayback } from "./pages/WorkflowPlayback";
 import { WorkflowPerformance } from "./pages/WorkflowPerformance";
 import GolemVisualizerPage from "./pages/GolemVisualizerPage";
+import OAuthCallback from "./pages/OAuthCallback";
+import EmailVerification from "./pages/EmailVerification";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -59,6 +61,8 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/auth"} component={AuthPage} />
+      <Route path={"/auth/verify"} component={EmailVerification} />
+      <Route path={"/api/auth/callback/:provider"} component={OAuthCallback} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
       <Route path={"/dashboard"} component={Dashboard} />

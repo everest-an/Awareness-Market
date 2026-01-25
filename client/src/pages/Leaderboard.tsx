@@ -93,8 +93,8 @@ export default function Leaderboard() {
                           {entry.category}
                         </Badge>
                       </TableCell>
-                      <TableCell>{entry.score.toFixed(4)}</TableCell>
-                      <TableCell>{entry.rating.toFixed(1)}</TableCell>
+                      <TableCell>{parseFloat(String(entry.score)).toFixed(4)}</TableCell>
+                      <TableCell>{parseFloat(String(entry.rating)).toFixed(1)}</TableCell>
                       <TableCell>{entry.metrics?.accuracy ? `${(entry.metrics.accuracy * 100).toFixed(1)}%` : "-"}</TableCell>
                       <TableCell>{entry.metrics?.latencyMs ? `${entry.metrics.latencyMs} ms` : "-"}</TableCell>
                       <TableCell>{entry.metrics?.throughputQps ? `${entry.metrics.throughputQps} QPS` : "-"}</TableCell>

@@ -21,28 +21,24 @@ function isSecureRequest(req: Request) {
   return protoList.some(proto => proto.trim().toLowerCase() === "https");
 }
 
+function isLocalDevelopment(req: Request): boolean {
+  const hostname = req.hostname || req.headers.host?.split(':')[0] || '';
+  return LOCAL_HOSTS.has(hostname);
+}
+
 export function getSessionCookieOptions(
   req: Request
-): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
-  // const hostname = req.hostname;
-  // const shouldSetDomain =
-  //   hostname &&
-  //   !LOCAL_HOSTS.has(hostname) &&
-  //   !isIpAddress(hostname) &&
-  //   hostname !== "127.0.0.1" &&
-  //   hostname !== "::1";
+): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure" | "maxAge"> {
+  const isLocal = isLocalDevelopment(req);
+  const isSecure = isSecureRequest(req);
 
-  // const domain =
-  //   shouldSetDomain && !hostname.startsWith(".")
-  //     ? `.${hostname}`
-  //     : shouldSetDomain
-  //       ? hostname
-  //       : undefined;
-
+  // For local development (HTTP), use sameSite: "lax" which works without HTTPS
+  // For production (HTTPS), use sameSite: "none" with secure: true for cross-origin
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    sameSite: isLocal ? "lax" : (isSecure ? "none" : "lax"),
+    secure: isSecure,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
 }
