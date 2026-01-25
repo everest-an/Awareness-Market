@@ -27,6 +27,7 @@ import {
 } from '../latentmas/package-builders';
 import type { KVCache } from '../latentmas/types';
 import type { ReasoningChainData } from '../latentmas/package-builders';
+import { storageGet } from '../storage';
 
 // ============================================================================
 // Input Schemas
@@ -548,16 +549,30 @@ export const packagesApiRouter = router({
         });
       }
 
-      // Generate download URL (expires in 7 days)
+      // Generate signed download URL (expires in 7 days = 604800 seconds)
+      const expiresIn = 7 * 24 * 60 * 60; // 7 days in seconds
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+      expiresAt.setSeconds(expiresAt.getSeconds() + expiresIn);
+
+      // Extract S3 key from packageUrl
+      // URL format: https://bucket.s3.region.amazonaws.com/key
+      let s3Key = pkg.packageUrl;
+      try {
+        const url = new URL(pkg.packageUrl);
+        s3Key = url.pathname.slice(1); // Remove leading slash
+      } catch {
+        // If not a valid URL, assume it's already a key
+      }
+
+      // Generate signed URL
+      const { url: signedUrl } = await storageGet(s3Key, expiresIn);
 
       // Record download
       await db.insert(packageDownloads).values({
         userId: ctx.user.id,
         packageId: input.packageId,
         packageType: input.packageType,
-        downloadUrl: pkg.packageUrl,
+        downloadUrl: signedUrl,
         expiresAt,
       });
 
@@ -569,8 +584,9 @@ export const packagesApiRouter = router({
 
       return {
         success: true,
-        packageUrl: pkg.packageUrl,
+        packageUrl: signedUrl,
         package: pkg,
+        expiresAt: expiresAt.toISOString(),
       };
     }),
 
