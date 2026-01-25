@@ -51,6 +51,7 @@ import { WorkflowSessionDetail } from "./pages/WorkflowSessionDetail";
 import { WorkflowPlayback } from "./pages/WorkflowPlayback";
 import { WorkflowPerformance } from "./pages/WorkflowPerformance";
 import GolemVisualizerPage from "./pages/GolemVisualizerPage";
+import InferenceDashboard from "./pages/InferenceDashboard";
 import OAuthCallback from "./pages/OAuthCallback";
 import EmailVerification from "./pages/EmailVerification";
 import AgentAuth from "./pages/AgentAuth";
@@ -117,6 +118,8 @@ function Router() {
       <Route path="/kv-cache-demo" component={KVCacheDemo} />
       <Route path="/memory-provenance/:id" component={MemoryProvenance} />
       <Route path="/golem-visualizer" component={GolemVisualizerPage} />
+      <Route path="/inference" component={InferenceDashboard} />
+      <Route path="/inference-dashboard" component={InferenceDashboard} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
