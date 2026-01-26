@@ -41,6 +41,13 @@ import {
   SEMANTIC_CATEGORIES,
 } from '../latentmas/semantic-anchors';
 
+import {
+  embeddingService,
+  buildLatentMASPackage,
+  type EmbeddingModel,
+  type LatentMASPackageInput,
+} from '../latentmas/embedding-service';
+
 // Initialize global instances
 const semanticAnchorDB = createSemanticAnchorDB();
 
@@ -639,4 +646,144 @@ export const latentmasRouter = router({
       }
     }),
   }),
+
+  // ============================================================
+  // Embedding & LatentMAS Package Endpoints
+  // ============================================================
+
+  embedding: router({
+    /**
+     * Generate embedding from text
+     * 调用真实的 OpenAI embedding API 或本地生成
+     */
+    generate: publicProcedure
+      .input(
+        z.object({
+          text: z.string().min(1).max(8192),
+          model: z.enum([
+            "text-embedding-3-large",
+            "text-embedding-3-small",
+            "text-embedding-ada-002",
+            "local-minilm",
+            "local-bge-large",
+          ]).optional().default("text-embedding-3-small"),
+          dimensions: z.number().int().positive().max(3072).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const result = await embeddingService.embed({
+            text: input.text,
+            model: input.model as EmbeddingModel,
+            dimensions: input.dimensions,
+          });
+
+          return {
+            success: true,
+            ...result,
+          };
+        } catch (error) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `Embedding generation failed: ${error}`,
+          });
+        }
+      }),
+
+    /**
+     * Batch generate embeddings
+     */
+    generateBatch: publicProcedure
+      .input(
+        z.object({
+          texts: z.array(z.string().min(1).max(8192)).max(100),
+          model: z.enum([
+            "text-embedding-3-large",
+            "text-embedding-3-small",
+            "text-embedding-ada-002",
+            "local-minilm",
+            "local-bge-large",
+          ]).optional().default("text-embedding-3-small"),
+          dimensions: z.number().int().positive().max(3072).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const result = await embeddingService.embedBatch({
+            texts: input.texts,
+            model: input.model as EmbeddingModel,
+            dimensions: input.dimensions,
+          });
+
+          return {
+            success: true,
+            ...result,
+          };
+        } catch (error) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `Batch embedding generation failed: ${error}`,
+          });
+        }
+      }),
+  }),
+
+  /**
+   * Build complete LatentMAS Package
+   * 完整工作流：文本/向量 → Embedding → W-Matrix 对齐 → 压缩 → 输出可交易的 Package
+   */
+  buildPackage: publicProcedure
+    .input(
+      z.object({
+        text: z.string().max(8192).optional(),
+        vector: z.array(z.number()).optional(),
+        sourceModel: z.string(),
+        targetModel: z.string(),
+        alignmentMethod: z.enum(["orthogonal", "learned", "hybrid"]).optional().default("orthogonal"),
+        enableCompression: z.boolean().optional().default(false),
+        compressionRatio: z.number().min(0.1).max(1).optional().default(0.65),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        // 创建对齐函数
+        const alignFunction = async (
+          vector: number[],
+          sourceModel: string,
+          targetModel: string,
+          sourceDim: number,
+          targetDim: number
+        ) => {
+          const matrix = createDynamicWMatrix(sourceModel, targetModel, sourceDim, targetDim);
+          const result = matrix.align(vector);
+          return { success: true, result };
+        };
+
+        const packageInput: LatentMASPackageInput = {
+          text: input.text,
+          vector: input.vector,
+          sourceModel: input.sourceModel,
+          targetModel: input.targetModel,
+          alignmentMethod: input.alignmentMethod,
+          enableCompression: input.enableCompression,
+          compressionRatio: input.compressionRatio,
+        };
+
+        const latentmasPackage = await buildLatentMASPackage(
+          packageInput,
+          embeddingService,
+          alignFunction
+        );
+
+        return {
+          success: true,
+          package: latentmasPackage,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Package build failed: ${error}`,
+        });
+      }
+    }),
 });

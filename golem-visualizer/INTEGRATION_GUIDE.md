@@ -1,11 +1,11 @@
-# Golem Visualizer 集成指南
+# Awareness Neural Cortex 集成指南
 
 ## 📋 项目结构
 
 ```
-golem-visualizer/
+golem-visualizer/                    # Neural Cortex 可视化模块
 ├── frontend/
-│   ├── GolemVisualizer.tsx          # React 组件
+│   ├── GolemVisualizer.tsx          # React 组件 (旧版)
 │   └── README.md                    # 前端文档
 ├── backend/
 │   ├── golem_backend.py             # Python 后端模块
@@ -14,6 +14,13 @@ golem-visualizer/
 │   ├── API.md                       # API 文档
 │   └── INTEGRATION.md               # 集成指南
 └── README.md                        # 项目说明
+
+# 主要组件 (推荐):
+client/src/components/
+└── NeuralCortexVisualizer.tsx       # 主可视化组件
+
+client/src/pages/
+└── NeuralCortex.tsx                 # 页面入口
 ```
 
 ## 🚀 快速开始

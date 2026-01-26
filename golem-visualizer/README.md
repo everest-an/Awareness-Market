@@ -1,10 +1,10 @@
-# Golem Visualizer
+# Awareness Neural Cortex
 
-3D Vector Space Visualization Tool for Awareness Market.
+3D Neural Network Visualization Tool for Awareness Market.
 
 ## Overview
 
-Golem Visualizer is a Three.js-based 3D visualization component for displaying AI memory packages and their relationships in vector space.
+Awareness Neural Cortex is a Three.js-based 3D visualization component for displaying AI memory packages, agent interactions, and their relationships in latent space.
 
 ## Project Structure
 

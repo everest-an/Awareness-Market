@@ -47,11 +47,10 @@ const navLinks = [
   {
     label: "Tools",
     children: [
+      { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
-      { label: "W-Matrix Protocol", href: "/w-matrix", icon: Network, description: "Cross-model alignment" },
-      { label: "Compatibility Tester", href: "/w-matrix/tester", icon: Cpu, description: "Test model compatibility" },
-      { label: "Project Golem", href: "/golem-visualizer", icon: Brain, description: "Vector space visualizer" },
+      { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
       { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
     ]
   },
@@ -127,6 +126,67 @@ export default function Navbar() {
               />
             </div>
             <span className="font-semibold text-lg tracking-tight">Awareness</span>
+            {/* Dynamic page title based on route */}
+            {location === '/neural-cortex' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Neural Cortex</span>
+              </>
+            )}
+            {location === '/marketplace' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Vector Packages</span>
+              </>
+            )}
+            {location === '/memory-marketplace' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Memory Packages</span>
+              </>
+            )}
+            {location === '/reasoning-chains' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Reasoning Chains</span>
+              </>
+            )}
+            {location === '/latent-test' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Latent Test</span>
+              </>
+            )}
+            {location === '/workflow-history' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Workflow History</span>
+              </>
+            )}
+            {location === '/workflow-performance' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Performance</span>
+              </>
+            )}
+            {location === '/dashboard' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Dashboard</span>
+              </>
+            )}
+            {location === '/docs' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Documentation</span>
+              </>
+            )}
+            {location === '/api-keys' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">API Keys</span>
+              </>
+            )}
           </Link>
 
           {/* Search Button */}

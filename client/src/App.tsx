@@ -22,9 +22,8 @@ import About from "./pages/About";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import ReasoningChainMarket from "./pages/ReasoningChainMarket";
-import WMatrixProtocol from "./pages/WMatrixProtocol";
+import LatentTest from "./pages/LatentTest";
 import ReasoningChainPublish from "./pages/ReasoningChainPublish";
-import WMatrixTester from "./pages/WMatrixTester";
 import AgentRegistry from "./pages/AgentRegistry";
 import SDKPage from "./pages/SDKPage";
 import AuthPage from "./pages/AuthPage";
@@ -51,7 +50,6 @@ import { WorkflowSessionDetail } from "./pages/WorkflowSessionDetail";
 import { WorkflowPlayback } from "./pages/WorkflowPlayback";
 import { WorkflowPerformance } from "./pages/WorkflowPerformance";
 import GolemVisualizerPage from "./pages/GolemVisualizerPage";
-import InferenceDashboard from "./pages/InferenceDashboard";
 import NeuralCortex from "./pages/NeuralCortex";
 import OAuthCallback from "./pages/OAuthCallback";
 import EmailVerification from "./pages/EmailVerification";
@@ -86,8 +84,9 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/reasoning-chains" component={ReasoningChainMarket} />
       <Route path="/reasoning-chains/publish" component={ReasoningChainPublish} />
-      <Route path="/w-matrix" component={WMatrixProtocol} />
-      <Route path="/w-matrix/tester" component={WMatrixTester} />
+      <Route path="/latent-test" component={LatentTest} />
+      <Route path="/w-matrix" component={LatentTest} />
+      <Route path="/w-matrix/tester">{() => <Redirect to="/latent-test" />}</Route>
       <Route path="/latentmas-v2-demo" component={LatentMASv2Demo} />
       {/* Redirects for deprecated pages */}
       <Route path="/w-matrix-marketplace">{() => <Redirect to="/w-matrix" />}</Route>
@@ -118,11 +117,13 @@ function Router() {
       <Route path="/usage-analytics" component={UsageAnalytics} />
       <Route path="/kv-cache-demo" component={KVCacheDemo} />
       <Route path="/memory-provenance/:id" component={MemoryProvenance} />
-      <Route path="/golem-visualizer" component={GolemVisualizerPage} />
-      <Route path="/inference" component={InferenceDashboard} />
-      <Route path="/inference-dashboard" component={InferenceDashboard} />
+      {/* AI Visualization - all routes go to NeuralCortex */}
+      <Route path="/golem-visualizer">{() => <Redirect to="/neural-cortex" />}</Route>
+      <Route path="/inference">{() => <Redirect to="/neural-cortex" />}</Route>
+      <Route path="/inference-dashboard">{() => <Redirect to="/neural-cortex" />}</Route>
       <Route path="/neural-cortex" component={NeuralCortex} />
       <Route path="/cortex" component={NeuralCortex} />
+      <Route path="/visualizer" component={NeuralCortex} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
