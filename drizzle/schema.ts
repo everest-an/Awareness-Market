@@ -1173,3 +1173,6 @@ export type InsertPackagePurchase = typeof packagePurchases.$inferInsert;
 
 // Import storage tier tables for intelligent cost optimization
 export * from './schema-storage-tiers';
+
+// Import LatentMAS package extension tables for latent working memory support
+export * from './schema-latentmas-packages';
