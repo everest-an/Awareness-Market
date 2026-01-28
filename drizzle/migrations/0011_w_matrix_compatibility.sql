@@ -1,0 +1,77 @@
+-- W-Matrix Compatibility Matrix
+CREATE TABLE IF NOT EXISTS w_matrix_compatibility (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  w_matrix_id VARCHAR(64) NOT NULL,
+  source_model VARCHAR(100) NOT NULL,
+  target_model VARCHAR(100) NOT NULL,
+  version VARCHAR(20) NOT NULL,
+  version_major INT NOT NULL,
+  version_minor INT NOT NULL,
+  version_patch INT NOT NULL,
+  certification ENUM('bronze', 'silver', 'gold', 'platinum') NOT NULL,
+  epsilon DECIMAL(10, 6) NOT NULL,
+  cosine_similarity DECIMAL(10, 6),
+  euclidean_distance DECIMAL(10, 6),
+  test_samples INT,
+  available ENUM('yes', 'no') NOT NULL DEFAULT 'yes',
+  download_url TEXT,
+  checksum_sha256 VARCHAR(64),
+  size_bytes INT,
+  created_by INT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX source_model_idx (source_model),
+  INDEX target_model_idx (target_model),
+  INDEX model_pair_idx (source_model, target_model),
+  INDEX certification_idx (certification),
+  INDEX version_idx (version_major, version_minor, version_patch)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- W-Matrix Marketplace Listings
+CREATE TABLE IF NOT EXISTS w_matrix_listings (
+  id VARCHAR(64) PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  creator_id INT NOT NULL,
+  source_model VARCHAR(100) NOT NULL,
+  target_model VARCHAR(100) NOT NULL,
+  source_dimension INT NOT NULL,
+  target_dimension INT NOT NULL,
+  price DECIMAL(10, 2) NOT NULL,
+  version VARCHAR(20) NOT NULL,
+  standard ENUM('4096', '8192', '16384') NOT NULL,
+  certification ENUM('bronze', 'silver', 'gold', 'platinum') NOT NULL,
+  quality_grade VARCHAR(10),
+  epsilon DECIMAL(10, 6) NOT NULL,
+  cosine_similarity DECIMAL(10, 6),
+  euclidean_distance DECIMAL(10, 6),
+  test_samples INT,
+  storage_url TEXT NOT NULL,
+  checksum_sha256 VARCHAR(64),
+  size_bytes INT,
+  tags JSON,
+  total_sales INT NOT NULL DEFAULT 0,
+  total_revenue DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+  status ENUM('draft', 'active', 'inactive', 'suspended') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX creator_idx (creator_id),
+  INDEX model_pair_idx (source_model, target_model),
+  INDEX certification_idx (certification),
+  INDEX status_idx (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- W-Matrix Integrity Verification Cache
+CREATE TABLE IF NOT EXISTS w_matrix_integrity (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  listing_id VARCHAR(64) NOT NULL,
+  expected_checksum VARCHAR(64) NOT NULL,
+  actual_checksum VARCHAR(64),
+  size_bytes INT,
+  valid ENUM('yes', 'no', 'pending') NOT NULL DEFAULT 'pending',
+  last_verified_at TIMESTAMP NULL,
+  verification_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX listing_id_idx (listing_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

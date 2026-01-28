@@ -143,89 +143,33 @@ export const memoryNFTRouter = router({
   getProvenance: publicProcedure
     .input(getProvenanceSchema)
     .query(async ({ input }) => {
-      // Try to build family tree from database
-      // If database query fails (e.g., missing columns), use mock data
-      let familyTree = null;
-      
+      // Build family tree from database
+      const { buildFamilyTree } = await import('../db-provenance');
+
       try {
-        const { buildFamilyTree } = await import('../db-provenance');
-        familyTree = await buildFamilyTree(input.memoryId);
+        const familyTree = await buildFamilyTree(input.memoryId);
+
+        if (!familyTree) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Memory NFT not found or has no provenance data',
+          });
+        }
+
+        return familyTree;
       } catch (error) {
-        logger.info('[getProvenance] Database query failed, using mock data:', error);
+        logger.error('[getProvenance] Failed to build family tree:', error);
+
+        // If error is already a TRPCError, rethrow it
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to retrieve memory provenance',
+        });
       }
-      
-      // If no data found or error occurred, return mock data for demo purposes
-      if (!familyTree) {
-        const mockFamilyTree = {
-          id: '1',
-          title: 'GPT-3.5 → GPT-4 Original',
-          creator: 'AI Lab Alpha',
-          createdAt: '2025-01-01',
-          epsilon: 2.8,
-          price: 10.0,
-          downloads: 342,
-          royaltyShare: 100,
-          children: [
-            {
-              id: '2',
-              title: 'GPT-3.5 → GPT-4 Enhanced',
-              creator: 'Research Team Beta',
-              createdAt: '2025-02-15',
-              epsilon: 2.5,
-              price: 15.0,
-              downloads: 156,
-              royaltyShare: 70,
-              children: [
-                {
-                  id: '4',
-                  title: 'GPT-3.5 → GPT-4 Optimized v2',
-                  creator: 'Developer Charlie',
-                  createdAt: '2025-04-20',
-                  epsilon: 2.2,
-                  price: 20.0,
-                  downloads: 89,
-                  royaltyShare: 49,
-                },
-                {
-                  id: '5',
-                  title: 'GPT-3.5 → GPT-4 Specialized',
-                  creator: 'Specialist Delta',
-                  createdAt: '2025-05-10',
-                  epsilon: 2.4,
-                  price: 18.0,
-                  downloads: 67,
-                  royaltyShare: 49,
-                },
-              ],
-            },
-            {
-              id: '3',
-              title: 'GPT-3.5 → GPT-4 Lite',
-              creator: 'Startup Gamma',
-              createdAt: '2025-03-01',
-              epsilon: 3.2,
-              price: 5.0,
-              downloads: 234,
-              royaltyShare: 70,
-              children: [
-                {
-                  id: '6',
-                  title: 'GPT-3.5 → GPT-4 Mobile',
-                  creator: 'Mobile Dev Echo',
-                  createdAt: '2025-06-01',
-                  epsilon: 3.5,
-                  price: 3.0,
-                  downloads: 445,
-                  royaltyShare: 49,
-                },
-              ],
-            },
-          ],
-        };
-        return mockFamilyTree;
-      }
-      
-      return familyTree;
     }),
 
   /**
