@@ -1,11 +1,11 @@
 import { eq, and, desc, sql, gte, lte, like, or, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { 
-  InsertUser, 
-  users, 
-  latentVectors, 
-  transactions, 
+import {
+  InsertUser,
+  users,
+  latentVectors,
+  transactions,
   accessPermissions,
   reviews,
   subscriptionPlans,
@@ -16,6 +16,8 @@ import {
   notifications,
   userPreferences,
   browsingHistory,
+  vectorPackages,
+  memoryPackages,
   type LatentVector,
   type Transaction,
   type AccessPermission,
@@ -26,6 +28,10 @@ import {
   type BrowsingHistory,
   type InsertBrowsingHistory,
   type UserPreference,
+  type VectorPackage,
+  type InsertVectorPackage,
+  type MemoryPackage,
+  type InsertMemoryPackage,
 } from "../drizzle/schema";
 import { mcpTokens } from "../drizzle/schema-mcp-tokens";
 import { ENV } from './_core/env';
@@ -940,17 +946,278 @@ export async function getBrowsingHistory(userId: number, since?: Date) {
     if (since) {
       conditions.push(gte(browsingHistory.createdAt, since));
     }
-    
+
     const result = await db
       .select()
       .from(browsingHistory)
       .where(and(...conditions))
       .orderBy(desc(browsingHistory.createdAt))
       .limit(100);
-    
+
     return result;
   } catch (error) {
     console.error("[Database] Failed to get browsing history:", error);
     return [];
+  }
+}
+
+// ===== Vector Packages (LatentMAS Marketplace) =====
+
+export async function createVectorPackage(packageData: InsertVectorPackage) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.insert(vectorPackages).values(packageData);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to create vector package:", error);
+    throw error;
+  }
+}
+
+export async function getVectorPackageById(id: number): Promise<VectorPackage | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .select()
+      .from(vectorPackages)
+      .where(eq(vectorPackages.id, id))
+      .limit(1);
+
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get vector package:", error);
+    return null;
+  }
+}
+
+export async function getVectorPackageByPackageId(packageId: string): Promise<VectorPackage | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .select()
+      .from(vectorPackages)
+      .where(eq(vectorPackages.packageId, packageId))
+      .limit(1);
+
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get vector package:", error);
+    return null;
+  }
+}
+
+export async function browseVectorPackages(filters: {
+  sourceModel?: string;
+  targetModel?: string;
+  maxEpsilon?: number;
+  category?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<VectorPackage[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const conditions: any[] = [];
+
+    // Only show active packages by default
+    conditions.push(eq(vectorPackages.status, filters.status || 'active'));
+
+    if (filters.sourceModel) {
+      conditions.push(eq(vectorPackages.sourceModel, filters.sourceModel));
+    }
+    if (filters.targetModel) {
+      conditions.push(eq(vectorPackages.targetModel, filters.targetModel));
+    }
+    if (filters.maxEpsilon !== undefined) {
+      conditions.push(lte(vectorPackages.epsilon, filters.maxEpsilon.toString()));
+    }
+    if (filters.category) {
+      conditions.push(eq(vectorPackages.category, filters.category as any));
+    }
+
+    const result = await db
+      .select()
+      .from(vectorPackages)
+      .where(and(...conditions))
+      .orderBy(desc(vectorPackages.createdAt))
+      .limit(filters.limit || 20)
+      .offset(filters.offset || 0);
+
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to browse vector packages:", error);
+    return [];
+  }
+}
+
+export async function updateVectorPackageStats(id: number, updates: {
+  downloads?: number;
+  rating?: string;
+  reviewCount?: number;
+}) {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db
+      .update(vectorPackages)
+      .set(updates)
+      .where(eq(vectorPackages.id, id));
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update vector package stats:", error);
+    return false;
+  }
+}
+
+export async function incrementVectorPackageDownloads(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db
+      .update(vectorPackages)
+      .set({ downloads: sql`${vectorPackages.downloads} + 1` })
+      .where(eq(vectorPackages.id, id));
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to increment downloads:", error);
+    return false;
+  }
+}
+
+// ===== Memory Packages (LatentMAS Marketplace) =====
+
+export async function createMemoryPackage(packageData: InsertMemoryPackage) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.insert(memoryPackages).values(packageData);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to create memory package:", error);
+    throw error;
+  }
+}
+
+export async function getMemoryPackageById(id: number): Promise<MemoryPackage | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .select()
+      .from(memoryPackages)
+      .where(eq(memoryPackages.id, id))
+      .limit(1);
+
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get memory package:", error);
+    return null;
+  }
+}
+
+export async function browseMemoryPackages(filters: {
+  sourceModel?: string;
+  targetModel?: string;
+  memoryType?: string;
+  maxEpsilon?: number;
+  minTokenCount?: number;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<MemoryPackage[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const conditions: any[] = [];
+
+    // Only show active packages by default
+    conditions.push(eq(memoryPackages.status, filters.status || 'active'));
+
+    if (filters.sourceModel) {
+      conditions.push(eq(memoryPackages.sourceModel, filters.sourceModel));
+    }
+    if (filters.targetModel) {
+      conditions.push(eq(memoryPackages.targetModel, filters.targetModel));
+    }
+    if (filters.memoryType) {
+      conditions.push(eq(memoryPackages.memoryType, filters.memoryType as any));
+    }
+    if (filters.maxEpsilon !== undefined) {
+      conditions.push(lte(memoryPackages.epsilon, filters.maxEpsilon.toString()));
+    }
+    if (filters.minTokenCount !== undefined) {
+      conditions.push(gte(memoryPackages.tokenCount, filters.minTokenCount));
+    }
+
+    const result = await db
+      .select()
+      .from(memoryPackages)
+      .where(and(...conditions))
+      .orderBy(desc(memoryPackages.createdAt))
+      .limit(filters.limit || 20)
+      .offset(filters.offset || 0);
+
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to browse memory packages:", error);
+    return [];
+  }
+}
+
+export async function getVectorPackagesStatistics() {
+  const db = await getDb();
+  if (!db) {
+    return {
+      totalPackages: 0,
+      totalDownloads: 0,
+      averageEpsilon: 0,
+      averageRating: 0,
+    };
+  }
+
+  try {
+    const result = await db
+      .select({
+        totalPackages: sql<number>`COUNT(*)`,
+        totalDownloads: sql<number>`SUM(${vectorPackages.downloads})`,
+        averageEpsilon: sql<number>`AVG(${vectorPackages.epsilon})`,
+        averageRating: sql<number>`AVG(${vectorPackages.rating})`,
+      })
+      .from(vectorPackages)
+      .where(eq(vectorPackages.status, 'active'));
+
+    return result[0] || {
+      totalPackages: 0,
+      totalDownloads: 0,
+      averageEpsilon: 0,
+      averageRating: 0,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get vector packages statistics:", error);
+    return {
+      totalPackages: 0,
+      totalDownloads: 0,
+      averageEpsilon: 0,
+      averageRating: 0,
+    };
   }
 }
