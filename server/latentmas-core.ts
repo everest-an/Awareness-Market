@@ -2,9 +2,21 @@
  * LatentMAS Core - Real Vector Alignment and Transformation
  * 
  * Implements genuine latent space alignment algorithms for cross-model communication
+ * 
+ * NOTE: This file contains the LEGACY implementation using random orthogonal matrices.
+ * For TRUE LatentMAS paper implementation with ridge regression Wa operator,
+ * see: ./latentmas/wa-alignment-operator.ts and ./latentmas/latent-rollout-engine.ts
  */
 
 import { create, all, Matrix, MathJsInstance } from 'mathjs';
+
+// Import TRUE LatentMAS implementation for integration
+import {
+  computeWaOperator as computeTrueWaOperator,
+  executeLatentRollout as executeTrueLatentRollout,
+  type WaOperator,
+  type LatentRolloutResult,
+} from './latentmas/wa-alignment-operator';
 
 const math: MathJsInstance = create(all);
 
@@ -383,3 +395,80 @@ export function getSupportedModels(): {
     pairs
   };
 }
+
+
+// ============================================================================
+// TRUE LatentMAS Paper Implementation Integration
+// ============================================================================
+
+/**
+ * TRUE Wa Alignment using Ridge Regression
+ * 
+ * 论文公式：Wa ≈ (W_out^T × W_out + λI)^(-1) × W_out^T × W_in
+ * 
+ * This is the paper-compliant implementation that:
+ * 1. Uses ridge regression to compute Wa from model weights
+ * 2. Prevents activation drift during latent rollout
+ * 3. Supports long-range latent space inference (up to 80 steps)
+ */
+export function alignVectorWithTrueWa(
+  sourceVector: number[],
+  waOperator: WaOperator
+): {
+  alignedVector: number[];
+  quality: {
+    conditionNumber: number;
+    rank: number;
+  };
+  metadata: {
+    sourceModel: string;
+    computedAt: string;
+  };
+} {
+  // Apply Wa alignment: e_{t+1} = h_t × Wa
+  const h = math.matrix([sourceVector]);
+  const Wa = math.matrix(waOperator.matrix);
+  const result = math.multiply(h, Wa) as Matrix;
+  const alignedVector = (result.toArray() as number[][])[0];
+
+  return {
+    alignedVector: normalizeVector(alignedVector),
+    quality: {
+      conditionNumber: waOperator.metadata.conditionNumber,
+      rank: waOperator.metadata.rank,
+    },
+    metadata: {
+      sourceModel: waOperator.metadata.sourceModel,
+      computedAt: waOperator.metadata.computedAt,
+    },
+  };
+}
+
+/**
+ * Execute TRUE Latent Rollout
+ * 
+ * 论文核心：e_{t+1} = h_t × Wa 自回归循环
+ * 
+ * This implements the paper's latent space inference:
+ * 1. Start from initial hidden state h_0
+ * 2. Apply Wa alignment: e_{t+1} = h_t × Wa
+ * 3. Simulate forward pass to get new h_{t+1}
+ * 4. Repeat until reaching specified steps
+ */
+export function executeLatentRolloutWithWa(
+  initialHiddenState: number[],
+  waOperator: WaOperator,
+  steps: number = 20
+): LatentRolloutResult {
+  return executeTrueLatentRollout(initialHiddenState, waOperator, steps);
+}
+
+/**
+ * Re-export TRUE LatentMAS types and functions for convenience
+ */
+export {
+  computeTrueWaOperator,
+  executeTrueLatentRollout,
+  type WaOperator,
+  type LatentRolloutResult,
+};
