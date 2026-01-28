@@ -16,6 +16,9 @@ import { users } from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { ethers } from 'ethers';
 import { getErrorMessage } from '../utils/error-handling';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Agent:Collaboration');
 
 // ============================================================================
 // Input Schemas
@@ -109,7 +112,7 @@ async function recordInteractionOnChain(
   try {
     const contract = await getERC8004Contract();
     if (!contract) {
-      console.warn('[Collaboration] ERC-8004 contract not available, skipping on-chain record');
+      logger.warn('[Collaboration] ERC-8004 contract not available, skipping on-chain record');
       return false;
     }
 
@@ -125,10 +128,10 @@ async function recordInteractionOnChain(
     );
 
     await tx.wait();
-    console.log(`[Collaboration] Recorded interaction on-chain: ${fromAgent} → ${toAgent} (${success ? 'success' : 'failed'})`);
+    logger.info(`[Collaboration] Recorded interaction on-chain: ${fromAgent} → ${toAgent} (${success ? 'success' : 'failed'})`);
     return true;
   } catch (error) {
-    console.error('[Collaboration] Failed to record on-chain interaction:', error);
+    logger.error('[Collaboration] Failed to record on-chain interaction:', error);
     return false;
   }
 }
@@ -176,7 +179,7 @@ async function executeStep(
     };
 
     // Simulated execution (replace with actual API call)
-    console.log(`[Collaboration] Executing step: ${step.agentName} for task: ${workflow.task}`);
+    logger.info(`[Collaboration] Executing step: ${step.agentName} for task: ${workflow.task}`);
 
     // Mock output
     const output = {
@@ -198,12 +201,12 @@ async function executeStep(
     step.status = 'completed';
     step.completedAt = new Date();
 
-    console.log(`[Collaboration] Step completed: ${step.agentName}`);
+    logger.info(`[Collaboration] Step completed: ${step.agentName}`);
   } catch (error: unknown) {
     step.status = 'failed';
     step.error = getErrorMessage(error);
     step.completedAt = new Date();
-    console.error(`[Collaboration] Step failed: ${step.agentName}`, error);
+    logger.error(`[Collaboration] Step failed: ${step.agentName}`, error);
     throw error;
   }
 }
@@ -260,11 +263,11 @@ async function executeWorkflow(workflowId: string): Promise<void> {
     workflow.completedAt = new Date();
     workflow.totalExecutionTime = workflow.completedAt.getTime() - workflow.startedAt.getTime();
 
-    console.log(`[Collaboration] Workflow ${workflowId} completed in ${workflow.totalExecutionTime}ms`);
+    logger.info(`[Collaboration] Workflow ${workflowId} completed in ${workflow.totalExecutionTime}ms`);
   } catch (error: unknown) {
     workflow.status = 'failed';
     workflow.completedAt = new Date();
-    console.error(`[Collaboration] Workflow ${workflowId} failed:`, error);
+    logger.error(`[Collaboration] Workflow ${workflowId} failed:`, error);
   }
 }
 
@@ -327,7 +330,7 @@ export const agentCollaborationRouter = router({
 
       // Start execution asynchronously
       executeWorkflow(workflowId).catch(error => {
-        console.error(`[Collaboration] Workflow ${workflowId} execution error:`, error);
+        logger.error(`[Collaboration] Workflow ${workflowId} execution error:`, error);
       });
 
       return {

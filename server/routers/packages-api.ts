@@ -15,7 +15,10 @@ import { TRPCError } from '@trpc/server';
 import { eq, desc, and, or, like, sql, type SQL, type InferSelectModel } from 'drizzle-orm';
 import { getDb } from '../db';
 import { getErrorMessage } from '../utils/error-handling';
+import { createLogger } from '../utils/logger';
 import { vectorPackages, memoryPackages, chainPackages, packageDownloads, packagePurchases, users } from '../../drizzle/schema';
+
+const logger = createLogger('Packages:API');
 
 type VectorPackage = InferSelectModel<typeof vectorPackages>;
 type MemoryPackage = InferSelectModel<typeof memoryPackages>;
@@ -517,7 +520,7 @@ export const packagesApiRouter = router({
             pkg.name,
             input.packageType,
             priceNum.toFixed(2)
-          ).catch(err => console.error('[Email] Failed to send purchase confirmation:', err));
+          ).catch(err => logger.error('[Email] Failed to send purchase confirmation:', err));
         }
 
         // Send sale notification to seller
@@ -528,10 +531,10 @@ export const packagesApiRouter = router({
             buyer?.name || 'Anonymous',
             priceNum.toFixed(2),
             sellerEarnings
-          ).catch(err => console.error('[Email] Failed to send sale notification:', err));
+          ).catch(err => logger.error('[Email] Failed to send sale notification:', err));
         }
       } catch (emailError) {
-        console.error('[Email] Error sending notifications:', emailError);
+        logger.error('[Email] Error sending notifications:', emailError);
       }
 
       return {

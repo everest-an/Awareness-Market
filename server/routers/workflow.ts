@@ -7,6 +7,9 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { workflowManager, trackOperation } from "../workflow-manager";
 import { invokeLLM } from "../_core/llm";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger('Workflow:Router');
 
 export const workflowRouter = router({
   /**
@@ -30,7 +33,7 @@ export const workflowRouter = router({
 
       // Run demo scenario asynchronously
       runDemoScenario(session.id, input.scenario).catch(error => {
-        console.error(`[WorkflowDemo] Error in scenario ${input.scenario}:`, error);
+        logger.error(`[WorkflowDemo] Error in scenario ${input.scenario}:`, error);
         workflowManager.completeSession(session.id, "failed");
       });
 
