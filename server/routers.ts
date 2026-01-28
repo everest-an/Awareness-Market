@@ -39,7 +39,7 @@ import { workflowHistoryRouter } from './routers/workflow-history';
 import { userRouter } from './routers/user';
 import { authUnifiedRouter } from './routers/auth-unified';
 import { apiAnalyticsRouter } from './routers/api-analytics';
-import { createSubscriptionCheckout } from "./stripe-client";
+import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 // Memory Exchange moved to Go microservice
 
 // Helper to get client IP from request
@@ -533,11 +533,12 @@ export const appRouter = router({
 
   // Transactions
   transactions: router({
-    // Create purchase transaction
+    // Create purchase transaction with Stripe checkout
     purchase: protectedProcedure
       .input(z.object({
         vectorId: z.number(),
-        paymentMethodId: z.string(), // Stripe payment method ID
+        successUrl: z.string().optional(),
+        cancelUrl: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const vector = await db.getLatentVectorById(input.vectorId);
@@ -561,37 +562,30 @@ export const appRouter = router({
           transactionType: "one-time",
         });
 
-        // TODO: Integrate with Stripe payment processing
-        // For now, mark as completed
         const transactionId = (result as any).insertId;
-        await db.updateTransactionStatus(transactionId, "completed");
 
-        // Create access permission
-        const accessToken = nanoid(32);
-        await db.createAccessPermission({
+        // Create Stripe checkout session
+        const checkoutUrl = await createVectorPurchaseCheckout({
           userId: ctx.user.id,
+          userEmail: ctx.user.email,
+          userName: ctx.user.name || undefined,
           vectorId: input.vectorId,
-          transactionId,
-          accessToken,
-          isActive: true,
+          vectorTitle: vector.title,
+          amount: amount,
+          successUrl: input.successUrl || `${process.env.CLIENT_URL || 'http://localhost:5173'}/purchase/success?transactionId=${transactionId}`,
+          cancelUrl: input.cancelUrl || `${process.env.CLIENT_URL || 'http://localhost:5173'}/purchase/cancelled`,
+          transactionId: transactionId,
         });
 
-        // Update vector stats
-        await db.incrementVectorStats(input.vectorId, creatorEarnings);
+        // Transaction will be completed by Stripe webhook after successful payment
+        // Access permission will also be created by the webhook
 
-        // Create notification for creator
-        const creator = await db.getUserById(vector.creatorId);
-        if (creator) {
-          await db.createNotification({
-            userId: vector.creatorId,
-            type: "transaction",
-            title: "New Purchase",
-            message: `${ctx.user.name || "Someone"} purchased your AI capability "${vector.title}"`,
-            relatedEntityId: transactionId,
-          });
-        }
-
-        return { success: true, transactionId, accessToken };
+        return {
+          success: true,
+          transactionId,
+          checkoutUrl,
+          message: "Redirecting to Stripe checkout..."
+        };
       }),
 
     // Get user's transactions

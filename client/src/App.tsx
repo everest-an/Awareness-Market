@@ -48,6 +48,7 @@ import WorkflowDemo from "./pages/WorkflowDemo";
 import { WorkflowHistory } from "./pages/WorkflowHistory";
 import { WorkflowSessionDetail } from "./pages/WorkflowSessionDetail";
 import { WorkflowPlayback } from "./pages/WorkflowPlayback";
+import PurchaseSuccess from "./pages/PurchaseSuccess";
 import { WorkflowPerformance } from "./pages/WorkflowPerformance";
 import GolemVisualizerPage from "./pages/GolemVisualizerPage";
 import NeuralCortex from "./pages/NeuralCortex";
@@ -67,6 +68,7 @@ function Router() {
       <Route path={"/api/auth/callback/:provider"} component={OAuthCallback} />
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
+      <Route path={"/purchase/success"} component={PurchaseSuccess} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/dashboard/creator"} component={CreatorDashboard} />
       <Route path={"/upload"} component={UploadVector} />

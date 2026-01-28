@@ -33,11 +33,14 @@ export function PurchaseDialog({ vector, open, onOpenChange, onSuccess }: Purcha
   const purchaseMutation = trpc.transactions.purchase.useMutation({
     onSuccess: (data) => {
       setIsProcessing(false);
-      toast.success("Purchase successful!", {
-        description: "You now have access to this AI capability.",
-      });
-      onSuccess();
-      onOpenChange(false);
+      // Redirect to Stripe Checkout
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        toast.error("Checkout URL not received", {
+          description: "Please try again later.",
+        });
+      }
     },
     onError: (error) => {
       setIsProcessing(false);
@@ -49,11 +52,11 @@ export function PurchaseDialog({ vector, open, onOpenChange, onSuccess }: Purcha
 
   const handlePurchase = () => {
     setIsProcessing(true);
-    // In production, this should integrate with Stripe Checkout
-    // For now, we use a mock payment method ID
+    const currentUrl = window.location.origin;
     purchaseMutation.mutate({
       vectorId: vector.id,
-      paymentMethodId: "pm_card_visa",
+      successUrl: `${currentUrl}/purchase/success`,
+      cancelUrl: `${currentUrl}/marketplace`,
     });
   };
 
