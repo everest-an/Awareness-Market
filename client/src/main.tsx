@@ -7,6 +7,7 @@ import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
+import { loadAnalytics } from "./utils/analytics";
 
 const queryClient = new QueryClient();
 
@@ -59,3 +60,6 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </trpc.Provider>
 );
+
+// Load analytics script dynamically
+loadAnalytics();
