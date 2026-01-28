@@ -18,41 +18,33 @@ import {
 
 export default function MyMemories() {
   const [activeTab, setActiveTab] = useState<"owned" | "created">("owned");
-  
-  // Mock data - replace with actual tRPC queries
-  const ownedMemories = [
-    {
-      id: "memory-001",
-      name: "GPT-4 Fine-tuned KV-Cache",
-      type: "kv-cache",
-      certification: "gold",
-      purchasedAt: new Date("2024-03-15"),
-      price: "499",
-      usageCount: 156,
-    },
-    {
-      id: "memory-002",
-      name: "Claude â†?GPT-4 W-Matrix",
-      type: "w-matrix",
-      certification: "gold",
-      purchasedAt: new Date("2024-03-10"),
-      price: "299",
-      usageCount: 89,
-    },
-  ];
 
-  const createdMemories = [
-    {
-      id: "memory-003",
-      name: "My Custom Reasoning Chain",
-      type: "reasoning-chain",
-      certification: "silver",
-      createdAt: new Date("2024-02-20"),
-      price: "199",
-      salesCount: 12,
-      revenue: "2388",
-    },
-  ];
+  // Fetch user's purchased packages
+  const { data: purchasedPackages, isLoading: purchasesLoading } = trpc.packages.myPurchases.useQuery();
+
+  // Fetch user's created vectors
+  const { data: createdVectors, isLoading: creatorsLoading } = trpc.vectors.myVectors.useQuery();
+
+  const ownedMemories = purchasedPackages?.map((pkg: any) => ({
+    id: pkg.packageId || pkg.id,
+    name: pkg.name || 'Unnamed Package',
+    type: pkg.type || 'vector-package',
+    certification: 'gold',
+    purchasedAt: pkg.purchasedAt || new Date(),
+    price: pkg.price || '0',
+    usageCount: 0,
+  })) || [];
+
+  const createdMemories = createdVectors?.map((vector: any) => ({
+    id: vector.id,
+    name: vector.title,
+    type: vector.vectorType || 'embedding',
+    certification: 'silver',
+    createdAt: vector.createdAt,
+    price: vector.basePrice,
+    salesCount: vector.totalCalls || 0,
+    revenue: vector.totalRevenue || '0',
+  })) || [];
 
   const getCertificationColor = (cert: string) => {
     switch (cert) {
@@ -72,6 +64,8 @@ export default function MyMemories() {
       default: return <Database className="h-4 w-4" />;
     }
   };
+
+  const isLoading = purchasesLoading || creatorsLoading;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -143,15 +137,23 @@ export default function MyMemories() {
         </Card>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "owned" | "created")}>
-        <TabsList>
-          <TabsTrigger value="owned">Owned Memories</TabsTrigger>
-          <TabsTrigger value="created">Created Memories</TabsTrigger>
-        </TabsList>
+      {/* Loading State */}
+      {isLoading ? (
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">Loading your memories...</p>
+          </CardContent>
+        </Card>
+      ) : (
+        /* Tabs */
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "owned" | "created")}>
+          <TabsList>
+            <TabsTrigger value="owned">Owned Memories</TabsTrigger>
+            <TabsTrigger value="created">Created Memories</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="owned" className="space-y-4">
-          {ownedMemories.length === 0 ? (
+          <TabsContent value="owned" className="space-y-4">
+            {ownedMemories.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Wallet className="h-12 w-12 text-muted-foreground mb-4" />
@@ -281,7 +283,8 @@ export default function MyMemories() {
             </div>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      )}
       </div>
     </div>
   );
