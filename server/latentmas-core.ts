@@ -9,18 +9,17 @@
  */
 
 import { create, all, Matrix, MathJsInstance } from 'mathjs';
+import { createLogger } from './utils/logger';
 
 // Import TRUE LatentMAS implementation for integration
 import {
-import { createLogger } from './utils/logger';
-
-const logger = createLogger('LatentMAS:Core');
   computeWaOperator as computeTrueWaOperator,
   executeLatentRollout as executeTrueLatentRollout,
   type WaOperator,
   type LatentRolloutResult,
 } from './latentmas/wa-alignment-operator';
 
+const logger = createLogger('LatentMAS:Core');
 const math: MathJsInstance = create(all);
 
 /**

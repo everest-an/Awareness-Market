@@ -19,13 +19,12 @@ import {
   transformDimension,
   validateVector,
   getSupportedModels,
-
-const logger = createLogger('LatentMAS:API');
   cosineSimilarity,
   euclideanDistance
 } from "./latentmas-core";
 import { getErrorMessage } from "./utils/error-handling";
 
+const logger = createLogger('LatentMAS:API');
 const latentmasRouter = Router();
 
 /**

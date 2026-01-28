@@ -105,7 +105,7 @@ mcpRouter.get("/discover", async (req, res) => {
       total: mcpVectors.length,
     });
   } catch (error) {
-    logger.error( Discovery error:", error);
+    logger.error('Discovery error:', error);
     res.status(500).json({ error: "Discovery failed" });
   }
 });
@@ -140,7 +140,7 @@ mcpRouter.post("/tokens", validateApiKey, async (req, res) => {
       message: "MCP token created successfully. Store it securely - it won't be shown again.",
     });
   } catch (error) {
-    logger.error( Token create error:", error);
+    logger.error('Token create error:', error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
@@ -158,7 +158,7 @@ mcpRouter.get("/tokens", validateApiKey, async (req, res) => {
     const tokens = await db.listMcpTokens(userId);
     res.json({ tokens });
   } catch (error) {
-    logger.error( Token list error:", error);
+    logger.error('Token list error:', error);
     res.status(500).json({ error: "Failed to list MCP tokens" });
   }
 });
@@ -174,7 +174,7 @@ mcpRouter.delete("/tokens/:tokenId", validateApiKey, async (req, res) => {
     await db.revokeMcpToken({ userId, tokenId });
     res.json({ success: true, message: "MCP token revoked" });
   } catch (error) {
-    logger.error( Token revoke error:", error);
+    logger.error('Token revoke error:', error);
     res.status(500).json({ error: "Failed to revoke MCP token" });
   }
 });
@@ -225,7 +225,7 @@ mcpRouter.get("/vectors/:id", async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error( Vector details error:", error);
+    logger.error('Vector details error:', error);
     res.status(500).json({ error: "Failed to fetch vector details" });
   }
 });
@@ -311,7 +311,7 @@ mcpRouter.post("/invoke", async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    logger.error( Invoke error:", error);
+    logger.error('Invoke error:', error);
     res.status(500).json({ error: "Invocation failed" });
   }
 });
@@ -500,7 +500,7 @@ mcpRouter.post("/sync", async (req, res) => {
         actionItems = Array.isArray(parsed.action_items) ? parsed.action_items : [];
       }
     } catch (error) {
-      logger.warn( Consensus generation failed", error);
+      logger.warn('Consensus generation failed', error);
     }
 
     if (permission && vector_id) {
@@ -564,7 +564,7 @@ mcpRouter.post("/sync", async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error( Sync error:", error);
+    logger.error('Sync error:', error);
     res.status(500).json({ error: "Sync failed" });
   }
 });
