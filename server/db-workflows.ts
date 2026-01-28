@@ -1,15 +1,23 @@
 /**
- * Database Operations for Agent Collaboration Workflows
+ * Database Operations for Agent Collaboration Workflows (Prisma)
  *
- * Replaces in-memory Map storage with persistent database
+ * Replaces in-memory Map storage with persistent Prisma database
  */
 
-import { getDb } from './db';
-import { workflows, workflowSteps, onChainInteractions } from '../drizzle/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { PrismaClient, WorkflowStatus, StepStatus, Orchestration, MemorySharing } from '@prisma/client';
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('DB:Workflows');
+
+// Singleton Prisma Client
+let prisma: PrismaClient | null = null;
+
+function getPrisma(): PrismaClient {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 export interface WorkflowStepData {
   agentId: string;
@@ -56,36 +64,37 @@ export async function createWorkflow(data: {
   sharedMemory?: Record<string, any>;
   steps: Array<{ agentId: string; agentName: string }>;
 }): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  await db.transaction(async (tx) => {
+  await db.$transaction(async (tx) => {
     // Insert workflow
-    await tx.insert(workflows).values({
-      id: data.id,
-      task: data.task,
-      description: data.description,
-      status: 'pending',
-      orchestration: data.orchestration,
-      memorySharing: data.memorySharing ? 'enabled' : 'disabled',
-      memoryTTL: data.memoryTTL || 86400,
-      maxExecutionTime: data.maxExecutionTime || 600,
-      recordOnChain: data.recordOnChain ? 'yes' : 'no',
-      createdBy: data.createdBy,
-      sharedMemory: data.sharedMemory || {},
+    await tx.workflow.create({
+      data: {
+        id: data.id,
+        task: data.task,
+        description: data.description,
+        status: WorkflowStatus.pending,
+        orchestration: data.orchestration as Orchestration,
+        memorySharing: data.memorySharing ? MemorySharing.enabled : MemorySharing.disabled,
+        memoryTTL: data.memoryTTL || 86400,
+        maxExecutionTime: data.maxExecutionTime || 600,
+        recordOnChain: data.recordOnChain,
+        createdBy: data.createdBy,
+        sharedMemory: data.sharedMemory || {},
+      },
     });
 
     // Insert workflow steps
-    const stepValues = data.steps.map((step, index) => ({
-      workflowId: data.id,
-      stepIndex: index,
-      agentId: step.agentId,
-      agentName: step.agentName,
-      status: 'pending' as const,
-    }));
-
-    if (stepValues.length > 0) {
-      await tx.insert(workflowSteps).values(stepValues);
+    if (data.steps.length > 0) {
+      await tx.workflowStep.createMany({
+        data: data.steps.map((step, index) => ({
+          workflowId: data.id,
+          stepIndex: index,
+          agentId: step.agentId,
+          agentName: step.agentName,
+          status: StepStatus.pending,
+        })),
+      });
     }
   });
 
@@ -96,22 +105,18 @@ export async function createWorkflow(data: {
  * Get workflow by ID
  */
 export async function getWorkflow(workflowId: string): Promise<WorkflowData | null> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  const [workflow] = await db
-    .select()
-    .from(workflows)
-    .where(eq(workflows.id, workflowId))
-    .limit(1);
+  const workflow = await db.workflow.findUnique({
+    where: { id: workflowId },
+    include: {
+      steps: {
+        orderBy: { stepIndex: 'asc' },
+      },
+    },
+  });
 
   if (!workflow) return null;
-
-  const steps = await db
-    .select()
-    .from(workflowSteps)
-    .where(eq(workflowSteps.workflowId, workflowId))
-    .orderBy(workflowSteps.stepIndex);
 
   return {
     id: workflow.id,
@@ -119,8 +124,8 @@ export async function getWorkflow(workflowId: string): Promise<WorkflowData | nu
     description: workflow.description || undefined,
     status: workflow.status,
     orchestration: workflow.orchestration,
-    memorySharing: workflow.memorySharing === 'enabled',
-    steps: steps.map(step => ({
+    memorySharing: workflow.memorySharing === MemorySharing.enabled,
+    steps: workflow.steps.map(step => ({
       agentId: step.agentId,
       agentName: step.agentName || '',
       status: step.status,
@@ -137,7 +142,7 @@ export async function getWorkflow(workflowId: string): Promise<WorkflowData | nu
     completedAt: workflow.completedAt || undefined,
     totalExecutionTime: workflow.totalExecutionTime || undefined,
     createdBy: workflow.createdBy,
-    recordOnChain: workflow.recordOnChain === 'yes',
+    recordOnChain: workflow.recordOnChain,
   };
 }
 
@@ -153,18 +158,17 @@ export async function updateWorkflowStatus(
     totalExecutionTime?: number;
   }
 ): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  await db
-    .update(workflows)
-    .set({
-      status,
+  await db.workflow.update({
+    where: { id: workflowId },
+    data: {
+      status: status as WorkflowStatus,
       startedAt: updates?.startedAt,
       completedAt: updates?.completedAt,
       totalExecutionTime: updates?.totalExecutionTime,
-    })
-    .where(eq(workflows.id, workflowId));
+    },
+  });
 
   logger.info(`[updateWorkflowStatus] Updated workflow ${workflowId} status to ${status}`);
 }
@@ -186,18 +190,24 @@ export async function updateWorkflowStep(
     executionTime?: number;
   }
 ): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  await db
-    .update(workflowSteps)
-    .set(updates)
-    .where(
-      and(
-        eq(workflowSteps.workflowId, workflowId),
-        eq(workflowSteps.stepIndex, stepIndex)
-      )
-    );
+  await db.workflowStep.updateMany({
+    where: {
+      workflowId,
+      stepIndex,
+    },
+    data: {
+      status: updates.status as StepStatus | undefined,
+      startedAt: updates.startedAt,
+      completedAt: updates.completedAt,
+      input: updates.input,
+      output: updates.output,
+      error: updates.error,
+      memoryKeys: updates.memoryKeys,
+      executionTime: updates.executionTime,
+    },
+  });
 
   logger.info(`[updateWorkflowStep] Updated step ${stepIndex} in workflow ${workflowId}`);
 }
@@ -209,13 +219,12 @@ export async function updateSharedMemory(
   workflowId: string,
   sharedMemory: Record<string, any>
 ): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  await db
-    .update(workflows)
-    .set({ sharedMemory })
-    .where(eq(workflows.id, workflowId));
+  await db.workflow.update({
+    where: { id: workflowId },
+    data: { sharedMemory },
+  });
 }
 
 /**
@@ -231,18 +240,19 @@ export async function recordOnChainInteraction(data: {
   txHash?: string;
   blockNumber?: number;
 }): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  await db.insert(onChainInteractions).values({
-    workflowId: data.workflowId,
-    fromAgentId: data.fromAgentId,
-    toAgentId: data.toAgentId,
-    success: data.success ? 'yes' : 'no',
-    weight: data.weight,
-    interactionType: data.interactionType || 'collaboration',
-    txHash: data.txHash,
-    blockNumber: data.blockNumber,
+  await db.onChainInteraction.create({
+    data: {
+      workflowId: data.workflowId,
+      fromAgentId: data.fromAgentId,
+      toAgentId: data.toAgentId,
+      success: data.success,
+      weight: data.weight,
+      interactionType: data.interactionType || 'collaboration',
+      txHash: data.txHash,
+      blockNumber: data.blockNumber,
+    },
   });
 
   logger.info(
@@ -257,52 +267,43 @@ export async function listWorkflowsByUser(
   userId: number,
   limit: number = 50
 ): Promise<WorkflowData[]> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  const workflowRecords = await db
-    .select()
-    .from(workflows)
-    .where(eq(workflows.createdBy, userId))
-    .orderBy(desc(workflows.createdAt))
-    .limit(limit);
+  const workflows = await db.workflow.findMany({
+    where: { createdBy: userId },
+    include: {
+      steps: {
+        orderBy: { stepIndex: 'asc' },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
 
-  const results: WorkflowData[] = [];
-
-  for (const workflow of workflowRecords) {
-    const steps = await db
-      .select()
-      .from(workflowSteps)
-      .where(eq(workflowSteps.workflowId, workflow.id))
-      .orderBy(workflowSteps.stepIndex);
-
-    results.push({
-      id: workflow.id,
-      task: workflow.task,
-      description: workflow.description || undefined,
-      status: workflow.status,
-      orchestration: workflow.orchestration,
-      memorySharing: workflow.memorySharing === 'enabled',
-      steps: steps.map(step => ({
-        agentId: step.agentId,
-        agentName: step.agentName || '',
-        status: step.status,
-        startedAt: step.startedAt || undefined,
-        completedAt: step.completedAt || undefined,
-        input: step.input,
-        output: step.output,
-        error: step.error || undefined,
-        memoryKeys: step.memoryKeys as string[] | undefined,
-        executionTime: step.executionTime || undefined,
-      })),
-      sharedMemory: (workflow.sharedMemory as Record<string, any>) || {},
-      startedAt: workflow.startedAt || new Date(),
-      completedAt: workflow.completedAt || undefined,
-      totalExecutionTime: workflow.totalExecutionTime || undefined,
-      createdBy: workflow.createdBy,
-      recordOnChain: workflow.recordOnChain === 'yes',
-    });
-  }
-
-  return results;
+  return workflows.map(workflow => ({
+    id: workflow.id,
+    task: workflow.task,
+    description: workflow.description || undefined,
+    status: workflow.status,
+    orchestration: workflow.orchestration,
+    memorySharing: workflow.memorySharing === MemorySharing.enabled,
+    steps: workflow.steps.map(step => ({
+      agentId: step.agentId,
+      agentName: step.agentName || '',
+      status: step.status,
+      startedAt: step.startedAt || undefined,
+      completedAt: step.completedAt || undefined,
+      input: step.input,
+      output: step.output,
+      error: step.error || undefined,
+      memoryKeys: step.memoryKeys as string[] | undefined,
+      executionTime: step.executionTime || undefined,
+    })),
+    sharedMemory: (workflow.sharedMemory as Record<string, any>) || {},
+    startedAt: workflow.startedAt || new Date(),
+    completedAt: workflow.completedAt || undefined,
+    totalExecutionTime: workflow.totalExecutionTime || undefined,
+    createdBy: workflow.createdBy,
+    recordOnChain: workflow.recordOnChain,
+  }));
 }

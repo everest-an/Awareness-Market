@@ -1,16 +1,25 @@
 /**
- * Database Operations for W-Matrix Compatibility Matrix
+ * Database Operations for W-Matrix Compatibility Matrix (Prisma)
  *
- * Replaces in-memory ModelCompatibilityMatrix with persistent database
+ * Replaces in-memory ModelCompatibilityMatrix with persistent Prisma database
  */
 
-import { getDb } from './db';
-import { wMatrixCompatibility, wMatrixListings, wMatrixIntegrity } from '../drizzle/schema';
-import { eq, and, desc, gte, lte, sql, inArray } from 'drizzle-orm';
+import { PrismaClient, CertificationLevel as PrismaCertificationLevel, WMatrixStandard } from '@prisma/client';
 import { createLogger } from './utils/logger';
 import type { CertificationLevel } from './latentmas/w-matrix-protocol';
+import { Prisma } from '@prisma/client';
 
 const logger = createLogger('DB:WMatrix');
+
+// Singleton Prisma Client
+let prisma: PrismaClient | null = null;
+
+function getPrisma(): PrismaClient {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 export interface CompatibilityEntry {
   sourceModel: string;
@@ -40,30 +49,31 @@ export async function addCompatibilityEntry(data: {
   sizeBytes?: number;
   createdBy?: number;
 }): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
   // Parse version
   const [major, minor, patch] = data.version.split('.').map(Number);
 
-  await db.insert(wMatrixCompatibility).values({
-    wMatrixId: data.wMatrixId,
-    sourceModel: data.sourceModel,
-    targetModel: data.targetModel,
-    version: data.version,
-    versionMajor: major,
-    versionMinor: minor,
-    versionPatch: patch,
-    certification: data.certification,
-    epsilon: data.epsilon.toString(),
-    cosineSimilarity: data.cosineSimilarity?.toString(),
-    euclideanDistance: data.euclideanDistance?.toString(),
-    testSamples: data.testSamples,
-    available: 'yes',
-    downloadUrl: data.downloadUrl,
-    checksumSHA256: data.checksumSHA256,
-    sizeBytes: data.sizeBytes,
-    createdBy: data.createdBy,
+  await db.wMatrixCompatibility.create({
+    data: {
+      wMatrixId: data.wMatrixId,
+      sourceModel: data.sourceModel,
+      targetModel: data.targetModel,
+      version: data.version,
+      versionMajor: major,
+      versionMinor: minor,
+      versionPatch: patch,
+      certification: data.certification as PrismaCertificationLevel,
+      epsilon: new Prisma.Decimal(data.epsilon),
+      cosineSimilarity: data.cosineSimilarity ? new Prisma.Decimal(data.cosineSimilarity) : null,
+      euclideanDistance: data.euclideanDistance ? new Prisma.Decimal(data.euclideanDistance) : null,
+      testSamples: data.testSamples,
+      available: true,
+      downloadUrl: data.downloadUrl,
+      checksumSHA256: data.checksumSHA256,
+      sizeBytes: data.sizeBytes,
+      createdBy: data.createdBy,
+    },
   });
 
   logger.info(`[addCompatibilityEntry] Added ${data.sourceModel} → ${data.targetModel} v${data.version}`);
@@ -76,20 +86,20 @@ export async function getCompatibleMatrices(
   sourceModel: string,
   targetModel: string
 ): Promise<CompatibilityEntry[]> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  const results = await db
-    .select()
-    .from(wMatrixCompatibility)
-    .where(
-      and(
-        eq(wMatrixCompatibility.sourceModel, sourceModel),
-        eq(wMatrixCompatibility.targetModel, targetModel),
-        eq(wMatrixCompatibility.available, 'yes')
-      )
-    )
-    .orderBy(desc(wMatrixCompatibility.versionMajor), desc(wMatrixCompatibility.versionMinor), desc(wMatrixCompatibility.versionPatch));
+  const results = await db.wMatrixCompatibility.findMany({
+    where: {
+      sourceModel,
+      targetModel,
+      available: true,
+    },
+    orderBy: [
+      { versionMajor: 'desc' },
+      { versionMinor: 'desc' },
+      { versionPatch: 'desc' },
+    ],
+  });
 
   return results.map(r => ({
     sourceModel: r.sourceModel,
@@ -100,9 +110,9 @@ export async function getCompatibleMatrices(
       minor: r.versionMinor,
       patch: r.versionPatch,
     },
-    certification: r.certification,
-    epsilon: parseFloat(r.epsilon),
-    available: r.available === 'yes',
+    certification: r.certification as CertificationLevel,
+    epsilon: r.epsilon.toNumber(),
+    available: r.available,
   }));
 }
 
@@ -114,36 +124,65 @@ export async function getBestMatrix(
   targetModel: string,
   minCertification?: CertificationLevel
 ): Promise<CompatibilityEntry | null> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  const certLevels: CertificationLevel[] = ['bronze', 'silver', 'gold', 'platinum'];
+  const certLevels: PrismaCertificationLevel[] = [
+    PrismaCertificationLevel.bronze,
+    PrismaCertificationLevel.silver,
+    PrismaCertificationLevel.gold,
+    PrismaCertificationLevel.platinum,
+  ];
   const certFilters = minCertification
-    ? certLevels.slice(certLevels.indexOf(minCertification))
+    ? certLevels.slice(certLevels.indexOf(minCertification as PrismaCertificationLevel))
     : certLevels;
 
-  const results = await db
-    .select()
-    .from(wMatrixCompatibility)
-    .where(
-      and(
-        eq(wMatrixCompatibility.sourceModel, sourceModel),
-        eq(wMatrixCompatibility.targetModel, targetModel),
-        eq(wMatrixCompatibility.available, 'yes'),
-        inArray(wMatrixCompatibility.certification, certFilters)
-      )
-    )
-    .orderBy(
-      desc(sql`FIELD(${wMatrixCompatibility.certification}, 'platinum', 'gold', 'silver', 'bronze')`),
-      desc(wMatrixCompatibility.versionMajor),
-      desc(wMatrixCompatibility.versionMinor),
-      desc(wMatrixCompatibility.versionPatch)
-    )
-    .limit(1);
+  const result = await db.wMatrixCompatibility.findFirst({
+    where: {
+      sourceModel,
+      targetModel,
+      available: true,
+      certification: { in: certFilters },
+    },
+    orderBy: [
+      // Custom order for certification (platinum > gold > silver > bronze)
+      // Prisma doesn't support FIELD() directly, so we'll order by enum value order
+      { versionMajor: 'desc' },
+      { versionMinor: 'desc' },
+      { versionPatch: 'desc' },
+    ],
+  });
 
-  if (results.length === 0) return null;
+  if (!result) return null;
 
-  const r = results[0];
+  // Since Prisma doesn't support custom sort orders easily, we'll fetch all and sort in memory
+  // For better performance with custom sort, we'd need to use raw SQL
+  const allResults = await db.wMatrixCompatibility.findMany({
+    where: {
+      sourceModel,
+      targetModel,
+      available: true,
+      certification: { in: certFilters },
+    },
+  });
+
+  // Sort by certification level (platinum > gold > silver > bronze)
+  const certOrder = { platinum: 4, gold: 3, silver: 2, bronze: 1 };
+  allResults.sort((a, b) => {
+    const certDiff = certOrder[b.certification] - certOrder[a.certification];
+    if (certDiff !== 0) return certDiff;
+
+    const majorDiff = b.versionMajor - a.versionMajor;
+    if (majorDiff !== 0) return majorDiff;
+
+    const minorDiff = b.versionMinor - a.versionMinor;
+    if (minorDiff !== 0) return minorDiff;
+
+    return b.versionPatch - a.versionPatch;
+  });
+
+  const r = allResults[0];
+  if (!r) return null;
+
   return {
     sourceModel: r.sourceModel,
     targetModel: r.targetModel,
@@ -153,9 +192,9 @@ export async function getBestMatrix(
       minor: r.versionMinor,
       patch: r.versionPatch,
     },
-    certification: r.certification,
-    epsilon: parseFloat(r.epsilon),
-    available: r.available === 'yes',
+    certification: r.certification as CertificationLevel,
+    epsilon: r.epsilon.toNumber(),
+    available: r.available,
   };
 }
 
@@ -163,18 +202,16 @@ export async function getBestMatrix(
  * Get supported target models for a source model
  */
 export async function getSupportedTargetModels(sourceModel: string): Promise<string[]> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  const results = await db
-    .selectDistinct({ targetModel: wMatrixCompatibility.targetModel })
-    .from(wMatrixCompatibility)
-    .where(
-      and(
-        eq(wMatrixCompatibility.sourceModel, sourceModel),
-        eq(wMatrixCompatibility.available, 'yes')
-      )
-    );
+  const results = await db.wMatrixCompatibility.findMany({
+    where: {
+      sourceModel,
+      available: true,
+    },
+    distinct: ['targetModel'],
+    select: { targetModel: true },
+  });
 
   return results.map(r => r.targetModel);
 }
@@ -183,13 +220,13 @@ export async function getSupportedTargetModels(sourceModel: string): Promise<str
  * Get supported source models
  */
 export async function getSupportedSourceModels(): Promise<string[]> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  const results = await db
-    .selectDistinct({ sourceModel: wMatrixCompatibility.sourceModel })
-    .from(wMatrixCompatibility)
-    .where(eq(wMatrixCompatibility.available, 'yes'));
+  const results = await db.wMatrixCompatibility.findMany({
+    where: { available: true },
+    distinct: ['sourceModel'],
+    select: { sourceModel: true },
+  });
 
   return results.map(r => r.sourceModel);
 }
@@ -204,47 +241,40 @@ export async function getCompatibilityStatistics(): Promise<{
   certificationDistribution: Record<string, number>;
   avgEpsilon: number;
 }> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  const [countResult] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(wMatrixCompatibility)
-    .where(eq(wMatrixCompatibility.available, 'yes'));
-
-  const sourceModels = await getSupportedSourceModels();
-  const targetModels = await db
-    .selectDistinct({ targetModel: wMatrixCompatibility.targetModel })
-    .from(wMatrixCompatibility)
-    .where(eq(wMatrixCompatibility.available, 'yes'));
-
-  const certCounts = await db
-    .select({
-      certification: wMatrixCompatibility.certification,
-      count: sql<number>`count(*)`,
-    })
-    .from(wMatrixCompatibility)
-    .where(eq(wMatrixCompatibility.available, 'yes'))
-    .groupBy(wMatrixCompatibility.certification);
-
-  const [avgResult] = await db
-    .select({
-      avg: sql<number>`avg(CAST(${wMatrixCompatibility.epsilon} AS DECIMAL(10,6)))`,
-    })
-    .from(wMatrixCompatibility)
-    .where(eq(wMatrixCompatibility.available, 'yes'));
+  const [totalCount, sourceModels, targetModels, certCounts, avgEpsilon] = await Promise.all([
+    db.wMatrixCompatibility.count({
+      where: { available: true },
+    }),
+    getSupportedSourceModels(),
+    db.wMatrixCompatibility.findMany({
+      where: { available: true },
+      distinct: ['targetModel'],
+      select: { targetModel: true },
+    }),
+    db.wMatrixCompatibility.groupBy({
+      by: ['certification'],
+      where: { available: true },
+      _count: true,
+    }),
+    db.wMatrixCompatibility.aggregate({
+      where: { available: true },
+      _avg: { epsilon: true },
+    }),
+  ]);
 
   const certificationDistribution: Record<string, number> = {};
   certCounts.forEach(c => {
-    certificationDistribution[c.certification] = Number(c.count);
+    certificationDistribution[c.certification] = c._count;
   });
 
   return {
-    totalEntries: Number(countResult?.count || 0),
+    totalEntries: totalCount,
     uniqueSourceModels: sourceModels.length,
     uniqueTargetModels: targetModels.length,
     certificationDistribution,
-    avgEpsilon: avgResult?.avg || 0,
+    avgEpsilon: avgEpsilon._avg.epsilon?.toNumber() || 0,
   };
 }
 
@@ -274,32 +304,39 @@ export async function createWMatrixListing(data: {
   sizeBytes?: number;
   tags?: string[];
 }): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  await db.insert(wMatrixListings).values({
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    creatorId: data.creatorId,
-    sourceModel: data.sourceModel,
-    targetModel: data.targetModel,
-    sourceDimension: data.sourceDimension,
-    targetDimension: data.targetDimension,
-    price: data.price.toString(),
-    version: data.version,
-    standard: data.standard,
-    certification: data.certification,
-    qualityGrade: data.qualityGrade,
-    epsilon: data.epsilon.toString(),
-    cosineSimilarity: data.cosineSimilarity?.toString(),
-    euclideanDistance: data.euclideanDistance?.toString(),
-    testSamples: data.testSamples,
-    storageUrl: data.storageUrl,
-    checksumSHA256: data.checksumSHA256,
-    sizeBytes: data.sizeBytes,
-    tags: data.tags || [],
-    status: 'active',
+  // Map standard to enum
+  const standardMap: Record<string, WMatrixStandard> = {
+    '4096': WMatrixStandard.standard_4096,
+    '8192': WMatrixStandard.standard_8192,
+    '16384': WMatrixStandard.standard_16384,
+  };
+
+  await db.wMatrixListing.create({
+    data: {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      creatorId: data.creatorId,
+      sourceModel: data.sourceModel,
+      targetModel: data.targetModel,
+      sourceDimension: data.sourceDimension,
+      targetDimension: data.targetDimension,
+      price: new Prisma.Decimal(data.price),
+      version: data.version,
+      standard: standardMap[data.standard],
+      certification: data.certification as PrismaCertificationLevel,
+      qualityGrade: data.qualityGrade,
+      epsilon: new Prisma.Decimal(data.epsilon),
+      cosineSimilarity: data.cosineSimilarity ? new Prisma.Decimal(data.cosineSimilarity) : null,
+      euclideanDistance: data.euclideanDistance ? new Prisma.Decimal(data.euclideanDistance) : null,
+      testSamples: data.testSamples,
+      storageUrl: data.storageUrl,
+      checksumSHA256: data.checksumSHA256,
+      sizeBytes: data.sizeBytes,
+      tags: data.tags || [],
+    },
   });
 
   logger.info(`[createWMatrixListing] Created listing ${data.id}: ${data.title}`);
@@ -315,41 +352,29 @@ export async function storeIntegrityVerification(data: {
   sizeBytes: number;
   valid: boolean;
 }): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  // Check if entry exists
-  const existing = await db
-    .select()
-    .from(wMatrixIntegrity)
-    .where(eq(wMatrixIntegrity.listingId, data.listingId))
-    .limit(1);
-
-  if (existing.length > 0) {
-    // Update existing
-    await db
-      .update(wMatrixIntegrity)
-      .set({
-        expectedChecksum: data.expectedChecksum,
-        actualChecksum: data.actualChecksum,
-        sizeBytes: data.sizeBytes,
-        valid: data.valid ? 'yes' : 'no',
-        lastVerifiedAt: new Date(),
-        verificationCount: sql`${wMatrixIntegrity.verificationCount} + 1`,
-      })
-      .where(eq(wMatrixIntegrity.listingId, data.listingId));
-  } else {
-    // Insert new
-    await db.insert(wMatrixIntegrity).values({
+  // Upsert (update if exists, create if not)
+  await db.wMatrixIntegrity.upsert({
+    where: { listingId: data.listingId },
+    update: {
+      expectedChecksum: data.expectedChecksum,
+      actualChecksum: data.actualChecksum,
+      sizeBytes: data.sizeBytes,
+      valid: data.valid,
+      lastVerifiedAt: new Date(),
+      verificationCount: { increment: 1 },
+    },
+    create: {
       listingId: data.listingId,
       expectedChecksum: data.expectedChecksum,
       actualChecksum: data.actualChecksum,
       sizeBytes: data.sizeBytes,
-      valid: data.valid ? 'yes' : 'no',
+      valid: data.valid,
       lastVerifiedAt: new Date(),
       verificationCount: 1,
-    });
-  }
+    },
+  });
 
   logger.info(`[storeIntegrityVerification] Verified ${data.listingId}: ${data.valid ? 'VALID' : 'INVALID'}`);
 }
@@ -364,23 +389,19 @@ export async function getIntegrityVerification(listingId: string): Promise<{
   valid: boolean;
   lastVerifiedAt?: Date;
 } | null> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  const db = getPrisma();
 
-  const results = await db
-    .select()
-    .from(wMatrixIntegrity)
-    .where(eq(wMatrixIntegrity.listingId, listingId))
-    .limit(1);
+  const result = await db.wMatrixIntegrity.findUnique({
+    where: { listingId },
+  });
 
-  if (results.length === 0) return null;
+  if (!result) return null;
 
-  const r = results[0];
   return {
-    expectedChecksum: r.expectedChecksum,
-    actualChecksum: r.actualChecksum || '',
-    sizeBytes: r.sizeBytes || 0,
-    valid: r.valid === 'yes',
-    lastVerifiedAt: r.lastVerifiedAt || undefined,
+    expectedChecksum: result.expectedChecksum,
+    actualChecksum: result.actualChecksum || '',
+    sizeBytes: result.sizeBytes || 0,
+    valid: result.valid || false,
+    lastVerifiedAt: result.lastVerifiedAt || undefined,
   };
 }
