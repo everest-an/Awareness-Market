@@ -42,14 +42,31 @@ import { apiAnalyticsRouter } from './routers/api-analytics';
 import { agentDiscoveryRouter } from './routers/agent-discovery';
 import { agentCollaborationRouter } from './routers/agent-collaboration';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
+import type {
+  TrpcRequest,
+  InsertResult,
+  VectorUpdateData,
+  ReviewUpdateData,
+  UserPreferencesUpdateData,
+  BlogPostData,
+  ReviewRecord,
+  TransactionRecord,
+  KVCacheKeys,
+  KVCacheValues,
+  AttentionMask,
+  PositionEncodings,
+  RateLimitConfig,
+  MemoryPackage,
+  MemoryPackagesResponse
+} from './types/router-types';
 // Memory Exchange moved to Go microservice
 
 // Helper to get client IP from request
-function getClientIp(req: any): string {
-  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
-    || req.headers['x-real-ip'] 
-    || req.socket?.remoteAddress 
-    || req.ip 
+function getClientIp(req: TrpcRequest): string {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.headers['x-real-ip']
+    || req.socket?.remoteAddress
+    || req.ip
     || '127.0.0.1';
 }
 
@@ -405,7 +422,7 @@ export const appRouter = router({
           status: "draft",
         });
 
-        return { success: true, vectorId: (result as any).insertId };
+        return { success: true, vectorId: (result as InsertResult).insertId };
       }),
 
     // Get vector by ID
@@ -460,7 +477,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN" });
         }
 
-        const updates: any = {};
+        const updates: VectorUpdateData = {};
         if (input.title) updates.title = input.title;
         if (input.description) updates.description = input.description;
         if (input.basePrice !== undefined) updates.basePrice = input.basePrice.toFixed(2);
@@ -564,7 +581,7 @@ export const appRouter = router({
           transactionType: "one-time",
         });
 
-        const transactionId = (result as any).insertId;
+        const transactionId = (result as InsertResult).insertId;
 
         // Create Stripe checkout session
         const checkoutUrl = await createVectorPurchaseCheckout({
@@ -765,7 +782,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN" });
         }
 
-        const updates: any = {};
+        const updates: ReviewUpdateData = {};
         if (input.rating !== undefined) updates.rating = input.rating;
         if (input.comment !== undefined) updates.comment = input.comment;
 
@@ -816,15 +833,15 @@ export const appRouter = router({
 
         const totalReviews = vectorReviews.length;
         const averageRating = totalReviews > 0
-          ? vectorReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / totalReviews
+          ? vectorReviews.reduce((sum: number, r: ReviewRecord) => sum + r.rating, 0) / totalReviews
           : 0;
 
         const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-        vectorReviews.forEach((r: any) => {
+        vectorReviews.forEach((r: ReviewRecord) => {
           ratingDistribution[r.rating as keyof typeof ratingDistribution]++;
         });
 
-        const verifiedPurchases = vectorReviews.filter((r: any) => r.isVerifiedPurchase).length;
+        const verifiedPurchases = vectorReviews.filter((r: ReviewRecord) => r.isVerifiedPurchase).length;
 
         return {
           totalReviews,
@@ -917,8 +934,8 @@ export const appRouter = router({
         priceRange: z.object({ min: z.number(), max: z.number() }).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const updates: any = {};
-        
+        const updates: UserPreferencesUpdateData = {};
+
         if (input.preferredCategories) {
           updates.preferredCategories = JSON.stringify(input.preferredCategories);
         }
@@ -980,7 +997,7 @@ export const appRouter = router({
         status: z.enum(["draft", "published", "archived"]).default("draft"),
       }))
       .mutation(async ({ ctx, input }) => {
-        const data: any = {
+        const data: BlogPostData = {
           ...input,
           authorId: ctx.user.id,
           tags: input.tags ? JSON.stringify(input.tags) : null,
@@ -1004,8 +1021,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const { id, ...updates } = input;
-        const data: any = { ...updates };
-        
+        const data: BlogPostData = { ...updates };
+
         if (updates.tags) {
           data.tags = JSON.stringify(updates.tags);
         }
@@ -1093,12 +1110,12 @@ export const appRouter = router({
       const permissions = await db.getUserAccessPermissions(ctx.user.id);
 
       const totalSpent = transactions
-        .filter((t: any) => {
-          const tx = 'status' in t ? t : t.transactions;
+        .filter((t: TransactionRecord | { transactions: TransactionRecord }) => {
+          const tx = 'status' in t ? t : (t as { transactions: TransactionRecord }).transactions;
           return tx.status === "completed";
         })
-        .reduce((sum, t: any) => {
-          const tx = 'amount' in t ? t : t.transactions;
+        .reduce((sum, t: TransactionRecord | { transactions: TransactionRecord }) => {
+          const tx = 'amount' in t ? t as TransactionRecord : (t as { transactions: TransactionRecord }).transactions;
           return sum + parseFloat(tx.amount);
         }, 0);
 
@@ -1174,10 +1191,10 @@ export const appRouter = router({
         memoryType: z.enum(["kv_cache", "reasoning_chain", "long_term_memory"]),
         kvCacheData: z.object({
           sourceModel: z.string(),
-          keys: z.array(z.any()),
-          values: z.array(z.any()),
-          attentionMask: z.array(z.any()).optional(),
-          positionEncodings: z.array(z.any()).optional(),
+          keys: z.array(z.unknown()),
+          values: z.array(z.unknown()),
+          attentionMask: z.array(z.unknown()).optional(),
+          positionEncodings: z.array(z.unknown()).optional(),
           metadata: z.object({
             sequenceLength: z.number(),
             contextDescription: z.string(),
@@ -1239,17 +1256,18 @@ export const appRouter = router({
     stats: publicProcedure.query(async () => {
       // Get statistics from Go Memory Exchange service
       const packages = await goServiceAdapter.browseMemoryPackages('all', 1000, 0);
-      const packagesArray = (packages as any).packages || packages.data || [];
+      const packagesResponse = packages as MemoryPackagesResponse;
+      const packagesArray: MemoryPackage[] = packagesResponse.packages || packagesResponse.data || [];
       return {
         totalPackages: Array.isArray(packagesArray) ? packagesArray.length : 0,
-        averagePrice: Array.isArray(packagesArray) && packagesArray.length > 0 
-          ? packagesArray.reduce((sum: number, p: any) => sum + (p.price || 0), 0) / packagesArray.length 
+        averagePrice: Array.isArray(packagesArray) && packagesArray.length > 0
+          ? packagesArray.reduce((sum: number, p: MemoryPackage) => sum + (p.price || 0), 0) / packagesArray.length
           : 0,
-        totalTransactions: Array.isArray(packagesArray) 
-          ? packagesArray.reduce((sum: number, p: any) => sum + (p.total_transactions || 0), 0) 
+        totalTransactions: Array.isArray(packagesArray)
+          ? packagesArray.reduce((sum: number, p: MemoryPackage) => sum + (p.total_transactions || 0), 0)
           : 0,
         averageRating: Array.isArray(packagesArray) && packagesArray.length > 0
-          ? packagesArray.reduce((sum: number, p: any) => sum + (p.average_rating || 0), 0) / packagesArray.length
+          ? packagesArray.reduce((sum: number, p: MemoryPackage) => sum + (p.average_rating || 0), 0) / packagesArray.length
           : 0,
       };
     }),
@@ -1282,14 +1300,14 @@ export const appRouter = router({
         chainName: z.string().min(1),
         description: z.string().min(1),
         category: z.string().min(1),
-        inputExample: z.any(),
-        outputExample: z.any(),
+        inputExample: z.unknown(),
+        outputExample: z.unknown(),
         kvCacheSnapshot: z.object({
           sourceModel: z.string(),
-          keys: z.array(z.any()),
-          values: z.array(z.any()),
-          attentionMask: z.array(z.any()).optional(),
-          positionEncodings: z.array(z.any()).optional(),
+          keys: z.array(z.unknown()),
+          values: z.array(z.unknown()),
+          attentionMask: z.array(z.unknown()).optional(),
+          positionEncodings: z.array(z.unknown()).optional(),
           metadata: z.object({
             sequenceLength: z.number(),
             contextDescription: z.string(),
@@ -1404,10 +1422,10 @@ export const appRouter = router({
       .input(z.object({
         kvCache: z.object({
           sourceModel: z.string(),
-          keys: z.array(z.any()),
-          values: z.array(z.any()),
-          attentionMask: z.array(z.any()).optional(),
-          positionEncodings: z.array(z.any()).optional(),
+          keys: z.array(z.unknown()),
+          values: z.array(z.unknown()),
+          attentionMask: z.array(z.unknown()).optional(),
+          positionEncodings: z.array(z.unknown()).optional(),
           metadata: z.object({
             sequenceLength: z.number(),
             contextDescription: z.string(),
