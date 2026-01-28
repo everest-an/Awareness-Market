@@ -11,6 +11,9 @@
 import type { CompressedKVCache as BaseCompressedKVCache } from './kv-cache-compressor';
 import type { KVCache } from './types';
 import type { TrainingResult } from './w-matrix-trainer';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('LatentMAS:KVCacheIntegration');
 
 // ============================================================================
 // Internal Types for Compression
@@ -426,13 +429,14 @@ export async function exampleLatentMASWorkflow() {
       description: 'High-quality GPT-3.5 to GPT-4 memory transfer',
     }
   );
-  
-  console.log('LatentMAS Package Created:');
-  console.log(`  ID: ${package_.id}`);
-  console.log(`  Quality Score: ${package_.metrics.qualityScore.toFixed(2)}`);
-  console.log(`  TTFT Reduction: ${package_.metrics.ttftReduction.toFixed(1)}%`);
-  console.log(`  Bandwidth Saving: ${package_.metrics.bandwidthSaving.toFixed(1)}%`);
-  console.log(`  Certification: ${package_.certificationLevel}`);
-  
+
+  logger.info('LatentMAS package created successfully', {
+    id: package_.id,
+    qualityScore: package_.metrics.qualityScore.toFixed(2),
+    ttftReduction: `${package_.metrics.ttftReduction.toFixed(1)}%`,
+    bandwidthSaving: `${package_.metrics.bandwidthSaving.toFixed(1)}%`,
+    certificationLevel: package_.certificationLevel
+  });
+
   return package_;
 }

@@ -1,14 +1,18 @@
 /**
  * SVD-based Orthogonalization (Procrustes Analysis)
- * 
+ *
  * This module implements the Procrustes orthogonalization algorithm
  * to ensure W-Matrix is close to an orthogonal matrix, as required by the LatentMAS paper.
- * 
+ *
  * Procrustes Problem: Given matrix W, find the closest orthogonal matrix Q
  * such that ||W - Q||_F is minimized (Frobenius norm).
- * 
+ *
  * Solution: Q = U * V^T, where W = U * Σ * V^T (SVD decomposition)
  */
+
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('LatentMAS:SVDOrthogonalization');
 
 // ============================================================================
 // SVD Decomposition
@@ -352,43 +356,48 @@ function normalize(v: number[]): number[] {
  * Test Procrustes orthogonalization
  */
 export function testProcrustesOrthogonalization(): void {
-  console.log('Testing Procrustes Orthogonalization...\n');
-  
+  logger.info('Testing Procrustes Orthogonalization');
+
   // Test 1: Small matrix
   const W1 = [
     [1.1, 0.2, 0.1],
     [0.2, 0.9, 0.1],
     [0.1, 0.1, 1.0],
   ];
-  
-  console.log('Test 1: 3x3 matrix');
-  console.log('Original orthogonality score:', computeOrthogonalityScore(W1).toFixed(6));
-  
+
+  logger.info('Test 1: 3x3 matrix', {
+    originalOrthogonalityScore: computeOrthogonalityScore(W1).toFixed(6)
+  });
+
   const Q1 = procrustesOrthogonalize(W1);
-  console.log('After Procrustes:', computeOrthogonalityScore(Q1).toFixed(6));
-  console.log('Is orthogonal?', isOrthogonal(Q1, 1e-3));
-  console.log();
-  
+  logger.info('Test 1 results', {
+    afterProcrustes: computeOrthogonalityScore(Q1).toFixed(6),
+    isOrthogonal: isOrthogonal(Q1, 1e-3)
+  });
+
   // Test 2: Larger matrix
   const W2 = Array.from({ length: 5 }, () =>
     Array.from({ length: 5 }, () => Math.random() * 2 - 1)
   );
-  
-  console.log('Test 2: 5x5 random matrix');
-  console.log('Original orthogonality score:', computeOrthogonalityScore(W2).toFixed(6));
-  
+
+  logger.info('Test 2: 5x5 random matrix', {
+    originalOrthogonalityScore: computeOrthogonalityScore(W2).toFixed(6)
+  });
+
   const Q2 = procrustesOrthogonalize(W2);
-  console.log('After Procrustes:', computeOrthogonalityScore(Q2).toFixed(6));
-  console.log('Is orthogonal?', isOrthogonal(Q2, 1e-2));
-  console.log();
-  
+  logger.info('Test 2 results', {
+    afterProcrustes: computeOrthogonalityScore(Q2).toFixed(6),
+    isOrthogonal: isOrthogonal(Q2, 1e-2)
+  });
+
   // Test 3: Soft constraint
-  console.log('Test 3: Soft constraint (alpha=0.5)');
   const W3 = [[2, 0], [0, 2]];
   const Q3 = applySoftProcrustesConstraint(W3, 0.5);
-  console.log('Original:', W3);
-  console.log('After soft constraint:', Q3);
-  console.log('Orthogonality score:', computeOrthogonalityScore(Q3).toFixed(6));
+  logger.info('Test 3: Soft constraint (alpha=0.5)', {
+    original: W3,
+    afterSoftConstraint: Q3,
+    orthogonalityScore: computeOrthogonalityScore(Q3).toFixed(6)
+  });
 }
 
 // Run test if executed directly

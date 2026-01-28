@@ -6,6 +6,9 @@
  */
 
 import { invokeLLM } from "../_core/llm";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger('LatentMAS:LLMAdapters');
 
 // ============================================================================
 // Types
@@ -97,7 +100,7 @@ export class OpenAIAdapter implements LLMAdapter {
           },
         });
       } catch (error) {
-        console.error(`Failed to extract hidden state for prompt: ${prompt}`, error);
+        logger.error('Failed to extract hidden state from OpenAI', { prompt, error });
         // Retry logic handled by caller
         throw error;
       }
@@ -212,7 +215,7 @@ export class AnthropicAdapter implements LLMAdapter {
           },
         });
       } catch (error) {
-        console.error(`Failed to extract hidden state for prompt: ${prompt}`, error);
+        logger.error('Failed to extract hidden state from Anthropic', { prompt, error });
         throw error;
       }
     }
@@ -330,7 +333,7 @@ export class SelfHostedAdapter implements LLMAdapter {
           },
         });
       } catch (error) {
-        console.error(`Failed to extract hidden state from self-hosted model`, error);
+        logger.error('Failed to extract hidden state from self-hosted model', { error });
         // Fallback to deterministic generation for testing
         const dimension = config.dimension || 4096;
         results.push({
@@ -444,9 +447,12 @@ export async function extractHiddenStatesFromLLM(
   config: HiddenStateExtractionConfig
 ): Promise<HiddenStateResult[]> {
   const adapter = LLMAdapterFactory.getAdapter(config.modelName);
-  
-  console.log(`Using ${adapter.name} adapter for model: ${config.modelName}`);
-  console.log(`Estimated cost: $${adapter.estimateCost(config).toFixed(4)}`);
+
+  logger.info('Using LLM adapter', {
+    adapter: adapter.name,
+    model: config.modelName,
+    estimatedCost: `$${adapter.estimateCost(config).toFixed(4)}`
+  });
   
   const maxRetries = config.maxRetries || 3;
   let lastError: Error | null = null;
@@ -454,15 +460,22 @@ export async function extractHiddenStatesFromLLM(
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const results = await adapter.extractHiddenStates(config);
-      console.log(`Successfully extracted ${results.length} hidden states`);
+      logger.info('Successfully extracted hidden states', {
+        count: results.length,
+        model: config.modelName
+      });
       return results;
     } catch (error) {
       lastError = error as Error;
-      console.error(`Attempt ${attempt}/${maxRetries} failed:`, error);
-      
+      logger.error('Hidden state extraction attempt failed', {
+        attempt,
+        maxRetries,
+        error
+      });
+
       if (attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
-        console.log(`Retrying in ${delay}ms...`);
+        logger.info('Retrying hidden state extraction', { delayMs: delay, nextAttempt: attempt + 1 });
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
