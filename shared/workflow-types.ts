@@ -43,12 +43,12 @@ export interface WorkflowEvent {
     tokens?: number;
     latency?: number;
     cost?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
-  
+
   // Nested data
-  input?: any;
-  output?: any;
+  input?: unknown;
+  output?: unknown;
   error?: {
     code: string;
     message: string;

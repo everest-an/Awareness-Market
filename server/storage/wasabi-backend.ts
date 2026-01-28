@@ -162,9 +162,15 @@ export class WasabiBackend implements StorageBackend {
 
       try {
         await this.client.send(command);
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 404 is expected for non-existent key, means bucket is accessible
-        if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+        const isNotFoundError =
+          (error && typeof error === 'object' && 'name' in error && error.name === 'NotFound') ||
+          (error && typeof error === 'object' && '$metadata' in error &&
+           error.$metadata && typeof error.$metadata === 'object' &&
+           'httpStatusCode' in error.$metadata && error.$metadata.httpStatusCode === 404);
+
+        if (isNotFoundError) {
           return { healthy: true, message: 'Wasabi backend is healthy' };
         }
         throw error;

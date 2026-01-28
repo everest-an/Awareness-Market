@@ -15,6 +15,7 @@ import {
   MODEL_ADAPTERS,
   createProductionCompressor,
 } from '../latentmas/kv-cache-compressor-production';
+import { getErrorMessage } from '../utils/error-handling';
 
 // ============================================================================
 // Input Schemas
@@ -96,10 +97,10 @@ export const kvCacheApiRouter = router({
           compressed,
           metrics,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Compression failed: ${error.message}`,
+          message: `Compression failed: ${getErrorMessage(error)}`,
         });
       }
     }),
@@ -123,10 +124,10 @@ export const kvCacheApiRouter = router({
           keys,
           values,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Decompression failed: ${error.message}`,
+          message: `Decompression failed: ${getErrorMessage(error)}`,
         });
       }
     }),
@@ -145,10 +146,10 @@ export const kvCacheApiRouter = router({
           success: true,
           quality,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Quality validation failed: ${error.message}`,
+          message: `Quality validation failed: ${getErrorMessage(error)}`,
         });
       }
     }),
@@ -171,10 +172,10 @@ export const kvCacheApiRouter = router({
           success: true,
           result,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Benchmark failed: ${error.message}`,
+          message: `Benchmark failed: ${getErrorMessage(error)}`,
         });
       }
     }),
@@ -263,10 +264,10 @@ export const kvCacheApiRouter = router({
             estimatedAttentionCoverage: metrics.cumulativeAttention,
           },
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Estimation failed: ${error.message}`,
+          message: `Estimation failed: ${getErrorMessage(error)}`,
         });
       }
     }),

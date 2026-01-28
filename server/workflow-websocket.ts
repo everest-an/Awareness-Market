@@ -66,9 +66,11 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
       
       // Clean up all subscriptions
       if (socket.data.workflowCallbacks) {
-        socket.data.workflowCallbacks.forEach((callback: any, workflowId: string) => {
-          workflowManager.unsubscribe(workflowId, callback);
-        });
+        socket.data.workflowCallbacks.forEach(
+          (callback: (message: WorkflowStreamMessage) => void, workflowId: string) => {
+            workflowManager.unsubscribe(workflowId, callback);
+          }
+        );
         socket.data.workflowCallbacks.clear();
       }
     });

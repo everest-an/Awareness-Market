@@ -3,12 +3,24 @@ import { stripe } from "./stripe-client";
 import * as db from "./db";
 import { sendEmail } from "./_core/email";
 import crypto from "crypto";
+import { getErrorMessage } from "./utils/error-handling";
+import type Stripe from "stripe";
+import { createLogger } from "./utils/logger";
+
+// Extended Stripe Subscription type with period fields
+// These exist in the Stripe API but may be missing from TypeScript definitions
+interface StripeSubscriptionWithPeriod extends Stripe.Subscription {
+  current_period_start: number;
+  current_period_end: number;
+}
+
+const logger = createLogger('Stripe:Webhook');
 
 export async function handleStripeWebhook(req: Request, res: Response) {
   const sig = req.headers["stripe-signature"];
 
   if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error("[Webhook] Missing signature or secret");
+    logger.error("Missing signature or webhook secret");
     return res.status(400).send("Webhook Error: Missing signature");
   }
 
@@ -20,89 +32,107 @@ export async function handleStripeWebhook(req: Request, res: Response) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
-  } catch (err: any) {
-    console.error("[Webhook] Signature verification failed:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+  } catch (err: unknown) {
+    logger.error("Signature verification failed", { error: getErrorMessage(err) });
+    return res.status(400).send(`Webhook Error: ${getErrorMessage(err)}`);
   }
 
   // Handle test events
   if (event.id.startsWith("evt_test_")) {
-    console.log("[Webhook] Test event detected, returning verification response");
+    logger.info("Test event detected, returning verification response", { eventId: event.id });
     return res.json({ verified: true });
   }
 
-  console.log(`[Webhook] Received event: ${event.type}`);
+  logger.info("Webhook event received", { eventType: event.type, eventId: event.id });
 
   try {
     switch (event.type) {
       case "checkout.session.completed": {
-        const session = event.data.object as any;
+        const session = event.data.object as Stripe.Checkout.Session;
         await handleCheckoutCompleted(session);
         break;
       }
 
       case "customer.subscription.created":
       case "customer.subscription.updated": {
-        const subscription = event.data.object as any;
+        const subscription = event.data.object as Stripe.Subscription;
         await handleSubscriptionUpdated(subscription);
         break;
       }
 
       case "customer.subscription.deleted": {
-        const subscription = event.data.object as any;
+        const subscription = event.data.object as Stripe.Subscription;
         await handleSubscriptionDeleted(subscription);
         break;
       }
 
       case "invoice.paid": {
-        const invoice = event.data.object as any;
+        const invoice = event.data.object as Stripe.Invoice;
         await handleInvoicePaid(invoice);
         break;
       }
 
       case "invoice.payment_failed": {
-        const invoice = event.data.object as any;
+        const invoice = event.data.object as Stripe.Invoice;
         await handleInvoicePaymentFailed(invoice);
         break;
       }
 
       default:
-        console.log(`[Webhook] Unhandled event type: ${event.type}`);
+        logger.warn("Unhandled event type", { eventType: event.type });
     }
 
     res.json({ received: true });
   } catch (error) {
-    console.error("[Webhook] Error processing event:", error);
+    logger.error("Error processing webhook event", { error });
     res.status(500).send("Webhook processing error");
   }
 }
 
-async function handleCheckoutCompleted(session: any) {
-  const userId = parseInt(session.metadata?.user_id || session.client_reference_id);
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const userIdStr = session.metadata?.user_id || session.client_reference_id || "";
+  const userId = userIdStr ? parseInt(userIdStr, 10) : NaN;
   const purchaseType = session.metadata?.purchase_type;
 
-  if (!userId) {
-    console.error("[Webhook] Missing user_id in session metadata");
+  if (!userId || isNaN(userId)) {
+    logger.error("Missing user_id in checkout session metadata", {
+      sessionId: session.id,
+      metadata: session.metadata
+    });
     return;
   }
 
   if (purchaseType === "vector") {
     // Handle one-time vector purchase
-    const vectorId = parseInt(session.metadata?.vector_id);
-    const transactionId = parseInt(session.metadata?.transaction_id);
-    if (!vectorId) {
-      console.error("[Webhook] Missing vector_id in session metadata");
+    const vectorIdStr = session.metadata?.vector_id || "";
+    const transactionIdStr = session.metadata?.transaction_id || "";
+    const vectorId = vectorIdStr ? parseInt(vectorIdStr, 10) : NaN;
+    const transactionId = transactionIdStr ? parseInt(transactionIdStr, 10) : NaN;
+
+    if (!vectorId || isNaN(vectorId)) {
+      logger.error("Missing vector_id in session metadata", {
+        sessionId: session.id,
+        userId
+      });
       return;
     }
 
-    if (!transactionId) {
-      console.error("[Webhook] Missing transaction_id in session metadata");
+    if (!transactionId || isNaN(transactionId)) {
+      logger.error("Missing transaction_id in session metadata", {
+        sessionId: session.id,
+        userId,
+        vectorId
+      });
       return;
     }
 
     const transaction = await db.getTransactionById(transactionId);
     if (!transaction) {
-      console.error("[Webhook] Transaction not found:", transactionId);
+      logger.error("Transaction not found", {
+        transactionId,
+        sessionId: session.id,
+        userId
+      });
       return;
     }
 
@@ -112,14 +142,23 @@ async function handleCheckoutCompleted(session: any) {
 
     const vector = await db.getLatentVectorById(vectorId);
     if (!vector) {
-      console.error("[Webhook] Vector not found:", vectorId);
+      logger.error("Vector not found", {
+        vectorId,
+        transactionId,
+        userId
+      });
       return;
     }
+
+    // Extract payment intent ID (can be string or PaymentIntent object)
+    const paymentIntentId = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id || null;
 
     await db.updateTransactionPaymentInfo({
       id: transactionId,
       status: "completed",
-      stripePaymentIntentId: session.payment_intent || null,
+      stripePaymentIntentId: paymentIntentId,
     });
 
     const accessToken = crypto.randomUUID().replace(/-/g, "");
@@ -135,7 +174,12 @@ async function handleCheckoutCompleted(session: any) {
 
     // Transaction should already be created by the purchase API
     // Just update the payment intent ID
-    console.log(`[Webhook] Vector purchase completed for user ${userId}, vector ${vectorId}`);
+    logger.info("Vector purchase completed", {
+      userId,
+      vectorId,
+      transactionId,
+      amount: transaction.amount
+    });
     
     // Create notification
     await db.createNotification({
@@ -181,34 +225,48 @@ async function handleCheckoutCompleted(session: any) {
   } else if (session.mode === "subscription") {
     // Handle subscription purchase
     const subscriptionId = session.subscription;
-    console.log(`[Webhook] Subscription created for user ${userId}: ${subscriptionId}`);
-    
+    logger.info("Subscription created", {
+      userId,
+      subscriptionId,
+      sessionId: session.id
+    });
+
     // Subscription will be handled by subscription.created event
   }
 }
 
-async function handleSubscriptionUpdated(subscription: any) {
-  const customerId = subscription.customer;
-  const subscriptionId = subscription.id;
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  const subscriptionWithPeriod = subscription as StripeSubscriptionWithPeriod;
+  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
   const status = subscription.status;
 
   // Get user by customer ID
   const customer = await stripe.customers.retrieve(customerId);
   if (!customer || customer.deleted) {
-    console.error("[Webhook] Customer not found:", customerId);
+    logger.error("Customer not found", {
+      customerId,
+      subscriptionId: subscription.id
+    });
     return;
   }
 
-  const userId = parseInt((customer as any).metadata?.user_id);
-  if (!userId) {
-    console.error("[Webhook] Missing user_id in customer metadata");
+  const userIdStr = (customer as Stripe.Customer).metadata?.user_id || "";
+  const userId = userIdStr ? parseInt(userIdStr, 10) : NaN;
+  if (!userId || isNaN(userId)) {
+    logger.error("Missing user_id in customer metadata", {
+      customerId,
+      subscriptionId: subscription.id
+    });
     return;
   }
 
   // Get or create subscription plan
   const priceId = subscription.items.data[0]?.price?.id;
   if (!priceId) {
-    console.error("[Webhook] Missing price ID in subscription");
+    logger.error("Missing price ID in subscription", {
+      subscriptionId: subscription.id,
+      userId
+    });
     return;
   }
 
@@ -219,7 +277,11 @@ async function handleSubscriptionUpdated(subscription: any) {
   );
 
   if (!matchingPlan) {
-    console.error("[Webhook] No matching plan found for price:", priceId);
+    logger.error("No matching plan found for price", {
+      priceId,
+      subscriptionId: subscription.id,
+      userId
+    });
     return;
   }
 
@@ -229,12 +291,12 @@ async function handleSubscriptionUpdated(subscription: any) {
   const subscriptionData = {
     userId,
     planId: matchingPlan.id,
-    stripeSubscriptionId: subscriptionId,
-    status: status === "active" ? "active" as const : 
+    stripeSubscriptionId: subscription.id,
+    status: status === "active" ? "active" as const :
             status === "past_due" ? "past_due" as const :
             status === "canceled" ? "cancelled" as const : "expired" as const,
-    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    currentPeriodStart: new Date(subscriptionWithPeriod.current_period_start * 1000),
+    currentPeriodEnd: new Date(subscriptionWithPeriod.current_period_end * 1000),
     cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
   };
 
@@ -244,8 +306,13 @@ async function handleSubscriptionUpdated(subscription: any) {
     await db.createUserSubscription(subscriptionData);
   }
 
-  console.log(`[Webhook] Subscription updated for user ${userId}: ${status}`);
-  
+  logger.info("Subscription updated", {
+    userId,
+    subscriptionId: subscription.id,
+    status,
+    planId: matchingPlan.id
+  });
+
   // Create notification
   await db.createNotification({
     userId,
@@ -255,16 +322,15 @@ async function handleSubscriptionUpdated(subscription: any) {
   });
 }
 
-async function handleSubscriptionDeleted(subscription: any) {
-  const subscriptionId = subscription.id;
-
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   // Find subscription in database
-  const customerId = subscription.customer;
+  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
   const customer = await stripe.customers.retrieve(customerId);
   if (!customer || customer.deleted) return;
 
-  const userId = parseInt((customer as any).metadata?.user_id);
-  if (!userId) return;
+  const userIdStr = (customer as Stripe.Customer).metadata?.user_id || "";
+  const userId = userIdStr ? parseInt(userIdStr, 10) : NaN;
+  if (!userId || isNaN(userId)) return;
 
   const existingSub = await db.getUserSubscription(userId);
   if (existingSub) {
@@ -273,8 +339,11 @@ async function handleSubscriptionDeleted(subscription: any) {
       cancelAtPeriodEnd: true,
     });
 
-    console.log(`[Webhook] Subscription deleted for user ${userId}`);
-    
+    logger.info("Subscription deleted", {
+      userId,
+      subscriptionId: subscription.id
+    });
+
     // Create notification
     await db.createNotification({
       userId,
@@ -285,21 +354,33 @@ async function handleSubscriptionDeleted(subscription: any) {
   }
 }
 
-async function handleInvoicePaid(invoice: any) {
-  console.log(`[Webhook] Invoice paid: ${invoice.id}`);
+async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  logger.info("Invoice paid", {
+    invoiceId: invoice.id,
+    amount: invoice.amount_paid,
+    currency: invoice.currency
+  });
   // Additional invoice handling if needed
 }
 
-async function handleInvoicePaymentFailed(invoice: any) {
-  const customerId = invoice.customer;
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id || "";
+  if (!customerId) return;
+
   const customer = await stripe.customers.retrieve(customerId);
   if (!customer || customer.deleted) return;
 
-  const userId = parseInt((customer as any).metadata?.user_id);
-  if (!userId) return;
+  const userIdStr = (customer as Stripe.Customer).metadata?.user_id || "";
+  const userId = userIdStr ? parseInt(userIdStr, 10) : NaN;
+  if (!userId || isNaN(userId)) return;
 
-  console.log(`[Webhook] Invoice payment failed for user ${userId}`);
-  
+  logger.warn('Invoice payment failed', {
+    userId,
+    invoiceId: invoice.id,
+    amountDue: invoice.amount_due,
+    currency: invoice.currency
+  });
+
   // Create notification
   await db.createNotification({
     userId,

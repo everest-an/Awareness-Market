@@ -118,7 +118,7 @@ export function apiUsageLogger(req: Request, res: Response, next: NextFunction):
   let responseSize = 0;
   
   // Intercept response to capture size
-  res.send = function(body: any): Response {
+  res.send = function(body: unknown): Response {
     if (body) {
       responseSize = Buffer.isBuffer(body) ? body.length : Buffer.byteLength(String(body));
     }

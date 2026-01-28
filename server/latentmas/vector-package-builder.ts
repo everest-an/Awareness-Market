@@ -28,7 +28,7 @@ export interface VectorData {
     accuracy?: number;
     f1Score?: number;
     latency?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

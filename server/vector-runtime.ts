@@ -1,7 +1,11 @@
 import { storageGet } from "./storage";
 import { invokeLLM } from "./_core/llm";
+import type { InferSelectModel } from "drizzle-orm";
+import { latentVectors } from "../drizzle/schema";
 
-const buildSystemPrompt = (vector: any, prompt?: string) => {
+type LatentVector = InferSelectModel<typeof latentVectors>;
+
+const buildSystemPrompt = (vector: LatentVector, prompt?: string) => {
   const base = `You are executing the AI capability "${vector.title}" (category: ${vector.category}).\n` +
     `Use the provided context to deliver the capability described below.\n` +
     `Description: ${vector.description}`;
@@ -34,7 +38,7 @@ const isMessageArray = (value: unknown): value is Array<{ role: string; content:
   return Array.isArray(value) && value.every(item => typeof item === "object" && item !== null && "role" in item);
 };
 
-const extractTextFromResult = (result: any) => {
+const extractTextFromResult = (result: unknown) => {
   const content = result?.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -46,7 +50,7 @@ const extractTextFromResult = (result: any) => {
   return "";
 };
 
-export async function runVector(params: { vector: any; context: unknown }) {
+export async function runVector(params: { vector: LatentVector; context: unknown }) {
   const startTime = Date.now();
   const { vector, context } = params;
 
@@ -66,12 +70,12 @@ export async function runVector(params: { vector: any; context: unknown }) {
 
   const systemPrompt = buildSystemPrompt(vector, promptText);
 
-  let messages: Array<{ role: "system" | "user" | "assistant"; content: string | Array<any> }> = [
+  let messages: Array<{ role: "system" | "user" | "assistant"; content: string | unknown[] }> = [
     { role: "system", content: systemPrompt },
   ];
 
-  if (context && typeof context === "object" && "messages" in (context as any)) {
-    const rawMessages = (context as any).messages;
+  if (context && typeof context === "object" && "messages" in context) {
+    const rawMessages = (context as { messages: unknown }).messages;
     if (isMessageArray(rawMessages)) {
       messages = messages.concat(
         rawMessages.map(msg => ({

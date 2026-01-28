@@ -24,6 +24,9 @@ import { setupGoServiceProxies, createHealthCheckRouter } from "../middleware/go
 import communityRouter from "../community-assistant";
 import { erc8004Router } from "../erc8004-api";
 import inferenceRouter from "../inference-api";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger('Server');
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -102,10 +105,10 @@ async function startServer() {
         customSiteTitle: "Awareness Network API Documentation",
         customCss: ".swagger-ui .topbar { display: none }",
       }));
-      console.log("[API Docs] Swagger UI available at /api-docs");
+      logger.info("Swagger UI available at /api-docs");
     }
   } catch (error) {
-    console.warn("[API Docs] Failed to load OpenAPI spec:", error);
+    logger.warn("Failed to load OpenAPI spec", { error });
   }
   
   // tRPC API
@@ -127,7 +130,10 @@ async function startServer() {
   const port = await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    logger.warn("Port unavailable, using alternative", {
+      preferredPort,
+      actualPort: port
+    });
   }
   
   // Socket.IO for real-time communication
@@ -139,17 +145,18 @@ async function startServer() {
   });
   
   // Socket.IO connection handler
+  const socketLogger = createLogger('Socket.IO');
   io.on("connection", (socket) => {
-    console.log(`[Socket.IO] Client connected: ${socket.id}`);
-    
+    socketLogger.debug("Client connected", { socketId: socket.id });
+
     // Join user-specific room for targeted notifications
     socket.on("join", (userId: string) => {
       socket.join(`user_${userId}`);
-      console.log(`[Socket.IO] User ${userId} joined room`);
+      socketLogger.debug("User joined room", { userId, socketId: socket.id });
     });
-    
+
     socket.on("disconnect", () => {
-      console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
+      socketLogger.debug("Client disconnected", { socketId: socket.id });
     });
   });
   
@@ -161,8 +168,16 @@ async function startServer() {
 
   const host = process.env.HOST || '0.0.0.0';
   server.listen(port, host, () => {
-    console.log(`Server running on http://${host}:${port}/`);
+    logger.info("Server started successfully", {
+      host,
+      port,
+      environment: process.env.NODE_ENV || 'development',
+      url: `http://${host}:${port}/`
+    });
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  logger.error("Failed to start server", { error });
+  process.exit(1);
+});

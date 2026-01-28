@@ -22,6 +22,7 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
+import { getErrorMessage } from './utils/error-handling';
 
 interface RateLimitEntry {
   attempts: number;
@@ -82,8 +83,8 @@ async function initRedis(): Promise<boolean> {
     redisConnected = true;
     console.log('[RateLimit] Redis initialized successfully');
     return true;
-  } catch (error: any) {
-    console.error('[RateLimit] Failed to connect to Redis:', error.message);
+  } catch (error: unknown) {
+    console.error('[RateLimit] Failed to connect to Redis:', getErrorMessage(error));
     console.log('[RateLimit] Falling back to in-memory storage');
     redisClient = null;
     redisConnected = false;

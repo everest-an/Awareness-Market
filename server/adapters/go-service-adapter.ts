@@ -301,7 +301,7 @@ export async function publishReasoningChain(
   data: {
     name: string;
     description: string;
-    chain_steps: any[];
+    chain_steps: unknown[];
     model_type: string;
     price: number;
   }
@@ -428,7 +428,7 @@ export async function createWMatrixVersion(
     description: string;
     model_type: string;
     version: string;
-    alignment_config: any;
+    alignment_config: unknown;
     price: number;
   }
 ): Promise<WMatrixVersion> {

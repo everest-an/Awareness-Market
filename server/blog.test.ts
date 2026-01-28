@@ -12,13 +12,13 @@ describe("Blog System", () => {
     if (!db) throw new Error("Database not available");
 
     const { users } = await import("../drizzle/schema");
-    const result: any = await db.insert(users).values({
+    const result = await db.insert(users).values({
       openId: "test-admin-blog-001",
       name: "Test Admin",
       email: "admin@blog-test.com",
       role: "admin",
     });
-    testUserId = Number(result[0]?.insertId || result.insertId);
+    testUserId = Number((result as unknown as { insertId: number }[])[0]?.insertId || (result as unknown as { insertId: number }).insertId);
   });
 
   afterAll(async () => {

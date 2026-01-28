@@ -9,7 +9,7 @@ import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { getDb } from '../db';
 import { memoryNFTs } from '../../drizzle/schema-memory-nft';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 
 // ============================================================================
 // Input Schemas
@@ -51,11 +51,11 @@ export const memoryNFTRouter = router({
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
       }
 
-      const conditions = [] as any[];
+      const conditions: SQL[] = [];
       if (input.memoryType) conditions.push(eq(memoryNFTs.memoryType, input.memoryType));
       if (input.certification) conditions.push(eq(memoryNFTs.certification, input.certification));
 
-      let orderByClause: any = desc(memoryNFTs.mintedAt);
+      let orderByClause: SQL = desc(memoryNFTs.mintedAt);
       if (input.sortBy === 'price') {
         orderByClause = desc(sql`CAST(${memoryNFTs.price} AS DECIMAL(18,2))`);
       } else if (input.sortBy === 'quality') {

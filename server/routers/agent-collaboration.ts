@@ -15,6 +15,7 @@ import { getDb } from '../db';
 import { users } from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { ethers } from 'ethers';
+import { getErrorMessage } from '../utils/error-handling';
 
 // ============================================================================
 // Input Schemas
@@ -51,8 +52,8 @@ interface WorkflowStep {
   status: 'pending' | 'running' | 'completed' | 'failed';
   startedAt?: Date;
   completedAt?: Date;
-  input?: any;
-  output?: any;
+  input?: unknown;
+  output?: unknown;
   error?: string;
   memoryKeys?: string[];
 }
@@ -198,9 +199,9 @@ async function executeStep(
     step.completedAt = new Date();
 
     console.log(`[Collaboration] Step completed: ${step.agentName}`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     step.status = 'failed';
-    step.error = error.message;
+    step.error = getErrorMessage(error);
     step.completedAt = new Date();
     console.error(`[Collaboration] Step failed: ${step.agentName}`, error);
     throw error;
@@ -260,7 +261,7 @@ async function executeWorkflow(workflowId: string): Promise<void> {
     workflow.totalExecutionTime = workflow.completedAt.getTime() - workflow.startedAt.getTime();
 
     console.log(`[Collaboration] Workflow ${workflowId} completed in ${workflow.totalExecutionTime}ms`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     workflow.status = 'failed';
     workflow.completedAt = new Date();
     console.error(`[Collaboration] Workflow ${workflowId} failed:`, error);

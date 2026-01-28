@@ -294,7 +294,14 @@ export const wMatrixMarketplaceRouter = router({
         });
       }
 
-      const updates: any = {};
+      interface ListingUpdates {
+        title?: string;
+        description?: string;
+        price?: string;
+        status?: string;
+      }
+
+      const updates: ListingUpdates = {};
       if (input.title) updates.title = input.title;
       if (input.description) updates.description = input.description;
       if (input.price) updates.price = input.price.toFixed(2);

@@ -13,7 +13,7 @@ import { workflowManager } from "./workflow-manager";
 
 export interface InvokeVectorInput {
   vectorId: number;
-  inputData: any; // The actual input to the vector (e.g., prompt, data)
+  inputData: unknown; // The actual input to the vector (e.g., prompt, data)
   options?: {
     temperature?: number;
     maxTokens?: number;
@@ -23,7 +23,7 @@ export interface InvokeVectorInput {
 
 export interface InvokeVectorOutput {
   success: boolean;
-  result?: any;
+  result?: unknown;
   tokensUsed?: number;
   executionTime: number;
   cost: number;
@@ -74,17 +74,17 @@ export async function verifyVectorAccess(userId: number, vectorId: number): Prom
 /**
  * Fetch vector data from S3
  */
-async function fetchVectorData(vectorFileKey: string): Promise<any> {
+async function fetchVectorData(vectorFileKey: string): Promise<unknown> {
   try {
     // Get presigned URL for vector file
     const { url } = await storageGet(vectorFileKey); // Get URL
-    
+
     // Fetch vector data
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch vector: ${response.statusText}`);
     }
-    
+
     const vectorData = await response.json();
     return vectorData;
   } catch (error) {
@@ -97,10 +97,10 @@ async function fetchVectorData(vectorFileKey: string): Promise<any> {
  */
 async function executeVector(
   vector: typeof latentVectors.$inferSelect,
-  vectorData: any,
-  inputData: any,
+  vectorData: unknown,
+  inputData: unknown,
   options?: InvokeVectorInput['options']
-): Promise<{ result: any; tokensUsed: number }> {
+): Promise<{ result: unknown; tokensUsed: number }> {
   const startTime = Date.now();
 
   try {
@@ -167,7 +167,7 @@ function calculateInvocationCost(
  * Update statistics after invocation
  */
 async function updateInvocationStats(
-  db: any,
+  db: Awaited<ReturnType<typeof getDb>>,
   vectorId: number,
   permissionId: number,
   cost: number,

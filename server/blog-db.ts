@@ -8,9 +8,9 @@ import { eq, desc, and, sql } from "drizzle-orm";
 export async function createBlogPost(data: InsertBlogPost): Promise<BlogPost> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  const result: any = await db.insert(blogPosts).values(data);
-  const insertId = Number(result[0]?.insertId || result.insertId);
+
+  const result = await db.insert(blogPosts).values(data);
+  const insertId = Number((result as unknown as { insertId: number }[])[0]?.insertId || (result as unknown as { insertId: number }).insertId);
   return await getBlogPostById(insertId) as BlogPost;
 }
 
@@ -92,7 +92,7 @@ export async function listBlogPosts(options: {
   }
 
   if (conditions.length > 0) {
-    query = query.where(and(...conditions)) as any;
+    query = query.where(and(...conditions)) as typeof query;
   }
 
   const posts = await query
@@ -139,9 +139,9 @@ export async function getBlogPostCount(status?: "draft" | "published" | "archive
   if (!db) throw new Error("Database not available");
   
   let query = db.select({ count: sql<number>`count(*)` }).from(blogPosts);
-  
+
   if (status) {
-    query = query.where(eq(blogPosts.status, status)) as any;
+    query = query.where(eq(blogPosts.status, status)) as typeof query;
   }
   
   const [result] = await query;

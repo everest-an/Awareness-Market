@@ -13,6 +13,7 @@
  */
 
 import { ENV } from "../_core/env";
+import { getErrorMessage } from "../utils/error-handling";
 
 // ============================================================================
 // Types
@@ -93,7 +94,11 @@ export class OpenAIEmbeddingService {
     }
 
     try {
-      const payload: any = {
+      const payload: {
+        model: string;
+        input: string;
+        dimensions?: number;
+      } = {
         model,
         input: request.text,
       };
@@ -133,8 +138,8 @@ export class OpenAIEmbeddingService {
           timestamp: new Date().toISOString(),
         },
       };
-    } catch (error: any) {
-      console.error("[EmbeddingService] API call failed:", error.message);
+    } catch (error: unknown) {
+      console.error("[EmbeddingService] API call failed:", getErrorMessage(error));
       // 降级到本地生成
       return this.generateLocalEmbedding(request.text, model, targetDimensions, startTime);
     }
@@ -158,7 +163,11 @@ export class OpenAIEmbeddingService {
     }
 
     try {
-      const payload: any = {
+      const payload: {
+        model: string;
+        input: string[];
+        dimensions?: number;
+      } = {
         model,
         input: request.texts,
       };
@@ -183,7 +192,7 @@ export class OpenAIEmbeddingService {
       const data = await response.json();
       const processingTime = Date.now() - startTime;
 
-      const embeddings: EmbeddingResponse[] = data.data.map((item: any, index: number) => ({
+      const embeddings: EmbeddingResponse[] = data.data.map((item: { embedding: number[] }, index: number) => ({
         vector: item.embedding,
         model,
         dimensions: item.embedding.length,
@@ -401,7 +410,28 @@ export interface LatentMASPackage {
 export async function buildLatentMASPackage(
   input: LatentMASPackageInput,
   embeddingService: OpenAIEmbeddingService,
-  alignFunction: (vector: number[], sourceModel: string, targetModel: string, sourceDim: number, targetDim: number) => Promise<any>
+  alignFunction: (
+    vector: number[],
+    sourceModel: string,
+    targetModel: string,
+    sourceDim: number,
+    targetDim: number
+  ) => Promise<{
+    alignedVector?: number[];
+    result?: {
+      alignedVector?: number[];
+      quality?: {
+        cosineSimilarity?: number;
+        informationRetention?: number;
+        confidence?: number;
+      };
+    };
+    quality?: {
+      cosineSimilarity?: number;
+      informationRetention?: number;
+      confidence?: number;
+    };
+  }>
 ): Promise<LatentMASPackage> {
   const startTime = Date.now();
   

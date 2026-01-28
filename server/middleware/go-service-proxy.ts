@@ -5,12 +5,18 @@
  * 将来自前端的请求转发到相应的 Go 微服务。
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request, Response, NextFunction, type Express } from 'express';
 import proxy from 'express-http-proxy';
+import type { IncomingHttpHeaders } from 'http';
+
+interface ProxyReqOpts {
+  headers?: IncomingHttpHeaders;
+  [key: string]: unknown;
+}
 
 function createServiceProxy(target: string, errorLabel: string) {
   return proxy(target, {
-    proxyReqOptDecorator: (proxyReqOpts: any, srcReq: Request) => {
+    proxyReqOptDecorator: (proxyReqOpts: ProxyReqOpts, srcReq: Request) => {
       proxyReqOpts.headers = proxyReqOpts.headers || {};
       if (srcReq.headers.authorization) {
         proxyReqOpts.headers['Authorization'] = srcReq.headers.authorization;
@@ -20,7 +26,7 @@ function createServiceProxy(target: string, errorLabel: string) {
       }
       return proxyReqOpts;
     },
-    proxyErrorHandler: (err: any, res: Response, _next: NextFunction) => {
+    proxyErrorHandler: (err: Error, res: Response, _next: NextFunction) => {
       console.error(`[${errorLabel} Proxy Error]`, err.message);
       res.status(503).json({
         error: `${errorLabel} service unavailable`,
@@ -32,10 +38,10 @@ function createServiceProxy(target: string, errorLabel: string) {
 
 /**
  * 设置 Go 服务代理
- * 
+ *
  * @param app Express 应用实例
  */
-export function setupGoServiceProxies(app: any): void {
+export function setupGoServiceProxies(app: Express): void {
   // ==========================================
   // Vector Operations 代理
   // ==========================================

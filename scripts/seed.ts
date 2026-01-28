@@ -281,14 +281,46 @@ async function seedPackagesData(db: any, connection: any, creatorId: number) {
 }
 
 async function cleanDatabase(connection: any) {
-  console.log('\n🧹 Cleaning database...');
+  // 🛡️ PRODUCTION SAFETY CHECK
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const dbUrl = process.env.DATABASE_URL || '';
+
+  // Prevent cleanup in production
+  if (nodeEnv === 'production') {
+    console.error('\n❌ SAFETY CHECK FAILED: Cannot clean database in production environment');
+    console.error('   Set NODE_ENV to "development" or "test" to proceed');
+    process.exit(1);
+  }
+
+  // Prevent cleanup of production-like database names
+  const productionKeywords = ['prod', 'production', 'live', 'main'];
+  const lowerDbUrl = dbUrl.toLowerCase();
+  for (const keyword of productionKeywords) {
+    if (lowerDbUrl.includes(keyword)) {
+      console.error(`\n❌ SAFETY CHECK FAILED: Database URL contains "${keyword}"`);
+      console.error('   This appears to be a production database');
+      console.error('   Refusing to clean to prevent data loss');
+      process.exit(1);
+    }
+  }
+
+  // Warning message
+  console.log('\n⚠️  WARNING: About to DELETE ALL DATA from the following tables:');
   const tables = [
     'package_downloads', 'package_purchases',
     'chain_packages', 'memory_packages', 'vector_packages',
     'reviews', 'api_call_logs', 'access_permissions', 'transactions',
     'latent_vectors', 'users'
   ];
+  tables.forEach(t => console.log(`   - ${t}`));
+  console.log(`\n   Database: ${dbUrl}`);
+  console.log(`   Environment: ${nodeEnv}\n`);
 
+  // Give user 3 seconds to cancel (Ctrl+C)
+  console.log('⏳ Starting cleanup in 3 seconds... (Press Ctrl+C to cancel)');
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  console.log('\n🧹 Cleaning database...');
   for (const table of tables) {
     try {
       await connection.execute(`DELETE FROM ${table}`);
@@ -310,6 +342,21 @@ async function main() {
   if (!process.env.DATABASE_URL) {
     console.error('❌ DATABASE_URL environment variable is required');
     process.exit(1);
+  }
+
+  // 🛡️ ENVIRONMENT SAFETY CHECK
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  console.log(`\n📍 Environment: ${nodeEnv}`);
+  console.log(`📍 Database: ${process.env.DATABASE_URL}`);
+
+  if (shouldClean) {
+    console.log('\n⚠️  DESTRUCTIVE MODE ENABLED: --clean flag detected');
+    console.log('   This will DELETE ALL existing data before seeding');
+
+    if (nodeEnv === 'production') {
+      console.error('\n❌ BLOCKED: Cannot use --clean flag in production');
+      process.exit(1);
+    }
   }
 
   const connection = await mysql.createConnection({

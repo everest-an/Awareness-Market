@@ -10,7 +10,10 @@ import { latentVectors, transactions, accessPermissions } from '../drizzle/schem
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 import { validateApiKey as validateKey } from './api-key-manager.js';
+import { getErrorMessage } from './utils/error-handling';
+import { createLogger } from './utils/logger';
 
+const logger = createLogger('Purchase:API');
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-12-15.clover' });
 
@@ -169,11 +172,11 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
       message: 'Purchase successful! Use the access token to invoke this vector.'
     });
 
-  } catch (error: any) {
-    console.error('[Purchase API] Error:', error);
-    res.status(500).json({ 
+  } catch (error: unknown) {
+    logger.error('Purchase failed', { error: getErrorMessage(error), vectorId: req.body.vectorId });
+    res.status(500).json({
       error: 'Purchase failed',
-      message: error.message 
+      message: getErrorMessage(error)
     });
   }
 });
@@ -221,8 +224,8 @@ router.get('/:id/pricing', async (req, res) => {
       refundPolicy: '30-day money-back guarantee'
     });
 
-  } catch (error: any) {
-    console.error('[Pricing API] Error:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to get pricing', { error: getErrorMessage(error), vectorId: req.params.vectorId });
     res.status(500).json({ error: 'Failed to get pricing' });
   }
 });
@@ -323,11 +326,11 @@ router.post('/invoke', authenticateApiKey, async (req, res) => {
         : null
     });
 
-  } catch (error: any) {
-    console.error('[Invoke API] Error:', error);
-    res.status(500).json({ 
+  } catch (error: unknown) {
+    logger.error('Invocation failed', { error: getErrorMessage(error), accessToken: req.body.accessToken });
+    res.status(500).json({
       error: 'Invocation failed',
-      message: error.message 
+      message: getErrorMessage(error)
     });
   }
 });
@@ -368,8 +371,8 @@ router.get('/my-purchases', authenticateApiKey, async (req, res) => {
       total: purchases.length
     });
 
-  } catch (error: any) {
-    console.error('[My Purchases API] Error:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to fetch purchases', { error: getErrorMessage(error), userId: req.userId });
     res.status(500).json({ error: 'Failed to fetch purchases' });
   }
 });

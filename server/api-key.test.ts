@@ -14,13 +14,13 @@ describe("API Key Management", () => {
 
     // Insert test user using drizzle ORM
     const { users } = await import("../drizzle/schema");
-    const result: any = await db.insert(users).values({
+    const result = await db.insert(users).values({
       openId: "test-ai-agent-001",
       name: "Test AI Agent",
       email: "test@ai-agent.com",
       role: "consumer",
     });
-    testUserId = Number(result[0]?.insertId || result.insertId);
+    testUserId = Number((result as unknown as { insertId: number }[])[0]?.insertId || (result as unknown as { insertId: number }).insertId);
   });
 
   afterAll(async () => {

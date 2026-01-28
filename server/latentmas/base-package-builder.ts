@@ -75,17 +75,17 @@ export abstract class BasePackageBuilder {
   /**
    * Validate package-specific data
    */
-  protected abstract validatePackageData(data: any): ValidationResult;
+  protected abstract validatePackageData(data: unknown): ValidationResult;
 
   /**
    * Get package-specific files for ZIP
    */
-  protected abstract getPackageFiles(data: any): Promise<Record<string, Buffer>>;
+  protected abstract getPackageFiles(data: unknown): Promise<Record<string, Buffer>>;
 
   /**
    * Extract package-specific data from ZIP
    */
-  protected abstract extractPackageData(files: Record<string, Buffer>): Promise<any>;
+  protected abstract extractPackageData(files: Record<string, Buffer>): Promise<unknown>;
 
   // ========================================================================
   // Common Methods (shared by all package types)
@@ -356,7 +356,7 @@ export abstract class BasePackageBuilder {
   /**
    * Flatten multi-dimensional array
    */
-  private flattenArray(arr: any): number[] {
+  private flattenArray(arr: unknown): number[] {
     if (typeof arr === 'number') return [arr];
     if (!Array.isArray(arr)) return [];
     
@@ -374,12 +374,12 @@ export abstract class BasePackageBuilder {
   /**
    * Reshape flat array to multi-dimensional array
    */
-  private reshapeArray(flat: number[], shape: number[]): any {
+  private reshapeArray(flat: number[], shape: number[]): number[] | unknown[] {
     if (shape.length === 1) {
       return flat.slice(0, shape[0]);
     }
-    
-    const result: any[] = [];
+
+    const result: unknown[] = [];
     const size = shape.slice(1).reduce((a, b) => a * b, 1);
     
     for (let i = 0; i < shape[0]; i++) {

@@ -71,7 +71,7 @@ const LatentMASPackageSchema = z.object({
 /**
  * Validate that a package conforms to LatentMAS paper specification
  */
-function validateLatentMASPackage(pkg: any): {
+function validateLatentMASPackage(pkg: LatentMASMemoryPackage): {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -346,7 +346,7 @@ export const latentmasMarketplaceRouter = router({
 // ============================================================================
 
 function generateRecommendations(
-  pkg: any,
+  pkg: LatentMASMemoryPackage,
   validation: { valid: boolean; errors: string[]; warnings: string[] }
 ): string[] {
   const recommendations: string[] = [];

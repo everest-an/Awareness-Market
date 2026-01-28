@@ -17,10 +17,20 @@ import * as db from "./db";
 import { runVector } from "./vector-runtime";
 import { invokeLLM } from "./_core/llm";
 import { validateApiKey } from "./ai-auth-api";
+import type { InferSelectModel } from "drizzle-orm";
+import { latentVectors, accessPermissions } from "../drizzle/schema";
+
+type LatentVector = InferSelectModel<typeof latentVectors>;
+type AccessPermission = InferSelectModel<typeof accessPermissions>;
+
+interface Agent {
+  messages?: Array<{ role: string; content: string }>;
+  [key: string]: unknown;
+}
 
 const mcpRouter = Router();
 
-const extractTextFromResult = (result: any) => {
+const extractTextFromResult = (result: unknown) => {
   const content = result?.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -320,8 +330,8 @@ mcpRouter.post("/sync", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields: agents" });
     }
 
-    let permission: any = null;
-    let vector: any = null;
+    let permission: AccessPermission | null = null;
+    let vector: LatentVector | null = null;
     let syncUserId: number | null = null;
 
     if (vector_id) {
@@ -385,7 +395,7 @@ mcpRouter.post("/sync", async (req, res) => {
     }
 
     const results = await Promise.all(
-      agents.map(async (agent: any) => {
+      agents.map(async (agent: Agent) => {
         const sharedMessage = mergedSharedContext
           ? { role: "user", content: `Shared context: ${JSON.stringify(mergedSharedContext)}` }
           : null;
