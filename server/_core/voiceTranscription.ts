@@ -11,9 +11,9 @@
  * // Frontend component
  * const transcribeMutation = trpc.voice.transcribe.useMutation({
  *   onSuccess: (data) => {
- *     console.log(data.text); // Full transcription
- *     console.log(data.language); // Detected language
- *     console.log(data.segments); // Timestamped segments
+ *     logger.info(data.text); // Full transcription
+ *     logger.info(data.language); // Detected language
+ *     logger.info(data.segments); // Timestamped segments
  *   }
  * });
  * 
@@ -26,6 +26,9 @@
  * ```
  */
 import { ENV } from "./env";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger('VoiceTranscription');
 
 export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file (e.g., S3 URL)

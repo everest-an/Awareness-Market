@@ -7,6 +7,9 @@
 
 import { invokeLLM } from "./_core/llm";
 import * as db from "./db";
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('Recommendation');
 
 export interface RecommendationContext {
   userId: number;
@@ -153,7 +156,7 @@ Respond in JSON format:
     const message = response.choices[0]?.message;
     const content = typeof message?.content === 'string' ? message.content : null;
     if (!content) {
-      console.error("[Recommendations] Empty response from LLM");
+      logger.error("[Recommendations] Empty response from LLM");
       return fallbackRecommendations(allVectors, limit);
     }
 
@@ -171,7 +174,7 @@ Respond in JSON format:
 
     return enriched.slice(0, limit);
   } catch (error) {
-    console.error("[Recommendations] LLM error:", error);
+    logger.error("[Recommendations] LLM error:", error);
     return fallbackRecommendations(allVectors, limit);
   }
 }

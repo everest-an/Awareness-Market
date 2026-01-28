@@ -1,9 +1,13 @@
 /**
  * Go 服务适配器
- * 
+ *
  * 此文件提供了与 Go 微服务通信的函数。
  * 简化了 tRPC 路由中对 Go 服务的调用。
  */
+
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('GoService');
 
 // Using native fetch API (Node.js 18+)
 
@@ -466,21 +470,21 @@ export async function verifyServiceConnections(): Promise<{
     const vectorRes = await fetch(`${VECTOR_SERVICE_URL}/health`);
     results.vector = vectorRes.ok;
   } catch (err) {
-    console.warn('Vector service connection failed:', err);
+    logger.warn('Vector service connection failed:', err);
   }
 
   try {
     const memoryRes = await fetch(`${MEMORY_SERVICE_URL}/health`);
     results.memory = memoryRes.ok;
   } catch (err) {
-    console.warn('Memory service connection failed:', err);
+    logger.warn('Memory service connection failed:', err);
   }
 
   try {
     const wmatrixRes = await fetch(`${WMATRIX_SERVICE_URL}/health`);
     results.wmatrix = wmatrixRes.ok;
   } catch (err) {
-    console.warn('W-Matrix service connection failed:', err);
+    logger.warn('W-Matrix service connection failed:', err);
   }
 
   return results;

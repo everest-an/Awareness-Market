@@ -3,6 +3,9 @@ import { getDb } from "./db";
 import { runVector } from "./vector-runtime";
 import { trialUsage, latentVectors } from "../drizzle/schema";
 import { eq, and, count, sql } from "drizzle-orm";
+import { createLogger } from "./utils/logger";
+
+const logger = createLogger('Trial');
 
 const router = Router();
 
@@ -55,7 +58,7 @@ router.get("/remaining/:vectorId", async (req: Request, res: Response) => {
       canTry: remainingCalls > 0,
     });
   } catch (error) {
-    console.error("[Trial API] Error checking remaining calls:", error);
+    logger.error("[Trial API] Error checking remaining calls:", error);
     res.status(500).json({ error: "Failed to check trial status" });
   }
 });
@@ -151,7 +154,7 @@ router.post("/execute", async (req: Request, res: Response) => {
       remainingCalls: vector.freeTrialCalls - usedCalls - 1,
     });
   } catch (error) {
-    console.error("[Trial API] Error executing trial:", error);
+    logger.error("[Trial API] Error executing trial:", error);
     res.status(500).json({ error: "Failed to execute trial" });
   }
 });
@@ -190,7 +193,7 @@ router.get("/history", async (req: Request, res: Response) => {
 
     res.json(history);
   } catch (error) {
-    console.error("[Trial API] Error fetching history:", error);
+    logger.error("[Trial API] Error fetching history:", error);
     res.status(500).json({ error: "Failed to fetch trial history" });
   }
 });
