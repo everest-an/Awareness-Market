@@ -54,7 +54,7 @@ class WorkflowManager extends EventEmitter {
 
     // Save to database (async, don't wait)
     this.saveSessionToDb(session).catch(err => 
-      logger.error( Failed to save session to DB:`, err)
+      logger.error(`Failed to save session to DB:`, err)
     );
 
     // Broadcast session start
@@ -65,7 +65,7 @@ class WorkflowManager extends EventEmitter {
       timestamp: Date.now(),
     });
 
-    logger.info( Created session: ${session.id}`);
+    logger.info(`Created session: ${session.id}`);
     return session;
   }
 
@@ -110,7 +110,7 @@ class WorkflowManager extends EventEmitter {
 
     // Save to database (async, don't wait)
     this.saveEventToDb(event).catch((err: unknown) =>
-      logger.error( Failed to save event to DB:`, err)
+      logger.error(`Failed to save event to DB:`, err)
     );
 
     // Broadcast event
@@ -165,7 +165,7 @@ class WorkflowManager extends EventEmitter {
 
     // Update database (async, don't wait)
     this.updateEventInDb(eventId, updates).catch((err: unknown) =>
-      logger.error( Failed to update event in DB:`, err)
+      logger.error(`Failed to update event in DB:`, err)
     );
 
     // Broadcast updated event
@@ -201,10 +201,10 @@ class WorkflowManager extends EventEmitter {
 
     // Update database (async, don't wait)
     this.updateSessionInDb(workflowId, { status, completedAt: session.completedAt! }).catch(err =>
-      logger.error( Failed to update session in DB:`, err)
+      logger.error(`Failed to update session in DB:`, err)
     );
 
-    logger.info( Completed session: ${workflowId} (${status})`);
+    logger.info(`Completed session: ${workflowId} (${status})`);
     return session;
   }
 
@@ -289,7 +289,7 @@ class WorkflowManager extends EventEmitter {
         totalCost: session.totalCost.toString(),
       });
     } catch (error: unknown) {
-      logger.error( DB save error:`, getErrorMessage(error));
+      logger.error(`DB save error:`, getErrorMessage(error));
     }
   }
 
@@ -321,7 +321,7 @@ class WorkflowManager extends EventEmitter {
         .set(dbUpdates)
         .where(eq(workflowSessions.id, workflowId));
     } catch (error: unknown) {
-      logger.error( DB update error:`, getErrorMessage(error));
+      logger.error(`DB update error:`, getErrorMessage(error));
     }
   }
 
@@ -349,7 +349,7 @@ class WorkflowManager extends EventEmitter {
         parentEventId: event.parentEventId || null,
       });
     } catch (error: unknown) {
-      logger.error( DB save event error:`, getErrorMessage(error));
+      logger.error(`DB save event error:`, getErrorMessage(error));
     }
   }
 
@@ -379,7 +379,7 @@ class WorkflowManager extends EventEmitter {
         .set(dbUpdates)
         .where(eq(workflowEvents.id, eventId));
     } catch (error: unknown) {
-      logger.error( DB update event error:`, getErrorMessage(error));
+      logger.error(`DB update event error:`, getErrorMessage(error));
     }
   }
 
@@ -400,7 +400,7 @@ class WorkflowManager extends EventEmitter {
     });
 
     if (cleaned > 0) {
-      logger.info( Cleaned up ${cleaned} old sessions`);
+      logger.info(`Cleaned up ${cleaned} old sessions`);
     }
   }
 }

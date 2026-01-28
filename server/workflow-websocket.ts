@@ -26,11 +26,11 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
   });
 
   io.on("connection", (socket) => {
-    logger.info( Client connected: ${socket.id}`);
+    logger.info(`Client connected: ${socket.id}`);
 
     // Handle workflow subscription
     socket.on("subscribe", (workflowId: string) => {
-      logger.info( Client ${socket.id} subscribing to workflow: ${workflowId}`);
+      logger.info(`Client ${socket.id} subscribing to workflow: ${workflowId}`);
       
       // Join workflow room
       socket.join(`workflow:${workflowId}`);
@@ -50,7 +50,7 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
 
     // Handle workflow unsubscription
     socket.on("unsubscribe", (workflowId: string) => {
-      logger.info( Client ${socket.id} unsubscribing from workflow: ${workflowId}`);
+      logger.info(`Client ${socket.id} unsubscribing from workflow: ${workflowId}`);
       
       // Leave workflow room
       socket.leave(`workflow:${workflowId}`);
@@ -65,7 +65,7 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
 
     // Handle disconnection
     socket.on("disconnect", () => {
-      logger.info( Client disconnected: ${socket.id}`);
+      logger.info(`Client disconnected: ${socket.id}`);
       
       // Clean up all subscriptions
       if (socket.data.workflowCallbacks) {
@@ -79,7 +79,7 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
     });
   });
 
-  logger.info( WebSocket server initialized");
+  logger.info('WebSocket server initialized');
   return io;
 }
 
@@ -88,7 +88,7 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
  */
 export function broadcastToWorkflow(workflowId: string, message: WorkflowStreamMessage) {
   if (!io) {
-    logger.warn( WebSocket server not initialized");
+    logger.warn('WebSocket server not initialized');
     return;
   }
 

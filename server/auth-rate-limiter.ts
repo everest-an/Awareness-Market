@@ -60,7 +60,7 @@ async function initRedis(): Promise<boolean> {
   
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
-    logger.info( No REDIS_URL set, using in-memory storage');
+    logger.info('No REDIS_URL set, using in-memory storage');
     return false;
   }
 
@@ -68,27 +68,27 @@ async function initRedis(): Promise<boolean> {
     redisClient = createClient({ url: redisUrl });
     
     redisClient.on('error', (err) => {
-      logger.error( Redis error:', err.message);
+      logger.error('Redis error:', err.message);
       redisConnected = false;
     });
 
     redisClient.on('connect', () => {
-      logger.info( Connected to Redis');
+      logger.info('Connected to Redis');
       redisConnected = true;
     });
 
     redisClient.on('disconnect', () => {
-      logger.info( Disconnected from Redis');
+      logger.info('Disconnected from Redis');
       redisConnected = false;
     });
 
     await redisClient.connect();
     redisConnected = true;
-    logger.info( Redis initialized successfully');
+    logger.info('Redis initialized successfully');
     return true;
   } catch (error: unknown) {
-    logger.error( Failed to connect to Redis:', getErrorMessage(error));
-    logger.info( Falling back to in-memory storage');
+    logger.error('Failed to connect to Redis:', getErrorMessage(error));
+    logger.info('Falling back to in-memory storage');
     redisClient = null;
     redisConnected = false;
     return false;
@@ -109,7 +109,7 @@ async function getRedisEntry(key: string): Promise<RateLimitEntry | null> {
     if (!data) return null;
     return JSON.parse(data);
   } catch (error) {
-    logger.error( Redis get error:', error);
+    logger.error('Redis get error:', error);
     return null;
   }
 }
@@ -128,7 +128,7 @@ async function setRedisEntry(key: string, entry: RateLimitEntry): Promise<boolea
     );
     return true;
   } catch (error) {
-    logger.error( Redis set error:', error);
+    logger.error('Redis set error:', error);
     return false;
   }
 }
@@ -143,7 +143,7 @@ async function deleteRedisEntry(key: string): Promise<boolean> {
     await redisClient.del(REDIS_KEY_PREFIX + key);
     return true;
   } catch (error) {
-    logger.error( Redis delete error:', error);
+    logger.error('Redis delete error:', error);
     return false;
   }
 }
@@ -287,7 +287,7 @@ export async function recordFailedAttempt(ip: string, email: string): Promise<vo
   if (ipEntry.attempts >= MAX_ATTEMPTS) {
     ipEntry.lockoutCount++;
     ipEntry.lockoutUntil = now + calculateLockoutDuration(ipEntry.lockoutCount - 1);
-    logger.warn( IP ${ip} locked out until ${new Date(ipEntry.lockoutUntil).toISOString()}`);
+    logger.warn(`IP ${ip} locked out until ${new Date(ipEntry.lockoutUntil).toISOString()}`);
   }
   
   await saveEntry('ip', ip, ipEntry);
@@ -300,7 +300,7 @@ export async function recordFailedAttempt(ip: string, email: string): Promise<vo
   if (emailEntry.attempts >= MAX_ATTEMPTS) {
     emailEntry.lockoutCount++;
     emailEntry.lockoutUntil = now + calculateLockoutDuration(emailEntry.lockoutCount - 1);
-    logger.warn( Email ${email} locked out until ${new Date(emailEntry.lockoutUntil).toISOString()}`);
+    logger.warn(`Email ${email} locked out until ${new Date(emailEntry.lockoutUntil).toISOString()}`);
   }
   
   await saveEntry('email', email.toLowerCase(), emailEntry);
