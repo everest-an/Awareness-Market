@@ -10,6 +10,8 @@ import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import type { LatentMASMemoryPackage } from '../latentmas/kv-cache-w-matrix-integration';
 import { storagePut } from '../storage';
+import * as db from '../db';
+import { nanoid } from 'nanoid';
 
 // ============================================================================
 // Validation Schemas
@@ -158,21 +160,31 @@ export const latentmasMarketplaceRouter = router({
         Buffer.from(packageData, 'utf-8'),
         'application/json'
       );
-      
-      // TODO: Save to database
-      // const listing = await db.insert(latentmasListings).values({
-      //   userId: ctx.user.id,
-      //   name: input.name,
-      //   sourceModel: input.sourceModel,
-      //   targetModel: input.targetModel,
-      //   epsilon: input.wMatrix.epsilon,
-      //   price: input.price,
-      //   packageUrl: url,
-      //   certificationLevel: input.certificationLevel,
-      // });
-      
+
+      // Save to database
+      const packageId = `vpkg_${nanoid(16)}`;
+
+      await db.createVectorPackage({
+        packageId,
+        userId: ctx.user.id,
+        name: input.name,
+        description: input.description,
+        vectorUrl: url, // For now, use same URL for all files
+        wMatrixUrl: url,
+        packageUrl: url,
+        sourceModel: input.sourceModel,
+        targetModel: input.targetModel,
+        dimension: input.wMatrix.weights[0]?.length || 0,
+        epsilon: input.wMatrix.epsilon.toString(),
+        informationRetention: input.metrics.qualityScore.toString(),
+        category: 'nlp', // Default category
+        price: input.price.toString(),
+        status: 'active',
+      });
+
       return {
         success: true,
+        packageId,
         packageUrl: url,
         validation: {
           errors: validation.errors,
@@ -197,28 +209,37 @@ export const latentmasMarketplaceRouter = router({
       offset: z.number().int().min(0).default(0),
     }))
     .query(async ({ input }) => {
-      // TODO: Query from database
-      // For now, return mock data
-      
-      const mockPackages: any[] = [
-        {
-          id: 'pkg-001',
-          name: 'GPT-3.5 → GPT-4 Memory',
-          sourceModel: 'gpt-3.5-turbo',
-          targetModel: 'gpt-4',
-          epsilon: 0.034,
-          qualityScore: 0.87,
-          certificationLevel: 'gold',
-          price: 299.0,
-          hasKVCache: true,
-          createdAt: new Date(),
-        },
-      ];
-      
+      // Query from database
+      const packages = await db.browseVectorPackages({
+        sourceModel: input.sourceModel,
+        targetModel: input.targetModel,
+        maxEpsilon: input.maxEpsilon,
+        status: 'active',
+        limit: input.limit,
+        offset: input.offset,
+      });
+
+      // Transform to match expected format
+      const formattedPackages = packages.map(pkg => ({
+        id: pkg.packageId,
+        name: pkg.name,
+        description: pkg.description,
+        sourceModel: pkg.sourceModel,
+        targetModel: pkg.targetModel,
+        epsilon: parseFloat(pkg.epsilon),
+        qualityScore: parseFloat(pkg.informationRetention),
+        certificationLevel: 'gold' as const, // Default certification
+        price: parseFloat(pkg.price),
+        hasKVCache: false, // Can be extended later
+        downloads: pkg.downloads,
+        rating: parseFloat(pkg.rating || '0'),
+        createdAt: pkg.createdAt,
+      }));
+
       return {
-        packages: mockPackages,
-        total: mockPackages.length,
-        hasMore: false,
+        packages: formattedPackages,
+        total: packages.length,
+        hasMore: packages.length >= input.limit,
       };
     }),
   
@@ -230,12 +251,37 @@ export const latentmasMarketplaceRouter = router({
       packageId: z.string(),
     }))
     .query(async ({ input }) => {
-      // TODO: Fetch from database and S3
-      
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Package not found',
-      });
+      // Fetch from database
+      const pkg = await db.getVectorPackageByPackageId(input.packageId);
+
+      if (!pkg) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Package not found',
+        });
+      }
+
+      return {
+        id: pkg.packageId,
+        name: pkg.name,
+        description: pkg.description,
+        sourceModel: pkg.sourceModel,
+        targetModel: pkg.targetModel,
+        dimension: pkg.dimension,
+        epsilon: parseFloat(pkg.epsilon),
+        informationRetention: parseFloat(pkg.informationRetention),
+        category: pkg.category,
+        price: parseFloat(pkg.price),
+        downloads: pkg.downloads,
+        rating: parseFloat(pkg.rating || '0'),
+        reviewCount: pkg.reviewCount,
+        packageUrl: pkg.packageUrl,
+        vectorUrl: pkg.vectorUrl,
+        wMatrixUrl: pkg.wMatrixUrl,
+        status: pkg.status,
+        createdAt: pkg.createdAt,
+        updatedAt: pkg.updatedAt,
+      };
     }),
   
   /**
@@ -276,22 +322,21 @@ export const latentmasMarketplaceRouter = router({
    */
   getStatistics: publicProcedure
     .query(async () => {
-      // TODO: Calculate from database
-      
+      // Calculate from database
+      const stats = await db.getVectorPackagesStatistics();
+
       return {
-        totalPackages: 10,
-        totalTransactions: 42,
-        averageEpsilon: 0.045,
+        totalPackages: stats.totalPackages,
+        totalDownloads: stats.totalDownloads,
+        averageEpsilon: stats.averageEpsilon,
+        averageRating: stats.averageRating,
         certificationDistribution: {
-          platinum: 2,
-          gold: 4,
-          silver: 3,
-          bronze: 1,
+          platinum: 0,
+          gold: stats.totalPackages, // Assume all are gold for now
+          silver: 0,
+          bronze: 0,
         },
-        popularModelPairs: [
-          { source: 'gpt-3.5-turbo', target: 'gpt-4', count: 5 },
-          { source: 'claude-3-sonnet', target: 'gpt-4', count: 3 },
-        ],
+        popularModelPairs: [],
       };
     }),
 });
