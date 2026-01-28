@@ -8,6 +8,9 @@ import { z } from "zod";
 import { getDb } from "./db";
 import { aiMemory } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
+import { createLogger } from "./utils/logger";
+
+const logger = createLogger('AI:MemoryAPI');
 import { validateApiKey } from "./ai-auth-api";
 
 const router = express.Router();
@@ -55,7 +58,7 @@ router.get("/memory/:key", async (req, res) => {
       expiresAt: memory.expiresAt,
     });
   } catch (error) {
-    console.error("[AI Memory] Retrieve error:", error);
+    logger.error(" Retrieve error:", error);
     return res.status(500).json({ error: "Failed to retrieve memory" });
   }
 });
@@ -85,7 +88,7 @@ router.get("/memory", async (req, res) => {
 
     return res.json({ memories });
   } catch (error) {
-    console.error("[AI Memory] List error:", error);
+    logger.error(" List error:", error);
     return res.status(500).json({ error: "Failed to list memories" });
   }
 });
@@ -169,7 +172,7 @@ router.put("/memory/:key", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("[AI Memory] Store error:", error);
+    logger.error(" Store error:", error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
@@ -199,7 +202,7 @@ router.delete("/memory/:key", async (req, res) => {
 
     return res.json({ success: true, message: "Memory deleted" });
   } catch (error) {
-    console.error("[AI Memory] Delete error:", error);
+    logger.error(" Delete error:", error);
     return res.status(500).json({ error: "Failed to delete memory" });
   }
 });
