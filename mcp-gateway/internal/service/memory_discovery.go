@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/awareness-market/mcp-gateway/internal/model"
 	"github.com/awareness-market/mcp-gateway/pkg/client"
@@ -125,70 +127,236 @@ func (s *MemoryDiscoveryService) BatchDiscoverMemories(ctx context.Context, requ
 
 // queryKVCacheMemories queries KV-Cache memories from the API
 func (s *MemoryDiscoveryService) queryKVCacheMemories(ctx context.Context, req *model.DiscoveryRequest) ([]model.Memory, error) {
-	// TODO: Implement actual API call to memory marketplace
-	// For now, return mock data
-	
-	memories := []model.Memory{
-		{
-			ID:            "kv-001",
-			Type:          "kv-cache",
-			Name:          "GPT-4 Medical Domain KV-Cache",
-			Description:   "Optimized KV-Cache for medical Q&A",
-			Epsilon:       0.0234,
-			Certification: "gold",
-			Price:         499.0,
-			RelevanceScore: calculateRelevance(req.Context, "medical domain gpt-4"),
-		},
+	type PackageResponse struct {
+		ID            int     `json:"id"`
+		PackageID     string  `json:"packageId"`
+		Name          string  `json:"name"`
+		Description   string  `json:"description"`
+		Price         string  `json:"price"`
+		Status        string  `json:"status"`
+		CreatorID     int     `json:"creatorId"`
+		InformationRetention string `json:"informationRetention"`
 	}
-	
+
+	var packages []PackageResponse
+	queryParams := fmt.Sprintf("?packageType=memory&limit=%d", req.Limit)
+	if req.MaxPrice > 0 {
+		queryParams += fmt.Sprintf("&maxPrice=%.2f", req.MaxPrice)
+	}
+
+	if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+queryParams, &packages); err != nil {
+		return nil, fmt.Errorf("failed to fetch KV-Cache memories: %w", err)
+	}
+
+	memories := make([]model.Memory, 0, len(packages))
+	for _, pkg := range packages {
+		price := 0.0
+		if p, err := fmt.Sscanf(pkg.Price, "%f", &price); err == nil && p == 1 {
+			epsilon := 0.05 // default
+			if ir, err := fmt.Sscanf(pkg.InformationRetention, "%f", &epsilon); err == nil && ir == 1 {
+				epsilon = 1.0 - epsilon // convert retention to epsilon
+			}
+
+			memories = append(memories, model.Memory{
+				ID:             pkg.PackageID,
+				Type:           "kv-cache",
+				Name:           pkg.Name,
+				Description:    pkg.Description,
+				Epsilon:        epsilon,
+				Certification:  "gold",
+				Price:          price,
+				RelevanceScore: calculateRelevance(req.Context, pkg.Name+" "+pkg.Description),
+			})
+		}
+	}
+
 	return memories, nil
 }
 
 // queryWMatrixMemories queries W-Matrix memories from the API
 func (s *MemoryDiscoveryService) queryWMatrixMemories(ctx context.Context, req *model.DiscoveryRequest) ([]model.Memory, error) {
-	// TODO: Implement actual API call
-	
-	memories := []model.Memory{
-		{
-			ID:            "wm-001",
-			Type:          "w-matrix",
-			Name:          "Claude → GPT-4 Alignment Matrix",
-			Description:   "Cross-model alignment for Claude to GPT-4",
-			Epsilon:       0.0356,
-			Certification: "gold",
-			Price:         299.0,
-			RelevanceScore: calculateRelevance(req.Context, "claude gpt-4 alignment"),
-		},
+	type WMatrixResponse struct {
+		ID              int     `json:"id"`
+		Title           string  `json:"title"`
+		Description     string  `json:"description"`
+		SourceModel     string  `json:"sourceModel"`
+		TargetModel     string  `json:"targetModel"`
+		Price           float64 `json:"price"`
+		AverageEpsilon  float64 `json:"averageEpsilon"`
+		Status          string  `json:"status"`
 	}
-	
+
+	var wMatrices []WMatrixResponse
+	queryParams := fmt.Sprintf("?limit=%d", req.Limit)
+	if req.SourceModel != "" {
+		queryParams += "&sourceModel=" + req.SourceModel
+	}
+	if req.TargetModel != "" {
+		queryParams += "&targetModel=" + req.TargetModel
+	}
+	if req.MaxPrice > 0 {
+		queryParams += fmt.Sprintf("&maxPrice=%.2f", req.MaxPrice)
+	}
+
+	if err := s.apiClient.Get(ctx, "/api/trpc/wMatrix.browseListings"+queryParams, &wMatrices); err != nil {
+		return nil, fmt.Errorf("failed to fetch W-Matrix memories: %w", err)
+	}
+
+	memories := make([]model.Memory, 0, len(wMatrices))
+	for _, wm := range wMatrices {
+		if wm.Status == "active" {
+			memories = append(memories, model.Memory{
+				ID:             fmt.Sprintf("wm-%d", wm.ID),
+				Type:           "w-matrix",
+				Name:           wm.Title,
+				Description:    wm.Description,
+				Epsilon:        wm.AverageEpsilon,
+				Certification:  "gold",
+				Price:          wm.Price,
+				RelevanceScore: calculateRelevance(req.Context, wm.Title+" "+wm.Description),
+			})
+		}
+	}
+
 	return memories, nil
 }
 
 // queryReasoningChainMemories queries Reasoning Chain memories from the API
 func (s *MemoryDiscoveryService) queryReasoningChainMemories(ctx context.Context, req *model.DiscoveryRequest) ([]model.Memory, error) {
-	// TODO: Implement actual API call
-	
-	memories := []model.Memory{
-		{
-			ID:            "rc-001",
-			Type:          "reasoning-chain",
-			Name:          "Mathematical Problem Solving Chain",
-			Description:   "Complex reasoning chain for math problems",
-			Epsilon:       0.0512,
-			Certification: "silver",
-			Price:         199.0,
-			RelevanceScore: calculateRelevance(req.Context, "mathematical reasoning problem solving"),
-		},
+	type ChainPackageResponse struct {
+		ID            int     `json:"id"`
+		PackageID     string  `json:"packageId"`
+		Name          string  `json:"name"`
+		Description   string  `json:"description"`
+		Price         string  `json:"price"`
+		Status        string  `json:"status"`
+		InformationRetention string `json:"informationRetention"`
 	}
-	
+
+	var packages []ChainPackageResponse
+	queryParams := fmt.Sprintf("?packageType=chain&limit=%d", req.Limit)
+	if req.MaxPrice > 0 {
+		queryParams += fmt.Sprintf("&maxPrice=%.2f", req.MaxPrice)
+	}
+
+	if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+queryParams, &packages); err != nil {
+		return nil, fmt.Errorf("failed to fetch Reasoning Chain memories: %w", err)
+	}
+
+	memories := make([]model.Memory, 0, len(packages))
+	for _, pkg := range packages {
+		price := 0.0
+		if p, err := fmt.Sscanf(pkg.Price, "%f", &price); err == nil && p == 1 {
+			epsilon := 0.05 // default
+			if ir, err := fmt.Sscanf(pkg.InformationRetention, "%f", &epsilon); err == nil && ir == 1 {
+				epsilon = 1.0 - epsilon // convert retention to epsilon
+			}
+
+			memories = append(memories, model.Memory{
+				ID:             pkg.PackageID,
+				Type:           "reasoning-chain",
+				Name:           pkg.Name,
+				Description:    pkg.Description,
+				Epsilon:        epsilon,
+				Certification:  "silver",
+				Price:          price,
+				RelevanceScore: calculateRelevance(req.Context, pkg.Name+" "+pkg.Description),
+			})
+		}
+	}
+
 	return memories, nil
 }
 
 // calculateRelevance calculates relevance score between context and memory description
 func calculateRelevance(context, description string) float64 {
-	// TODO: Implement actual semantic similarity calculation
-	// For now, return a mock score
-	return 0.85
+	// Convert both to lowercase for case-insensitive matching
+	contextLower := strings.ToLower(context)
+	descLower := strings.ToLower(description)
+
+	// Tokenize context into words
+	contextWords := tokenize(contextLower)
+	descWords := tokenize(descLower)
+
+	if len(contextWords) == 0 || len(descWords) == 0 {
+		return 0.5 // neutral score for empty inputs
+	}
+
+	// Calculate word overlap (Jaccard similarity)
+	contextSet := make(map[string]bool)
+	for _, word := range contextWords {
+		contextSet[word] = true
+	}
+
+	descSet := make(map[string]bool)
+	for _, word := range descWords {
+		descSet[word] = true
+	}
+
+	intersection := 0
+	for word := range contextSet {
+		if descSet[word] {
+			intersection++
+		}
+	}
+
+	union := len(contextSet)
+	for word := range descSet {
+		if !contextSet[word] {
+			union++
+		}
+	}
+
+	jaccardScore := float64(intersection) / float64(union)
+
+	// Add substring bonus if context is contained in description
+	substringBonus := 0.0
+	if strings.Contains(descLower, contextLower) {
+		substringBonus = 0.2
+	}
+
+	// Combine scores (Jaccard * 0.8 + substring bonus * 0.2)
+	relevanceScore := (jaccardScore * 0.8) + substringBonus
+
+	// Clamp to [0, 1] range
+	if relevanceScore > 1.0 {
+		relevanceScore = 1.0
+	}
+	if relevanceScore < 0.0 {
+		relevanceScore = 0.0
+	}
+
+	return relevanceScore
+}
+
+// tokenize splits a string into words, removing punctuation and short words
+func tokenize(text string) []string {
+	var words []string
+	var currentWord strings.Builder
+
+	for _, r := range text {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			currentWord.WriteRune(r)
+		} else {
+			if currentWord.Len() > 0 {
+				word := currentWord.String()
+				if len(word) > 2 { // ignore very short words
+					words = append(words, word)
+				}
+				currentWord.Reset()
+			}
+		}
+	}
+
+	// Add last word if any
+	if currentWord.Len() > 0 {
+		word := currentWord.String()
+		if len(word) > 2 {
+			words = append(words, word)
+		}
+	}
+
+	return words
 }
 
 // sortMemoriesByRelevance sorts memories by relevance score in descending order
