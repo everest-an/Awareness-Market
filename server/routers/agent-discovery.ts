@@ -18,6 +18,9 @@ import { getDb } from '../db';
 import { users, latentVectors } from '../../drizzle/schema';
 import { eq, desc, sql, and, inArray, gte } from 'drizzle-orm';
 import { getOnChainAgent, checkCapability } from '../auth-erc8004';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Agent:Discovery');
 
 // ============================================================================
 // Input Schemas
@@ -191,7 +194,7 @@ export const agentDiscoveryRouter = router({
               }
             }
           } catch (e) {
-            console.warn('[AgentDiscovery] Failed to fetch on-chain data:', e);
+            logger.warn('[AgentDiscovery] Failed to fetch on-chain data:', e);
           }
         }
 
@@ -317,7 +320,7 @@ export const agentDiscoveryRouter = router({
             onChainReputation = onChainAgent.reputation;
           }
         } catch (e) {
-          console.warn('[AgentDiscovery] Failed to fetch on-chain data:', e);
+          logger.warn('[AgentDiscovery] Failed to fetch on-chain data:', e);
         }
       }
 

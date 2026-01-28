@@ -10,6 +10,9 @@ import { TRPCError } from '@trpc/server';
 import { getDb } from '../db';
 import { memoryNFTs } from '../../drizzle/schema-memory-nft';
 import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('MemoryNFT:API');
 
 // ============================================================================
 // Input Schemas
@@ -148,7 +151,7 @@ export const memoryNFTRouter = router({
         const { buildFamilyTree } = await import('../db-provenance');
         familyTree = await buildFamilyTree(input.memoryId);
       } catch (error) {
-        console.log('[getProvenance] Database query failed, using mock data:', error);
+        logger.info('[getProvenance] Database query failed, using mock data:', error);
       }
       
       // If no data found or error occurred, return mock data for demo purposes
