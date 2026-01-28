@@ -2,11 +2,110 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "path";
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
+/**
+ * 自定义插件：确保正确的模块加载顺序
+ *
+ * 问题：Vite 的 manualChunks 不保证加载顺序
+ * 解决：通过修改 HTML 中的 script 标签顺序来确保 React 最先加载
+ */
+function ensureReactLoadOrder(): Plugin {
+  return {
+    name: 'ensure-react-load-order',
+    enforce: 'post',
+    transformIndexHtml(html, ctx) {
+      // 只在生产构建时处理
+      if (!ctx.bundle) return html;
 
-const plugins = [react(), tailwindcss(), vitePluginManusRuntime()];
+      // 提取所有 script 和 modulepreload 标签
+      const scripts: Array<{ tag: string; attrs: Record<string, string>; isPreload: boolean }> = [];
+
+      // 查找所有相关标签
+      const scriptRegex = /<script[^>]*>/g;
+      const linkRegex = /<link[^>]*rel="modulepreload"[^>]*>/g;
+
+      let match;
+      while ((match = scriptRegex.exec(html)) !== null) {
+        const tag = match[0];
+        const srcMatch = tag.match(/src="([^"]+)"/);
+        const typeMatch = tag.match(/type="([^"]+)"/);
+        if (srcMatch) {
+          scripts.push({
+            tag,
+            attrs: { src: srcMatch[1], type: typeMatch?.[1] || 'module' },
+            isPreload: false
+          });
+        }
+      }
+
+      while ((match = linkRegex.exec(html)) !== null) {
+        const tag = match[0];
+        const hrefMatch = tag.match(/href="([^"]+)"/);
+        if (hrefMatch) {
+          scripts.push({
+            tag,
+            attrs: { href: hrefMatch[1] },
+            isPreload: true
+          });
+        }
+      }
+
+      // 按优先级排序
+      const sortedScripts = scripts.sort((a, b) => {
+        const aPath = a.attrs.src || a.attrs.href || '';
+        const bPath = b.attrs.src || b.attrs.href || '';
+
+        // 优先级：react-core > react-router > react-ecosystem > ui-components > 其他
+        const getPriority = (path: string): number => {
+          if (path.includes('react-core')) return 1;
+          if (path.includes('react-router')) return 2;
+          if (path.includes('react-ecosystem')) return 3;
+          if (path.includes('ui-components')) return 4;
+          if (path.includes('charts')) return 5;
+          if (path.includes('utils')) return 6;
+          if (path.includes('vendor')) return 7;
+          return 10;
+        };
+
+        return getPriority(aPath) - getPriority(bPath);
+      });
+
+      // 重建 HTML
+      let newHtml = html;
+
+      // 移除所有现有的 script 和 modulepreload
+      newHtml = newHtml.replace(scriptRegex, '');
+      newHtml = newHtml.replace(linkRegex, '');
+
+      // 在 head 中插入排序后的 modulepreload
+      const preloads = sortedScripts
+        .filter(s => s.isPreload)
+        .map(s => s.tag)
+        .join('\n    ');
+
+      newHtml = newHtml.replace('</head>', `  ${preloads}\n  </head>`);
+
+      // 在 body 结束前插入排序后的 scripts
+      const scriptTags = sortedScripts
+        .filter(s => !s.isPreload)
+        .map(s => s.tag)
+        .join('\n    ');
+
+      newHtml = newHtml.replace('</body>', `  ${scriptTags}\n  </body>`);
+
+      return newHtml;
+    }
+  };
+}
+
+const plugins = [
+  react(),
+  tailwindcss(),
+  vitePluginManusRuntime(),
+  ensureReactLoadOrder()
+];
 
 export default defineConfig({
   plugins,
@@ -23,53 +122,134 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    
+
     // ==========================================
-    // 代码分割优化
+    // 智能代码分割策略
     // ==========================================
     rollupOptions: {
       output: {
-        // 手动分割代码
+        // 精确的手动分块逻辑
         manualChunks: (id) => {
           // 跳过外部依赖 ethers（可选的 Web3 功能）
           if (id.includes('ethers') || id.includes('@ethersproject')) {
             return undefined;
           }
-          
-          // React 生态
-          if (id.includes('node_modules/react') || 
-              id.includes('node_modules/react-dom') || 
-              id.includes('node_modules/react-router')) {
-            return 'vendor-react';
+
+          // ============================================
+          // 1. React 核心（最高优先级，必须最先加载）
+          // ============================================
+          // 精确匹配 react 和 react-dom 包
+          if (
+            id.includes('node_modules/react/index.js') ||
+            id.includes('node_modules/react/jsx-runtime.js') ||
+            id.includes('node_modules/react/jsx-dev-runtime.js') ||
+            id.includes('node_modules/react-dom/index.js') ||
+            id.includes('node_modules/react-dom/client.js') ||
+            id.includes('node_modules/scheduler/') ||
+            id.match(/node_modules\/react\/[^/]*\.js$/) ||
+            id.match(/node_modules\/react-dom\/[^/]*\.js$/)
+          ) {
+            return 'react-core';
           }
-          
-          // UI 库
-          if (id.includes('node_modules/@radix-ui')) {
-            return 'vendor-ui';
+
+          // ============================================
+          // 2. React Router（依赖 React）
+          // ============================================
+          if (
+            id.includes('node_modules/react-router') ||
+            id.includes('node_modules/@remix-run/router')
+          ) {
+            return 'react-router';
           }
-          
-          // 工具库
-          if (id.includes('node_modules/axios') || 
-              id.includes('node_modules/lodash') || 
-              id.includes('node_modules/date-fns')) {
-            return 'vendor-utils';
+
+          // ============================================
+          // 3. React 生态系统（依赖 React，但不互相依赖）
+          // ============================================
+          if (
+            id.includes('node_modules/@tanstack/react-query') ||
+            id.includes('node_modules/@tanstack/query-core') ||
+            id.includes('node_modules/react-hook-form') ||
+            id.includes('node_modules/framer-motion') ||
+            id.includes('node_modules/react-hot-toast') ||
+            id.includes('node_modules/react-use') ||
+            id.includes('node_modules/zustand')
+          ) {
+            return 'react-ecosystem';
           }
-          
-          // 其他 node_modules
+
+          // ============================================
+          // 4. UI 组件库（依赖 React 生态）
+          // ============================================
+          if (
+            id.includes('node_modules/@radix-ui') ||
+            id.includes('node_modules/@floating-ui') ||
+            id.includes('node_modules/react-icons')
+          ) {
+            return 'ui-components';
+          }
+
+          // ============================================
+          // 5. 图表库（通常很大，独立打包）
+          // ============================================
+          if (
+            id.includes('node_modules/recharts') ||
+            id.includes('node_modules/d3-') ||
+            id.includes('node_modules/victory')
+          ) {
+            return 'charts';
+          }
+
+          // ============================================
+          // 6. 工具库（不依赖 React，可以独立加载）
+          // ============================================
+          if (
+            id.includes('node_modules/axios') ||
+            id.includes('node_modules/ky') ||
+            id.includes('node_modules/lodash') ||
+            id.includes('node_modules/date-fns') ||
+            id.includes('node_modules/dayjs') ||
+            id.includes('node_modules/clsx') ||
+            id.includes('node_modules/class-variance-authority') ||
+            id.includes('node_modules/tailwind-merge')
+          ) {
+            return 'utils';
+          }
+
+          // ============================================
+          // 7. 其他第三方库
+          // ============================================
           if (id.includes('node_modules')) {
             return 'vendor';
           }
         },
-        
-        // 优化文件大小和加载时间
-        chunkFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId
-            ? chunkInfo.facadeModuleId.split('/').pop()
-            : 'chunk';
-          return `chunks/[name]-[hash].js`;
+
+        // ============================================
+        // 模块预加载配置（关键！）
+        // ============================================
+        // 这确保了正确的加载顺序
+        manualChunksMeta: {
+          'react-core': {
+            // React 核心总是预加载
+            isEntry: false,
+            implicitlyLoadedBefore: [
+              'react-router',
+              'react-ecosystem',
+              'ui-components',
+              'charts',
+              'vendor'
+            ]
+          }
         },
-        
+
+        // 优化文件名
+        chunkFileNames: (chunkInfo) => {
+          // 使用确定性的文件名，便于调试
+          const name = chunkInfo.name;
+          return `chunks/${name}-[hash].js`;
+        },
+
         entryFileNames: 'js/[name]-[hash].js',
+
         assetFileNames: (assetInfo) => {
           const name = assetInfo.name || 'asset';
           const info = name.split('.');
@@ -85,7 +265,7 @@ export default defineConfig({
         },
       },
     },
-    
+
     // ==========================================
     // 压缩和优化选项
     // ==========================================
@@ -95,26 +275,54 @@ export default defineConfig({
         drop_console: true,
         drop_debugger: true,
         pure_funcs: ['console.log', 'console.info'],
-        passes: 3, // 多次压缩
+        passes: 2,
       },
       mangle: {
         toplevel: true,
         keep_classnames: false,
+        // 保留 React 相关的类名（有助于调试）
+        reserved: ['React', 'ReactDOM'],
       },
       format: {
         comments: false,
         preamble: '/* Awareness Market - Optimized Build */',
       },
     },
-    
+
     // ==========================================
     // 其他优化
     // ==========================================
-    reportCompressedSize: true, // 显示压缩后的大小
-    chunkSizeWarningLimit: 500, // 警告阈值 500KB
-    sourcemap: true, // 生产环境保留 sourcemap 便于调试
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 1000,
+    sourcemap: 'hidden', // 生成 sourcemap 但不引用（便于调试但不影响性能）
+
+    // ==========================================
+    // 模块预加载策略
+    // ==========================================
+    modulePreload: {
+      // 自定义预加载逻辑
+      resolveDependencies: (filename, deps, { hostId, hostType }) => {
+        // React 核心必须最先预加载
+        const sortedDeps = deps.sort((a, b) => {
+          const getPriority = (path: string): number => {
+            if (path.includes('react-core')) return 1;
+            if (path.includes('react-router')) return 2;
+            if (path.includes('react-ecosystem')) return 3;
+            if (path.includes('ui-components')) return 4;
+            if (path.includes('charts')) return 5;
+            if (path.includes('utils')) return 6;
+            if (path.includes('vendor')) return 7;
+            return 10;
+          };
+
+          return getPriority(a) - getPriority(b);
+        });
+
+        return sortedDeps;
+      },
+    },
   },
-  assetsInclude: ['**/*.wasm'], // 包含 WebAssembly 文件
+  assetsInclude: ['**/*.wasm'],
   server: {
     host: true,
     allowedHosts: [
