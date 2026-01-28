@@ -7,15 +7,9 @@
 import express from "express";
 import { z } from "zod";
 import * as erc8004 from "./auth-erc8004";
+import { getErrorMessage } from "./utils/error-handling";
 
 const router = express.Router();
-
-// Helper to safely get error message
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return 'An unknown error occurred';
-}
 
 /**
  * GET /api/erc8004/status
