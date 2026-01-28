@@ -6,6 +6,7 @@ import { Router } from 'express';
 import { inferenceTracker } from './inference-tracker';
 import { alignVector, transformDimension } from './latentmas-core';
 import { z } from 'zod';
+import { getErrorMessage } from './utils/error-handling';
 
 const inferenceRouter = Router();
 
@@ -25,8 +26,8 @@ inferenceRouter.post('/session', async (req, res) => {
     const session = inferenceTracker.createSession(data);
 
     res.json({ success: true, session });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
+  } catch (error: unknown) {
+    res.status(400).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -103,8 +104,8 @@ inferenceRouter.post('/align', async (req, res) => {
       event: tracked?.event,
       edge: tracked?.edge,
     });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
+  } catch (error: unknown) {
+    res.status(400).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -151,8 +152,8 @@ inferenceRouter.post('/transform', async (req, res) => {
       metadata: result.metadata,
       event,
     });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
+  } catch (error: unknown) {
+    res.status(400).json({ error: getErrorMessage(error) });
   }
 });
 

@@ -29,6 +29,13 @@
 
 import axios from "axios";
 import { findOrCreateOAuthUser } from "./auth-standalone";
+import { getErrorMessage } from "./utils/error-handling";
+import type { InferSelectModel } from "drizzle-orm";
+import { users } from "../drizzle/schema";
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('OAuth');
+type User = InferSelectModel<typeof users>;
 
 // OAuth Configuration
 const OAUTH_CONFIG = {
@@ -202,7 +209,7 @@ async function getGitHubUserInfo(accessToken: string): Promise<{
       const primaryEmail = emailsResponse.data.find(e => e.primary && e.verified);
       email = primaryEmail?.email || emailsResponse.data[0]?.email || null;
     } catch (error) {
-      console.warn("[OAuth] Failed to fetch GitHub emails:", error);
+      logger.warn('Failed to fetch GitHub emails', { error });
     }
   }
 
@@ -249,7 +256,7 @@ export async function handleOAuthCallback(
   code: string
 ): Promise<{
   success: boolean;
-  user?: any;
+  user?: User;
   accessToken?: string;
   refreshToken?: string;
   error?: string;
@@ -293,11 +300,17 @@ export async function handleOAuthCallback(
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
     };
-  } catch (error: any) {
-    console.error(`[OAuth] ${provider} callback error:`, error.message);
+  } catch (error: unknown) {
+    logger.error('OAuth callback failed', {
+      error: getErrorMessage(error),
+      provider
+    });
+    const errorMsg = (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'error_description' in error.response.data)
+      ? String(error.response.data.error_description)
+      : getErrorMessage(error) || "OAuth authentication failed";
     return {
       success: false,
-      error: error.response?.data?.error_description || error.message || "OAuth authentication failed",
+      error: errorMsg,
     };
   }
 }

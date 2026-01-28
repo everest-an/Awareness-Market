@@ -2,6 +2,14 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 
+interface Capability {
+  id: string;
+  title: string;
+  summary: string;
+  category: string;
+  tags?: string[];
+}
+
 const communityRouter = express.Router();
 
 const loadCapabilities = () => {
@@ -14,7 +22,7 @@ const loadCapabilities = () => {
 const buildResponse = (query: string) => {
   const capabilities = loadCapabilities();
   const normalized = query.toLowerCase();
-  const matches = capabilities.filter((cap: any) => {
+  const matches = capabilities.filter((cap: Capability) => {
     const haystack = [cap.title, cap.summary, cap.category, ...(cap.tags || [])]
       .join(" ")
       .toLowerCase();
@@ -30,7 +38,7 @@ const buildResponse = (query: string) => {
   return {
     query,
     suggestions,
-    capabilities: matches.slice(0, 5).map((cap: any) => ({
+    capabilities: matches.slice(0, 5).map((cap: Capability) => ({
       id: cap.id,
       title: cap.title,
       summary: cap.summary,

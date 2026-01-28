@@ -16,6 +16,7 @@
 import { getDb, executeWithTimeout } from './db-connection';
 import { eq, sql, and } from 'drizzle-orm';
 import type { MySql2Database } from 'drizzle-orm/mysql2';
+import type { MySqlTable } from 'drizzle-orm/mysql-core';
 
 export interface TransactionOptions {
   timeout?: number; // milliseconds
@@ -61,7 +62,7 @@ export async function withTransaction<T>(
  * Returns true if update succeeded, false if version conflict
  */
 export async function updateWithOptimisticLock<T extends { id: number; version: number }>(
-  table: any,
+  table: MySqlTable,
   id: number,
   currentVersion: number,
   updates: Partial<T>
@@ -71,7 +72,7 @@ export async function updateWithOptimisticLock<T extends { id: number; version: 
     const [record] = await tx
       .select()
       .from(table)
-      .where((t: any) => t.id.eq(id))
+      .where(eq((table as MySqlTable & { id: unknown }).id, id))
       .limit(1);
 
     if (!record || record.version !== currentVersion) {
@@ -180,7 +181,7 @@ export async function purchasePackageTransaction(params: {
 export async function uploadPackageTransaction(params: {
   userId: number;
   packageType: 'vector' | 'memory' | 'chain';
-  packageData: any;
+  packageData: Record<string, unknown>;
   s3Urls: {
     packageUrl: string;
     wMatrixUrl: string;

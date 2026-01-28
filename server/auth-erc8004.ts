@@ -24,6 +24,10 @@ import { users, apiKeys } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { getErrorMessage } from "./utils/error-handling";
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('ERC8004');
 
 // Contract ABI (minimal interface for auth)
 const ERC8004_ABI = [
@@ -65,10 +69,10 @@ function getProvider(): ethers.JsonRpcProvider {
 function getRegistryContract(): ethers.Contract | null {
   const registryAddress = process.env.ERC8004_REGISTRY_ADDRESS;
   if (!registryAddress) {
-    console.warn("[ERC8004] Registry address not configured");
+    logger.warn('Registry address not configured');
     return null;
   }
-  
+
   if (!registryContract) {
     registryContract = new ethers.Contract(registryAddress, ERC8004_ABI, getProvider());
   }
@@ -176,10 +180,10 @@ This signature will not trigger any blockchain transaction.`;
           };
         }
       } catch (e) {
-        console.warn("[ERC8004] Failed to check on-chain status:", e);
+        logger.warn('Failed to check on-chain status', { error: e, walletAddress });
       }
     }
-    
+
     // Find or create user in database
     const db = await getDb();
     if (!db) {
@@ -221,8 +225,8 @@ This signature will not trigger any blockchain transaction.`;
         permissions: JSON.stringify(["read", "write", "purchase"]),
         isActive: true,
       });
-      
-      console.log(`[ERC8004] New agent registered: ${walletAddress}`);
+
+      logger.info('New agent registered', { walletAddress, agentId: agentIdBytes });
     } else {
       userId = userRecords[0].id;
       
@@ -257,9 +261,9 @@ This signature will not trigger any blockchain transaction.`;
         reputation: isOnChain ? reputation : undefined
       }
     };
-  } catch (error: any) {
-    console.error("[ERC8004] Authentication error:", error);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    logger.error('Authentication failed', { error: getErrorMessage(error) });
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -302,7 +306,7 @@ export async function getOnChainAgent(agentId: string): Promise<{
       }
     };
   } catch (error) {
-    console.error("[ERC8004] Failed to get agent:", error);
+    logger.error('Failed to get agent', { error, agentId });
     return { exists: false };
   }
 }
@@ -313,13 +317,13 @@ export async function getOnChainAgent(agentId: string): Promise<{
 export async function checkCapability(agentId: string, capability: string): Promise<boolean> {
   const registry = getRegistryContract();
   if (!registry) return false;
-  
+
   try {
     const agentIdBytes = agentId.startsWith("0x") ? agentId : ethers.id(agentId);
     const claimHash = ethers.id(capability);
     return await registry.isVerified(agentIdBytes, claimHash);
   } catch (error) {
-    console.error("[ERC8004] Failed to check capability:", error);
+    logger.error('Failed to check capability', { error, agentId, capability });
     return false;
   }
 }
@@ -402,8 +406,8 @@ export function verifyERC8004Token(token: string): {
         isOnChain: payload.isOnChain
       }
     };
-  } catch (error: any) {
-    return { valid: false, error: error.message };
+  } catch (error: unknown) {
+    return { valid: false, error: getErrorMessage(error) };
   }
 }
 

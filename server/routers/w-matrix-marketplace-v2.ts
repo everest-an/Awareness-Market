@@ -12,6 +12,7 @@
 import { z } from 'zod';
 import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
+import { getErrorMessage } from '../utils/error-handling';
 import {
   WMatrixProtocolBuilder,
   QualityCertifier,
@@ -20,6 +21,7 @@ import {
   ModelCompatibilityMatrix,
   type WMatrixVersion,
   type CertificationLevel,
+  type CompatibilityEntry,
 } from '../latentmas/w-matrix-protocol';
 import { storagePut } from '../storage';
 import { nanoid } from 'nanoid';
@@ -148,10 +150,10 @@ export const wMatrixMarketplaceV2Router = router({
             sizeBytes: protocol.metadata.sizeBytes,
           },
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to create listing: ${error.message}`,
+          message: `Failed to create listing: ${getErrorMessage(error)}`,
         });
       }
     }),
@@ -166,9 +168,9 @@ export const wMatrixMarketplaceV2Router = router({
       // In production, this should query from database
       
       const { sourceModel, targetModel, minCertification, minVersion, limit, offset } = input;
-      
+
       // Get all compatible matrices
-      let results: any[] = [];
+      let results: CompatibilityEntry[] = [];
       
       if (sourceModel && targetModel) {
         results = compatibilityMatrix.getCompatibleMatrices(sourceModel, targetModel);
@@ -302,10 +304,10 @@ export const wMatrixMarketplaceV2Router = router({
           expectedChecksum: report.expectedChecksum,
           sizeBytes: report.sizeBytes,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Integrity verification failed: ${error.message}`,
+          message: `Integrity verification failed: ${getErrorMessage(error)}`,
         });
       }
     }),

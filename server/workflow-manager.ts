@@ -73,9 +73,9 @@ class WorkflowManager extends EventEmitter {
     type: WorkflowEventType;
     title: string;
     description?: string;
-    input?: any;
-    output?: any;
-    metadata?: Record<string, any>;
+    input?: unknown;
+    output?: unknown;
+    metadata?: Record<string, unknown>;
     parentEventId?: string;
   }): WorkflowEvent {
     const session = this.sessions.get(workflowId);
@@ -106,7 +106,7 @@ class WorkflowManager extends EventEmitter {
     session.events = sessionEvents;
 
     // Save to database (async, don't wait)
-    this.saveEventToDb(event).catch((err: any) =>
+    this.saveEventToDb(event).catch((err: unknown) =>
       console.error(`[WorkflowManager] Failed to save event to DB:`, err)
     );
 
@@ -127,13 +127,13 @@ class WorkflowManager extends EventEmitter {
   updateEvent(workflowId: string, eventId: string, updates: {
     status?: WorkflowEventStatus;
     duration?: number;
-    output?: any;
+    output?: unknown;
     error?: {
       code: string;
       message: string;
       stack?: string;
     };
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }): WorkflowEvent | null {
     const sessionEvents = this.events.get(workflowId);
     if (!sessionEvents) {
@@ -161,7 +161,7 @@ class WorkflowManager extends EventEmitter {
     }
 
     // Update database (async, don't wait)
-    this.updateEventInDb(eventId, updates).catch((err: any) =>
+    this.updateEventInDb(eventId, updates).catch((err: unknown) =>
       console.error(`[WorkflowManager] Failed to update event in DB:`, err)
     );
 
@@ -298,7 +298,15 @@ class WorkflowManager extends EventEmitter {
       const db = await getDb();
       if (!db) return;
 
-      const dbUpdates: any = {};
+      interface SessionDbUpdates {
+        status?: string;
+        completedAt?: Date;
+        totalEvents?: number;
+        totalDuration?: number;
+        totalCost?: string;
+      }
+
+      const dbUpdates: SessionDbUpdates = {};
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.completedAt) dbUpdates.completedAt = new Date(updates.completedAt);
       if (updates.totalEvents !== undefined) dbUpdates.totalEvents = updates.totalEvents;
@@ -350,7 +358,14 @@ class WorkflowManager extends EventEmitter {
       const db = await getDb();
       if (!db) return;
 
-      const dbUpdates: any = {};
+      interface EventDbUpdates {
+        status?: string;
+        duration?: number;
+        output?: unknown;
+        error?: unknown;
+      }
+
+      const dbUpdates: EventDbUpdates = {};
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
       if (updates.output !== undefined) dbUpdates.output = updates.output;
@@ -404,8 +419,8 @@ export async function trackOperation<T>(
     type: WorkflowEventType;
     title: string;
     description?: string;
-    input?: any;
-    metadata?: Record<string, any>;
+    input?: unknown;
+    metadata?: Record<string, unknown>;
   },
   operation: () => Promise<T>
 ): Promise<T> {

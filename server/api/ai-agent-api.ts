@@ -29,8 +29,38 @@ import { storagePut } from '../storage';
 import { uploadPackageTransaction, purchasePackageTransaction } from '../db-transactions';
 import { getDb } from '../db-connection';
 import { vectorPackages, memoryPackages, chainPackages, packagePurchases } from '../../drizzle/schema';
-import { eq, and, like, or } from 'drizzle-orm';
+import { eq, and, like, or, type InferSelectModel } from 'drizzle-orm';
 import { workflowManager } from '../workflow-manager';
+
+type VectorPackage = InferSelectModel<typeof vectorPackages>;
+type MemoryPackage = InferSelectModel<typeof memoryPackages>;
+type ChainPackage = InferSelectModel<typeof chainPackages>;
+
+type SearchResult =
+  | (VectorPackage & { packageType: 'vector' })
+  | (MemoryPackage & { packageType: 'memory' })
+  | (ChainPackage & { packageType: 'chain' });
+
+const uploadPackageSchema = z.object({
+  packageType: z.enum(['vector', 'memory', 'chain']),
+  name: z.string().min(3).max(100),
+  description: z.string().min(10).max(1000),
+  version: z.string().default('1.0.0'),
+  category: z.string().optional(),
+  sourceModel: z.string(),
+  targetModel: z.string(),
+  dimension: z.number().optional(),
+  epsilon: z.number().min(0).max(1),
+  price: z.number().min(0),
+  tags: z.array(z.string()).optional(),
+  vectorData: z.string().optional(),
+  wMatrixData: z.string(),
+  kvCacheData: z.string().optional(),
+  chainData: z.string().optional(),
+  webhookUrl: z.string().url().optional(),
+});
+
+type UploadPackageInput = z.infer<typeof uploadPackageSchema>;
 
 // Upload status tracking (in-memory, should use Redis in production)
 const uploadStatuses = new Map<string, {
@@ -50,26 +80,7 @@ export const aiAgentRouter = router({
    * Supports multipart/form-data or base64 encoded data
    */
   uploadPackage: protectedProcedure
-    .input(z.object({
-      packageType: z.enum(['vector', 'memory', 'chain']),
-      name: z.string().min(3).max(100),
-      description: z.string().min(10).max(1000),
-      version: z.string().default('1.0.0'),
-      category: z.string().optional(),
-      sourceModel: z.string(),
-      targetModel: z.string(),
-      dimension: z.number().optional(),
-      epsilon: z.number().min(0).max(1),
-      price: z.number().min(0),
-      tags: z.array(z.string()).optional(),
-      // File data (base64 encoded)
-      vectorData: z.string().optional(), // For vector packages
-      wMatrixData: z.string(),
-      kvCacheData: z.string().optional(), // For memory packages
-      chainData: z.string().optional(), // For chain packages
-      // Webhook URL for completion notification
-      webhookUrl: z.string().url().optional(),
-    }))
+    .input(uploadPackageSchema)
     .mutation(async ({ input, ctx }) => {
       const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
@@ -196,7 +207,7 @@ export const aiAgentRouter = router({
 
       // Simple keyword search (can be enhanced with LLM-powered semantic search)
       const searchPattern = `%${query}%`;
-      const results: any[] = [];
+      const results: SearchResult[] = [];
 
       if (packageType === 'vector' || packageType === 'all') {
         const vectors = await db
@@ -360,7 +371,7 @@ export const aiAgentRouter = router({
 /**
  * Process upload asynchronously
  */
-async function processUpload(uploadId: string, input: any, userId: number) {
+async function processUpload(uploadId: string, input: UploadPackageInput, userId: number) {
   // Create workflow session for visualization
   const session = workflowManager.createSession({
     userId,
@@ -575,7 +586,7 @@ async function processUpload(uploadId: string, input: any, userId: number) {
 /**
  * Send webhook notification
  */
-async function sendWebhook(url: string, data: any) {
+async function sendWebhook(url: string, data: unknown) {
   try {
     await fetch(url, {
       method: 'POST',

@@ -12,9 +12,14 @@
 import { z } from 'zod';
 import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { eq, desc, and, or, like, sql } from 'drizzle-orm';
+import { eq, desc, and, or, like, sql, type SQL, type InferSelectModel } from 'drizzle-orm';
 import { getDb } from '../db';
+import { getErrorMessage } from '../utils/error-handling';
 import { vectorPackages, memoryPackages, chainPackages, packageDownloads, packagePurchases, users } from '../../drizzle/schema';
+
+type VectorPackage = InferSelectModel<typeof vectorPackages>;
+type MemoryPackage = InferSelectModel<typeof memoryPackages>;
+type ChainPackage = InferSelectModel<typeof chainPackages>;
 import {
   createVectorPackage,
   extractVectorPackage,
@@ -212,10 +217,10 @@ export const packagesApiRouter = router({
           package: pkg,
           packageId: result.packageId,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to create vector package: ${error.message}`,
+          message: `Failed to create vector package: ${getErrorMessage(error)}`,
         });
       }
     }),
@@ -275,10 +280,10 @@ export const packagesApiRouter = router({
           package: pkg,
           packageId: result.packageId,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to create memory package: ${error.message}`,
+          message: `Failed to create memory package: ${getErrorMessage(error)}`,
         });
       }
     }),
@@ -335,10 +340,10 @@ export const packagesApiRouter = router({
           package: pkg,
           packageId: result.packageId,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to create chain package: ${error.message}`,
+          message: `Failed to create chain package: ${getErrorMessage(error)}`,
         });
       }
     }),
@@ -354,7 +359,7 @@ export const packagesApiRouter = router({
       const table = getPackageTable(input.packageType);
 
       // Build query conditions
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
 
       if (input.sourceModel) {
         conditions.push(eq(table.sourceModel, input.sourceModel));
@@ -690,7 +695,7 @@ export const packagesApiRouter = router({
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
       const results: Array<{
         type: 'vector' | 'memory' | 'chain';
-        package: any;
+        package: VectorPackage | MemoryPackage | ChainPackage;
       }> = [];
 
       // Determine which package types to search
@@ -699,7 +704,7 @@ export const packagesApiRouter = router({
       // Search each package type
       for (const packageType of typesToSearch) {
         const table = getPackageTable(packageType);
-        const conditions: any[] = [];
+        const conditions: SQL[] = [];
 
         // Text search (name or description)
         if (input.query) {

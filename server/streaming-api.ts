@@ -9,6 +9,11 @@ import { latentVectors, transactions } from "../drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { validateApiKey } from "./api-key-manager";
 
+interface BatchVectorRequest {
+  vectorId: number;
+  input: unknown;
+}
+
 const router = Router();
 
 /**
@@ -156,7 +161,7 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
     }
 
     // Fetch all requested vectors
-    const vectorIds = requests.map((r: any) => r.vectorId);
+    const vectorIds = requests.map((r: BatchVectorRequest) => r.vectorId);
     const vectors = await db
       .select()
       .from(latentVectors)

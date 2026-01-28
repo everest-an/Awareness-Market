@@ -12,6 +12,9 @@
 import mysql from 'mysql2/promise';
 import { drizzle } from 'drizzle-orm/mysql2';
 import type { MySql2Database } from 'drizzle-orm/mysql2';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('Database');
 
 interface ConnectionPoolConfig {
   min: number;
@@ -57,19 +60,19 @@ function createPool(config: ConnectionPoolConfig = DEFAULT_CONFIG): mysql.Pool {
 
   // Monitor pool events
   pool.on('acquire', () => {
-    console.log('[DB Pool] Connection acquired');
+    logger.debug('Connection acquired from pool');
   });
 
   pool.on('release', () => {
-    console.log('[DB Pool] Connection released');
+    logger.debug('Connection released to pool');
   });
 
   pool.on('connection', () => {
-    console.log('[DB Pool] New connection created');
+    logger.debug('New connection created in pool');
   });
 
   pool.on('enqueue', () => {
-    console.log('[DB Pool] Waiting for available connection');
+    logger.debug('Request queued, waiting for available connection');
   });
 
   return pool;
@@ -89,7 +92,11 @@ export async function getDb(): Promise<MySql2Database<Record<string, never>>> {
   for (let attempt = 1; attempt <= config.maxRetries; attempt++) {
     try {
       _connectionAttempts++;
-      console.log(`[DB] Connection attempt ${attempt}/${config.maxRetries}`);
+      logger.info('Attempting database connection', {
+        attempt,
+        maxRetries: config.maxRetries,
+        totalAttempts: _connectionAttempts
+      });
 
       if (!_pool) {
         _pool = createPool(config);
@@ -104,12 +111,19 @@ export async function getDb(): Promise<MySql2Database<Record<string, never>>> {
       _db = drizzle(_pool);
       _lastConnectionError = null;
 
-      console.log('[DB] Connection established successfully');
+      logger.info('Database connection established successfully', {
+        attempt,
+        totalAttempts: _connectionAttempts
+      });
       return _db;
     } catch (error) {
       lastError = error as Error;
       _lastConnectionError = lastError;
-      console.error(`[DB] Connection attempt ${attempt} failed:`, lastError.message);
+      logger.error('Database connection attempt failed', {
+        attempt,
+        maxRetries: config.maxRetries,
+        error: lastError
+      });
 
       // Close failed pool
       if (_pool) {
@@ -120,7 +134,10 @@ export async function getDb(): Promise<MySql2Database<Record<string, never>>> {
       // Wait before retry
       if (attempt < config.maxRetries) {
         const delay = config.retryDelay * attempt; // Exponential backoff
-        console.log(`[DB] Retrying in ${delay}ms...`);
+        logger.info('Retrying database connection', {
+          delayMs: delay,
+          nextAttempt: attempt + 1
+        });
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -202,14 +219,14 @@ export async function healthCheck(): Promise<{
  * Graceful shutdown - close all connections
  */
 export async function closeConnections(): Promise<void> {
-  console.log('[DB] Closing all connections...');
+  logger.info('Closing all database connections');
 
   if (_pool) {
     try {
       await _pool.end();
-      console.log('[DB] All connections closed');
+      logger.info('All database connections closed successfully');
     } catch (error) {
-      console.error('[DB] Error closing connections:', error);
+      logger.error('Error closing database connections', { error });
     } finally {
       _pool = null;
       _db = null;

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import type { ChatCompletionCreateParamsNonStreaming, ChatCompletionTool, ChatCompletionMessageToolCall } from "openai/resources/chat/completions";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -22,7 +23,7 @@ export interface InvokeParams {
       schema: object;
     };
   };
-  tools?: any[];
+  tools?: ChatCompletionTool[];
   tool_choice?: string | { type: string; function: { name: string } };
 }
 
@@ -60,7 +61,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     tool_choice,
   } = params;
 
-  const requestParams: any = {
+  const requestParams: ChatCompletionCreateParamsNonStreaming = {
     model,
     messages: messages.map((m) => ({
       role: m.role,
@@ -89,7 +90,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       message: {
         role: choice.message.role,
         content: choice.message.content,
-        tool_calls: choice.message.tool_calls?.map((tc: any) => ({
+        tool_calls: choice.message.tool_calls?.map((tc: ChatCompletionMessageToolCall) => ({
           id: tc.id,
           type: tc.type,
           function: {

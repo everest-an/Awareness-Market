@@ -3,8 +3,16 @@
  * 用于 AWS 环境的应用性能和健康监控
  */
 
-import { CloudWatchClient, PutMetricAlarmCommand, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
+import {
+  CloudWatchClient,
+  PutMetricAlarmCommand,
+  PutMetricDataCommand,
+  type PutMetricDataCommandInput,
+  type PutMetricAlarmCommandInput,
+} from '@aws-sdk/client-cloudwatch';
 import { Logs } from 'aws-sdk';
+import { getErrorMessage } from '../utils/error-handling';
+import type { Request, Response, NextFunction } from 'express';
 
 const cloudwatch = new CloudWatchClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const logs = new Logs({ region: process.env.AWS_REGION || 'us-east-1' });
@@ -21,7 +29,7 @@ export async function publishMetric(
   dimensions?: Record<string, string>
 ) {
   try {
-    const params: any = {
+    const params: PutMetricDataCommandInput = {
       Namespace: NAMESPACE,
       MetricData: [
         {
@@ -29,16 +37,15 @@ export async function publishMetric(
           Value: value,
           Unit: unit,
           Timestamp: new Date(),
+          Dimensions: dimensions
+            ? Object.entries(dimensions).map(([name, value]) => ({
+                Name: name,
+                Value: value,
+              }))
+            : undefined,
         },
       ],
     };
-
-    if (dimensions) {
-      params.MetricData[0].Dimensions = Object.entries(dimensions).map(([name, value]) => ({
-        Name: name,
-        Value: value,
-      }));
-    }
 
     await cloudwatch.send(new PutMetricDataCommand(params));
     console.log(`📊 Metric published: ${metricName} = ${value}`);
@@ -59,7 +66,7 @@ export async function createAlarm(
   period: number = 300
 ) {
   try {
-    const params = {
+    const params: PutMetricAlarmCommandInput = {
       AlarmName: alarmName,
       MetricName: metricName,
       Namespace: NAMESPACE,
@@ -72,7 +79,7 @@ export async function createAlarm(
       AlarmActions: [process.env.SNS_ALARM_TOPIC_ARN || ''].filter(Boolean),
     };
 
-    await cloudwatch.send(new PutMetricAlarmCommand(params as any));
+    await cloudwatch.send(new PutMetricAlarmCommand(params));
     console.log(`🚨 Alarm created: ${alarmName}`);
   } catch (error) {
     console.error('Failed to create alarm:', error);
@@ -198,8 +205,8 @@ export async function sendToCloudWatchLogs(
     // 确保日志组存在
     try {
       await logs.createLogGroup({ logGroupName }).promise();
-    } catch (error: any) {
-      if (error.code !== 'ResourceAlreadyExistsException') {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && error.code !== 'ResourceAlreadyExistsException') {
         throw error;
       }
     }
@@ -207,8 +214,8 @@ export async function sendToCloudWatchLogs(
     // 确保日志流存在
     try {
       await logs.createLogStream({ logGroupName, logStreamName }).promise();
-    } catch (error: any) {
-      if (error.code !== 'ResourceAlreadyExistsException') {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && error.code !== 'ResourceAlreadyExistsException') {
         throw error;
       }
     }
@@ -237,7 +244,7 @@ export async function sendToCloudWatchLogs(
  * 性能监控中间件
  */
 export function performanceMonitoringMiddleware() {
-  return (req: any, res: any, next: any) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     const startTime = Date.now();
 
     // 监听响应完成
@@ -295,10 +302,13 @@ export function startSystemResourceMonitoring(intervalMs: number = 60000) {
       await publishMetric('MemoryUsage', memoryUsage, 'Percent');
 
       // 进程数
-      const processes = require('child_process').exec('ps aux | wc -l', (error: any, stdout: any) => {
-        if (!error) {
-          const processCount = parseInt(stdout.trim());
-          publishMetric('ProcessCount', processCount, 'Count');
+      const { exec } = require('child_process');
+      exec('ps aux | wc -l', (error: unknown, stdout: string) => {
+        if (!error && stdout) {
+          const processCount = parseInt(stdout.trim(), 10);
+          if (!isNaN(processCount)) {
+            publishMetric('ProcessCount', processCount, 'Count');
+          }
         }
       });
 

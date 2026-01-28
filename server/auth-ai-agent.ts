@@ -14,6 +14,7 @@ import { getDb } from "./db";
 import { users } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
+import { getErrorMessage } from "./utils/error-handling";
 
 export interface AIAgentCredentials {
   agentId: string;
@@ -110,8 +111,8 @@ export async function registerAIAgent(params: {
         createdAt: user.createdAt,
       },
     };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -162,8 +163,8 @@ export async function authenticateAIAgent(apiKey: string): Promise<{
         lastAccessedAt: new Date(),
       },
     };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -219,8 +220,8 @@ export async function revokeAIAgentAccess(agentId: string): Promise<{ success: b
   try {
     await db.delete(users).where(eq(users.openId, agentId));
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 

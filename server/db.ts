@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, gte, lte, like, or, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte, like, or, inArray, type SQL } from "drizzle-orm";
 import crypto from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -35,6 +35,9 @@ import {
 } from "../drizzle/schema";
 import { mcpTokens } from "../drizzle/schema-mcp-tokens";
 import { ENV } from './_core/env';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('Database:Operations');
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -43,7 +46,7 @@ export async function getDb() {
     try {
       _db = drizzle(process.env.DATABASE_URL);
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      logger.warn('Failed to connect', { error });
       _db = null;
     }
   }
@@ -59,7 +62,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
+    logger.warn('Cannot upsert user: database not available');
     return;
   }
 
@@ -106,7 +109,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       set: updateSet,
     });
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
+    logger.error('Failed to upsert user', { error, openId: user.openId });
     throw error;
   }
 }
@@ -114,7 +117,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
+    logger.warn('Cannot get user: database not available', { openId });
     return undefined;
   }
 
@@ -933,7 +936,7 @@ export async function insertBrowsingHistory(history: InsertBrowsingHistory) {
   try {
     await db.insert(browsingHistory).values(history);
   } catch (error) {
-    console.error("[Database] Failed to insert browsing history:", error);
+    logger.error('Failed to insert browsing history', { error, userId: history.userId });
   }
 }
 
@@ -956,7 +959,7 @@ export async function getBrowsingHistory(userId: number, since?: Date) {
 
     return result;
   } catch (error) {
-    console.error("[Database] Failed to get browsing history:", error);
+    logger.error('Failed to get browsing history', { error, userId });
     return [];
   }
 }
@@ -973,7 +976,7 @@ export async function createVectorPackage(packageData: InsertVectorPackage) {
     const result = await db.insert(vectorPackages).values(packageData);
     return result;
   } catch (error) {
-    console.error("[Database] Failed to create vector package:", error);
+    logger.error('Failed to create vector package', { error, name: packageData.name });
     throw error;
   }
 }
@@ -991,7 +994,7 @@ export async function getVectorPackageById(id: number): Promise<VectorPackage | 
 
     return result[0] || null;
   } catch (error) {
-    console.error("[Database] Failed to get vector package:", error);
+    logger.error('Failed to get vector package by ID', { error, id });
     return null;
   }
 }
@@ -1009,7 +1012,7 @@ export async function getVectorPackageByPackageId(packageId: string): Promise<Ve
 
     return result[0] || null;
   } catch (error) {
-    console.error("[Database] Failed to get vector package:", error);
+    logger.error('Failed to get vector package by packageId', { error, packageId });
     return null;
   }
 }
@@ -1027,7 +1030,7 @@ export async function browseVectorPackages(filters: {
   if (!db) return [];
 
   try {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
 
     // Only show active packages by default
     conditions.push(eq(vectorPackages.status, filters.status || 'active'));
@@ -1055,7 +1058,7 @@ export async function browseVectorPackages(filters: {
 
     return result;
   } catch (error) {
-    console.error("[Database] Failed to browse vector packages:", error);
+    logger.error('Failed to browse vector packages', { error, filters });
     return [];
   }
 }
@@ -1076,7 +1079,7 @@ export async function updateVectorPackageStats(id: number, updates: {
 
     return true;
   } catch (error) {
-    console.error("[Database] Failed to update vector package stats:", error);
+    logger.error('Failed to update vector package stats', { error, id, updates });
     return false;
   }
 }
@@ -1093,7 +1096,7 @@ export async function incrementVectorPackageDownloads(id: number) {
 
     return true;
   } catch (error) {
-    console.error("[Database] Failed to increment downloads:", error);
+    logger.error('Failed to increment downloads', { error, id });
     return false;
   }
 }
@@ -1110,7 +1113,7 @@ export async function createMemoryPackage(packageData: InsertMemoryPackage) {
     const result = await db.insert(memoryPackages).values(packageData);
     return result;
   } catch (error) {
-    console.error("[Database] Failed to create memory package:", error);
+    logger.error('Failed to create memory package', { error, name: packageData.name });
     throw error;
   }
 }
@@ -1128,7 +1131,7 @@ export async function getMemoryPackageById(id: number): Promise<MemoryPackage | 
 
     return result[0] || null;
   } catch (error) {
-    console.error("[Database] Failed to get memory package:", error);
+    logger.error('Failed to get memory package', { error, id });
     return null;
   }
 }
@@ -1147,7 +1150,7 @@ export async function browseMemoryPackages(filters: {
   if (!db) return [];
 
   try {
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
 
     // Only show active packages by default
     conditions.push(eq(memoryPackages.status, filters.status || 'active'));
@@ -1178,7 +1181,7 @@ export async function browseMemoryPackages(filters: {
 
     return result;
   } catch (error) {
-    console.error("[Database] Failed to browse memory packages:", error);
+    logger.error('Failed to browse memory packages', { error, filters });
     return [];
   }
 }
@@ -1212,7 +1215,7 @@ export async function getVectorPackagesStatistics() {
       averageRating: 0,
     };
   } catch (error) {
-    console.error("[Database] Failed to get vector packages statistics:", error);
+    logger.error('Failed to get vector packages statistics', { error });
     return {
       totalPackages: 0,
       totalDownloads: 0,

@@ -548,7 +548,7 @@ export class LatentRolloutEngine {
     return { informationRetention, alignmentScore };
   }
 
-  private async generateSignature(data: any): Promise<string> {
+  private async generateSignature(data: unknown): Promise<string> {
     const str = JSON.stringify(data);
     let hash = 0;
     for (let i = 0; i < str.length; i++) {

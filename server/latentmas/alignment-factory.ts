@@ -17,6 +17,7 @@ import {
   type ModelPair,
   type WMatrixStandard,
 } from './w-matrix-protocol';
+import { getErrorMessage } from '../utils/error-handling';
 
 // ============================================================================
 // Model Registry
@@ -231,8 +232,8 @@ export class AlignmentFactory {
       try {
         const result = await this.generateWMatrix(pair);
         results.push(result);
-      } catch (error: any) {
-        console.error(`Failed to generate W-Matrix for ${pair.sourceModel} → ${pair.targetModel}:`, error.message);
+      } catch (error: unknown) {
+        console.error(`Failed to generate W-Matrix for ${pair.sourceModel} → ${pair.targetModel}:`, getErrorMessage(error));
       }
     }
     

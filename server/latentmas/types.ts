@@ -252,12 +252,12 @@ export interface ReasoningChain {
   creatorId: number;
   chainName: string;
   description: string;
-  
+
   /** Example input that triggers this reasoning chain */
-  inputExample: any;
-  
+  inputExample: unknown;
+
   /** Example output produced by this chain */
-  outputExample: any;
+  outputExample: unknown;
   
   /** KV-Cache snapshot of the reasoning process */
   kvCacheSnapshot: KVCache;
