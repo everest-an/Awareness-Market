@@ -18,6 +18,7 @@ import {
   browsingHistory,
   vectorPackages,
   memoryPackages,
+  packagePurchases,
   type LatentVector,
   type Transaction,
   type AccessPermission,
@@ -1223,4 +1224,115 @@ export async function getVectorPackagesStatistics() {
       averageRating: 0,
     };
   }
+}
+
+// ============================================================================
+// Package Purchase Functions
+// ============================================================================
+
+export async function createPackagePurchase(data: {
+  userId: number;
+  packageId: number;
+  amount: string;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+
+  try {
+    // Get package details to determine seller
+    const pkg = await getVectorPackageById(data.packageId);
+    if (!pkg) throw new Error('Package not found');
+
+    const price = parseFloat(data.amount);
+    const platformFeeRate = 0.15;
+    const platformFee = price * platformFeeRate;
+    const sellerEarnings = price - platformFee;
+
+    const result = await db.insert(packagePurchases).values({
+      packageType: 'vector',
+      packageId: pkg.packageId,
+      buyerId: data.userId,
+      sellerId: pkg.userId,
+      price: data.amount,
+      platformFee: platformFee.toFixed(2),
+      sellerEarnings: sellerEarnings.toFixed(2),
+      status: data.status,
+    });
+
+    return Number(result.insertId);
+  } catch (error) {
+    logger.error('Failed to create package purchase', { error, data });
+    throw error;
+  }
+}
+
+export async function getUserPackagePurchaseByPackageId(
+  userId: number,
+  packageId: string
+): Promise<any | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .select()
+      .from(packagePurchases)
+      .where(
+        and(
+          eq(packagePurchases.buyerId, userId),
+          eq(packagePurchases.packageId, packageId)
+        )
+      )
+      .limit(1);
+
+    return result[0] || null;
+  } catch (error) {
+    logger.error('Failed to get package purchase', { error, userId, packageId });
+    return null;
+  }
+}
+
+export async function updatePackagePurchaseStatus(data: {
+  userId: number;
+  packageId: number;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  completedAt?: Date;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+
+  try {
+    // Get package ID string
+    const pkg = await getVectorPackageById(data.packageId);
+    if (!pkg) throw new Error('Package not found');
+
+    await db
+      .update(packagePurchases)
+      .set({ 
+        status: data.status,
+        // @ts-ignore - timestamp update
+        purchasedAt: data.completedAt || new Date()
+      })
+      .where(
+        and(
+          eq(packagePurchases.buyerId, data.userId),
+          eq(packagePurchases.packageId, pkg.packageId)
+        )
+      );
+
+    logger.info('Package purchase status updated', {
+      userId: data.userId,
+      packageId: data.packageId,
+      status: data.status
+    });
+  } catch (error) {
+    logger.error('Failed to update package purchase status', { error, data });
+    throw error;
+  }
+}
+
+export async function incrementPackageDownloads(packageId: number): Promise<void> {
+  // Reuse existing function
+  await incrementVectorPackageDownloads(packageId);
 }
