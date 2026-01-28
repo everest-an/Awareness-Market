@@ -291,14 +291,47 @@ class AwarenessNetworkClient:
         if min_rating is not None:
             params["minRating"] = min_rating
         
-        # This would call the marketplace API endpoint
-        # For now, returning empty list as placeholder
-        return []
+        # Call the marketplace API endpoint
+        response = self._request("GET", "/vectors/search", params=params)
+
+        if not response:
+            return []
+
+        return [
+            LatentVector(
+                id=v["id"],
+                name=v["title"],
+                description=v["description"],
+                category=v["category"],
+                price=float(v["basePrice"]),
+                dimension=v.get("vectorDimension", 0),
+                model_architecture=v.get("modelArchitecture", "unknown"),
+                rating=float(v.get("averageRating", 0)),
+                total_calls=v.get("totalCalls", 0),
+                creator_id=v["creatorId"]
+            )
+            for v in response
+        ]
     
-    def get_vector_details(self, vector_id: int) -> LatentVector:
+    def get_vector_details(self, vector_id: int) -> Optional[LatentVector]:
         """Get detailed information about a specific vector"""
-        # Placeholder - would call /api/vectors/{id}
-        raise NotImplementedError("Use tRPC client or REST API directly")
+        response = self._request("GET", f"/vectors/{vector_id}")
+
+        if not response:
+            return None
+
+        return LatentVector(
+            id=response["id"],
+            name=response["title"],
+            description=response["description"],
+            category=response["category"],
+            price=float(response["basePrice"]),
+            dimension=response.get("vectorDimension", 0),
+            model_architecture=response.get("modelArchitecture", "unknown"),
+            rating=float(response.get("averageRating", 0)),
+            total_calls=response.get("totalCalls", 0),
+            creator_id=response["creatorId"]
+        )
     
     def purchase_vector(
         self,
@@ -308,37 +341,53 @@ class AwarenessNetworkClient:
     ) -> PurchaseAccess:
         """
         Purchase access to a latent vector
-        
+
         Args:
             vector_id: ID of the vector to purchase
             call_limit: Optional limit on number of calls
             duration_days: Access duration in days
-            
+
         Returns:
             PurchaseAccess object with access token
         """
-        # Placeholder - would integrate with Stripe and access management
-        raise NotImplementedError("Use web interface or tRPC client for purchases")
+        data = {
+            "vectorId": vector_id,
+        }
+        if call_limit is not None:
+            data["callLimit"] = call_limit
+        if duration_days is not None:
+            data["durationDays"] = duration_days
+
+        response = self._request("POST", "/vectors/purchase", data=data)
+
+        return PurchaseAccess(
+            access_token=response.get("accessToken", ""),
+            vector_id=vector_id,
+            expires_at=response.get("expiresAt", ""),
+            call_limit=response.get("callLimit"),
+            remaining_calls=response.get("remainingCalls")
+        )
     
     def invoke_vector(
         self,
+        vector_id: int,
         access_token: str,
         input_data: Any,
         parameters: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Invoke a purchased vector capability
-        
+
         Args:
+            vector_id: ID of the vector to invoke
             access_token: Access token from purchase
             input_data: Input data for the vector
             parameters: Optional parameters
-            
+
         Returns:
             Vector output
         """
-        # Placeholder - would call MCP invoke endpoint
-        raise NotImplementedError("Use MCP protocol for invocation")
+        return self.mcp_invoke(vector_id, input_data, access_token)
     
     # ==================== LatentMAS Transformations ====================
     
