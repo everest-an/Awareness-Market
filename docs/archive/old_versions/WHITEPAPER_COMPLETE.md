@@ -1,14 +1,6 @@
-<!--
-AUTHORITATIVE WHITEPAPER - CONSOLIDATED VERSION
-Consolidation Date: January 29, 2026
-Previous versions archived in: docs/archive/old_versions/
-This is the single source of truth for the Awareness Market whitepaper.
--->
-
 # LatentMAS Protocol Whitepaper
 
 **Version 2.0 | January 2026**
-**Consolidated Edition | January 29, 2026**
 
 **Authors:** Awareness Network Research Team
 
@@ -328,7 +320,7 @@ ALIGN: (v_s ∈ ℝ^d_s, M_s, M_t, method) → (v_t ∈ ℝ^d_t, quality)
 }
 ```
 
-### 3.3 Dimension Transformation
+### 3.4 Dimension Transformation
 
 **Definition:** Change vector dimensionality while retaining maximum information.
 
@@ -345,7 +337,7 @@ TRANSFORM: (v ∈ ℝ^d_s, d_t, method) → (v' ∈ ℝ^d_t, info_retained)
 | Autoencoder | Nonlinear mappings | 80-90% |
 | Interpolation | Fast operations | 70-85% |
 
-### 3.4 Vector Validation
+### 3.5 Vector Validation
 
 **Definition:** Verify vector quality and compatibility before operations.
 
@@ -813,53 +805,98 @@ AI agents can discover relevant reasoning chains through:
 
 ---
 
-## 10. $AMEM Token Economics
+## 10. $AMEM Token Economics: The Economy of Semantic Liquidity
 
-### 10.1 Overview
+### 10.0 Overview: Digital Oil for the AI Era
 
-$AMEM (Awareness Memory Token) is the native utility token of the LatentMAS protocol. It serves as the medium of exchange for AI memory transactions and the governance token for protocol decisions.
+The $AMEM (Awareness Memory) token is not merely a medium of exchange; it is the fundamental unit of **Semantic Liquidity** within the Awareness Market. Just as Ethereum ($ETH) serves as the "gas" for decentralized computation, $AMEM serves as the "carrier" for high-dimensional thought transfer between AI Agents.
 
-**Core Philosophy:** $AMEM quantifies the most fundamental cost in AI collaboration—**alignment cost**. The token creates economic incentives for high-quality memory production and efficient cross-model exchange.
+Our economic model is designed with a core principle: **Value is derived from effective consumption, not speculative accumulation**. The protocol incentivizes the creation of high-utility alignment matrices (the "Neural Bridges") and penalizes inefficiency and malicious behavior.
 
-### 10.2 Token Specifications
+### 10.1 The Deflationary Gas Model (EIP-1559 Style)
 
-| Property | Value |
-|----------|-------|
-| **Token Name** | Awareness Memory Token |
-| **Symbol** | $AMEM |
-| **Total Supply** | 1,000,000,000 (fixed) |
-| **Token Standard** | ERC-20 |
-| **Deflationary Mechanism** | Transaction fee burn |
+To align the token value with network usage and prevent "wash trading" (fake volume), Awareness Market implements a dynamic fee structure with a built-in burn mechanism.
 
-### 10.3 Value Capture (Utility)
+Every transmission of a latent state vector incurs a transaction fee ($T_{fee}$):
 
-**1. W-Matrix Maintenance Fee**
+$$T_{fee} = \text{BaseFee} + \text{PriorityFee}$$
 
-When an Agent applies for aligning its latent memory with the protocol standard, it pays a small amount of $AMEM to the nodes (Standardizers) responsible for computing and maintaining that version of the W-Matrix.
+**BaseFee (The Burn):** A mandatory fee calculated based on network congestion and vector dimensionality. **100% of the BaseFee is permanently burned** (destroyed). This ensures that every successful interaction on the network reduces the total supply of $AMEM, creating a deflationary pressure proportional to network adoption.
 
-**2. Memory Exchange Settlement**
+**PriorityFee (The Tip):** A variable fee paid to the Relayer Nodes (infrastructure providers) to prioritize the transaction during high-traffic periods.
 
-When Agent A accesses Agent B's TBA (Token Bound Account) memory, settlement is in $AMEM. Since W is standardized, the settlement process can automatically price based on vector dimensions and inference complexity.
+**Anti-Wash Trading Logic:** Attackers attempting to fake volume by sending data between their own agents will incur a net loss equal to the BaseFee on every transaction. This makes volume faking economically unviable.
 
-**3. ERC-6551 Account Empowerment**
+### 10.2 Proof of Effective Utility (PoEU)
 
-AI Agent NFTs must hold a certain amount of $AMEM to maintain their "long-term memory slots." If the balance is insufficient, the visibility of their old memory NFTs in the market decreases (simulating a forgetting curve).
+To mitigate the risk of incentive distortion caused by wash trading, Sybil attacks, and invalid interactions, Awareness Market adopts an **Outcome-Based Dynamic Incentive Model**. This framework ensures that network emissions and rewards are allocated strictly to infrastructure that demonstrates tangible, verified utility.
 
-**4. Memory Verification Staking (Slashing Mechanism)**
+The system defines the revenue function for any participant (Model Provider or Matrix Creator) over a given epoch as follows:
 
-Agents publishing memories must stake $AMEM. If other Agents discover that the provided memory doesn't match the standardized W-Matrix or contains adversarial interference (poisoning), the stake is confiscated.
+$$\pi = \sum_{t=0}^{T} (N_t \times P_t \times r_{share})$$
 
-### 10.4 Token Allocation
+Where:
+- $\pi$: The total revenue accumulated by the participant within the settlement cycle
+- $T$: The length of the settlement epoch
+- $N_t$: The number of successful calls to the specific Model or Alignment Matrix at time $t$ (verified by the protocol)
+- $P_t$: The market clearing price (Priority Fee) paid for the call at time $t$
+- $r_{share}$: The participant's defined revenue share ratio (e.g., the royalty rate defined in the smart contract)
 
-| Module | Percentage | Purpose |
-|--------|------------|---------|
-| **Memory Mining** | 40% | Rewards for Agents contributing high-frequency, high-quality memory NFTs |
-| **Standardization Node Rewards** | 20% | Rewards for nodes running high-performance computing and maintaining W-Matrix consistency |
-| **Ecosystem & Partners** | 15% | Incentives for open-source model teams integrating LatentMAS (Llama, Mistral communities, etc.) |
-| **Treasury** | 15% | Dynamic market liquidity adjustment, funding AI ethics and latent space alignment research |
-| **Team & Early Contributors** | 10% | 12-month lock + 36-month linear release |
+**Mechanism Logic:**
 
-### 10.5 Deflationary Mechanism
+This formula explicitly binds infrastructure revenue to real-world call frequency and market pricing power. Structurally, it eliminates the following risks:
+
+1. **Wash Trading & Fake Volume:** Since every $N_t$ incurs a base cost (burned gas) that exceeds the potential farming reward, fake traffic becomes mathematically unprofitable
+2. **Speculative "Zombie" Deployments:** Incentives are not awarded for deployment presence. Assets that sit idle without calls generate $\pi = 0$
+3. **Low-Quality Subsidy Seekers:** Sub-par models or high-loss alignment matrices will fail to attract routing traffic ($N_t \rightarrow 0$), preventing them from draining ecosystem funds
+
+Under this design, **only models and alignment matrices that are actively utilized in real-world tasks can generate sustainable yield**. If an asset fails to be called or is rejected by the market routing algorithm, its revenue naturally converges to zero, achieving an automatic, Darwinian clearance of inefficient resources.
+
+#### 10.2.1 Matrix Royalties (The "Spotify" Model for Models)
+
+The core assets of the network are **Alignment Matrices** (the transformation weights that allow Llama-3 to "speak" to Qwen-2).
+
+- **Assetization:** Developers train and upload these matrices as specific protocol assets
+- **Usage-based Reward:** Creators do not receive rewards for simply uploading a matrix. Instead, they earn a **Royalty Share** of the PriorityFee every time their matrix is successfully used by two Agents to complete a handshake
+- **Natural Selection:** High-quality, low-loss matrices will be preferred by the routing algorithm, generating consistent revenue for their creators. Poor-quality or "junk" matrices will receive zero traffic and zero revenue
+
+#### 10.2.2 Relayer Staking & Slashing (SLA Assurance)
+
+Relayer Nodes (which handle the physical routing and computation of latent swaps) must stake $AMEM to participate.
+
+- **Minimum Stake:** Nodes must lock a substantial amount of $AMEM to broadcast their availability
+- **Slashing Mechanism:** If a node is detected injecting noise, tampering with vectors, or suffering from chronic downtime (failing to meet SLA), a portion of their stake is slashed (confiscated). Half is burned, and half is rewarded to the whistleblower (Watcher Nodes)
+
+### 10.3 The Economic Flywheel
+
+This circular economy ensures long-term sustainability:
+
+1. **Demand Growth:** New AI models emerge → Agents require communication → Demand for $AMEM (Gas) rises
+2. **Supply Contraction:** Increased communication frequency → More BaseFee Burned → Total Supply decreases
+3. **Infrastructure Expansion:** Higher token value increases the USD-value of Royalties → Incentivizing developers to train better, more efficient Alignment Matrices
+4. **Utility Increase:** Better matrices reduce latency and semantic loss → Attracting more enterprise Agents to the network
+
+### 10.4 Token Distribution
+
+**Total Supply:** 1,000,000,000 $AMEM (Fixed Cap, Deflationary)
+
+| Allocation | Percentage | Vesting/Logic |
+|------------|------------|---------------|
+| **Mining & Ecosystem Incentives** | 40% | Performance-based Emission. Released only to Relayer Nodes and Matrix Creators based on Proof of Effective Utility. Halving cycle every 2 years |
+| **Core Labs & R&D** | 20% | 4-Year Vesting. 1-year cliff. Funds the development of the core awareness-sdk and LatentMAS protocol upgrades |
+| **DAO Treasury** | 15% | Governance Managed. Used for grants, auditing, and acquiring critical IP/Datasets |
+| **Early Investors** | 15% | Strategic Lock-up. 18-month vesting schedule to ensure long-term alignment |
+| **Initial Liquidity & Airdrop** | 10% | Community Bootstrapping. Targeted at active open-source AI contributors and early testnet node operators |
+
+### 10.5 Governance
+
+Governance rights are restricted to protecting the protocol's integrity, not micromanaging the market. $AMEM holders can vote on:
+
+1. Adjusting the BaseFee calculation parameters
+2. Whitelisting new cryptographic primitives for encryption
+3. Allocating Treasury funds for "Public Good" matrix training (e.g., funding a massive open-source bridge for a new SOTA model)
+
+### 10.6 Deflationary Mechanism
 
 Each memory transaction generates fees distributed as follows:
 
@@ -870,14 +907,6 @@ Each memory transaction generates fees distributed as follows:
 | **Seller** | 50% | Creator rewards |
 
 As AI collaboration frequency increases, token supply automatically decreases, creating natural scarcity.
-
-### 10.6 Positive Feedback Loop
-
-```
-High-quality memories → More Agents join → $AMEM demand increases
-        ↓                                           ↓
-Token value rises ← Attracts powerful models ← More transactions
-```
 
 ---
 
@@ -1404,9 +1433,9 @@ contract AgentAccount is ERC6551Account {
 ---
 
 **Contact:**
-- Email: research@latentmind-marketplace.manus.space
-- GitHub: https://github.com/everest-an/Awareness-Network
-- Website: https://latentmind-marketplace.manus.space
+- Email: research@awareness.market
+- GitHub: https://github.com/everest-an/Awareness-Market
+- Website: https://awareness.market
 
 ---
 
