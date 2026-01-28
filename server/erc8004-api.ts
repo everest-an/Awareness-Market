@@ -10,6 +10,13 @@ import * as erc8004 from "./auth-erc8004";
 
 const router = express.Router();
 
+// Helper to safely get error message
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'An unknown error occurred';
+}
+
 /**
  * GET /api/erc8004/status
  * Get ERC-8004 configuration status
@@ -38,11 +45,11 @@ router.post("/nonce", (req, res) => {
       message: result.message,
       expiresAt: result.expiresAt
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -78,11 +85,11 @@ router.post("/authenticate", async (req, res) => {
     } else {
       res.status(401).json({ success: false, error: result.error });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -100,8 +107,8 @@ router.get("/agent/:agentId", async (req, res) => {
     }
     
     res.json(agent);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -119,8 +126,8 @@ router.get("/agent/:agentId/capability/:capability", async (req, res) => {
       capability,
       isVerified
     });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -149,11 +156,11 @@ router.post("/register/prepare", (req, res) => {
         gasless: "Sign the message and call registerAgentWithSignature with the signature"
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -189,8 +196,8 @@ router.post("/verify", (req, res) => {
     
     const result = erc8004.verifyERC8004Token(token);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ valid: false, error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ valid: false, error: getErrorMessage(error) });
   }
 });
 
