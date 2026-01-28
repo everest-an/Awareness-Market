@@ -1,0 +1,309 @@
+// Prisma Schema for Awareness Network
+// Database: PostgreSQL (Supabase)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Core Tables (Existing - from Drizzle)
+// ============================================================================
+
+model User {
+  id                   Int       @id @default(autoincrement())
+  openId               String?   @unique @db.VarChar(64)
+  name                 String?
+  email                String?   @db.VarChar(320)
+  password             String?   @db.VarChar(255)
+  emailVerified        Boolean   @default(false) @map("email_verified")
+  loginMethod          String?   @db.VarChar(64) @map("loginMethod")
+  role                 UserRole  @default(consumer)
+  userType             UserType? @map("user_type")
+  onboardingCompleted  Boolean   @default(false) @map("onboarding_completed")
+  bio                  String?
+  avatar               String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  lastSignedIn         DateTime? @map("lastSignedIn")
+
+  // Relations
+  createdWorkflows     Workflow[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  user
+  admin
+  creator
+  consumer
+}
+
+enum UserType {
+  creator
+  consumer
+  both
+}
+
+// ============================================================================
+// NEW: Agent Collaboration Workflows
+// ============================================================================
+
+model Workflow {
+  id                  String            @id @db.VarChar(64)
+  task                String            @db.VarChar(500)
+  description         String?
+  status              WorkflowStatus    @default(pending)
+  orchestration       Orchestration
+  memorySharing       MemorySharing     @default(enabled) @map("memory_sharing")
+  memoryTTL           Int               @default(86400) @map("memory_ttl") // seconds
+  maxExecutionTime    Int               @default(600) @map("max_execution_time") // seconds
+  recordOnChain       Boolean           @default(true) @map("record_on_chain")
+
+  // Execution tracking
+  sharedMemory        Json?             @map("shared_memory")
+  startedAt           DateTime?         @map("started_at")
+  completedAt         DateTime?         @map("completed_at")
+  totalExecutionTime  Int?              @map("total_execution_time") // milliseconds
+
+  // Relations
+  createdBy           Int               @map("created_by")
+  creator             User              @relation(fields: [createdBy], references: [id])
+  steps               WorkflowStep[]
+  interactions        OnChainInteraction[]
+
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  @@index([createdBy])
+  @@index([status])
+  @@index([createdAt])
+  @@map("workflows")
+}
+
+model WorkflowStep {
+  id              Int             @id @default(autoincrement())
+  workflowId      String          @map("workflow_id") @db.VarChar(64)
+  stepIndex       Int             @map("step_index")
+
+  // Agent information
+  agentId         String          @map("agent_id") @db.VarChar(255)
+  agentName       String?         @map("agent_name") @db.VarChar(255)
+
+  // Execution status
+  status          StepStatus      @default(pending)
+
+  // Input/output
+  input           Json?
+  output          Json?
+  error           String?
+
+  // Memory coordination
+  memoryKeys      Json?           @map("memory_keys") // Array of memory keys
+
+  // Timing
+  startedAt       DateTime?       @map("started_at")
+  completedAt     DateTime?       @map("completed_at")
+  executionTime   Int?            @map("execution_time") // milliseconds
+
+  // Relations
+  workflow        Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  @@unique([workflowId, stepIndex])
+  @@index([workflowId, stepIndex])
+  @@map("workflow_steps")
+}
+
+model OnChainInteraction {
+  id              Int             @id @default(autoincrement())
+
+  // Workflow context (optional)
+  workflowId      String?         @map("workflow_id") @db.VarChar(64)
+  workflow        Workflow?       @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+
+  // Agent interaction
+  fromAgentId     String          @map("from_agent_id") @db.VarChar(255)
+  toAgentId       String          @map("to_agent_id") @db.VarChar(255)
+
+  // Interaction result
+  success         Boolean
+  weight          Int             @default(50) // Reputation weight
+  interactionType String          @default("collaboration") @map("interaction_type") @db.VarChar(50)
+
+  // Blockchain proof
+  txHash          String?         @map("tx_hash") @db.VarChar(66)
+  blockNumber     Int?            @map("block_number")
+
+  recordedAt      DateTime        @default(now()) @map("recorded_at")
+
+  @@index([workflowId])
+  @@index([fromAgentId])
+  @@index([toAgentId])
+  @@index([txHash])
+  @@map("on_chain_interactions")
+}
+
+// ============================================================================
+// NEW: W-Matrix Marketplace
+// ============================================================================
+
+model WMatrixCompatibility {
+  id                  Int                 @id @default(autoincrement())
+  wMatrixId           String              @map("w_matrix_id") @db.VarChar(64)
+  sourceModel         String              @map("source_model") @db.VarChar(100)
+  targetModel         String              @map("target_model") @db.VarChar(100)
+
+  // Semantic versioning
+  version             String              @db.VarChar(20)
+  versionMajor        Int                 @map("version_major")
+  versionMinor        Int                 @map("version_minor")
+  versionPatch        Int                 @map("version_patch")
+
+  // Quality metrics
+  certification       CertificationLevel
+  epsilon             Decimal             @db.Decimal(10, 6)
+  cosineSimilarity    Decimal?            @map("cosine_similarity") @db.Decimal(10, 6)
+  euclideanDistance   Decimal?            @map("euclidean_distance") @db.Decimal(18, 6)
+  testSamples         Int?                @map("test_samples")
+
+  // Availability
+  available           Boolean             @default(true)
+
+  // Storage
+  downloadUrl         String?             @map("download_url") @db.VarChar(512)
+  checksumSHA256      String?             @map("checksum_sha256") @db.VarChar(66)
+  sizeBytes           Int?                @map("size_bytes")
+
+  // Metadata
+  createdBy           Int?                @map("created_by")
+  createdAt           DateTime            @default(now()) @map("created_at")
+
+  @@index([sourceModel, targetModel])
+  @@index([certification])
+  @@index([versionMajor, versionMinor, versionPatch])
+  @@index([wMatrixId])
+  @@map("w_matrix_compatibility")
+}
+
+model WMatrixListing {
+  id                  Int                 @id @default(autoincrement())
+  sourceModel         String              @map("source_model") @db.VarChar(100)
+  targetModel         String              @map("target_model") @db.VarChar(100)
+  title               String              @db.VarChar(255)
+  description         String
+  creatorId           Int                 @map("creator_id")
+
+  // Dimensions
+  sourceDimension     Int                 @map("source_dimension")
+  targetDimension     Int                 @map("target_dimension")
+
+  // Pricing
+  price               Decimal             @db.Decimal(18, 2)
+
+  // Version and quality
+  version             String              @db.VarChar(20)
+  standard            WMatrixStandard
+  certification       CertificationLevel?
+  qualityGrade        String?             @map("quality_grade") @db.VarChar(2)
+
+  // Quality metrics
+  epsilon             Decimal             @db.Decimal(10, 6)
+  cosineSimilarity    Decimal?            @map("cosine_similarity") @db.Decimal(10, 6)
+  euclideanDistance   Decimal?            @map("euclidean_distance") @db.Decimal(18, 6)
+  testSamples         Int?                @map("test_samples")
+
+  // Storage
+  storageUrl          String              @map("storage_url") @db.VarChar(512)
+  checksumSHA256      String?             @map("checksum_sha256") @db.VarChar(66)
+  sizeBytes           Int?                @map("size_bytes")
+
+  // Marketplace metadata
+  tags                Json?
+  status              ListingStatus       @default(active)
+  downloads           Int                 @default(0)
+  views               Int                 @default(0)
+  avgRating           Decimal?            @map("avg_rating") @db.Decimal(3, 2)
+  reviewCount         Int                 @default(0) @map("review_count")
+
+  // Training metadata (optional)
+  trainingDataSize    Int?                @map("training_data_size")
+  trainingEpochs      Int?                @map("training_epochs")
+  trainingLoss        Decimal?            @map("training_loss") @db.Decimal(10, 6)
+
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  @@index([sourceModel, targetModel])
+  @@index([creatorId])
+  @@index([status])
+  @@index([certification])
+  @@map("w_matrix_listings")
+}
+
+model WMatrixIntegrity {
+  listingId           String              @id @map("listing_id") @db.VarChar(64)
+  expectedChecksum    String              @map("expected_checksum") @db.VarChar(66)
+  actualChecksum      String?             @map("actual_checksum") @db.VarChar(66)
+  sizeBytes           Int?                @map("size_bytes")
+  valid               Boolean?
+  lastVerifiedAt      DateTime?           @map("last_verified_at")
+  verificationCount   Int                 @default(1) @map("verification_count")
+  createdAt           DateTime            @default(now()) @map("created_at")
+
+  @@map("w_matrix_integrity")
+}
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+enum WorkflowStatus {
+  pending
+  running
+  completed
+  failed
+  cancelled
+}
+
+enum Orchestration {
+  sequential
+  parallel
+}
+
+enum MemorySharing {
+  enabled
+  disabled
+}
+
+enum StepStatus {
+  pending
+  running
+  completed
+  failed
+}
+
+enum CertificationLevel {
+  bronze
+  silver
+  gold
+  platinum
+}
+
+enum WMatrixStandard {
+  standard_4096  @map("4096")
+  standard_8192  @map("8192")
+  standard_16384 @map("16384")
+}
+
+enum ListingStatus {
+  active
+  inactive
+  suspended
+}
