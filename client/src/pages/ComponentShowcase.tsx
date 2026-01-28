@@ -220,7 +220,7 @@ export default function ComponentsShowcase() {
     setTimeout(() => {
       const aiResponse: Message = {
         role: "assistant",
-        content: `This is a **demo response**. In a real app, you would call a tRPC mutation here:\n\n\`\`\`typescript\nconst chatMutation = trpc.ai.chat.useMutation({\n  onSuccess: (response) => {\n    setChatMessages(prev => [...prev, {\n      role: "assistant",\n      content: response.choices[0].message.content\n    }]);\n  }\n});\n\nchatMutation.mutate({ messages: newMessages });\n\`\`\`\n\nYour message was: "${content}"`,
+        content: `This is a **demo response**. In a real app, you would call a tRPC endpoint here:\n\n\`\`\`typescript\n// Example: Search for packages\nconst searchMutation = trpc.packages.globalSearch.useMutation({\n  onSuccess: (results) => {\n    setChatMessages(prev => [...prev, {\n      role: "assistant",\n      content: \`Found \${results.packages.length} packages\`\n    }]);\n  }\n});\n\nsearchMutation.mutate({ query: "${content}" });\n\`\`\`\n\nYour message was: "${content}"`,
       };
       setChatMessages([...newMessages, aiResponse]);
       setIsChatLoading(false);
@@ -1160,7 +1160,7 @@ export default function ComponentsShowcase() {
                       <div className="space-y-2">
                         <h4 className="text-sm font-semibold">@nextjs</h4>
                         <p className="text-sm">
-                          The React Framework â€?created and maintained by
+                          The React Framework ï¿½?created and maintained by
                           @vercel.
                         </p>
                       </div>
