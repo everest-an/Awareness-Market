@@ -7,6 +7,9 @@
 
 import { getStorageRouter } from './storage-router';
 import { UploadContext } from './storage-backend';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Storage:Unified');
 
 /**
  * Upload file with automatic backend selection
@@ -37,8 +40,8 @@ export async function storagePutSmart(
   // Route to appropriate backend
   const route = router.route(uploadContext);
 
-  console.log(`[Unified Storage] Routing to ${route.backend.name}: ${route.reason}`);
-  console.log(`[Unified Storage] Estimated monthly cost: $${route.estimatedCost.toFixed(4)}`);
+  logger.info(`[Unified Storage] Routing to ${route.backend.name}: ${route.reason}`);
+  logger.info(`[Unified Storage] Estimated monthly cost: $${route.estimatedCost.toFixed(4)}`);
 
   // Upload to selected backend
   const result = await route.backend.put(key, data, contentType);
@@ -84,7 +87,7 @@ export async function storageGetSmart(
       }
     } catch (error) {
       lastError = error as Error;
-      console.warn(`[Unified Storage] Failed to get from ${backendName}:`, error);
+      logger.warn(`[Unified Storage] Failed to get from ${backendName}:`, error);
     }
   }
 

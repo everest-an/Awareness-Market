@@ -11,6 +11,9 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { StorageBackend } from './storage-backend';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Storage');
 
 export class WasabiBackend implements StorageBackend {
   name = 'wasabi';
@@ -38,7 +41,7 @@ export class WasabiBackend implements StorageBackend {
     this.publicUrl = `https://${this.bucketName}.${endpoint}`;
 
     if (!accessKeyId || !secretAccessKey) {
-      console.warn('[WasabiBackend] Missing credentials, backend will not function');
+      logger.warn('[WasabiBackend] Missing credentials, backend will not function');
     }
 
     this.client = new S3Client({
@@ -74,10 +77,10 @@ export class WasabiBackend implements StorageBackend {
       await this.client.send(command);
       const url = `${this.publicUrl}/${key}`;
 
-      console.log(`[WasabiBackend] Uploaded ${key} (${(data.length / 1024 / 1024).toFixed(2)} MB)`);
+      logger.log(`[WasabiBackend] Uploaded ${key} (${(data.length / 1024 / 1024).toFixed(2)} MB)`);
       return { url, key };
     } catch (error) {
-      console.error('[WasabiBackend] Upload failed:', error);
+      logger.error('[WasabiBackend] Upload failed:', error);
       throw new Error(`Wasabi upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -96,7 +99,7 @@ export class WasabiBackend implements StorageBackend {
       const url = await getSignedUrl(this.client, command, { expiresIn });
       return { url, key };
     } catch (error) {
-      console.error('[WasabiBackend] Get URL failed:', error);
+      logger.error('[WasabiBackend] Get URL failed:', error);
       throw new Error(`Wasabi get failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -119,7 +122,7 @@ export class WasabiBackend implements StorageBackend {
       if (uploadDate) {
         const daysSinceUpload = (Date.now() - new Date(uploadDate).getTime()) / (1000 * 60 * 60 * 24);
         if (daysSinceUpload < 90) {
-          console.warn(`[WasabiBackend] Deleting ${key} before 90 days (${daysSinceUpload.toFixed(0)} days old) - early deletion fees apply`);
+          logger.warn(`[WasabiBackend] Deleting ${key} before 90 days (${daysSinceUpload.toFixed(0)} days old) - early deletion fees apply`);
         }
       }
 
@@ -129,9 +132,9 @@ export class WasabiBackend implements StorageBackend {
       });
 
       await this.client.send(deleteCommand);
-      console.log(`[WasabiBackend] Deleted ${key}`);
+      logger.log(`[WasabiBackend] Deleted ${key}`);
     } catch (error) {
-      console.error('[WasabiBackend] Delete failed:', error);
+      logger.error('[WasabiBackend] Delete failed:', error);
       throw new Error(`Wasabi delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -178,7 +181,7 @@ export class WasabiBackend implements StorageBackend {
 
       return { healthy: true, message: 'Wasabi backend is healthy' };
     } catch (error) {
-      console.error('[WasabiBackend] Health check failed:', error);
+      logger.error('[WasabiBackend] Health check failed:', error);
       return {
         healthy: false,
         message: `Wasabi backend unhealthy: ${error instanceof Error ? error.message : 'Unknown error'}`,

@@ -15,6 +15,9 @@ import {
   getTierInfo,
 } from './access-tracker';
 import { getStorageRouter } from './storage-router';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Storage:TierMigration');
 
 export interface MigrationTask {
   id?: number;
@@ -89,10 +92,10 @@ export class TierMigrationService {
       // Sort by priority (highest first)
       tasks.sort((a, b) => b.priority - a.priority);
 
-      console.log(`[TierMigration] Found ${tasks.length} packages needing migration`);
+      logger.info(`[TierMigration] Found ${tasks.length} packages needing migration`);
       return tasks;
     } catch (error) {
-      console.error('[TierMigration] Failed to check for migrations:', error);
+      logger.error('[TierMigration] Failed to check for migrations:', error);
       return [];
     }
   }
@@ -119,11 +122,11 @@ export class TierMigrationService {
       }).$returningId();
 
       const taskId = result[0]?.id || 0;
-      console.log(`[TierMigration] Queued migration task ${taskId} for ${task.packageType}:${task.packageId}`);
+      logger.info(`[TierMigration] Queued migration task ${taskId} for ${task.packageType}:${task.packageId}`);
       return taskId;
       return taskId;
     } catch (error) {
-      console.error('[TierMigration] Failed to queue migration:', error);
+      logger.error('[TierMigration] Failed to queue migration:', error);
       throw error;
     }
   }
@@ -133,7 +136,7 @@ export class TierMigrationService {
    */
   async processMigrationQueue(): Promise<void> {
     if (this.isProcessing) {
-      console.log('[TierMigration] Already processing queue');
+      logger.info('[TierMigration] Already processing queue');
       return;
     }
 
@@ -142,7 +145,7 @@ export class TierMigrationService {
     try {
       const db = await getDb();
       if (!db) {
-        console.log('[TierMigration] Database unavailable');
+        logger.info('[TierMigration] Database unavailable');
         return;
       }
       
@@ -155,11 +158,11 @@ export class TierMigrationService {
         .limit(this.maxConcurrent);
 
       if (pendingTasks.length === 0) {
-        console.log('[TierMigration] No pending tasks');
+        logger.info('[TierMigration] No pending tasks');
         return;
       }
 
-      console.log(`[TierMigration] Processing ${pendingTasks.length} tasks`);
+      logger.info(`[TierMigration] Processing ${pendingTasks.length} tasks`);
 
       // Process tasks in parallel
       const results = await Promise.allSettled(
@@ -169,9 +172,9 @@ export class TierMigrationService {
       const succeeded = results.filter((r: PromiseSettledResult<MigrationResult>) => r.status === 'fulfilled').length;
       const failed = results.filter((r: PromiseSettledResult<MigrationResult>) => r.status === 'rejected').length;
 
-      console.log(`[TierMigration] Completed: ${succeeded} succeeded, ${failed} failed`);
+      logger.info(`[TierMigration] Completed: ${succeeded} succeeded, ${failed} failed`);
     } catch (error) {
-      console.error('[TierMigration] Queue processing failed:', error);
+      logger.error('[TierMigration] Queue processing failed:', error);
     } finally {
       this.isProcessing = false;
     }
@@ -206,7 +209,7 @@ export class TierMigrationService {
         .set({ status: 'processing' })
         .where(eq(migrationQueue.id, taskId));
 
-      console.log(`[TierMigration] Executing task ${taskId}: ${task.packageType}:${task.packageId} ${task.fromBackend} → ${task.toBackend}`);
+      logger.info(`[TierMigration] Executing task ${taskId}: ${task.packageType}:${task.packageId} ${task.fromBackend} → ${task.toBackend}`);
 
       // TODO: Actual file migration logic
       // 1. Download from source backend
@@ -232,7 +235,7 @@ export class TierMigrationService {
         .where(eq(migrationQueue.id, taskId));
 
       const timeTaken = Date.now() - startTime;
-      console.log(`[TierMigration] Task ${taskId} completed in ${timeTaken}ms`);
+      logger.info(`[TierMigration] Task ${taskId} completed in ${timeTaken}ms`);
 
       return {
         success: true,
@@ -242,7 +245,7 @@ export class TierMigrationService {
     } catch (error) {
       const db = await getDb();
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`[TierMigration] Task ${taskId} failed:`, error);
+      logger.error(`[TierMigration] Task ${taskId} failed:`, error);
 
       // Mark as failed
       if (db) {
@@ -395,7 +398,7 @@ export class TierMigrationService {
         totalSavings,
       };
     } catch (error) {
-      console.error('[TierMigration] Failed to get queue status:', error);
+      logger.error('[TierMigration] Failed to get queue status:', error);
       return {
         pending: 0,
         processing: 0,
@@ -410,7 +413,7 @@ export class TierMigrationService {
    * Run daily migration check and queue tasks
    */
   async runDailyMigrationCheck(): Promise<void> {
-    console.log('[TierMigration] Running daily migration check');
+    logger.info('[TierMigration] Running daily migration check');
 
     try {
       const tasks = await this.checkForMigrations();
@@ -422,12 +425,12 @@ export class TierMigrationService {
         await this.queueMigration(task);
       }
 
-      console.log(`[TierMigration] Queued ${highPriorityTasks.length} high-priority tasks`);
+      logger.info(`[TierMigration] Queued ${highPriorityTasks.length} high-priority tasks`);
 
       // Process the queue
       await this.processMigrationQueue();
     } catch (error) {
-      console.error('[TierMigration] Daily check failed:', error);
+      logger.error('[TierMigration] Daily check failed:', error);
     }
   }
 }

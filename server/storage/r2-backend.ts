@@ -10,6 +10,9 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { StorageBackend } from './storage-backend';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Storage');
 
 export class R2Backend implements StorageBackend {
   name = 'R2';
@@ -25,7 +28,7 @@ export class R2Backend implements StorageBackend {
     this.bucket = process.env.R2_BUCKET_NAME || 'awareness-ai-uploads';
     
     if (!accountId || !accessKeyId || !secretAccessKey) {
-      console.warn('[R2Backend] Missing R2 credentials, backend will not work');
+      logger.warn('[R2Backend] Missing R2 credentials, backend will not work');
     }
 
     // R2 endpoint format: https://<account_id>.r2.cloudflarestorage.com
@@ -59,11 +62,11 @@ export class R2Backend implements StorageBackend {
       // Return public URL
       const url = `${this.publicUrl}/${key}`;
       
-      console.log(`[R2Backend] Uploaded ${key} (${data.length} bytes)`);
+      logger.info(`[R2Backend] Uploaded ${key} (${data.length} bytes)`);
       
       return { url, key };
     } catch (error) {
-      console.error('[R2Backend] Upload failed:', error);
+      logger.error('[R2Backend] Upload failed:', error);
       throw new Error(`R2 upload failed: ${(error as Error).message}`);
     }
   }
@@ -80,7 +83,7 @@ export class R2Backend implements StorageBackend {
       
       return { url };
     } catch (error) {
-      console.error('[R2Backend] Get URL failed:', error);
+      logger.error('[R2Backend] Get URL failed:', error);
       throw new Error(`R2 get failed: ${(error as Error).message}`);
     }
   }
@@ -94,9 +97,9 @@ export class R2Backend implements StorageBackend {
 
       await this.client.send(command);
       
-      console.log(`[R2Backend] Deleted ${key}`);
+      logger.info(`[R2Backend] Deleted ${key}`);
     } catch (error) {
-      console.error('[R2Backend] Delete failed:', error);
+      logger.error('[R2Backend] Delete failed:', error);
       throw new Error(`R2 delete failed: ${(error as Error).message}`);
     }
   }
@@ -113,7 +116,7 @@ export class R2Backend implements StorageBackend {
       await this.client.send(command);
       return true;
     } catch (error) {
-      console.error('[R2Backend] Health check failed:', error);
+      logger.error('[R2Backend] Health check failed:', error);
       return false;
     }
   }
