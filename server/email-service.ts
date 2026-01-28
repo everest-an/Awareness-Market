@@ -4,6 +4,9 @@
  */
 
 import { Resend } from 'resend';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('Email');
 
 interface EmailOptions {
   to: string;
@@ -33,16 +36,16 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
     // In development, just log the email
     if (process.env.NODE_ENV !== "production" && !process.env.RESEND_API_KEY) {
-      console.log("\n=== EMAIL SENT (DEV MODE) ===");
-      console.log(`To: ${options.to}`);
-      console.log(`Subject: ${options.subject}`);
-      console.log(`Body:\n${options.text || options.html}`);
-      console.log("=============================\n");
+      logger.info('Email sent (dev mode)', {
+        to: options.to,
+        subject: options.subject,
+        body: options.text || options.html
+      });
       return true;
     }
 
     if (!process.env.RESEND_API_KEY) {
-      console.error("[Email] RESEND_API_KEY is not set");
+      logger.error('RESEND_API_KEY is not set');
       return false;
     }
 
@@ -57,14 +60,14 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
 
     if (error) {
-      console.error('[Email] Resend error:', error);
+      logger.error('Resend API error', { error });
       return false;
     }
 
-    console.log(`[Email] Successfully sent to ${options.to} (ID: ${data?.id})`);
+    logger.info('Email sent successfully', { to: options.to, emailId: data?.id });
     return true;
   } catch (error) {
-    console.error("[Email] Failed to send email:", error);
+    logger.error('Failed to send email', { error });
     return false;
   }
 }
