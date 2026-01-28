@@ -267,6 +267,24 @@ export const aiAgentRouter = router({
 
   /**
    * Purchase a package
+   *
+   * ⚠️ WARNING: This endpoint is currently using MOCK payment processing for development/testing.
+   *
+   * For production use, AI agents should:
+   * 1. Use the marketplace-specific endpoints (latentmas-marketplace, w-matrix-marketplace)
+   *    which create proper Stripe checkout sessions
+   * 2. Implement a credit/balance system for programmatic purchases
+   * 3. Use Stripe Payment Intents API with proper PCI compliance
+   *
+   * Current implementation:
+   * - Generates mock Stripe payment IDs
+   * - Directly creates purchase records without actual payment
+   * - Should NOT be used in production environment
+   *
+   * TODO: Implement one of the following:
+   * - Credit-based system: Agents pre-purchase credits, use credits for packages
+   * - Payment Links: Return Stripe payment link for agent to complete
+   * - Server-to-server Stripe API: Requires PCI DSS compliance and secure card handling
    */
   purchasePackage: protectedProcedure
     .input(z.object({
@@ -275,8 +293,28 @@ export const aiAgentRouter = router({
       paymentMethod: z.enum(['stripe', 'crypto']).default('stripe'),
     }))
     .mutation(async ({ input, ctx }) => {
+      // Production safeguard
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('[AI Agent API] purchasePackage called in production with mock payment', {
+          userId: ctx.user.id,
+          packageType: input.packageType,
+          packageId: input.packageId
+        });
+
+        throw new TRPCError({
+          code: 'NOT_IMPLEMENTED',
+          message: 'Direct purchases are not available in production. Please use the marketplace checkout flow at /api/marketplace/purchase or implement a credit-based payment system.',
+        });
+      }
+
       const db = await getDb();
       const { packageType, packageId, paymentMethod } = input;
+
+      logger.warn('[AI Agent API] Using MOCK payment - development/testing only', {
+        userId: ctx.user.id,
+        packageType,
+        packageId
+      });
 
       // Get package details
       const packageTable = getPackageTable(packageType);
@@ -293,13 +331,14 @@ export const aiAgentRouter = router({
         });
       }
 
-      // Create purchase transaction
+      // ⚠️ MOCK PAYMENT - Development/Testing Only
+      // This bypasses actual payment processing and should NOT be used in production
       const result = await purchasePackageTransaction({
         userId: ctx.user.id,
         packageType,
         packageId,
         price: (pkg as any).price,
-        stripePaymentId: `pi_${Date.now()}`, // Mock payment ID (integrate with Stripe in production)
+        stripePaymentId: `pi_mock_${Date.now()}`, // Mock payment ID - NOT a real Stripe transaction
       });
 
       return {
@@ -308,7 +347,7 @@ export const aiAgentRouter = router({
           purchaseId: result.purchaseId,
           downloadUrl: result.downloadUrl,
           expiresAt: result.expiresAt,
-          message: 'Package purchased successfully. Download link is valid for 7 days.',
+          message: '[DEV/TEST ONLY] Package purchased with mock payment. Download link is valid for 7 days.',
         },
       };
     }),

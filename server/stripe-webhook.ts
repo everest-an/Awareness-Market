@@ -309,6 +309,134 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         });
       }
     }
+  } else if (purchaseType === "w-matrix") {
+    // Handle W-Matrix purchase
+    const listingIdStr = session.metadata?.listing_id || "";
+    const listingId = listingIdStr ? parseInt(listingIdStr, 10) : NaN;
+
+    if (!listingId || isNaN(listingId)) {
+      logger.error("Missing listing_id in session metadata", {
+        sessionId: session.id,
+        userId
+      });
+      return;
+    }
+
+    // Get listing details
+    const dbModule = await import('./db');
+    const db = await dbModule.getDb();
+    const { wMatrixListings, wMatrixPurchases } = await import('../drizzle/schema');
+    const { eq, sql, and } = await import('drizzle-orm');
+
+    const [listing] = await db
+      .select()
+      .from(wMatrixListings)
+      .where(eq(wMatrixListings.id, listingId));
+
+    if (!listing) {
+      logger.error("W-Matrix listing not found", {
+        listingId,
+        sessionId: session.id,
+        userId
+      });
+      return;
+    }
+
+    // Check if purchase already exists
+    const [existingPurchase] = await db
+      .select()
+      .from(wMatrixPurchases)
+      .where(
+        and(
+          eq(wMatrixPurchases.listingId, listingId),
+          eq(wMatrixPurchases.buyerId, userId),
+          eq(wMatrixPurchases.status, "completed")
+        )
+      );
+
+    if (existingPurchase) {
+      logger.info("W-Matrix already purchased", {
+        userId,
+        listingId,
+        purchaseId: existingPurchase.id
+      });
+      return;
+    }
+
+    // Extract payment intent ID
+    const paymentIntentId = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id || null;
+
+    // Create or update purchase record
+    await db.insert(wMatrixPurchases).values({
+      listingId,
+      buyerId: userId,
+      price: listing.price,
+      stripePaymentIntentId: paymentIntentId,
+      status: "completed",
+    });
+
+    // Update listing stats
+    await db
+      .update(wMatrixListings)
+      .set({
+        totalSales: sql`${wMatrixListings.totalSales} + 1`,
+        totalRevenue: sql`${wMatrixListings.totalRevenue} + ${listing.price}`,
+      })
+      .where(eq(wMatrixListings.id, listingId));
+
+    logger.info("W-Matrix purchase completed", {
+      userId,
+      listingId,
+      amount: listing.price
+    });
+
+    // Create notification for buyer
+    await dbModule.createNotification({
+      userId,
+      type: "transaction",
+      title: "W-Matrix Purchase Successful",
+      message: `Your W-Matrix "${listing.title}" purchase has been completed successfully`,
+      relatedEntityId: listingId,
+    });
+
+    // Send email to buyer
+    const user = await dbModule.getUserById(userId);
+    if (user?.email) {
+      const emailText = `Your purchase of W-Matrix "${listing.title}" (${listing.sourceModel} → ${listing.targetModel}) was successful. You can now download and use this alignment matrix.`;
+      await sendEmail({
+        to: user.email,
+        subject: "Awareness Market - W-Matrix Purchase Successful",
+        html: `<p>${emailText}</p><p><a href="${process.env.BASE_URL}/w-matrix/${listingId}">View W-Matrix</a></p>`,
+        text: emailText,
+      });
+    }
+
+    // Notify seller
+    const seller = await dbModule.getUserById(listing.sellerId);
+    if (seller) {
+      const platformFeeRate = 0.15; // 15%
+      const sellerEarnings = parseFloat(listing.price) * (1 - platformFeeRate);
+
+      await dbModule.createNotification({
+        userId: listing.sellerId,
+        type: "transaction",
+        title: "New W-Matrix Sale",
+        message: `${user?.name || "Someone"} purchased your W-Matrix "${listing.title}"`,
+        relatedEntityId: listingId,
+      });
+
+      if (seller.email) {
+        const emailText = `Great news! ${user?.name || "A user"} just purchased your W-Matrix "${listing.title}" (${listing.sourceModel} → ${listing.targetModel}). You earned $${sellerEarnings.toFixed(2)}.`;
+        await sendEmail({
+          to: seller.email,
+          subject: "Awareness Market - New W-Matrix Sale",
+          html: `<p>${emailText}</p>`,
+          text: emailText,
+        });
+      }
+    }
   } else if (session.mode === "subscription") {
     // Handle subscription purchase
     const subscriptionId = session.subscription;
