@@ -7,6 +7,9 @@ import type { Server as HTTPServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { workflowManager } from "./workflow-manager";
 import type { WorkflowStreamMessage } from "../shared/workflow-types";
+import { createLogger } from "./utils/logger";
+
+const logger = createLogger('WorkflowWebSocket');
 
 let io: SocketIOServer | null = null;
 
@@ -23,11 +26,11 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
   });
 
   io.on("connection", (socket) => {
-    console.log(`[WorkflowWebSocket] Client connected: ${socket.id}`);
+    logger.info( Client connected: ${socket.id}`);
 
     // Handle workflow subscription
     socket.on("subscribe", (workflowId: string) => {
-      console.log(`[WorkflowWebSocket] Client ${socket.id} subscribing to workflow: ${workflowId}`);
+      logger.info( Client ${socket.id} subscribing to workflow: ${workflowId}`);
       
       // Join workflow room
       socket.join(`workflow:${workflowId}`);
@@ -47,7 +50,7 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
 
     // Handle workflow unsubscription
     socket.on("unsubscribe", (workflowId: string) => {
-      console.log(`[WorkflowWebSocket] Client ${socket.id} unsubscribing from workflow: ${workflowId}`);
+      logger.info( Client ${socket.id} unsubscribing from workflow: ${workflowId}`);
       
       // Leave workflow room
       socket.leave(`workflow:${workflowId}`);
@@ -62,7 +65,7 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
 
     // Handle disconnection
     socket.on("disconnect", () => {
-      console.log(`[WorkflowWebSocket] Client disconnected: ${socket.id}`);
+      logger.info( Client disconnected: ${socket.id}`);
       
       // Clean up all subscriptions
       if (socket.data.workflowCallbacks) {
@@ -76,7 +79,7 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
     });
   });
 
-  console.log("[WorkflowWebSocket] WebSocket server initialized");
+  logger.info( WebSocket server initialized");
   return io;
 }
 
@@ -85,7 +88,7 @@ export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
  */
 export function broadcastToWorkflow(workflowId: string, message: WorkflowStreamMessage) {
   if (!io) {
-    console.warn("[WorkflowWebSocket] WebSocket server not initialized");
+    logger.warn( WebSocket server not initialized");
     return;
   }
 
