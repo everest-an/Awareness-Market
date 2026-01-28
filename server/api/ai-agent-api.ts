@@ -18,6 +18,9 @@
  */
 
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('AI:AgentAPI');
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { VectorPackageBuilder } from '../latentmas/vector-package-builder';
@@ -93,7 +96,7 @@ export const aiAgentRouter = router({
 
       // Process upload asynchronously
       processUpload(uploadId, input, ctx.user.id).catch((error) => {
-        console.error('[AI Agent API] Upload failed:', error);
+        logger.error('Upload failed', { error });
         uploadStatuses.set(uploadId, {
           status: 'failed',
           progress: 0,
@@ -468,9 +471,8 @@ async function processUpload(uploadId: string, input: UploadPackageInput, userId
     
     const packageUrl = packageResult.url;
     const wMatrixUrl = wMatrixResult.url;
-    
-    console.log(`[AI Upload] Package stored at ${packageUrl}`);
-    console.log(`[AI Upload] W-Matrix stored at ${wMatrixUrl}`);
+
+    logger.info('Package files stored', { packageUrl, wMatrixUrl });
 
     workflowManager.updateEvent(workflowId, storageEvent.id, {
       status: 'completed',
@@ -553,7 +555,7 @@ async function processUpload(uploadId: string, input: UploadPackageInput, userId
       });
     }
   } catch (error) {
-    console.error('[Process Upload] Error:', error);
+    logger.error('Process upload error', { error });
     
     // Track error in workflow
     workflowManager.addEvent(workflowId, {
@@ -597,7 +599,7 @@ async function sendWebhook(url: string, data: unknown) {
       body: JSON.stringify(data),
     });
   } catch (error) {
-    console.error('[Webhook] Failed to send:', error);
+    logger.error('Webhook failed', { error });
   }
 }
 
