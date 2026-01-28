@@ -10,6 +10,9 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { StorageBackend } from './storage-backend';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Storage');
 
 export class B2Backend implements StorageBackend {
   name = 'B2';
@@ -26,7 +29,7 @@ export class B2Backend implements StorageBackend {
     this.publicUrl = process.env.B2_PUBLIC_URL || `https://f004.backblazeb2.com/file/${this.bucket}`;
 
     if (!keyId || !applicationKey || !endpoint) {
-      console.warn('[B2Backend] Missing B2 credentials, backend will not work');
+      logger.warn('[B2Backend] Missing B2 credentials, backend will not work');
     }
 
     this.client = new S3Client({
@@ -53,11 +56,11 @@ export class B2Backend implements StorageBackend {
       // Return public URL
       const url = `${this.publicUrl}/${key}`;
       
-      console.log(`[B2Backend] Uploaded ${key} (${data.length} bytes)`);
+      logger.info(`[B2Backend] Uploaded ${key} (${data.length} bytes)`);
       
       return { url, key };
     } catch (error) {
-      console.error('[B2Backend] Upload failed:', error);
+      logger.error('[B2Backend] Upload failed:', error);
       throw new Error(`B2 upload failed: ${(error as Error).message}`);
     }
   }
@@ -74,7 +77,7 @@ export class B2Backend implements StorageBackend {
       
       return { url };
     } catch (error) {
-      console.error('[B2Backend] Get URL failed:', error);
+      logger.error('[B2Backend] Get URL failed:', error);
       throw new Error(`B2 get failed: ${(error as Error).message}`);
     }
   }
@@ -88,9 +91,9 @@ export class B2Backend implements StorageBackend {
 
       await this.client.send(command);
       
-      console.log(`[B2Backend] Deleted ${key}`);
+      logger.info(`[B2Backend] Deleted ${key}`);
     } catch (error) {
-      console.error('[B2Backend] Delete failed:', error);
+      logger.error('[B2Backend] Delete failed:', error);
       throw new Error(`B2 delete failed: ${(error as Error).message}`);
     }
   }
@@ -106,7 +109,7 @@ export class B2Backend implements StorageBackend {
       await this.client.send(command);
       return true;
     } catch (error) {
-      console.error('[B2Backend] Health check failed:', error);
+      logger.error('[B2Backend] Health check failed:', error);
       return false;
     }
   }

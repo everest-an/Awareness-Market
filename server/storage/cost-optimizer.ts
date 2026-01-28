@@ -8,6 +8,9 @@ import { getDb } from '../db';
 import { storageCostMetrics, packageStorageTier } from '../../drizzle/schema-storage-tiers';
 import { sql, eq, gte, and } from 'drizzle-orm';
 import type { DataTier } from './access-tracker';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Storage:CostOptimizer');
 
 export interface CostBreakdown {
   tier: DataTier;
@@ -123,9 +126,9 @@ export class CostOptimizer {
         });
       }
 
-      console.log('[CostOptimizer] Recorded daily costs');
+      logger.info('[CostOptimizer] Recorded daily costs');
     } catch (error) {
-      console.error('[CostOptimizer] Failed to record costs:', error);
+      logger.error('[CostOptimizer] Failed to record costs:', error);
     }
   }
 
@@ -197,7 +200,7 @@ export class CostOptimizer {
         },
       };
     } catch (error) {
-      console.error('[CostOptimizer] Failed to get cost comparison:', error);
+      logger.error('[CostOptimizer] Failed to get cost comparison:', error);
       return {
         current: { monthly: 0, breakdown: [] },
         optimized: { monthly: 0, breakdown: [] },
@@ -318,10 +321,10 @@ export class CostOptimizer {
       // Sort by estimated savings (highest first)
       recommendations.sort((a, b) => b.estimatedSavings - a.estimatedSavings);
 
-      console.log(`[CostOptimizer] Generated ${recommendations.length} recommendations`);
+      logger.info(`[CostOptimizer] Generated ${recommendations.length} recommendations`);
       return recommendations;
     } catch (error) {
-      console.error('[CostOptimizer] Failed to generate recommendations:', error);
+      logger.error('[CostOptimizer] Failed to generate recommendations:', error);
       return [];
     }
   }
@@ -412,7 +415,7 @@ export class CostOptimizer {
         ...costs,
       }));
     } catch (error) {
-      console.error('[CostOptimizer] Failed to get cost trend:', error);
+      logger.error('[CostOptimizer] Failed to get cost trend:', error);
       return [];
     }
   }
@@ -450,7 +453,7 @@ export class CostOptimizer {
         monthlyCost: d.count * avgFileSizeGB * this.getBackendCost(d.backend),
       }));
     } catch (error) {
-      console.error('[CostOptimizer] Failed to get storage distribution:', error);
+      logger.error('[CostOptimizer] Failed to get storage distribution:', error);
       return [];
     }
   }

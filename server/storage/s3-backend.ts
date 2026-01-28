@@ -7,6 +7,9 @@
 
 import { StorageBackend } from './storage-backend';
 import { storagePut, storageGet, storageDelete } from '../storage';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Storage');
 
 export class S3Backend implements StorageBackend {
   name = 'S3';
@@ -39,7 +42,7 @@ export class S3Backend implements StorageBackend {
       if (errorMessage.includes('NoSuchKey') || errorMessage.includes('AccessDenied')) {
         return true; // S3 is reachable
       }
-      console.error('[S3Backend] Health check failed:', error);
+      logger.error('[S3Backend] Health check failed:', error);
       return false;
     }
   }
