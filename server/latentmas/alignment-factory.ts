@@ -18,6 +18,9 @@ import {
   type WMatrixStandard,
 } from './w-matrix-protocol';
 import { getErrorMessage } from '../utils/error-handling';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('LatentMAS:AlignmentFactory');
 
 // ============================================================================
 // Model Registry
@@ -222,22 +225,34 @@ export class AlignmentFactory {
   async generateBatch(): Promise<GeneratedWMatrix[]> {
     const pairs = this.getPopularModelPairs();
     const results: GeneratedWMatrix[] = [];
-    
-    console.log(`Generating ${pairs.length} W-Matrices...`);
-    
+
+    logger.info('Starting W-Matrix generation', { totalPairs: pairs.length });
+
     for (let i = 0; i < pairs.length; i++) {
       const pair = pairs[i];
-      console.log(`[${i + 1}/${pairs.length}] Generating ${pair.sourceModel} → ${pair.targetModel}...`);
+      logger.info('Generating W-Matrix', {
+        progress: `${i + 1}/${pairs.length}`,
+        sourceModel: pair.sourceModel,
+        targetModel: pair.targetModel
+      });
       
       try {
         const result = await this.generateWMatrix(pair);
         results.push(result);
       } catch (error: unknown) {
-        console.error(`Failed to generate W-Matrix for ${pair.sourceModel} → ${pair.targetModel}:`, getErrorMessage(error));
+        logger.error('Failed to generate W-Matrix', {
+          sourceModel: pair.sourceModel,
+          targetModel: pair.targetModel,
+          error: getErrorMessage(error)
+        });
       }
     }
-    
-    console.log(`Successfully generated ${results.length}/${pairs.length} W-Matrices`);
+
+    logger.info('W-Matrix generation complete', {
+      successful: results.length,
+      total: pairs.length,
+      successRate: `${((results.length / pairs.length) * 100).toFixed(1)}%`
+    });
     
     return results;
   }

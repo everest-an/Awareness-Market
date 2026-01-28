@@ -10,6 +10,9 @@ import { wMatrices, challenges } from '../../drizzle/schema';
 import { eq, and, lt } from 'drizzle-orm';
 import type { DynamicWMatrix } from './dynamic-w-matrix';
 import type { Challenge } from './anti-poisoning';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('LatentMAS:DBPersistence');
 
 /**
  * W-Matrix Database Operations
@@ -270,7 +273,7 @@ export class HybridStorage<T> {
     try {
       await this.dbOps.save(key, value);
     } catch (error) {
-      console.error(`Failed to persist ${key} to database:`, error);
+      logger.error('Failed to persist to database', { key, error });
       // Keep in cache even if DB fails
     }
   }
@@ -292,7 +295,7 @@ export class HybridStorage<T> {
         return value;
       }
     } catch (error) {
-      console.error(`Failed to load ${key} from database:`, error);
+      logger.error('Failed to load from database', { key, error });
     }
 
     return undefined;
@@ -306,7 +309,7 @@ export class HybridStorage<T> {
     try {
       return await this.dbOps.delete(key);
     } catch (error) {
-      console.error(`Failed to delete ${key} from database:`, error);
+      logger.error('Failed to delete from database', { key, error });
       return false;
     }
   }

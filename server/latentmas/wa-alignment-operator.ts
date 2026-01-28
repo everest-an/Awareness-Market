@@ -10,8 +10,10 @@
  */
 
 import { create, all, Matrix, MathJsInstance } from 'mathjs';
+import { createLogger } from '../utils/logger';
 
 const math: MathJsInstance = create(all);
+const logger = createLogger('LatentMAS:WaAlignment');
 
 // ============================================================================
 // Types
@@ -133,7 +135,10 @@ export function computeWaOperator(
     inverse = math.inv(regularized) as Matrix;
   } catch (e) {
     // 如果矩阵奇异，增加正则化强度
-    console.warn('[WaOperator] Matrix singular, increasing regularization');
+    logger.warn('Matrix singular, increasing regularization', {
+      originalLambda: cfg.ridgeLambda,
+      newLambda: cfg.ridgeLambda * 10
+    });
     const strongerLambdaI = math.multiply(cfg.ridgeLambda * 10, math.identity(size)) as Matrix;
     const strongerRegularized = math.add(W_out_T_W_out, strongerLambdaI) as Matrix;
     inverse = math.inv(strongerRegularized) as Matrix;

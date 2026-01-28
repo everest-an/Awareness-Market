@@ -15,6 +15,9 @@
 import { invokeLLM } from '../_core/llm';
 import { extractHiddenStatesFromLLM, LLMAdapterFactory } from './llm-adapters';
 import { applySoftProcrustesConstraint, computeOrthogonalityScore as computeOrthScore } from './svd-orthogonalization';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('LatentMAS:WMatrixTrainer');
 
 // ============================================================================
 // Standardized Anchor Dataset
@@ -103,7 +106,7 @@ export async function extractHiddenStates(
 ): Promise<HiddenState[]> {
   try {
     // Try to use real LLM API
-    console.log(`Extracting hidden states from ${modelName} using LLM adapter...`);
+    logger.info('Extracting hidden states from LLM', { modelName });
     const results = await extractHiddenStatesFromLLM({
       modelName,
       prompts,
@@ -122,7 +125,7 @@ export async function extractHiddenStates(
       layer: result.layer,
     }));
   } catch (error) {
-    console.warn(`Failed to extract from LLM API, falling back to deterministic generation:`, error);
+    logger.warn('Failed to extract from LLM API, falling back to deterministic generation', { error, modelName });
     
     // Fallback to deterministic generation
     const states: HiddenState[] = [];
@@ -312,7 +315,11 @@ export async function trainWMatrix(
     
     // Log progress every 10 epochs
     if (epoch % 10 === 0) {
-      console.log(`Epoch ${epoch}: train_loss=${trainingLoss[epoch].toFixed(4)}, val_loss=${valLoss.toFixed(4)}`);
+      logger.debug('Training progress', {
+        epoch,
+        trainLoss: trainingLoss[epoch].toFixed(4),
+        valLoss: valLoss.toFixed(4)
+      });
     }
   }
   
@@ -493,30 +500,34 @@ export async function trainWMatrixForModelPair(
     anchorCount = 100,
     config = {},
   } = params;
-  
-  console.log(`Training W-Matrix: ${sourceModel} → ${targetModel}`);
-  console.log(`Using ${anchorCount} anchor prompts`);
-  
+
+  logger.info('Starting W-Matrix training', {
+    sourceModel,
+    targetModel,
+    anchorCount
+  });
+
   // Generate anchor prompts
   const anchors = generateExtendedAnchors(anchorCount);
-  
+
   // Extract hidden states from source model
-  console.log(`Extracting hidden states from ${sourceModel}...`);
+  logger.info('Extracting hidden states from source model', { model: sourceModel });
   const sourceStates = await extractHiddenStates(sourceModel, anchors);
-  
+
   // Extract hidden states from target model
-  console.log(`Extracting hidden states from ${targetModel}...`);
+  logger.info('Extracting hidden states from target model', { model: targetModel });
   const targetStates = await extractHiddenStates(targetModel, anchors);
-  
+
   // Train W-Matrix
-  console.log('Training W-Matrix...');
+  logger.info('Training W-Matrix with extracted states');
   const trainingConfig = { ...DEFAULT_TRAINING_CONFIG, ...config };
   const result = await trainWMatrix(sourceStates, targetStates, trainingConfig);
-  
-  console.log(`Training complete!`);
-  console.log(`  Final epsilon: ${result.finalEpsilon.toFixed(4)}`);
-  console.log(`  Convergence epoch: ${result.convergenceEpoch}`);
-  console.log(`  Orthogonality score: ${result.orthogonalityScore.toFixed(4)}`);
+
+  logger.info('W-Matrix training complete', {
+    finalEpsilon: result.finalEpsilon.toFixed(4),
+    convergenceEpoch: result.convergenceEpoch,
+    orthogonalityScore: result.orthogonalityScore.toFixed(4)
+  });
   
   return result;
 }

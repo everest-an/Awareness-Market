@@ -14,6 +14,9 @@
 
 import { ENV } from "../_core/env";
 import { getErrorMessage } from "../utils/error-handling";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger('LatentMAS:Embedding');
 
 // ============================================================================
 // Types
@@ -89,7 +92,7 @@ export class OpenAIEmbeddingService {
 
     // 如果没有 API key，使用本地生成（用于测试）
     if (!this.apiKey) {
-      console.warn("[EmbeddingService] No API key, using local generation");
+      logger.warn("No API key configured, using local generation");
       return this.generateLocalEmbedding(request.text, model, targetDimensions, startTime);
     }
 
@@ -139,7 +142,7 @@ export class OpenAIEmbeddingService {
         },
       };
     } catch (error: unknown) {
-      console.error("[EmbeddingService] API call failed:", getErrorMessage(error));
+      logger.error("API call failed, falling back to local generation", { error: getErrorMessage(error) });
       // 降级到本地生成
       return this.generateLocalEmbedding(request.text, model, targetDimensions, startTime);
     }
