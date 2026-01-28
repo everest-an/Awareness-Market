@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { trpc } from "@/lib/trpc";
 
 interface LeaderboardEntry {
   rank: number;
@@ -24,20 +24,8 @@ interface LeaderboardResponse {
 }
 
 export default function Leaderboard() {
-  const [data, setData] = useState<LeaderboardResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/metrics/leaderboard.json")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to load leaderboard");
-        }
-        return res.json();
-      })
-      .then((json) => setData(json))
-      .catch((err) => setError(err.message));
-  }, []);
+  // Use tRPC endpoint instead of static JSON file
+  const { data, error, isLoading } = trpc.agentCredit.getLeaderboard.useQuery();
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,10 +47,10 @@ export default function Leaderboard() {
           <CardContent>
             {error && (
               <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-                {error}
+                {error.message}
               </div>
             )}
-            {!data && !error ? (
+            {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, idx) => (
                   <Skeleton key={idx} className="h-8 w-full" />
