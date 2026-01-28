@@ -10,6 +10,12 @@ export * from './schema-workflow';
 // Import API Usage Logging tables
 export * from './schema-api-usage';
 
+// Import Agent Collaboration Workflows tables
+export * from './schema-workflows';
+
+// Import W-Matrix Compatibility tables
+export * from './schema-w-matrix-compat';
+
 /**
  * Core user table backing auth flow.
  * Extended with role field for Creator/Consumer distinction.

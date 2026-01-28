@@ -17,6 +17,7 @@ import { eq } from 'drizzle-orm';
 import { ethers } from 'ethers';
 import { getErrorMessage } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
+import * as workflowDb from '../db-workflows';
 
 const logger = createLogger('Agent:Collaboration');
 
@@ -46,39 +47,10 @@ const stopWorkflowSchema = z.object({
 });
 
 // ============================================================================
-// Types
+// Types (imported from db-workflows)
 // ============================================================================
 
-interface WorkflowStep {
-  agentId: string;
-  agentName: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  startedAt?: Date;
-  completedAt?: Date;
-  input?: unknown;
-  output?: unknown;
-  error?: string;
-  memoryKeys?: string[];
-}
-
-interface Workflow {
-  id: string;
-  task: string;
-  description?: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-  orchestration: 'sequential' | 'parallel';
-  memorySharing: boolean;
-  steps: WorkflowStep[];
-  sharedMemory: Record<string, any>;
-  startedAt: Date;
-  completedAt?: Date;
-  totalExecutionTime?: number;
-  createdBy: number; // userId
-  recordOnChain: boolean;
-}
-
-// In-memory workflow storage (in production, use Redis or database)
-const workflows = new Map<string, Workflow>();
+// Note: WorkflowData and WorkflowStepData types are now imported from db-workflows.ts
 
 // ERC-8004 Contract interaction
 const ERC8004_ABI = [
@@ -108,12 +80,12 @@ async function recordInteractionOnChain(
   toAgent: string,
   success: boolean,
   weight: number = 50
-): Promise<boolean> {
+): Promise<string | null> {
   try {
     const contract = await getERC8004Contract();
     if (!contract) {
       logger.warn('[Collaboration] ERC-8004 contract not available, skipping on-chain record');
-      return false;
+      return null;
     }
 
     const fromAgentId = fromAgent.startsWith('0x') ? fromAgent : ethers.id(fromAgent);
@@ -127,12 +99,12 @@ async function recordInteractionOnChain(
       'collaboration'
     );
 
-    await tx.wait();
+    const receipt = await tx.wait();
     logger.info(`[Collaboration] Recorded interaction on-chain: ${fromAgent} → ${toAgent} (${success ? 'success' : 'failed'})`);
-    return true;
+    return receipt.hash;
   } catch (error) {
     logger.error('[Collaboration] Failed to record on-chain interaction:', error);
-    return false;
+    return null;
   }
 }
 
@@ -140,12 +112,18 @@ async function recordInteractionOnChain(
  * Execute a single workflow step
  */
 async function executeStep(
-  workflow: Workflow,
-  step: WorkflowStep,
-  sharedMemory: Record<string, any>
+  workflowId: string,
+  stepIndex: number,
+  step: workflowDb.WorkflowStepData,
+  sharedMemory: Record<string, any>,
+  task: string
 ): Promise<void> {
-  step.status = 'running';
-  step.startedAt = new Date();
+  const startTime = Date.now();
+
+  await workflowDb.updateWorkflowStep(workflowId, stepIndex, {
+    status: 'running',
+    startedAt: new Date(),
+  });
 
   try {
     // Simulate AI agent execution
@@ -168,9 +146,13 @@ async function executeStep(
       throw new Error(`Agent ${step.agentId} not found`);
     }
 
+    // Fetch current workflow to get completed steps
+    const workflow = await workflowDb.getWorkflow(workflowId);
+    if (!workflow) throw new Error('Workflow not found');
+
     // Prepare input with shared memory
     const input = {
-      task: workflow.task,
+      task,
       context: sharedMemory,
       previousSteps: workflow.steps
         .filter(s => s.status === 'completed')
@@ -179,33 +161,49 @@ async function executeStep(
     };
 
     // Simulated execution (replace with actual API call)
-    logger.info(`[Collaboration] Executing step: ${step.agentName} for task: ${workflow.task}`);
+    logger.info(`[Collaboration] Executing step: ${step.agentName} for task: ${task}`);
 
     // Mock output
     const output = {
       agent: step.agentName,
       status: 'success',
-      result: `Completed ${workflow.task} analysis`,
+      result: `Completed ${task} analysis`,
       timestamp: new Date().toISOString(),
       confidence: 0.85 + Math.random() * 0.15,
     };
 
     // Store output in shared memory
+    const memoryKeys: string[] = [];
     if (workflow.memorySharing) {
-      const memoryKey = `step_${workflow.steps.indexOf(step)}_${step.agentName}`;
+      const memoryKey = `step_${stepIndex}_${step.agentName}`;
       sharedMemory[memoryKey] = output;
-      step.memoryKeys = [memoryKey];
+      memoryKeys.push(memoryKey);
+
+      // Update shared memory in database
+      await workflowDb.updateSharedMemory(workflowId, sharedMemory);
     }
 
-    step.output = output;
-    step.status = 'completed';
-    step.completedAt = new Date();
+    const executionTime = Date.now() - startTime;
+
+    await workflowDb.updateWorkflowStep(workflowId, stepIndex, {
+      status: 'completed',
+      output,
+      memoryKeys,
+      completedAt: new Date(),
+      executionTime,
+    });
 
     logger.info(`[Collaboration] Step completed: ${step.agentName}`);
   } catch (error: unknown) {
-    step.status = 'failed';
-    step.error = getErrorMessage(error);
-    step.completedAt = new Date();
+    const executionTime = Date.now() - startTime;
+
+    await workflowDb.updateWorkflowStep(workflowId, stepIndex, {
+      status: 'failed',
+      error: getErrorMessage(error),
+      completedAt: new Date(),
+      executionTime,
+    });
+
     logger.error(`[Collaboration] Step failed: ${step.agentName}`, error);
     throw error;
   }
@@ -215,58 +213,92 @@ async function executeStep(
  * Execute workflow
  */
 async function executeWorkflow(workflowId: string): Promise<void> {
-  const workflow = workflows.get(workflowId);
+  const workflow = await workflowDb.getWorkflow(workflowId);
   if (!workflow) return;
 
-  workflow.status = 'running';
-  workflow.startedAt = new Date();
+  const startTime = new Date();
+
+  await workflowDb.updateWorkflowStatus(workflowId, 'running', {
+    startedAt: startTime,
+  });
 
   try {
     if (workflow.orchestration === 'sequential') {
       // Execute steps one by one
-      for (const step of workflow.steps) {
-        await executeStep(workflow, step, workflow.sharedMemory);
+      for (let i = 0; i < workflow.steps.length; i++) {
+        const step = workflow.steps[i];
+        await executeStep(workflowId, i, step, workflow.sharedMemory, workflow.task);
 
         // Record interaction with previous step
-        if (workflow.recordOnChain && workflow.steps.indexOf(step) > 0) {
-          const prevStep = workflow.steps[workflow.steps.indexOf(step) - 1];
-          await recordInteractionOnChain(
+        if (workflow.recordOnChain && i > 0) {
+          const prevStep = workflow.steps[i - 1];
+          const txHash = await recordInteractionOnChain(
             prevStep.agentId,
             step.agentId,
             step.status === 'completed',
             70 // Higher weight for successful collaboration
           );
+
+          if (txHash) {
+            await workflowDb.recordOnChainInteraction({
+              workflowId,
+              fromAgentId: prevStep.agentId,
+              toAgentId: step.agentId,
+              success: step.status === 'completed',
+              weight: 70,
+              txHash,
+            });
+          }
         }
       }
     } else {
       // Execute steps in parallel
       await Promise.all(
-        workflow.steps.map(step => executeStep(workflow, step, workflow.sharedMemory))
+        workflow.steps.map((step, index) =>
+          executeStep(workflowId, index, step, workflow.sharedMemory, workflow.task)
+        )
       );
 
       // Record all pairwise interactions
       if (workflow.recordOnChain) {
         for (let i = 0; i < workflow.steps.length; i++) {
           for (let j = i + 1; j < workflow.steps.length; j++) {
-            await recordInteractionOnChain(
+            const txHash = await recordInteractionOnChain(
               workflow.steps[i].agentId,
               workflow.steps[j].agentId,
               workflow.steps[i].status === 'completed' && workflow.steps[j].status === 'completed',
               50 // Medium weight for parallel collaboration
             );
+
+            if (txHash) {
+              await workflowDb.recordOnChainInteraction({
+                workflowId,
+                fromAgentId: workflow.steps[i].agentId,
+                toAgentId: workflow.steps[j].agentId,
+                success: workflow.steps[i].status === 'completed' && workflow.steps[j].status === 'completed',
+                weight: 50,
+                txHash,
+              });
+            }
           }
         }
       }
     }
 
-    workflow.status = 'completed';
-    workflow.completedAt = new Date();
-    workflow.totalExecutionTime = workflow.completedAt.getTime() - workflow.startedAt.getTime();
+    const completedAt = new Date();
+    const totalExecutionTime = completedAt.getTime() - startTime.getTime();
 
-    logger.info(`[Collaboration] Workflow ${workflowId} completed in ${workflow.totalExecutionTime}ms`);
+    await workflowDb.updateWorkflowStatus(workflowId, 'completed', {
+      completedAt,
+      totalExecutionTime,
+    });
+
+    logger.info(`[Collaboration] Workflow ${workflowId} completed in ${totalExecutionTime}ms`);
   } catch (error: unknown) {
-    workflow.status = 'failed';
-    workflow.completedAt = new Date();
+    await workflowDb.updateWorkflowStatus(workflowId, 'failed', {
+      completedAt: new Date(),
+    });
+
     logger.error(`[Collaboration] Workflow ${workflowId} failed:`, error);
   }
 }
@@ -288,7 +320,7 @@ export const agentCollaborationRouter = router({
       }
 
       // Validate agents exist
-      const steps: WorkflowStep[] = [];
+      const steps: Array<{ agentId: string; agentName: string }> = [];
       for (const agentId of input.agents) {
         const agentRecords = await db
           .select()
@@ -306,27 +338,25 @@ export const agentCollaborationRouter = router({
         steps.push({
           agentId,
           agentName: agentRecords[0].name || 'Unknown Agent',
-          status: 'pending',
         });
       }
 
-      // Create workflow
+      // Create workflow in database
       const workflowId = `wf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const workflow: Workflow = {
+
+      await workflowDb.createWorkflow({
         id: workflowId,
         task: input.task,
         description: input.description,
-        status: 'pending',
         orchestration: input.orchestration,
         memorySharing: input.memorySharing,
-        steps,
-        sharedMemory: input.inputData || {},
-        startedAt: new Date(),
-        createdBy: ctx.user.id,
+        memoryTTL: input.memoryTTL,
+        maxExecutionTime: input.maxExecutionTime,
         recordOnChain: input.recordOnChain,
-      };
-
-      workflows.set(workflowId, workflow);
+        createdBy: ctx.user.id,
+        sharedMemory: input.inputData || {},
+        steps,
+      });
 
       // Start execution asynchronously
       executeWorkflow(workflowId).catch(error => {
@@ -349,7 +379,7 @@ export const agentCollaborationRouter = router({
   getWorkflowStatus: publicProcedure
     .input(getWorkflowStatusSchema)
     .query(async ({ input }) => {
-      const workflow = workflows.get(input.workflowId);
+      const workflow = await workflowDb.getWorkflow(input.workflowId);
 
       if (!workflow) {
         throw new TRPCError({
@@ -389,7 +419,7 @@ export const agentCollaborationRouter = router({
   stopWorkflow: protectedProcedure
     .input(stopWorkflowSchema)
     .mutation(async ({ input, ctx }) => {
-      const workflow = workflows.get(input.workflowId);
+      const workflow = await workflowDb.getWorkflow(input.workflowId);
 
       if (!workflow) {
         throw new TRPCError({
@@ -412,8 +442,9 @@ export const agentCollaborationRouter = router({
         });
       }
 
-      workflow.status = 'cancelled';
-      workflow.completedAt = new Date();
+      await workflowDb.updateWorkflowStatus(input.workflowId, 'cancelled', {
+        completedAt: new Date(),
+      });
 
       return {
         success: true,
@@ -426,10 +457,7 @@ export const agentCollaborationRouter = router({
    */
   listWorkflows: protectedProcedure
     .query(async ({ ctx }) => {
-      const userWorkflows = Array.from(workflows.values())
-        .filter(w => w.createdBy === ctx.user.id)
-        .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
-        .slice(0, 50);
+      const userWorkflows = await workflowDb.listWorkflowsByUser(ctx.user.id, 50);
 
       return {
         workflows: userWorkflows.map(w => ({

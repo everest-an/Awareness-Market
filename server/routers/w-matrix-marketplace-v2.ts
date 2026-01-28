@@ -18,13 +18,12 @@ import {
   QualityCertifier,
   WMatrixVersionManager,
   IntegrityVerifier,
-  ModelCompatibilityMatrix,
   type WMatrixVersion,
   type CertificationLevel,
-  type CompatibilityEntry,
 } from '../latentmas/w-matrix-protocol';
-import { storagePut } from '../storage';
+import { storagePut, storageGet } from '../storage';
 import { nanoid } from 'nanoid';
+import * as wMatrixDb from '../db-wmatrix';
 
 // ============================================================================
 // Input Schemas
@@ -73,10 +72,10 @@ const GetCompatibleModelsInputSchema = z.object({
 });
 
 // ============================================================================
-// In-memory compatibility matrix (should be loaded from database)
+// Database-backed compatibility matrix
 // ============================================================================
 
-const compatibilityMatrix = new ModelCompatibilityMatrix();
+// All compatibility operations now use database (db-wmatrix.ts)
 
 // ============================================================================
 // Router
@@ -125,18 +124,49 @@ export const wMatrixMarketplaceV2Router = router({
         // Update protocol with CDN URLs
         protocol.metadata.downloadUrl = storageUrl;
         protocol.metadata.cdnUrls = [storageUrl];
-        
-        // Add to compatibility matrix
-        compatibilityMatrix.addEntry({
+
+        // Add to database compatibility matrix
+        await wMatrixDb.addCompatibilityEntry({
+          wMatrixId: protocol.metadata.id,
           sourceModel: input.sourceModel,
           targetModel: input.targetModel,
-          wMatrixId: protocol.metadata.id,
-          version: protocol.metadata.version,
+          version: input.version,
           certification: certification.level,
           epsilon: input.epsilon,
-          available: true,
+          cosineSimilarity: input.cosineSimilarity,
+          euclideanDistance: input.euclideanDistance,
+          testSamples: input.testSamples,
+          downloadUrl: storageUrl,
+          checksumSHA256: protocol.metadata.checksumSHA256,
+          sizeBytes: protocol.metadata.sizeBytes,
+          createdBy: ctx.user.id,
         });
-        
+
+        // Create marketplace listing
+        await wMatrixDb.createWMatrixListing({
+          id: protocol.metadata.id,
+          title: input.title,
+          description: input.description,
+          creatorId: ctx.user.id,
+          sourceModel: input.sourceModel,
+          targetModel: input.targetModel,
+          sourceDimension: input.sourceDimension,
+          targetDimension: input.targetDimension,
+          price: input.price,
+          version: input.version,
+          standard: input.standard,
+          certification: certification.level,
+          qualityGrade: protocol.metadata.qualityGrade,
+          epsilon: input.epsilon,
+          cosineSimilarity: input.cosineSimilarity,
+          euclideanDistance: input.euclideanDistance,
+          testSamples: input.testSamples,
+          storageUrl,
+          checksumSHA256: protocol.metadata.checksumSHA256,
+          sizeBytes: protocol.metadata.sizeBytes,
+          tags: input.tags,
+        });
+
         return {
           success: true,
           listing: {
@@ -164,50 +194,49 @@ export const wMatrixMarketplaceV2Router = router({
   browseListings: publicProcedure
     .input(BrowseListingsInputSchema)
     .query(async ({ input }) => {
-      // This is a simplified implementation
-      // In production, this should query from database
-      
       const { sourceModel, targetModel, minCertification, minVersion, limit, offset } = input;
 
-      // Get all compatible matrices
-      let results: CompatibilityEntry[] = [];
-      
+      // Get all compatible matrices from database
+      let results: wMatrixDb.CompatibilityEntry[] = [];
+
       if (sourceModel && targetModel) {
-        results = compatibilityMatrix.getCompatibleMatrices(sourceModel, targetModel);
+        results = await wMatrixDb.getCompatibleMatrices(sourceModel, targetModel);
       } else if (sourceModel) {
-        const targetModels = compatibilityMatrix.getSupportedTargetModels(sourceModel);
+        const targetModels = await wMatrixDb.getSupportedTargetModels(sourceModel);
         for (const target of targetModels) {
-          results.push(...compatibilityMatrix.getCompatibleMatrices(sourceModel, target));
+          const matrices = await wMatrixDb.getCompatibleMatrices(sourceModel, target);
+          results.push(...matrices);
         }
       } else {
-        // Return all (not efficient, should use database)
-        const sourceModels = compatibilityMatrix.getSupportedSourceModels();
+        // Get all available matrices
+        const sourceModels = await wMatrixDb.getSupportedSourceModels();
         for (const source of sourceModels) {
-          const targets = compatibilityMatrix.getSupportedTargetModels(source);
+          const targets = await wMatrixDb.getSupportedTargetModels(source);
           for (const target of targets) {
-            results.push(...compatibilityMatrix.getCompatibleMatrices(source, target));
+            const matrices = await wMatrixDb.getCompatibleMatrices(source, target);
+            results.push(...matrices);
           }
         }
       }
-      
+
       // Filter by certification
       if (minCertification) {
         const certLevels: CertificationLevel[] = ['bronze', 'silver', 'gold', 'platinum'];
         const minLevel = certLevels.indexOf(minCertification);
         results = results.filter(r => certLevels.indexOf(r.certification) >= minLevel);
       }
-      
+
       // Filter by version
       if (minVersion) {
         const minVer = WMatrixVersionManager.parseVersion(minVersion);
-        results = results.filter(r => 
+        results = results.filter(r =>
           WMatrixVersionManager.isCompatible(minVer, r.version)
         );
       }
-      
+
       // Apply pagination
       const paginated = results.slice(offset, offset + limit);
-      
+
       return {
         success: true,
         listings: paginated,
@@ -223,25 +252,29 @@ export const wMatrixMarketplaceV2Router = router({
     .input(GetCompatibleModelsInputSchema)
     .query(async ({ input }) => {
       const { sourceModel, minCertification } = input;
-      
-      const targetModels = compatibilityMatrix.getSupportedTargetModels(sourceModel);
-      
-      const compatible = targetModels.map(target => {
-        const best = compatibilityMatrix.getBestMatrix(sourceModel, target, minCertification);
-        return {
-          targetModel: target,
-          available: best !== null,
-          bestVersion: best ? WMatrixVersionManager.formatVersion(best.version) : null,
-          certification: best?.certification,
-          epsilon: best?.epsilon,
-        };
-      }).filter(c => c.available);
-      
+
+      const targetModels = await wMatrixDb.getSupportedTargetModels(sourceModel);
+
+      const compatible = await Promise.all(
+        targetModels.map(async (target) => {
+          const best = await wMatrixDb.getBestMatrix(sourceModel, target, minCertification);
+          return {
+            targetModel: target,
+            available: best !== null,
+            bestVersion: best ? WMatrixVersionManager.formatVersion(best.version) : null,
+            certification: best?.certification,
+            epsilon: best?.epsilon,
+          };
+        })
+      );
+
+      const availableCompatible = compatible.filter(c => c.available);
+
       return {
         success: true,
         sourceModel,
-        compatibleModels: compatible,
-        totalCount: compatible.length,
+        compatibleModels: availableCompatible,
+        totalCount: availableCompatible.length,
       };
     }),
   
@@ -255,19 +288,19 @@ export const wMatrixMarketplaceV2Router = router({
       minCertification: z.enum(['bronze', 'silver', 'gold', 'platinum']).optional(),
     }))
     .query(async ({ input }) => {
-      const best = compatibilityMatrix.getBestMatrix(
+      const best = await wMatrixDb.getBestMatrix(
         input.sourceModel,
         input.targetModel,
         input.minCertification
       );
-      
+
       if (!best) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'No compatible W-Matrix found for this model pair',
         });
       }
-      
+
       return {
         success: true,
         matrix: {
@@ -287,22 +320,46 @@ export const wMatrixMarketplaceV2Router = router({
     .input(VerifyIntegrityInputSchema)
     .mutation(async ({ input }) => {
       try {
-        // In production, fetch the W-Matrix data from storage
-        // For now, this is a placeholder
-        
         const { listingId, expectedChecksum } = input;
-        
-        // Simulate fetching data
-        const mockData = JSON.stringify({ listingId });
-        
+
+        // Check if we have cached verification result
+        const cachedResult = await wMatrixDb.getIntegrityVerification(listingId);
+        if (cachedResult && cachedResult.expectedChecksum === expectedChecksum) {
+          // Return cached result if checksums match
+          return {
+            success: true,
+            valid: cachedResult.valid,
+            actualChecksum: cachedResult.actualChecksum,
+            expectedChecksum: cachedResult.expectedChecksum,
+            sizeBytes: cachedResult.sizeBytes,
+            cached: true,
+            lastVerifiedAt: cachedResult.lastVerifiedAt,
+          };
+        }
+
+        // Fetch W-Matrix data from storage
+        // In production, get the actual storage URL from database
+        // For now, generate a mock verification report
+        const mockData = JSON.stringify({ listingId, timestamp: Date.now() });
+
         const report = IntegrityVerifier.generateIntegrityReport(mockData, expectedChecksum);
-        
+
+        // Store verification result in database
+        await wMatrixDb.storeIntegrityVerification({
+          listingId,
+          expectedChecksum,
+          actualChecksum: report.actualChecksum,
+          sizeBytes: report.sizeBytes,
+          valid: report.valid,
+        });
+
         return {
           success: true,
           valid: report.valid,
           actualChecksum: report.actualChecksum,
           expectedChecksum: report.expectedChecksum,
           sizeBytes: report.sizeBytes,
+          cached: false,
         };
       } catch (error: unknown) {
         throw new TRPCError({
@@ -317,8 +374,8 @@ export const wMatrixMarketplaceV2Router = router({
    */
   getStatistics: publicProcedure
     .query(async () => {
-      const stats = compatibilityMatrix.getStatistics();
-      
+      const stats = await wMatrixDb.getCompatibilityStatistics();
+
       return {
         success: true,
         statistics: {
@@ -330,14 +387,14 @@ export const wMatrixMarketplaceV2Router = router({
         },
       };
     }),
-  
+
   /**
    * Get supported source models
    */
   getSupportedSourceModels: publicProcedure
     .query(async () => {
-      const models = compatibilityMatrix.getSupportedSourceModels();
-      
+      const models = await wMatrixDb.getSupportedSourceModels();
+
       return {
         success: true,
         models,
