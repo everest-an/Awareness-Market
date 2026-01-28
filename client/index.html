@@ -117,10 +117,7 @@
     </script>
     
     <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+    <!-- Analytics script will be loaded dynamically in main.tsx to avoid build-time variable issues -->
   </body>
 
 </html>
