@@ -21,6 +21,7 @@ import {
   cosineSimilarity,
   euclideanDistance
 } from "./latentmas-core";
+import { getErrorMessage } from "./utils/error-handling";
 
 const latentmasRouter = Router();
 
@@ -74,9 +75,9 @@ latentmasRouter.post("/align", async (req, res) => {
         processing_time_ms: result.metadata.processingTimeMs,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[LatentMAS] Alignment error:", error);
-    res.status(400).json({ error: error.message || "Alignment failed" });
+    res.status(400).json({ error: getErrorMessage(error) || "Alignment failed" });
   }
 });
 
@@ -127,9 +128,9 @@ latentmasRouter.post("/transform", async (req, res) => {
         processing_time_ms: result.metadata.processingTimeMs,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[LatentMAS] Transform error:", error);
-    res.status(400).json({ error: error.message || "Transformation failed" });
+    res.status(400).json({ error: getErrorMessage(error) || "Transformation failed" });
   }
 });
 
@@ -163,9 +164,9 @@ latentmasRouter.post("/convert", async (req, res) => {
         processing_time_ms: 28,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[LatentMAS] Convert error:", error);
-    res.status(400).json({ error: error.message || "Conversion failed" });
+    res.status(400).json({ error: getErrorMessage(error) || "Conversion failed" });
   }
 });
 
@@ -218,9 +219,9 @@ latentmasRouter.post("/check-compatibility", async (req, res) => {
         estimated_quality_loss: requiresAlignment ? 0.08 : 0.0,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[LatentMAS] Compatibility check error:", error);
-    res.status(400).json({ error: error.message || "Compatibility check failed" });
+    res.status(400).json({ error: getErrorMessage(error) || "Compatibility check failed" });
   }
 });
 
@@ -270,9 +271,9 @@ latentmasRouter.post("/validate", async (req, res) => {
       },
       quality_score: validation.isValid ? 0.95 : 0.0,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[LatentMAS] Validation error:", error);
-    res.status(400).json({ error: error.message || "Validation failed" });
+    res.status(400).json({ error: getErrorMessage(error) || "Validation failed" });
   }
 });
 

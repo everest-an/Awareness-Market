@@ -15,6 +15,7 @@ import type {
 import { getDb } from "./db";
 import { workflowSessions, workflowEvents } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { getErrorMessage } from "./utils/error-handling";
 
 class WorkflowManager extends EventEmitter {
   private sessions: Map<string, WorkflowSession> = new Map();
@@ -284,8 +285,8 @@ class WorkflowManager extends EventEmitter {
         totalDuration: session.totalDuration,
         totalCost: session.totalCost.toString(),
       });
-    } catch (error: any) {
-      console.error(`[WorkflowManager] DB save error:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[WorkflowManager] DB save error:`, getErrorMessage(error));
     }
   }
 
@@ -308,8 +309,8 @@ class WorkflowManager extends EventEmitter {
         .update(workflowSessions)
         .set(dbUpdates)
         .where(eq(workflowSessions.id, workflowId));
-    } catch (error: any) {
-      console.error(`[WorkflowManager] DB update error:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[WorkflowManager] DB update error:`, getErrorMessage(error));
     }
   }
 
@@ -336,8 +337,8 @@ class WorkflowManager extends EventEmitter {
         error: event.error || null,
         parentEventId: event.parentEventId || null,
       });
-    } catch (error: any) {
-      console.error(`[WorkflowManager] DB save event error:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[WorkflowManager] DB save event error:`, getErrorMessage(error));
     }
   }
 
@@ -359,8 +360,8 @@ class WorkflowManager extends EventEmitter {
         .update(workflowEvents)
         .set(dbUpdates)
         .where(eq(workflowEvents.id, eventId));
-    } catch (error: any) {
-      console.error(`[WorkflowManager] DB update event error:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[WorkflowManager] DB update event error:`, getErrorMessage(error));
     }
   }
 
@@ -422,16 +423,17 @@ export async function trackOperation<T>(
     });
 
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     const duration = Date.now() - startTime;
 
+    const errorObj = error instanceof Error ? error : new Error(String(error));
     workflowManager.updateEvent(workflowId, event.id, {
       status: "failed",
       duration,
       error: {
-        code: error.code || "UNKNOWN_ERROR",
-        message: error.message || "An error occurred",
-        stack: error.stack,
+        code: (error && typeof error === 'object' && 'code' in error) ? String(error.code) : "UNKNOWN_ERROR",
+        message: getErrorMessage(error),
+        stack: errorObj.stack,
       },
     });
 
