@@ -10,6 +10,9 @@ import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
 import { storageGet } from "./storage";
 import { workflowManager } from "./workflow-manager";
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('VectorInvocation');
 
 export interface InvokeVectorInput {
   vectorId: number;
@@ -371,7 +374,7 @@ export async function invokeVector(
         });
       }
     } catch (logError) {
-      console.error('Failed to log error:', logError);
+      logger.error('Failed to log error:', logError);
     }
 
     if (error instanceof TRPCError) {

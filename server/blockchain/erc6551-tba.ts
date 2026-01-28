@@ -12,6 +12,9 @@
  */
 
 import { ethers } from 'ethers';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('ERC6551');
 
 // ============================================================================
 // Types
@@ -192,7 +195,7 @@ export class ERC6551TBAManager {
         owner,
       };
     } catch (error) {
-      console.error('Error getting TBA:', error);
+      logger.error('Error getting TBA:', error);
       return null;
     }
   }
@@ -378,7 +381,7 @@ export class MemoryNFTManager {
     amount: bigint
   ): Promise<void> {
     // In production, this would transfer tokens to TBA
-    console.log(`Transferring ${amount} to TBA ${tbaAddress}`);
+    logger.info(`Transferring ${amount} to TBA ${tbaAddress}`);
   }
 }
 

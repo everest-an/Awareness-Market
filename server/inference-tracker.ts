@@ -14,6 +14,9 @@ import type {
   InferenceStreamMessage,
 } from '../shared/inference-types';
 import { getModelColor, getQualityColor } from '../shared/inference-types';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('Inference');
 
 class InferenceTracker extends EventEmitter {
   private sessions: Map<string, InferenceSession> = new Map();
@@ -54,7 +57,7 @@ class InferenceTracker extends EventEmitter {
       timestamp: Date.now(),
     });
     
-    console.log(`[InferenceTracker] Created session: ${session.id}`);
+    logger.info(`[InferenceTracker] Created session: ${session.id}`);
     return session;
   }
   
@@ -393,7 +396,7 @@ class InferenceTracker extends EventEmitter {
       timestamp: Date.now(),
     });
     
-    console.log(`[InferenceTracker] Completed session: ${sessionId} (${status})`);
+    logger.info(`[InferenceTracker] Completed session: ${sessionId} (${status})`);
     return session;
   }
   

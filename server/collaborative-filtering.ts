@@ -1,6 +1,9 @@
 import { getDb } from "./db";
 import { userBehavior, latentVectors, transactions } from "../drizzle/schema";
 import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('CollaborativeFiltering');
 
 /**
  * Collaborative Filtering Recommendation Engine
@@ -164,7 +167,7 @@ export async function generateCollaborativeRecommendations(
 
     return sortedRecommendations;
   } catch (error) {
-    console.error("[Collaborative Filtering] Error generating recommendations:", error);
+    logger.error("[Collaborative Filtering] Error generating recommendations:", error);
     return [];
   }
 }
@@ -191,6 +194,6 @@ export async function trackUserBehavior(
       metadata: metadata ? JSON.stringify(metadata) : undefined,
     });
   } catch (error) {
-    console.error("[Collaborative Filtering] Error tracking behavior:", error);
+    logger.error("[Collaborative Filtering] Error tracking behavior:", error);
   }
 }

@@ -20,6 +20,9 @@ import { getDb } from "./db";
 import { users } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "./email-service";
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('Auth:Email');
 
 // Verification code storage (in-memory, use Redis in production)
 interface VerificationEntry {
@@ -92,7 +95,7 @@ export async function sendVerificationEmail(
     return { success: false, error: "Failed to send verification email" };
   }
 
-  console.log(`[EmailVerification] Sent verification code to ${email}`);
+  logger.info(`[EmailVerification] Sent verification code to ${email}`);
   return { success: true };
 }
 
@@ -144,7 +147,7 @@ export async function verifyEmail(
   // Clean up
   verificationCodes.delete(email.toLowerCase());
 
-  console.log(`[EmailVerification] Email verified for user ${entry.userId}`);
+  logger.info(`[EmailVerification] Email verified for user ${entry.userId}`);
   return { success: true };
 }
 

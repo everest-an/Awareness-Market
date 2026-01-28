@@ -7,6 +7,9 @@
 import { getDb } from './db';
 import { memoryNFTs } from '../drizzle/schema-memory-nft';
 import { eq } from 'drizzle-orm';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('DB:Provenance');
 
 // ============================================================================
 // Types
@@ -95,14 +98,14 @@ export async function buildFamilyTree(memoryId: string): Promise<MemoryNode | nu
   async function buildNode(id: string, depth: number = 0): Promise<MemoryNode | null> {
     // Prevent infinite loops
     if (visited.has(id)) {
-      console.warn(`Circular reference detected: ${id}`);
+      logger.warn(`Circular reference detected: ${id}`);
       return null;
     }
     visited.add(id);
     
     // Prevent excessive depth (max 10 levels)
     if (depth > 10) {
-      console.warn(`Max depth exceeded for memory: ${id}`);
+      logger.warn(`Max depth exceeded for memory: ${id}`);
       return null;
     }
     

@@ -12,6 +12,9 @@ import { create, all, Matrix, MathJsInstance } from 'mathjs';
 
 // Import TRUE LatentMAS implementation for integration
 import {
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('LatentMAS:Core');
   computeWaOperator as computeTrueWaOperator,
   executeLatentRollout as executeTrueLatentRollout,
   type WaOperator,
@@ -168,7 +171,7 @@ export function alignVector(
   
   // If no pre-computed matrix, use identity or generate one
   if (!alignmentData) {
-    console.warn(`[LatentMAS] No alignment matrix for ${matrixKey}, using identity`);
+    logger.warn(`[LatentMAS] No alignment matrix for ${matrixKey}, using identity`);
     alignmentData = {
       source: sourceModel,
       target: targetModel,

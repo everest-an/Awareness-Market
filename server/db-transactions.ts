@@ -50,7 +50,7 @@ export async function withTransaction<T>(
         const result = await fn(tx);
         return result;
       } catch (error) {
-        console.error('[Transaction] Error, rolling back:', error);
+        logger.error('[Transaction] Error, rolling back:', error);
         throw error;
       }
     });
@@ -234,3 +234,6 @@ function getPackageTable(packageType: 'vector' | 'memory' | 'chain') {
 
 // Import tables (will be added after schema is migrated)
 import { vectorPackages, memoryPackages, chainPackages, packagePurchases, packageDownloads, users } from '../drizzle/schema';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('DB:Transactions');
