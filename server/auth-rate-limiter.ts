@@ -23,6 +23,9 @@
 
 import { createClient, RedisClientType } from 'redis';
 import { getErrorMessage } from './utils/error-handling';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('Auth:RateLimit');
 
 interface RateLimitEntry {
   attempts: number;
@@ -57,7 +60,7 @@ async function initRedis(): Promise<boolean> {
   
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
-    console.log('[RateLimit] No REDIS_URL set, using in-memory storage');
+    logger.info( No REDIS_URL set, using in-memory storage');
     return false;
   }
 
@@ -65,27 +68,27 @@ async function initRedis(): Promise<boolean> {
     redisClient = createClient({ url: redisUrl });
     
     redisClient.on('error', (err) => {
-      console.error('[RateLimit] Redis error:', err.message);
+      logger.error( Redis error:', err.message);
       redisConnected = false;
     });
 
     redisClient.on('connect', () => {
-      console.log('[RateLimit] Connected to Redis');
+      logger.info( Connected to Redis');
       redisConnected = true;
     });
 
     redisClient.on('disconnect', () => {
-      console.log('[RateLimit] Disconnected from Redis');
+      logger.info( Disconnected from Redis');
       redisConnected = false;
     });
 
     await redisClient.connect();
     redisConnected = true;
-    console.log('[RateLimit] Redis initialized successfully');
+    logger.info( Redis initialized successfully');
     return true;
   } catch (error: unknown) {
-    console.error('[RateLimit] Failed to connect to Redis:', getErrorMessage(error));
-    console.log('[RateLimit] Falling back to in-memory storage');
+    logger.error( Failed to connect to Redis:', getErrorMessage(error));
+    logger.info( Falling back to in-memory storage');
     redisClient = null;
     redisConnected = false;
     return false;
@@ -106,7 +109,7 @@ async function getRedisEntry(key: string): Promise<RateLimitEntry | null> {
     if (!data) return null;
     return JSON.parse(data);
   } catch (error) {
-    console.error('[RateLimit] Redis get error:', error);
+    logger.error( Redis get error:', error);
     return null;
   }
 }
@@ -125,7 +128,7 @@ async function setRedisEntry(key: string, entry: RateLimitEntry): Promise<boolea
     );
     return true;
   } catch (error) {
-    console.error('[RateLimit] Redis set error:', error);
+    logger.error( Redis set error:', error);
     return false;
   }
 }
@@ -140,7 +143,7 @@ async function deleteRedisEntry(key: string): Promise<boolean> {
     await redisClient.del(REDIS_KEY_PREFIX + key);
     return true;
   } catch (error) {
-    console.error('[RateLimit] Redis delete error:', error);
+    logger.error( Redis delete error:', error);
     return false;
   }
 }
@@ -284,7 +287,7 @@ export async function recordFailedAttempt(ip: string, email: string): Promise<vo
   if (ipEntry.attempts >= MAX_ATTEMPTS) {
     ipEntry.lockoutCount++;
     ipEntry.lockoutUntil = now + calculateLockoutDuration(ipEntry.lockoutCount - 1);
-    console.warn(`[RateLimit] IP ${ip} locked out until ${new Date(ipEntry.lockoutUntil).toISOString()}`);
+    logger.warn( IP ${ip} locked out until ${new Date(ipEntry.lockoutUntil).toISOString()}`);
   }
   
   await saveEntry('ip', ip, ipEntry);
@@ -297,7 +300,7 @@ export async function recordFailedAttempt(ip: string, email: string): Promise<vo
   if (emailEntry.attempts >= MAX_ATTEMPTS) {
     emailEntry.lockoutCount++;
     emailEntry.lockoutUntil = now + calculateLockoutDuration(emailEntry.lockoutCount - 1);
-    console.warn(`[RateLimit] Email ${email} locked out until ${new Date(emailEntry.lockoutUntil).toISOString()}`);
+    logger.warn( Email ${email} locked out until ${new Date(emailEntry.lockoutUntil).toISOString()}`);
   }
   
   await saveEntry('email', email.toLowerCase(), emailEntry);
