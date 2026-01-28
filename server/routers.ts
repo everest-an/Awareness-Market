@@ -39,6 +39,8 @@ import { workflowHistoryRouter } from './routers/workflow-history';
 import { userRouter } from './routers/user';
 import { authUnifiedRouter } from './routers/auth-unified';
 import { apiAnalyticsRouter } from './routers/api-analytics';
+import { agentDiscoveryRouter } from './routers/agent-discovery';
+import { agentCollaborationRouter } from './routers/agent-collaboration';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 // Memory Exchange moved to Go microservice
 
@@ -1822,6 +1824,8 @@ export const appRouter = router({
   user: userRouter,
   authUnified: authUnifiedRouter,
   apiAnalytics: apiAnalyticsRouter,
+  agentDiscovery: agentDiscoveryRouter,
+  agentCollaboration: agentCollaborationRouter,
   // memoryExchange: Go microservice at :8080
 
   // Admin Analytics (admin-only)
