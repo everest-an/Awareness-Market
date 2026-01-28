@@ -292,12 +292,93 @@ export const latentmasMarketplaceRouter = router({
       packageId: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      // TODO: Implement payment and access grant
-      
+      // Get package details
+      const pkg = await db.getVectorPackageByPackageId(input.packageId);
+
+      if (!pkg) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Package not found',
+        });
+      }
+
+      if (pkg.status !== 'active') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Package is not available for purchase',
+        });
+      }
+
+      // Check if user already owns this package
+      const existingPurchase = await db.getUserPackagePurchaseByPackageId(ctx.user.id, input.packageId);
+      if (existingPurchase && existingPurchase.status === 'completed') {
+        // User already owns it, return download URL
+        return {
+          success: true,
+          downloadUrl: pkg.packageUrl,
+          vectorUrl: pkg.vectorUrl,
+          wMatrixUrl: pkg.wMatrixUrl,
+          message: 'You already own this package',
+          alreadyOwned: true,
+        };
+      }
+
+      // Calculate fees
+      const amount = parseFloat(pkg.price);
+      const platformFeeRate = 0.15; // 15%
+      const platformFee = amount * platformFeeRate;
+      const creatorEarnings = amount - platformFee;
+
+      // Create Stripe checkout session for payment
+      const { stripe } = await import('../stripe-client');
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: pkg.name,
+                description: `${pkg.sourceModel} → ${pkg.targetModel} | ε: ${pkg.epsilon}`,
+                metadata: {
+                  packageId: input.packageId,
+                  category: pkg.category,
+                },
+              },
+              unit_amount: Math.round(amount * 100), // Convert to cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${process.env.BASE_URL || 'http://localhost:3000'}/packages?success=true&packageId=${input.packageId}`,
+        cancel_url: `${process.env.BASE_URL || 'http://localhost:3000'}/packages?canceled=true`,
+        metadata: {
+          userId: ctx.user.id.toString(),
+          packageId: input.packageId,
+          purchaseType: 'latentmas_package',
+          creatorId: pkg.userId.toString(),
+          amount: amount.toFixed(2),
+          platformFee: platformFee.toFixed(2),
+          creatorEarnings: creatorEarnings.toFixed(2),
+        },
+      });
+
+      // Record pending purchase in database
+      const purchaseId = await db.createPackagePurchase({
+        userId: ctx.user.id,
+        packageId: pkg.id,
+        amount: amount.toFixed(2),
+        status: 'pending',
+      });
+
       return {
         success: true,
-        downloadUrl: 'https://example.com/download',
-        message: 'Package purchased successfully',
+        checkoutUrl: session.url,
+        sessionId: session.id,
+        purchaseId,
+        message: 'Redirect to checkout to complete purchase',
       };
     }),
   

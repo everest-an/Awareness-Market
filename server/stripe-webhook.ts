@@ -102,7 +102,94 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
-  if (purchaseType === "vector") {
+  if (purchaseType === "latentmas_package") {
+    // Handle LatentMAS package purchase
+    const packageId = session.metadata?.packageId || "";
+    const creatorIdStr = session.metadata?.creatorId || "";
+    const creatorId = creatorIdStr ? parseInt(creatorIdStr, 10) : NaN;
+
+    if (!packageId) {
+      logger.error("Missing packageId in session metadata", {
+        sessionId: session.id,
+        userId
+      });
+      return;
+    }
+
+    // Get package details
+    const pkg = await db.getVectorPackageByPackageId(packageId);
+    if (!pkg) {
+      logger.error("Package not found", {
+        packageId,
+        sessionId: session.id,
+        userId
+      });
+      return;
+    }
+
+    // Update purchase status
+    await db.updatePackagePurchaseStatus({
+      userId,
+      packageId: pkg.id,
+      status: 'completed',
+      completedAt: new Date(),
+    });
+
+    // Increment download count
+    await db.incrementPackageDownloads(pkg.id);
+
+    logger.info("LatentMAS package purchase completed", {
+      userId,
+      packageId,
+      amount: session.metadata?.amount
+    });
+
+    // Create notification for buyer
+    await db.createNotification({
+      userId,
+      type: "transaction",
+      title: "Purchase Successful",
+      message: `Your LatentMAS package "${pkg.name}" purchase has been completed successfully`,
+      relatedEntityId: pkg.id,
+    });
+
+    // Send email to buyer
+    const user = await db.getUserById(userId);
+    if (user?.email) {
+      const emailText = `Your purchase of "${pkg.name}" was successful. You can now download this package from your dashboard.`;
+      await sendEmail({
+        to: user.email,
+        subject: "Awareness Market - Package Purchase Successful",
+        html: `<p>${emailText}</p><p><a href="${process.env.BASE_URL}/packages/${packageId}">View Package</a></p>`,
+        text: emailText,
+      });
+    }
+
+    // Notify creator if valid
+    if (!isNaN(creatorId) && creatorId > 0) {
+      const creator = await db.getUserById(creatorId);
+      if (creator) {
+        await db.createNotification({
+          userId: creatorId,
+          type: "transaction",
+          title: "New Package Sale",
+          message: `${user?.name || "Someone"} purchased your LatentMAS package "${pkg.name}"`,
+          relatedEntityId: pkg.id,
+        });
+
+        if (creator.email) {
+          const earnings = session.metadata?.creatorEarnings || "0";
+          const emailText = `Great news! ${user?.name || "A user"} just purchased your LatentMAS package "${pkg.name}". You earned $${earnings}.`;
+          await sendEmail({
+            to: creator.email,
+            subject: "Awareness Market - New Package Sale",
+            html: `<p>${emailText}</p>`,
+            text: emailText,
+          });
+        }
+      }
+    }
+  } else if (purchaseType === "vector") {
     // Handle one-time vector purchase
     const vectorIdStr = session.metadata?.vector_id || "";
     const transactionIdStr = session.metadata?.transaction_id || "";
