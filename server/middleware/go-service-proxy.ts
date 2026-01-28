@@ -8,6 +8,9 @@
 import { Router, Request, Response, NextFunction, type Express } from 'express';
 import proxy from 'express-http-proxy';
 import type { IncomingHttpHeaders } from 'http';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Middleware:GoServiceProxy');
 
 interface ProxyReqOpts {
   headers?: IncomingHttpHeaders;
@@ -27,7 +30,7 @@ function createServiceProxy(target: string, errorLabel: string) {
       return proxyReqOpts;
     },
     proxyErrorHandler: (err: Error, res: Response, _next: NextFunction) => {
-      console.error(`[${errorLabel} Proxy Error]`, err.message);
+      logger.error(`[${errorLabel} Proxy Error]`, err.message);
       res.status(503).json({
         error: `${errorLabel} service unavailable`,
         message: err.message,
@@ -122,7 +125,7 @@ export async function checkGoServicesHealth(): Promise<{
     );
     results.vectorOperations = vectorRes.ok;
   } catch (err) {
-    console.warn('Vector Operations health check failed:', err);
+    logger.warn('Vector Operations health check failed:', err);
   }
 
   try {
@@ -132,7 +135,7 @@ export async function checkGoServicesHealth(): Promise<{
     );
     results.memoryExchange = memoryRes.ok;
   } catch (err) {
-    console.warn('Memory Exchange health check failed:', err);
+    logger.warn('Memory Exchange health check failed:', err);
   }
 
   try {
@@ -142,7 +145,7 @@ export async function checkGoServicesHealth(): Promise<{
     );
     results.wMatrix = wMatrixRes.ok;
   } catch (err) {
-    console.warn('W-Matrix Marketplace health check failed:', err);
+    logger.warn('W-Matrix Marketplace health check failed:', err);
   }
 
   results.allHealthy = results.vectorOperations && results.memoryExchange && results.wMatrix;

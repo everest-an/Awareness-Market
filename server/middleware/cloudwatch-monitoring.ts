@@ -13,6 +13,9 @@ import {
 import { Logs } from 'aws-sdk';
 import { getErrorMessage } from '../utils/error-handling';
 import type { Request, Response, NextFunction } from 'express';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Middleware:CloudWatch');
 
 const cloudwatch = new CloudWatchClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const logs = new Logs({ region: process.env.AWS_REGION || 'us-east-1' });
@@ -48,9 +51,9 @@ export async function publishMetric(
     };
 
     await cloudwatch.send(new PutMetricDataCommand(params));
-    console.log(`📊 Metric published: ${metricName} = ${value}`);
+    logger.info(`📊 Metric published: ${metricName} = ${value}`);
   } catch (error) {
-    console.error('Failed to publish metric:', error);
+    logger.error('Failed to publish metric:', error);
   }
 }
 
@@ -80,9 +83,9 @@ export async function createAlarm(
     };
 
     await cloudwatch.send(new PutMetricAlarmCommand(params));
-    console.log(`🚨 Alarm created: ${alarmName}`);
+    logger.info(`🚨 Alarm created: ${alarmName}`);
   } catch (error) {
-    console.error('Failed to create alarm:', error);
+    logger.error('Failed to create alarm:', error);
   }
 }
 
@@ -90,7 +93,7 @@ export async function createAlarm(
  * 设置所有监控指标
  */
 export async function setupCloudWatchMonitoring() {
-  console.log('⚙️  设置 CloudWatch 监控...');
+  logger.info('⚙️  设置 CloudWatch 监控...');
 
   try {
     // ==========================================
@@ -187,9 +190,9 @@ export async function setupCloudWatchMonitoring() {
       'GreaterThanThreshold'
     );
 
-    console.log('✅ CloudWatch 监控设置完成！');
+    logger.info('✅ CloudWatch 监控设置完成！');
   } catch (error) {
-    console.error('❌ 设置 CloudWatch 监控失败:', error);
+    logger.error('❌ 设置 CloudWatch 监控失败:', error);
   }
 }
 
@@ -234,9 +237,9 @@ export async function sendToCloudWatchLogs(
       })
       .promise();
 
-    console.log(`📝 Log sent to CloudWatch: ${logGroupName}/${logStreamName}`);
+    logger.info(`📝 Log sent to CloudWatch: ${logGroupName}/${logStreamName}`);
   } catch (error) {
-    console.error('Failed to send log to CloudWatch:', error);
+    logger.error('Failed to send log to CloudWatch:', error);
   }
 }
 
@@ -268,7 +271,7 @@ export function performanceMonitoringMiddleware() {
 
       // 记录慢查询
       if (duration > 1000) {
-        console.warn(`⚠️  Slow API request: ${req.method} ${req.path} took ${duration}ms`);
+        logger.warn(`⚠️  Slow API request: ${req.method} ${req.path} took ${duration}ms`);
         await publishMetric('SlowAPIRequest', 1, 'Count', {
           Path: req.path,
         });
@@ -312,9 +315,9 @@ export function startSystemResourceMonitoring(intervalMs: number = 60000) {
         }
       });
 
-      console.log(`📊 System metrics: CPU=${cpuUsage.toFixed(2)}%, MEM=${memoryUsage.toFixed(2)}%`);
+      logger.info(`📊 System metrics: CPU=${cpuUsage.toFixed(2)}%, MEM=${memoryUsage.toFixed(2)}%`);
     } catch (error) {
-      console.error('Failed to collect system metrics:', error);
+      logger.error('Failed to collect system metrics:', error);
     }
   }, intervalMs);
 }
@@ -323,7 +326,7 @@ export function startSystemResourceMonitoring(intervalMs: number = 60000) {
  * 应用启动时初始化监控
  */
 export async function initializeCloudWatchMonitoring() {
-  console.log('🚀 初始化 CloudWatch 监控...');
+  logger.info('🚀 初始化 CloudWatch 监控...');
 
   // 设置告警
   await setupCloudWatchMonitoring();
@@ -331,7 +334,7 @@ export async function initializeCloudWatchMonitoring() {
   // 启动系统资源监控
   startSystemResourceMonitoring(60000); // 每 60 秒采集一次
 
-  console.log('✅ CloudWatch 监控已启动');
+  logger.info('✅ CloudWatch 监控已启动');
 }
 
 export default {

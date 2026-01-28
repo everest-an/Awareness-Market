@@ -7,6 +7,9 @@
 import type { Request, Response, NextFunction } from 'express';
 import { getDb } from '../db';
 import { apiUsageLogs } from '../../drizzle/schema-api-usage';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Middleware:APIUsageLogger');
 
 interface ApiLogEntry {
   userId?: number;
@@ -42,13 +45,13 @@ async function flushLogBuffer(): Promise<void> {
   try {
     const db = await getDb();
     if (!db) {
-      console.error('[API Logger] Database unavailable, dropping logs');
+      logger.error( Database unavailable, dropping logs');
       return;
     }
     
     await db.insert(apiUsageLogs).values(logsToInsert);
   } catch (error) {
-    console.error('[API Logger] Failed to flush logs:', error);
+    logger.error( Failed to flush logs:', error);
     // Re-add failed logs to buffer (with limit to prevent memory issues)
     if (logBuffer.length < 1000) {
       logBuffer.push(...logsToInsert);
