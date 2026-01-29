@@ -38,7 +38,9 @@ vi.mock('ethers', () => {
       Wallet: mockWallet,
       formatEther: (wei: bigint) => {
         // Simple mock: divide by 1e18
-        return (Number(wei) / 1e18).toString();
+        const value = Number(wei) / 1e18;
+        // Remove trailing .0 for integers
+        return value % 1 === 0 ? value.toFixed(0) : value.toString();
       },
       parseEther: (ether: string) => {
         // Simple mock: multiply by 1e18
