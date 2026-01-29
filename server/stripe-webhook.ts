@@ -325,6 +325,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     // Get listing details
     const dbModule = await import('./db');
     const db = await dbModule.getDb();
+    if (!db) {
+      logger.error("Database unavailable", { sessionId: session.id });
+      return;
+    }
     const { wMatrixListings, wMatrixPurchases } = await import('../drizzle/schema');
     const { eq, sql, and } = await import('drizzle-orm');
 

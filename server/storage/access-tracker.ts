@@ -90,9 +90,9 @@ export async function recordPackageAccess(record: AccessRecord): Promise<void> {
       });
     }
 
-    logger.log(`[AccessTracker] Recorded ${record.accessType} for ${record.packageType}:${record.packageId}`);
+    logger.info(`[AccessTracker] Recorded ${record.accessType} for ${record.packageType}:${record.packageId}`);
   } catch (error) {
-    logger.error('[AccessTracker] Failed to record access:', error);
+    logger.error('[AccessTracker] Failed to record access:', { error });
     // Don't throw - access tracking should not break main functionality
   }
 }
@@ -124,7 +124,7 @@ export async function getAccessFrequency(
 
     return result[0]?.count || 0;
   } catch (error) {
-    logger.error('[AccessTracker] Failed to get access frequency:', error);
+    logger.error('[AccessTracker] Failed to get access frequency:', { error });
     return 0;
   }
 }
@@ -174,7 +174,7 @@ export async function determineDataTemperature(
       return 'cold';
     }
   } catch (error) {
-    logger.error('[AccessTracker] Failed to determine temperature:', error);
+    logger.error('[AccessTracker] Failed to determine temperature:', { error });
     return 'warm'; // Default to warm on error
   }
 }
@@ -214,7 +214,7 @@ export async function getTierInfo(
       accessCount: result[0].accessCount,
     };
   } catch (error) {
-    logger.error('[AccessTracker] Failed to get tier info:', error);
+    logger.error('[AccessTracker] Failed to get tier info:', { error });
     return null;
   }
 }
@@ -246,9 +246,9 @@ export async function updateTierAssignment(
         )
       );
 
-    logger.log(`[AccessTracker] Updated ${packageType}:${packageId} to ${newTier} (${newBackend})`);
+    logger.info(`[AccessTracker] Updated ${packageType}:${packageId} to ${newTier} (${newBackend})`);
   } catch (error) {
-    logger.error('[AccessTracker] Failed to update tier:', error);
+    logger.error('[AccessTracker] Failed to update tier:', { error });
     throw error;
   }
 }
@@ -294,7 +294,7 @@ export async function getPackagesNeedingMigration(): Promise<Array<{
 
     return migrations;
   } catch (error) {
-    logger.error('[AccessTracker] Failed to get migration candidates:', error);
+    logger.error('[AccessTracker] Failed to get migration candidates:', { error });
     return [];
   }
 }
@@ -330,7 +330,7 @@ export async function getAccessStats(
       lastAccessAt: tierInfo?.lastAccessAt || null,
     };
   } catch (error) {
-    logger.error('[AccessTracker] Failed to get access stats:', error);
+    logger.error('[AccessTracker] Failed to get access stats:', { error });
     return {
       totalAccess: 0,
       last7Days: 0,
@@ -365,7 +365,7 @@ export async function getHotPackages(limit: number = 10): Promise<TierInfo[]> {
       accessCount: r.accessCount,
     }));
   } catch (error) {
-    logger.error('[AccessTracker] Failed to get hot packages:', error);
+    logger.error('[AccessTracker] Failed to get hot packages:', { error });
     return [];
   }
 }
@@ -401,7 +401,7 @@ export async function getColdPackages(limit: number = 10): Promise<TierInfo[]> {
       accessCount: r.accessCount,
     }));
   } catch (error) {
-    logger.error('[AccessTracker] Failed to get cold packages:', error);
+    logger.error('[AccessTracker] Failed to get cold packages:', { error });
     return [];
   }
 }
