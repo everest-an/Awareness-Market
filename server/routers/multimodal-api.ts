@@ -137,9 +137,10 @@ export const multimodalRouter = router({
             sourceModel: input.sourceModel,
             targetModel: 'multimodal', // Special designation
             dimension: fusionResult.dimension,
-            qualityScore: fusionResult.confidence || 0.95,
+            qualityScore: String(fusionResult.confidence || 0.95),
+            informationRetention: String(fusionResult.confidence || 0.95), // Use fusion confidence as retention
             price: input.price.toFixed(2),
-            category: input.category,
+            category: input.category as 'nlp' | 'vision' | 'audio' | 'multimodal' | 'other',
             status: 'active',
             epsilon: '0.0', // Multi-modal doesn't use epsilon
           });
@@ -409,17 +410,20 @@ export const multimodalRouter = router({
           });
         }
 
-        // Build query
-        let query = db
+        // Build query with conditional where clause
+        const whereClause = input.category
+          ? and(
+              eq(vectorPackages.targetModel, 'multimodal'),
+              eq(vectorPackages.category, input.category as 'nlp' | 'vision' | 'audio' | 'multimodal' | 'other')
+            )
+          : eq(vectorPackages.targetModel, 'multimodal');
+
+        const packages = await db
           .select()
           .from(vectorPackages)
-          .where(eq(vectorPackages.targetModel, 'multimodal'));
-
-        if (input.category) {
-          query = query.where(eq(vectorPackages.category, input.category)) as any;
-        }
-
-        const packages = await query.limit(input.limit).offset(input.offset);
+          .where(whereClause)
+          .limit(input.limit)
+          .offset(input.offset);
 
         return {
           success: true,
@@ -571,7 +575,7 @@ export const multimodalRouter = router({
           statistics: {
             totalPackages: packages.length,
             averagePrice: packages.reduce((sum, p) => sum + parseFloat(p.price || '0'), 0) / (packages.length || 1),
-            averageQuality: packages.reduce((sum, p) => sum + (p.qualityScore || 0), 0) / (packages.length || 1),
+            averageQuality: packages.reduce((sum, p) => sum + parseFloat(String(p.qualityScore || '0')), 0) / (packages.length || 1),
             modalityCombinations: {
               'text+image': 0, // In production, count from actual data
               'text+audio': 0,

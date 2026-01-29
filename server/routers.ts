@@ -67,8 +67,13 @@ import type {
 
 // Helper to get client IP from request
 function getClientIp(req: TrpcRequest): string {
-  return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
-    || req.headers['x-real-ip']
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const firstIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+  const realIp = req.headers['x-real-ip'];
+  const realIpStr = Array.isArray(realIp) ? realIp[0] : realIp;
+
+  return firstIp?.split(',')[0]?.trim()
+    || realIpStr
     || req.socket?.remoteAddress
     || req.ip
     || '127.0.0.1';
@@ -426,7 +431,7 @@ export const appRouter = router({
           status: "draft",
         });
 
-        return { success: true, vectorId: (result as InsertResult).insertId };
+        return { success: true, vectorId: (result as unknown as InsertResult).insertId };
       }),
 
     // Get vector by ID
@@ -585,19 +590,19 @@ export const appRouter = router({
           transactionType: "one-time",
         });
 
-        const transactionId = (result as InsertResult).insertId;
+        const transactionId = (result as unknown as InsertResult).insertId;
 
         // Create Stripe checkout session
         const checkoutUrl = await createVectorPurchaseCheckout({
           userId: ctx.user.id,
-          userEmail: ctx.user.email,
+          userEmail: ctx.user.email || `user-${ctx.user.id}@placeholder.local`,
           userName: ctx.user.name || undefined,
           vectorId: input.vectorId,
           vectorTitle: vector.title,
           amount: amount,
           successUrl: input.successUrl || `${process.env.CLIENT_URL || 'http://localhost:5173'}/purchase/success?transactionId=${transactionId}`,
           cancelUrl: input.cancelUrl || `${process.env.CLIENT_URL || 'http://localhost:5173'}/purchase/cancelled`,
-          transactionId: transactionId,
+          transactionId: Number(transactionId),
         });
 
         // Transaction will be completed by Stripe webhook after successful payment
@@ -976,10 +981,10 @@ export const appRouter = router({
         const data: BlogPostData = {
           ...input,
           authorId: ctx.user.id,
-          tags: input.tags ? JSON.stringify(input.tags) : null,
-          publishedAt: input.status === "published" ? new Date() : null,
+          tags: input.tags ? JSON.stringify(input.tags) : undefined,
+          publishedAt: input.status === "published" ? new Date() : undefined,
         };
-        return await blogDb.createBlogPost(data);
+        return await blogDb.createBlogPost(data as any);
       }),
 
     // Update blog post (admin only)
@@ -997,7 +1002,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const { id, ...updates } = input;
-        const data: BlogPostData = { ...updates };
+        const data: any = { ...updates };
 
         if (updates.tags) {
           data.tags = JSON.stringify(updates.tags);
@@ -1086,12 +1091,12 @@ export const appRouter = router({
       const permissions = await db.getUserAccessPermissions(ctx.user.id);
 
       const totalSpent = transactions
-        .filter((t: TransactionRecord | { transactions: TransactionRecord }) => {
-          const tx = 'status' in t ? t : (t as { transactions: TransactionRecord }).transactions;
+        .filter((t: any) => {
+          const tx = 'status' in t ? t : t.transactions;
           return tx.status === "completed";
         })
-        .reduce((sum, t: TransactionRecord | { transactions: TransactionRecord }) => {
-          const tx = 'amount' in t ? t as TransactionRecord : (t as { transactions: TransactionRecord }).transactions;
+        .reduce((sum: number, t: any) => {
+          const tx = 'amount' in t ? t : t.transactions;
           return sum + parseFloat(tx.amount);
         }, 0);
 
@@ -1232,7 +1237,7 @@ export const appRouter = router({
     stats: publicProcedure.query(async () => {
       // Get statistics from Go Memory Exchange service
       const packages = await goServiceAdapter.browseMemoryPackages('all', 1000, 0);
-      const packagesResponse = packages as MemoryPackagesResponse;
+      const packagesResponse = packages as unknown as MemoryPackagesResponse;
       const packagesArray: MemoryPackage[] = packagesResponse.packages || packagesResponse.data || [];
       return {
         totalPackages: Array.isArray(packagesArray) ? packagesArray.length : 0,
