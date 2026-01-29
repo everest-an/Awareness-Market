@@ -5,7 +5,7 @@
  * Replaces brute-force O(n) search with approximate nearest neighbor.
  */
 
-import { router, publicProcedure, protectedProcedure } from '../trpc';
+import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { z } from 'zod';
 import { faissManager } from './faiss-service';
 

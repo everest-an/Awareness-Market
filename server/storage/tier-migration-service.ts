@@ -95,7 +95,7 @@ export class TierMigrationService {
       logger.info(`[TierMigration] Found ${tasks.length} packages needing migration`);
       return tasks;
     } catch (error) {
-      logger.error('[TierMigration] Failed to check for migrations:', error);
+      logger.error('[TierMigration] Failed to check for migrations:', { error });
       return [];
     }
   }
@@ -126,7 +126,7 @@ export class TierMigrationService {
       return taskId;
       return taskId;
     } catch (error) {
-      logger.error('[TierMigration] Failed to queue migration:', error);
+      logger.error('[TierMigration] Failed to queue migration:', { error });
       throw error;
     }
   }
@@ -174,7 +174,7 @@ export class TierMigrationService {
 
       logger.info(`[TierMigration] Completed: ${succeeded} succeeded, ${failed} failed`);
     } catch (error) {
-      logger.error('[TierMigration] Queue processing failed:', error);
+      logger.error('[TierMigration] Queue processing failed:', { error });
     } finally {
       this.isProcessing = false;
     }
@@ -245,7 +245,7 @@ export class TierMigrationService {
     } catch (error) {
       const db = await getDb();
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error(`[TierMigration] Task ${taskId} failed:`, error);
+      logger.error(`[TierMigration] Task ${taskId} failed:`, { error });
 
       // Mark as failed
       if (db) {
@@ -398,7 +398,7 @@ export class TierMigrationService {
         totalSavings,
       };
     } catch (error) {
-      logger.error('[TierMigration] Failed to get queue status:', error);
+      logger.error('[TierMigration] Failed to get queue status:', { error });
       return {
         pending: 0,
         processing: 0,
@@ -430,7 +430,7 @@ export class TierMigrationService {
       // Process the queue
       await this.processMigrationQueue();
     } catch (error) {
-      logger.error('[TierMigration] Daily check failed:', error);
+      logger.error('[TierMigration] Daily check failed:', { error });
     }
   }
 }

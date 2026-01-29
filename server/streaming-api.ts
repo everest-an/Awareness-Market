@@ -118,7 +118,7 @@ router.get("/invoke/stream", async (req: Request, res: Response) => {
     res.end();
 
   } catch (error) {
-    logger.error("[Streaming API] Error:", error);
+    logger.error("[Streaming API] Error:", { error });
     res.write(`event: error\n`);
     res.write(`data: ${JSON.stringify({ error: "Internal server error" })}\n\n`);
     res.end();
@@ -248,7 +248,7 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    logger.error("[Batch API] Error:", error);
+    logger.error("[Batch API] Error:", { error });
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -276,7 +276,7 @@ router.get("/batch-invoke/:batchId", async (req: Request, res: Response) => {
       completedAt: new Date().toISOString()
     });
   } catch (error) {
-    logger.error("[Batch Status] Error:", error);
+    logger.error("[Batch Status] Error:", { error });
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -80,7 +80,7 @@ export class WasabiBackend implements StorageBackend {
       logger.log(`[WasabiBackend] Uploaded ${key} (${(data.length / 1024 / 1024).toFixed(2)} MB)`);
       return { url, key };
     } catch (error) {
-      logger.error('[WasabiBackend] Upload failed:', error);
+      logger.error('[WasabiBackend] Upload failed:', { error });
       throw new Error(`Wasabi upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -99,7 +99,7 @@ export class WasabiBackend implements StorageBackend {
       const url = await getSignedUrl(this.client, command, { expiresIn });
       return { url, key };
     } catch (error) {
-      logger.error('[WasabiBackend] Get URL failed:', error);
+      logger.error('[WasabiBackend] Get URL failed:', { error });
       throw new Error(`Wasabi get failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -134,7 +134,7 @@ export class WasabiBackend implements StorageBackend {
       await this.client.send(deleteCommand);
       logger.log(`[WasabiBackend] Deleted ${key}`);
     } catch (error) {
-      logger.error('[WasabiBackend] Delete failed:', error);
+      logger.error('[WasabiBackend] Delete failed:', { error });
       throw new Error(`Wasabi delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -181,7 +181,7 @@ export class WasabiBackend implements StorageBackend {
 
       return { healthy: true, message: 'Wasabi backend is healthy' };
     } catch (error) {
-      logger.error('[WasabiBackend] Health check failed:', error);
+      logger.error('[WasabiBackend] Health check failed:', { error });
       return {
         healthy: false,
         message: `Wasabi backend unhealthy: ${error instanceof Error ? error.message : 'Unknown error'}`,

@@ -5,7 +5,7 @@
  * Includes throughput testing, latency percentiles, and concurrent load tests.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 
 interface LatencyMetrics {
   endpoint: string;

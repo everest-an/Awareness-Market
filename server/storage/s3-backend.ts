@@ -42,7 +42,7 @@ export class S3Backend implements StorageBackend {
       if (errorMessage.includes('NoSuchKey') || errorMessage.includes('AccessDenied')) {
         return true; // S3 is reachable
       }
-      logger.error('[S3Backend] Health check failed:', error);
+      logger.error('[S3Backend] Health check failed:', { error });
       return false;
     }
   }

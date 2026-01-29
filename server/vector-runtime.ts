@@ -67,7 +67,7 @@ export async function runVector(params: { vector: LatentVector; context: unknown
         promptText = extractPromptFromFile(fileText);
       }
     } catch (error) {
-      logger.warn("[Vector Runtime] Failed to load vector file, using default prompt", error);
+      logger.warn("[Vector Runtime] Failed to load vector file, using default prompt", { error });
     }
   }
 

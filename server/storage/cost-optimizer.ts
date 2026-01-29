@@ -128,7 +128,7 @@ export class CostOptimizer {
 
       logger.info('[CostOptimizer] Recorded daily costs');
     } catch (error) {
-      logger.error('[CostOptimizer] Failed to record costs:', error);
+      logger.error('[CostOptimizer] Failed to record costs:', { error });
     }
   }
 
@@ -200,7 +200,7 @@ export class CostOptimizer {
         },
       };
     } catch (error) {
-      logger.error('[CostOptimizer] Failed to get cost comparison:', error);
+      logger.error('[CostOptimizer] Failed to get cost comparison:', { error });
       return {
         current: { monthly: 0, breakdown: [] },
         optimized: { monthly: 0, breakdown: [] },
@@ -324,7 +324,7 @@ export class CostOptimizer {
       logger.info(`[CostOptimizer] Generated ${recommendations.length} recommendations`);
       return recommendations;
     } catch (error) {
-      logger.error('[CostOptimizer] Failed to generate recommendations:', error);
+      logger.error('[CostOptimizer] Failed to generate recommendations:', { error });
       return [];
     }
   }
@@ -415,7 +415,7 @@ export class CostOptimizer {
         ...costs,
       }));
     } catch (error) {
-      logger.error('[CostOptimizer] Failed to get cost trend:', error);
+      logger.error('[CostOptimizer] Failed to get cost trend:', { error });
       return [];
     }
   }
@@ -453,7 +453,7 @@ export class CostOptimizer {
         monthlyCost: d.count * avgFileSizeGB * this.getBackendCost(d.backend),
       }));
     } catch (error) {
-      logger.error('[CostOptimizer] Failed to get storage distribution:', error);
+      logger.error('[CostOptimizer] Failed to get storage distribution:', { error });
       return [];
     }
   }

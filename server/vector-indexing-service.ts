@@ -6,7 +6,7 @@
  */
 
 import { getVectorDatabaseService, type VectorMetadata } from './vector-database';
-import type { Package, PackageType } from './db/schema';
+import type { Package, PackageType } from '../drizzle/schema';
 
 // ============================================================================
 // Types
