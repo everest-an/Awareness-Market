@@ -34,7 +34,7 @@ interface Agent {
 const mcpRouter = Router();
 
 const extractTextFromResult = (result: unknown) => {
-  const content = result?.choices?.[0]?.message?.content;
+  const content = (result as any)?.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
@@ -105,7 +105,7 @@ mcpRouter.get("/discover", async (req, res) => {
       total: mcpVectors.length,
     });
   } catch (error) {
-    logger.error('Discovery error:', error);
+    logger.error('Discovery error:', { error });
     res.status(500).json({ error: "Discovery failed" });
   }
 });
@@ -140,7 +140,7 @@ mcpRouter.post("/tokens", validateApiKey, async (req, res) => {
       message: "MCP token created successfully. Store it securely - it won't be shown again.",
     });
   } catch (error) {
-    logger.error('Token create error:', error);
+    logger.error('Token create error:', { error });
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
@@ -158,7 +158,7 @@ mcpRouter.get("/tokens", validateApiKey, async (req, res) => {
     const tokens = await db.listMcpTokens(userId);
     res.json({ tokens });
   } catch (error) {
-    logger.error('Token list error:', error);
+    logger.error('Token list error:', { error });
     res.status(500).json({ error: "Failed to list MCP tokens" });
   }
 });
@@ -174,7 +174,7 @@ mcpRouter.delete("/tokens/:tokenId", validateApiKey, async (req, res) => {
     await db.revokeMcpToken({ userId, tokenId });
     res.json({ success: true, message: "MCP token revoked" });
   } catch (error) {
-    logger.error('Token revoke error:', error);
+    logger.error('Token revoke error:', { error });
     res.status(500).json({ error: "Failed to revoke MCP token" });
   }
 });
@@ -225,7 +225,7 @@ mcpRouter.get("/vectors/:id", async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error('Vector details error:', error);
+    logger.error('Vector details error:', { error });
     res.status(500).json({ error: "Failed to fetch vector details" });
   }
 });
@@ -311,7 +311,7 @@ mcpRouter.post("/invoke", async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    logger.error('Invoke error:', error);
+    logger.error('Invoke error:', { error });
     res.status(500).json({ error: "Invocation failed" });
   }
 });
@@ -342,7 +342,7 @@ mcpRouter.post("/sync", async (req, res) => {
         return res.status(401).json({ error: "Access token required for vector sync" });
       }
 
-      permission = await db.getAccessPermissionByToken(bearerToken);
+      permission = await db.getAccessPermissionByToken(bearerToken) || null;
       if (!permission || !permission.isActive) {
         return res.status(403).json({ error: "Invalid or expired access token" });
       }
@@ -359,7 +359,7 @@ mcpRouter.post("/sync", async (req, res) => {
         return res.status(429).json({ error: "Call limit exceeded" });
       }
 
-      vector = await db.getLatentVectorById(vector_id);
+      vector = await db.getLatentVectorById(vector_id) || null;
       if (!vector || vector.status !== "active") {
         return res.status(404).json({ error: "Vector not available" });
       }
@@ -440,7 +440,7 @@ mcpRouter.post("/sync", async (req, res) => {
 
         const llmResult = await invokeLLM({
           messages: agentMessages.length > 0
-            ? agentMessages
+            ? agentMessages.filter((m): m is { role: string; content: string } => m !== null) as any[]
             : [{ role: "user", content: JSON.stringify(agentContext) }],
         });
 
@@ -500,7 +500,7 @@ mcpRouter.post("/sync", async (req, res) => {
         actionItems = Array.isArray(parsed.action_items) ? parsed.action_items : [];
       }
     } catch (error) {
-      logger.warn('Consensus generation failed', error);
+      logger.warn('Consensus generation failed', { error });
     }
 
     if (permission && vector_id) {
@@ -558,13 +558,13 @@ mcpRouter.post("/sync", async (req, res) => {
       memory: memoryInfo,
       usage: {
         calls_remaining:
-          permission?.callsRemaining !== null
+          (permission?.callsRemaining !== null && permission?.callsRemaining !== undefined)
             ? permission.callsRemaining - agents.length
             : null,
       },
     });
   } catch (error) {
-    logger.error('Sync error:', error);
+    logger.error('Sync error:', { error });
     res.status(500).json({ error: "Sync failed" });
   }
 });

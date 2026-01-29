@@ -980,7 +980,8 @@ export const vectorPackages = mysqlTable("vector_packages", {
   // Quality metrics
   epsilon: decimal("epsilon", { precision: 10, scale: 8 }).notNull(), // Alignment loss
   informationRetention: decimal("information_retention", { precision: 5, scale: 4 }).notNull(), // 0.0000-1.0000
-  
+  qualityScore: decimal("quality_score", { precision: 5, scale: 4 }).default("0.0000"), // Overall quality score 0.0000-1.0000
+
   // Category
   category: mysqlEnum("category", ["nlp", "vision", "audio", "multimodal", "other"]).default("nlp").notNull(),
   
