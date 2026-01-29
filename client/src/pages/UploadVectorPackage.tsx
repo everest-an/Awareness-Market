@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Navbar from '@/components/Navbar';
+import { PrivacySelector } from '@/components/PrivacySelector';
 import { Cpu, Upload, CheckCircle, AlertCircle, Loader2, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,6 +29,11 @@ export default function UploadVectorPackage() {
   });
   const [vectorJson, setVectorJson] = useState('');
   const [wMatrixJson, setWMatrixJson] = useState('');
+  const [privacyConfig, setPrivacyConfig] = useState({
+    enabled: false,
+    epsilon: 1.0,
+    delta: 1e-5,
+  });
 
   const createMutation = trpc.packages.createVectorPackage.useMutation({
     onSuccess: (data) => {
@@ -89,6 +95,10 @@ export default function UploadVectorPackage() {
         price: parseFloat(formData.price) || 0,
         trainingDataset: formData.trainingDataset,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+        privacy: privacyConfig.enabled ? {
+          epsilon: privacyConfig.epsilon,
+          delta: privacyConfig.delta,
+        } : undefined,
       });
     } catch (error) {
       console.error('Upload error:', error);
@@ -308,6 +318,16 @@ export default function UploadVectorPackage() {
               </div>
             </div>
 
+            {/* Privacy Protection */}
+            <div className="pt-4">
+              <PrivacySelector
+                onPrivacyChange={setPrivacyConfig}
+                defaultEnabled={false}
+                defaultEpsilon={1.0}
+                defaultDelta={1e-5}
+              />
+            </div>
+
             {/* Submit Button */}
             <div className="flex justify-end gap-4 pt-6 border-t border-slate-800">
               <Button
@@ -341,7 +361,7 @@ export default function UploadVectorPackage() {
 
         {/* Info Card */}
         <Card className="mt-6 p-6 bg-slate-900/30 border-slate-800">
-          <h3 className="text-lg font-semibold text-white mb-3">âš?Vector Package Format</h3>
+          <h3 className="text-lg font-semibold text-white mb-3">ï¿½?Vector Package Format</h3>
           <p className="text-sm text-slate-400 mb-3">
             A Vector Package (.vectorpkg) contains:
           </p>

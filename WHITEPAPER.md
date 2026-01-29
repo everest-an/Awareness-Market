@@ -879,6 +879,187 @@ High-quality memories → More Agents join → $AMEM demand increases
 Token value rises ← Attracts powerful models ← More transactions
 ```
 
+### 10.7 Token Distribution & Emission Schedule
+
+To ensure long-term alignment between stakeholders and the protocol's success, $AMEM utilizes a **Non-Inflationary Disinflationary Emission Model**. The total supply is strictly capped at 1,000,000,000 (1 Billion) $AMEM.
+
+#### 10.7.1 Allocation Breakdown
+
+The initial distribution is balanced to prevent centralization while heavily subsidizing early network security and alignment contributions.
+
+| Category | Allocation % | Tokens | Vesting Schedule (Release Logic) |
+|----------|--------------|--------|----------------------------------|
+| **Ecosystem & Mining** | 40% | 400M | Logarithmic Release. Distributed over 10 years via Proof of Effective Utility. Halving mechanism every 24 months to simulate Bitcoin-like scarcity. |
+| **Core Contributors** | 20% | 200M | 4-Year Linear Vesting. 12-month cliff (0% in Year 1), followed by monthly unlocks. |
+| **Investors (Seed/Private)** | 15% | 150M | 3-Year Strategic Vesting. 10% at TGE, 6-month cliff, then linear quarterly vesting. |
+| **DAO Treasury** | 15% | 150M | Governance Unlock. Funds are locked in a multi-sig contract and released only via passed community proposals for grants/acquisitions. |
+| **Liquidity & Airdrop** | 10% | 100M | Immediate/Short-term. 5% for DEX liquidity (locked), 5% for incentivized testnet users (3-month vesting). |
+
+#### 10.7.2 Emission Curve (The "Halving" Logic)
+
+The 40% allocated to Mining (Relayers & Matrix Creators) follows a decaying release curve to reward early adopters who take on the highest risk.
+
+**Epoch 1 (Months 0-24):** High emission rate to subsidize hardware costs.
+
+**Epoch 2 (Months 25-48):** Emission halves. By this stage, network fees (Royalties) should replace block rewards as the primary income source.
+
+**Epoch 3+:** Continued decay. The network aims to be fully deflationary (Burn > Emission) by Year 4.
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#4F46E5'}}}%%
+graph TD
+    subgraph "Token Emission Timeline (10 Years)"
+        Y0["Year 0<br/>100M tokens<br/>(10% circulating)"]
+        Y2["Year 2<br/>350M tokens<br/>(35% circulating)"]
+        Y4["Year 4<br/>600M tokens<br/>(60% circulating)"]
+        Y6["Year 6<br/>780M tokens<br/>(78% circulating)"]
+        Y8["Year 8<br/>890M tokens<br/>(89% circulating)"]
+        Y10["Year 10<br/>950M tokens<br/>(95% circulating)"]
+
+        Y0 -->|High emission<br/>80% APY| Y2
+        Y2 -->|Halving #1<br/>40% APY| Y4
+        Y4 -->|Halving #2<br/>15% APY| Y6
+        Y6 -->|Halving #3<br/>5% APY| Y8
+        Y8 -->|Tail emission<br/>2% APY| Y10
+
+        style Y0 fill:#EF4444,stroke:#B91C1C,color:#fff
+        style Y2 fill:#F59E0B,stroke:#D97706,color:#fff
+        style Y4 fill:#FBBF24,stroke:#F59E0B,color:#000
+        style Y6 fill:#84CC16,stroke:#65A30D,color:#000
+        style Y8 fill:#10B981,stroke:#059669,color:#fff
+        style Y10 fill:#06B6D4,stroke:#0891B2,color:#fff
+    end
+```
+
+**Key Insight:** The emission curve approaches near-zero inflation by Year 5, ensuring long-term token scarcity while bootstrapping early network adoption.
+
+### 10.8 Participation Matrix (How to Join)
+
+To clarify how different stakeholders interact with the protocol, the following Participation Matrix defines the requirements, actions, and reward mechanisms for each role.
+
+#### 10.8.1 Role Definitions
+
+| Role | Who are they? | Entry Requirement | Primary Action | Revenue Source |
+|------|---------------|-------------------|----------------|----------------|
+| **The Matrix Architect (Creator)** | AI Engineers, Fine-tuning Labs | Intellectual Capital. Ability to train alignment adapters (e.g., Llama3↔Qwen2). | Train and upload high-fidelity Alignment Matrices to the marketplace. | **Royalty Fees.** Earn a % of gas every time their matrix is used for a successful swap. (Passive Income) |
+| **The Relayer Node (Miner)** | Data Centers, GPU Owners (3090/4090/H100) | Hardware Capital. Min. 24GB VRAM GPU + Staking 50,000 $AMEM. | Run the awareness-node client to execute latent space transformations and route packets. | **Priority Fees + Block Rewards.** Paid for compute cycles and uptime. |
+| **The Watcher (Validator)** | Security Researchers, Light Nodes | Staking Capital. Light stake (5,000 $AMEM). | Randomly verify transactions using Zero-Knowledge Proofs to detect noise injection. | **Bounty Rewards.** Earn 50% of the slashed stake from malicious Relayers caught cheating. |
+| **The Agent Operator (User)** | SaaS Platforms, Trading Bots, DAO | $AMEM Balance. Hold tokens to pay for gas. | Connect AI Agents to the network to "buy" thoughts or capabilities from other Agents. | **N/A (Consumer).** They gain operational efficiency and capability expansion. |
+
+#### 10.8.2 Workflow Example: The Lifecycle of a Transaction
+
+1. **User (Agent) initiates a request:** "I need to send this Llama-3 thought vector to a Mistral Agent."
+2. **Protocol routes the request** to the best Relayer Node that has the required Alignment Matrix loaded.
+3. **Relayer executes the conversion.**
+4. **Watcher verifies the signature.**
+5. **Settlement:**
+   - User pays $AMEM.
+   - **Base Fee** → Burned.
+   - **Priority Fee** → Split between Relayer (for compute) and Matrix Architect (for IP royalty).
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'actorBkg':'#4F46E5','actorTextColor':'#fff'}}}%%
+sequenceDiagram
+    autonumber
+    participant User as 🤖 User Agent
+    participant Router as 🔀 Protocol Router
+    participant Relayer as ⚡ Relayer Node
+    participant Watcher as 👁️ Watcher
+    participant Settlement as 💰 Settlement Layer
+
+    Note over User: Need Llama-3 → Mistral<br/>transformation
+
+    User->>Router: Request + 100 $AMEM gas
+    Note over Router: Find best Relayer<br/>with W-Matrix
+    Router->>Relayer: Route request
+    Note over Relayer: Execute:<br/>vector × W-Matrix
+    Relayer->>Watcher: Result + ZKP
+    Note over Watcher: Verify with<br/>semantic anchors
+    Watcher->>Settlement: Verification ✓
+
+    Note over Settlement: Fee Distribution:<br/>30% → 🔥 Burn<br/>15% → Relayer<br/>5% → Architect<br/>50% → Result
+
+    Settlement->>User: Deliver result
+    Settlement->>Relayer: 15 $AMEM
+    Settlement-->>Router: 5 $AMEM royalty
+```
+
+### 10.9 Long-Term Value Sustainability
+
+To prevent the "Death Spiral" common in utility tokens, Awareness Market implements three circuit breakers:
+
+#### 10.9.1 Staking Lock-up
+
+**Relayer Nodes must stake tokens to work.** As the network grows, the demand for nodes increases, locking up more supply ($AMEM) effectively reducing market sell pressure.
+
+**Example:**
+- At network launch: 100 Relayers × 50,000 $AMEM = 5M tokens locked (0.5% of supply)
+- At Year 3: 1,000 Relayers × 50,000 $AMEM = 50M tokens locked (5% of supply)
+- At maturity: 5,000 Relayers × 50,000 $AMEM = 250M tokens locked (25% of supply)
+
+#### 10.9.2 Protocol-Owned Liquidity (POL)
+
+**The Treasury automatically allocates a portion of fees to buy back $AMEM** and pair it with stablecoins in liquidity pools, ensuring deep market depth.
+
+**Mechanism:**
+- 10% of all transaction fees → Treasury
+- Treasury uses 50% of accumulated fees quarterly to buy back $AMEM from DEX
+- Bought tokens are paired with USDC/USDT and added to liquidity pools
+- Result: Ever-deepening liquidity that the protocol owns (not mercenary capital)
+
+```
+[POL Flywheel]
+
+More Transactions → Higher Fees → Treasury Grows
+        ↓
+Treasury Buyback → Price Support → Attracts Users
+        ↓
+More Users → More Transactions → [Loop continues]
+```
+
+#### 10.9.3 Governance Shield
+
+**Large token holders (Whales) cannot dump tokens without affecting their own voting power** on critical protocol parameters (like fee rates), aligning their interests with holding.
+
+**Vote-Escrowed Mechanism:**
+- Stake $AMEM for 1-4 years to receive ve$AMEM (vote-escrowed $AMEM)
+- Voting power = Amount × Time multiplier (max 4x for 4-year lock)
+- Only ve$AMEM holders can vote on protocol parameters
+- Unstaking requires 7-day cooldown period (prevents rage-quit during governance)
+
+**Example:**
+- Alice stakes 1M $AMEM for 4 years → Receives 4M ve$AMEM voting power
+- If Alice tries to unstake to sell, she loses 4M voting power immediately
+- This incentivizes long-term holding over short-term speculation
+
+```mermaid
+graph LR
+    A["12 months<br/>1.0x voting power"] -->|"Lock longer"| B["24 months<br/>2.0x voting power"]
+    B -->|"Lock longer"| C["36 months<br/>3.0x voting power"]
+    C -->|"Lock longer"| D["48 months<br/>4.0x voting power"]
+
+    A -.->|"Early unlock<br/>-7 days cooldown"| E["Lose voting power"]
+    B -.->|"Early unlock<br/>-7 days cooldown"| E
+    C -.->|"Early unlock<br/>-7 days cooldown"| E
+    D -.->|"Early unlock<br/>-7 days cooldown"| E
+
+    style A fill:#e1f5ff,stroke:#0066cc,stroke-width:2px
+    style B fill:#b3e0ff,stroke:#0052a3,stroke-width:2px
+    style C fill:#66c2ff,stroke:#003d7a,stroke-width:2px
+    style D fill:#0099ff,stroke:#002952,stroke-width:3px
+    style E fill:#ffcccc,stroke:#cc0000,stroke-width:2px
+
+    classDef incentive fill:#fff4e6,stroke:#ff9800,stroke-width:2px,stroke-dasharray: 5 5
+
+    note1["💡 Incentive: Lock longer → Gain more governance power → Align with protocol success"]:::incentive
+```
+
+**Governance Shield Mechanism:**
+
+- Whales cannot sell without losing their voting power (7-day cooldown)
+- Long-term stakers gain up to 4x voting power multiplier
+- Creates alignment between token holders and protocol success
+
 ---
 
 ## 11. ERC-6551 AI Memory Rights

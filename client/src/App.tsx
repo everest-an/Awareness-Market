@@ -55,6 +55,10 @@ import NeuralCortex from "./pages/NeuralCortex";
 import OAuthCallback from "./pages/OAuthCallback";
 import EmailVerification from "./pages/EmailVerification";
 import AgentAuth from "./pages/AgentAuth";
+import PrivacySettings from "./pages/PrivacySettings";
+import ZKPDashboard from "./pages/ZKPDashboard";
+import UploadMultimodalPackage from "./pages/UploadMultimodalPackage";
+import CrossModalSearch from "./pages/CrossModalSearch";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -75,6 +79,9 @@ function Router() {
       <Route path={"/creator/publish"} component={UploadVector} />
       <Route path={"/dashboard/consumer"} component={ConsumerDashboard} />
       <Route path="/profile" component={Profile} />
+      <Route path="/privacy-settings" component={PrivacySettings} />
+      <Route path="/zkp-dashboard" component={ZKPDashboard} />
+      <Route path="/zkp" component={ZKPDashboard} />
        <Route path="/subscriptions" component={Subscriptions} />
       <Route path="/docs/sdk" component={SdkDocs} />
       <Route path="/pricing" component={Pricing} />
@@ -104,6 +111,8 @@ function Router() {
       <Route path="/upload-memory-package" component={UploadMemoryPackage} />
       <Route path="/chain-packages" component={ChainPackageMarketplace} />
       <Route path="/upload-chain-package" component={UploadChainPackage} />
+      <Route path="/upload-multimodal-package" component={UploadMultimodalPackage} />
+      <Route path="/cross-modal-search" component={CrossModalSearch} />
       <Route path="/package/:type/:id" component={PackageDetail} />
       <Route path="/memory/:id" component={MemoryNFTDetail} />
 

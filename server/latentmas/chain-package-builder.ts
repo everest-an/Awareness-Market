@@ -1,6 +1,6 @@
 /**
  * Chain Package Builder
- * 
+ *
  * Builds .chainpkg files containing:
  * - Reasoning Chain (multiple KV-Cache snapshots)
  * - W-Matrix (for cross-model transformation)
@@ -16,6 +16,11 @@ import {
   type ValidationResult,
 } from './base-package-builder';
 import type { KVCache } from './types';
+import {
+  ChainVerificationEngine,
+  type VerificationResult,
+  type VerificationStatus,
+} from './chain-verification';
 
 // ============================================================================
 // Chain Package Types
@@ -43,6 +48,7 @@ export interface ChainPackageData {
   wMatrix: WMatrixData;
   metadata: PackageMetadata;
   provenance: PackageProvenance;
+  verification?: VerificationResult; // Optional verification result
 }
 
 export interface ChainPackageFiles {
@@ -60,23 +66,58 @@ export interface ChainPackageFiles {
 // ============================================================================
 
 export class ChainPackageBuilder extends BasePackageBuilder {
+  private verificationEngine: ChainVerificationEngine;
+
   constructor() {
     super('chain');
+    this.verificationEngine = new ChainVerificationEngine();
   }
 
   /**
-   * Create a complete Chain Package
+   * Create a complete Chain Package with verification
    */
-  async createPackage(data: ChainPackageData): Promise<{
+  async createPackage(
+    data: ChainPackageData,
+    options: {
+      skipVerification?: boolean;
+      strictVerification?: boolean;
+    } = {}
+  ): Promise<{
     packageBuffer: Buffer;
     packageUrl: string;
     chainUrl: string;
     wMatrixUrl: string;
+    verification?: VerificationResult;
   }> {
     // Validate all components
     const chainValidation = this.validateChain(data.chain);
     if (!chainValidation.valid) {
       throw new Error(`Chain validation failed: ${chainValidation.errors.join(', ')}`);
+    }
+
+    // Perform automated verification unless skipped
+    let verification: VerificationResult | undefined;
+    if (!options.skipVerification) {
+      if (options.strictVerification) {
+        this.verificationEngine.updateConfig({
+          minOverallScore: 0.8,
+          minLogicalConsistency: 0.85,
+          strictMode: true,
+        });
+      }
+
+      verification = await this.verificationEngine.verifyChain(data.chain);
+
+      // Reject package if verification fails
+      if (verification.status === 'rejected') {
+        throw new Error(
+          `Chain verification failed (score: ${verification.overallScore.toFixed(2)}): ` +
+          verification.errors.map(e => e.message).join('; ')
+        );
+      }
+
+      // Store verification result in package data
+      data.verification = verification;
     }
 
     const wMatrixValidation = this.validateWMatrix(data.wMatrix);
@@ -133,6 +174,7 @@ export class ChainPackageBuilder extends BasePackageBuilder {
       packageUrl,
       chainUrl,
       wMatrixUrl,
+      verification,
     };
   }
 
@@ -203,6 +245,11 @@ export class ChainPackageBuilder extends BasePackageBuilder {
     files['metadata.json'] = Buffer.from(this.serializeMetadata(data.metadata));
     files['provenance.json'] = Buffer.from(this.serializeProvenance(data.provenance));
 
+    // Verification result (if exists)
+    if (data.verification) {
+      files['verification.json'] = Buffer.from(JSON.stringify(data.verification, null, 2));
+    }
+
     return files;
   }
 
@@ -238,11 +285,17 @@ export class ChainPackageBuilder extends BasePackageBuilder {
     const metadata = this.deserializeMetadata(files['metadata.json'].toString());
     const provenance = this.deserializeProvenance(files['provenance.json'].toString());
 
+    // Extract verification result (if exists)
+    const verification = files['verification.json']
+      ? JSON.parse(files['verification.json'].toString())
+      : undefined;
+
     return {
       chain,
       wMatrix,
       metadata,
       provenance,
+      verification,
     };
   }
 
@@ -319,6 +372,41 @@ export class ChainPackageBuilder extends BasePackageBuilder {
 
     return { valid: errors.length === 0, errors, warnings };
   }
+
+  /**
+   * Verify a reasoning chain independently
+   */
+  async verifyChainOnly(chain: ReasoningChainData): Promise<VerificationResult> {
+    return await this.verificationEngine.verifyChain(chain);
+  }
+
+  /**
+   * Verify with human review
+   */
+  async verifyChainWithHuman(
+    chain: ReasoningChainData,
+    humanReview: {
+      approved: boolean;
+      comments: string;
+      verifierId: string;
+    }
+  ): Promise<VerificationResult> {
+    return await this.verificationEngine.verifyWithHuman(chain, humanReview);
+  }
+
+  /**
+   * Get verification engine configuration
+   */
+  getVerificationConfig() {
+    return this.verificationEngine.getConfig();
+  }
+
+  /**
+   * Update verification engine configuration
+   */
+  updateVerificationConfig(config: Partial<Parameters<ChainVerificationEngine['updateConfig']>[0]>) {
+    this.verificationEngine.updateConfig(config);
+  }
 }
 
 // ============================================================================
@@ -326,7 +414,7 @@ export class ChainPackageBuilder extends BasePackageBuilder {
 // ============================================================================
 
 /**
- * Create a Chain Package from components
+ * Create a Chain Package from components with automatic verification
  */
 export async function createChainPackage(
   chain: ReasoningChainData,
@@ -337,6 +425,8 @@ export async function createChainPackage(
     version: string;
     creator: { id: number; name: string };
     trainingDataset: string;
+    skipVerification?: boolean;
+    strictVerification?: boolean;
   }
 ): Promise<{
   packageBuffer: Buffer;
@@ -344,6 +434,7 @@ export async function createChainPackage(
   chainUrl: string;
   wMatrixUrl: string;
   packageId: string;
+  verification?: VerificationResult;
 }> {
   const builder = new ChainPackageBuilder();
   const packageId = builder['generatePackageId']();
@@ -376,7 +467,10 @@ export async function createChainPackage(
     provenance,
   };
 
-  const result = await builder.createPackage(packageData);
+  const result = await builder.createPackage(packageData, {
+    skipVerification: options.skipVerification,
+    strictVerification: options.strictVerification,
+  });
 
   return {
     ...result,

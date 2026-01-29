@@ -86,7 +86,9 @@ export type InferenceEventType =
   | 'chain_step'          // Reasoning chain step
   | 'model_invoke'        // Model invocation
   | 'package_load'        // Package loaded
-  | 'validation';         // Vector validation
+  | 'validation'          // Vector validation
+  | 'semantic_validation' // Semantic anchor validation (P1)
+  | 'batch_align';        // GPU batch alignment (P2)
 
 // Inference session containing multiple events
 export interface InferenceSession {

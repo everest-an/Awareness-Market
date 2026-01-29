@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Awareness Market - Token Economics Charts</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #1f2937;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #4F46E5;
+        }
+
+        .chart-subtitle {
+            font-size: 0.9rem;
+            color: #6B7280;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            max-height: 400px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Awareness Market - Token Economics Dashboard</h1>
+
+        <div class="chart-grid">
+            <!-- Chart 1: Emission Curve -->
+            <div class="chart-container">
+                <h2 class="chart-title">📈 Token Emission Curve</h2>
+                <p class="chart-subtitle">Circulating supply growth over 10 years with Bitcoin-style halving</p>
+                <canvas id="emissionChart"></canvas>
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-value">1B</div>
+                        <div class="metric-label">Total Supply</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">950M</div>
+                        <div class="metric-label">Year 10 Circulation</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">95%</div>
+                        <div class="metric-label">Emission Complete</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart 2: Inflation Rate -->
+            <div class="chart-container">
+                <h2 class="chart-title">📉 Inflation Rate Decay</h2>
+                <p class="chart-subtitle">Annual inflation rate approaching zero by Year 5</p>
+                <canvas id="inflationChart"></canvas>
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-value">80%</div>
+                        <div class="metric-label">Year 1 APY</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">5%</div>
+                        <div class="metric-label">Year 5 APY</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">2%</div>
+                        <div class="metric-label">Tail Emission</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart 3: Token Allocation -->
+            <div class="chart-container">
+                <h2 class="chart-title">🥧 Token Allocation Breakdown</h2>
+                <p class="chart-subtitle">Distribution of 1 billion $AMEM tokens</p>
+                <canvas id="allocationChart"></canvas>
+            </div>
+
+            <!-- Chart 4: Staking Lock-up Growth -->
+            <div class="chart-container">
+                <h2 class="chart-title">🔒 Staking Lock-up Projection</h2>
+                <p class="chart-subtitle">Supply locked as network grows (Relayer nodes × 50K $AMEM)</p>
+                <canvas id="stakingChart"></canvas>
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-value">5M</div>
+                        <div class="metric-label">Launch Lock (0.5%)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">250M</div>
+                        <div class="metric-label">Maturity Lock (25%)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart 5: Voting Power Curve -->
+            <div class="chart-container">
+                <h2 class="chart-title">⚡ Vote-Escrowed Power</h2>
+                <p class="chart-subtitle">Voting power multiplier based on lock duration</p>
+                <canvas id="votingChart"></canvas>
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-value">4.0x</div>
+                        <div class="metric-label">Max Multiplier (48mo)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">7 days</div>
+                        <div class="metric-label">Unstake Cooldown</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart 6: Fee Distribution -->
+            <div class="chart-container">
+                <h2 class="chart-title">💰 Transaction Fee Distribution</h2>
+                <p class="chart-subtitle">How 100 $AMEM gas fee is split per transaction</p>
+                <canvas id="feeChart"></canvas>
+            </div>
+        </div>
+
+        <footer>
+            <p>📊 Awareness Market Token Economics | Generated: 2026-01-29</p>
+            <p>Based on LatentMAS Protocol Whitepaper v2.0 - Section 10.7-10.9</p>
+        </footer>
+    </div>
+
+    <script>
+        // Chart.js default configuration
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#374151';
+
+        // Color palette
+        const colors = {
+            primary: '#4F46E5',
+            secondary: '#06B6D4',
+            success: '#10B981',
+            warning: '#F59E0B',
+            danger: '#EF4444',
+            purple: '#8B5CF6',
+            pink: '#EC4899',
+            gradient: (ctx, color1, color2) => {
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, color1);
+                gradient.addColorStop(1, color2);
+                return gradient;
+            }
+        };
+
+        // Chart 1: Emission Curve
+        const emissionCtx = document.getElementById('emissionChart').getContext('2d');
+        new Chart(emissionCtx, {
+            type: 'line',
+            data: {
+                labels: ['Year 0', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7', 'Year 8', 'Year 9', 'Year 10'],
+                datasets: [{
+                    label: 'Circulating Supply (Millions)',
+                    data: [100, 200, 350, 480, 600, 700, 780, 840, 890, 930, 950],
+                    borderColor: colors.primary,
+                    backgroundColor: colors.gradient(emissionCtx, 'rgba(79, 70, 229, 0.3)', 'rgba(79, 70, 229, 0.05)'),
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: colors.primary,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `${context.parsed.y}M $AMEM (${(context.parsed.y / 10).toFixed(1)}%)`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1000,
+                        title: {
+                            display: true,
+                            text: 'Circulating Supply (Millions $AMEM)'
+                        },
+                        ticks: {
+                            callback: (value) => value + 'M'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 2: Inflation Rate
+        const inflationCtx = document.getElementById('inflationChart').getContext('2d');
+        new Chart(inflationCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7', 'Year 8', 'Year 9', 'Year 10'],
+                datasets: [{
+                    label: 'Annual Inflation Rate (%)',
+                    data: [80, 60, 40, 25, 15, 10, 7, 5, 3, 2],
+                    backgroundColor: [
+                        colors.danger,
+                        colors.warning,
+                        '#F59E0B',
+                        '#FBBF24',
+                        colors.success,
+                        colors.success,
+                        colors.secondary,
+                        colors.secondary,
+                        colors.primary,
+                        colors.primary
+                    ],
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `${context.parsed.y}% APY`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Inflation Rate (%)'
+                        },
+                        ticks: {
+                            callback: (value) => value + '%'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 3: Token Allocation
+        const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+        new Chart(allocationCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    'Ecosystem & Mining (40%)',
+                    'Core Contributors (20%)',
+                    'Investors (15%)',
+                    'DAO Treasury (15%)',
+                    'Liquidity & Airdrop (10%)'
+                ],
+                datasets: [{
+                    data: [400, 200, 150, 150, 100],
+                    backgroundColor: [
+                        colors.primary,
+                        colors.purple,
+                        colors.pink,
+                        colors.secondary,
+                        colors.success
+                    ],
+                    borderWidth: 3,
+                    borderColor: '#fff',
+                    hoverOffset: 20
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const percentage = ((value / 1000) * 100).toFixed(0);
+                                return `${label}: ${value}M tokens`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 4: Staking Lock-up Growth
+        const stakingCtx = document.getElementById('stakingChart').getContext('2d');
+        new Chart(stakingCtx, {
+            type: 'line',
+            data: {
+                labels: ['Launch', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Maturity'],
+                datasets: [
+                    {
+                        label: 'Locked $AMEM (Millions)',
+                        data: [5, 15, 25, 50, 75, 100, 250],
+                        borderColor: colors.success,
+                        backgroundColor: colors.gradient(stakingCtx, 'rgba(16, 185, 129, 0.3)', 'rgba(16, 185, 129, 0.05)'),
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        borderWidth: 3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '% of Total Supply',
+                        data: [0.5, 1.5, 2.5, 5, 7.5, 10, 25],
+                        borderColor: colors.warning,
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        pointRadius: 4,
+                        borderWidth: 2,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Locked Supply (Millions)'
+                        },
+                        ticks: {
+                            callback: (value) => value + 'M'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: '% of Total Supply'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        ticks: {
+                            callback: (value) => value + '%'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 5: Voting Power Curve
+        const votingCtx = document.getElementById('votingChart').getContext('2d');
+        new Chart(votingCtx, {
+            type: 'line',
+            data: {
+                labels: ['0', '6', '12', '18', '24', '30', '36', '42', '48'],
+                datasets: [{
+                    label: 'Voting Power Multiplier',
+                    data: [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+                    borderColor: colors.purple,
+                    backgroundColor: colors.gradient(votingCtx, 'rgba(139, 92, 246, 0.3)', 'rgba(139, 92, 246, 0.05)'),
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: colors.purple,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `${context.parsed.y.toFixed(1)}x voting power`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Lock Duration (Months)'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 4.5,
+                        title: {
+                            display: true,
+                            text: 'Voting Power Multiplier'
+                        },
+                        ticks: {
+                            callback: (value) => value.toFixed(1) + 'x'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart 6: Fee Distribution
+        const feeCtx = document.getElementById('feeChart').getContext('2d');
+        new Chart(feeCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Burn 🔥', 'Relayer Node', 'Matrix Architect', 'Treasury', 'Value Transfer'],
+                datasets: [{
+                    label: 'Fee Distribution (% of 100 $AMEM)',
+                    data: [30, 15, 5, 10, 40],
+                    backgroundColor: [
+                        colors.danger,
+                        colors.secondary,
+                        colors.purple,
+                        colors.primary,
+                        colors.success
+                    ],
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `${context.parsed.x}% (${context.parsed.x} $AMEM)`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 50,
+                        title: {
+                            display: true,
+                            text: 'Percentage of Transaction Fee'
+                        },
+                        ticks: {
+                            callback: (value) => value + '%'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
