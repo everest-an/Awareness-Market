@@ -552,7 +552,7 @@ export const neuralBridgeRouter = router({
             `${(compressionStats.bandwidthReduction * 100).toFixed(1)}% bandwidth saved)`
           );
         } catch (error) {
-          logger.error('Compression failed:', error);
+          logger.error('Compression failed:', { error });
           // Fall back to uncompressed
           processedKVCache = input.kvCache;
         }
@@ -761,7 +761,7 @@ export const neuralBridgeRouter = router({
           sessionId,
         };
       } catch (error) {
-        logger.error('Vector validation failed:', error);
+        logger.error('Vector validation failed:', { error });
 
         // Fallback to fast validation
         const quality = neuralBridge['fastValidation'](input.vector);
@@ -1024,7 +1024,7 @@ export const neuralBridgeRouter = router({
           message: `Batch aligned ${result.batchSize} vectors in ${result.computeTime.toFixed(2)}ms using ${result.backend}`,
         };
       } catch (error) {
-        logger.error('[GPU] Batch alignment error:', error);
+        logger.error('[GPU] Batch alignment error:', { error });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to perform batch alignment',
@@ -1063,7 +1063,7 @@ export const neuralBridgeRouter = router({
             : 'GPU not available - falling back to CPU. Performance may be slower for large batches',
         };
       } catch (error) {
-        logger.error('[GPU] Status check error:', error);
+        logger.error('[GPU] Status check error:', { error });
         return {
           backend: 'cpu' as ComputeBackend,
           gpuAvailable: false,
@@ -1128,7 +1128,7 @@ export const neuralBridgeRouter = router({
           },
         };
       } catch (error) {
-        logger.error('[GPU] Benchmark error:', error);
+        logger.error('[GPU] Benchmark error:', { error });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to run GPU benchmark',

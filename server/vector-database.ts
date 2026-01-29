@@ -28,6 +28,7 @@ export interface VectorMetadata {
   qualityScore?: number;
   tags?: string[];
   description?: string;
+  [key: string]: unknown; // Index signature for Qdrant compatibility
 }
 
 export interface SearchResult {

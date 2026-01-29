@@ -5,7 +5,7 @@
 
 import { getDb } from "./db";
 import { latentVectors, accessPermissions, vectorInvocations, apiCallLogs, transactions } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
 import { storageGet } from "./storage";
@@ -176,13 +176,15 @@ async function updateInvocationStats(
   cost: number,
   success: boolean
 ) {
+  if (!db) return;
+
   // Update vector total calls and revenue
   if (success) {
     await db
       .update(latentVectors)
       .set({
-        totalCalls: db.raw('total_calls + 1'),
-        totalRevenue: db.raw(`total_revenue + ${cost}`)
+        totalCalls: sql`total_calls + 1`,
+        totalRevenue: sql`total_revenue + ${cost}`
       })
       .where(eq(latentVectors.id, vectorId));
   }
@@ -191,7 +193,7 @@ async function updateInvocationStats(
   await db
     .update(accessPermissions)
     .set({
-      callsRemaining: db.raw('CASE WHEN calls_remaining IS NOT NULL THEN calls_remaining - 1 ELSE NULL END')
+      callsRemaining: sql`CASE WHEN calls_remaining IS NOT NULL THEN calls_remaining - 1 ELSE NULL END`
     })
     .where(eq(accessPermissions.id, permissionId));
 }
