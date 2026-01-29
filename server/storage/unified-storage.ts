@@ -87,7 +87,7 @@ export async function storageGetSmart(
       }
     } catch (error) {
       lastError = error as Error;
-      logger.warn(`[Unified Storage] Failed to get from ${backendName}:`, error);
+      logger.warn(`[Unified Storage] Failed to get from ${backendName}:`, { error });
     }
   }
 

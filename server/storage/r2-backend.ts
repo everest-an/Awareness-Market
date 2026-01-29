@@ -66,7 +66,7 @@ export class R2Backend implements StorageBackend {
       
       return { url, key };
     } catch (error) {
-      logger.error('[R2Backend] Upload failed:', error);
+      logger.error('[R2Backend] Upload failed:', { error });
       throw new Error(`R2 upload failed: ${(error as Error).message}`);
     }
   }
@@ -83,7 +83,7 @@ export class R2Backend implements StorageBackend {
       
       return { url };
     } catch (error) {
-      logger.error('[R2Backend] Get URL failed:', error);
+      logger.error('[R2Backend] Get URL failed:', { error });
       throw new Error(`R2 get failed: ${(error as Error).message}`);
     }
   }
@@ -99,7 +99,7 @@ export class R2Backend implements StorageBackend {
       
       logger.info(`[R2Backend] Deleted ${key}`);
     } catch (error) {
-      logger.error('[R2Backend] Delete failed:', error);
+      logger.error('[R2Backend] Delete failed:', { error });
       throw new Error(`R2 delete failed: ${(error as Error).message}`);
     }
   }
@@ -116,7 +116,7 @@ export class R2Backend implements StorageBackend {
       await this.client.send(command);
       return true;
     } catch (error) {
-      logger.error('[R2Backend] Health check failed:', error);
+      logger.error('[R2Backend] Health check failed:', { error });
       return false;
     }
   }

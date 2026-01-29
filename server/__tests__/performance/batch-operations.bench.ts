@@ -5,7 +5,7 @@
  * including vector alignment, search, and data processing.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 
 interface BatchResult {
   operation: string;
