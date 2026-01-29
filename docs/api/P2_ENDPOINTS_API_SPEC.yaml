@@ -1,0 +1,915 @@
+openapi: 3.0.3
+info:
+  title: Awareness Market - P2 Enhanced API
+  description: |
+    API specification for Phase 2 integration features:
+    - Differential Privacy (4 endpoints)
+    - Zero-Knowledge Proofs (9 endpoints)
+    - Multi-Modal Vectors (8 endpoints)
+    - GPU Acceleration (6 endpoints)
+  version: 2.0.0
+  contact:
+    name: Awareness Market Team
+    url: https://awareness.market
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.awareness.market/v2
+    description: Production server
+  - url: http://localhost:5001/api
+    description: Development server
+
+tags:
+  - name: Privacy
+    description: Differential privacy endpoints for vector protection
+  - name: ZKP
+    description: Zero-knowledge proof endpoints for anonymous verification
+  - name: Multi-Modal
+    description: Multi-modal vector fusion and cross-modal search
+  - name: GPU
+    description: GPU acceleration for vector operations
+
+paths:
+  # ============================================================================
+  # DIFFERENTIAL PRIVACY ENDPOINTS
+  # ============================================================================
+
+  /user/privacy-settings:
+    get:
+      tags: [Privacy]
+      summary: Get privacy settings
+      description: Retrieve user's differential privacy configuration
+      operationId: getPrivacySettings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Privacy settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacySettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [Privacy]
+      summary: Update privacy settings
+      description: Configure differential privacy parameters
+      operationId: updatePrivacySettings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrivacySettingsUpdate'
+      responses:
+        '200':
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  settings:
+                    $ref: '#/components/schemas/PrivacySettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/privacy-budget/history:
+    get:
+      tags: [Privacy]
+      summary: Get privacy budget history
+      description: Retrieve history of privacy budget consumption
+      operationId: getPrivacyBudgetHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of history entries to return
+          schema:
+            type: integer
+            default: 30
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Budget history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BudgetHistoryEntry'
+                  totalEntries:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/privacy/simulate:
+    post:
+      tags: [Privacy]
+      summary: Simulate privacy noise
+      description: Test how differential privacy affects a vector
+      operationId: simulatePrivacy
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vector, epsilon, delta]
+              properties:
+                vector:
+                  type: array
+                  items:
+                    type: number
+                  minItems: 1
+                  maxItems: 10000
+                epsilon:
+                  type: number
+                  minimum: 0.1
+                  maximum: 10
+                delta:
+                  type: number
+                  minimum: 0
+      responses:
+        '200':
+          description: Simulation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivacySimulationResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================================
+  # ZERO-KNOWLEDGE PROOF ENDPOINTS
+  # ============================================================================
+
+  /zkp/generate-proof:
+    post:
+      tags: [ZKP]
+      summary: Generate quality proof
+      description: Generate zero-knowledge proof that vector quality ≥ threshold
+      operationId: generateQualityProof
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vector, qualityScore]
+              properties:
+                vector:
+                  type: array
+                  items:
+                    type: number
+                  minItems: 1
+                  maxItems: 10000
+                qualityScore:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                threshold:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  default: 0.8
+      responses:
+        '200':
+          description: Proof generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  proof:
+                    $ref: '#/components/schemas/QualityProof'
+                  message:
+                    type: string
+                  verification:
+                    type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /zkp/verify-proof:
+    post:
+      tags: [ZKP]
+      summary: Verify quality proof
+      description: Verify a zero-knowledge quality proof
+      operationId: verifyQualityProof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proof]
+              properties:
+                proof:
+                  $ref: '#/components/schemas/QualityProof'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  verification:
+                    type: object
+                    properties:
+                      valid:
+                        type: boolean
+                      proofSystem:
+                        type: string
+                      verificationTime:
+                        type: string
+                      errorMessage:
+                        type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /zkp/commit:
+    post:
+      tags: [ZKP]
+      summary: Create vector commitment
+      description: Create Pedersen commitment to a vector
+      operationId: commitToVector
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vector]
+              properties:
+                vector:
+                  type: array
+                  items:
+                    type: number
+                  minItems: 1
+                  maxItems: 10000
+      responses:
+        '200':
+          description: Commitment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  commitment:
+                    $ref: '#/components/schemas/VectorCommitment'
+                  info:
+                    type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /zkp/verify-commitment:
+    post:
+      tags: [ZKP]
+      summary: Verify vector commitment
+      description: Verify that a commitment matches a vector
+      operationId: verifyVectorCommitment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vector, commitment]
+              properties:
+                vector:
+                  type: array
+                  items:
+                    type: number
+                commitment:
+                  $ref: '#/components/schemas/VectorCommitment'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  verification:
+                    type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /zkp/stats:
+    get:
+      tags: [ZKP]
+      summary: Get ZKP statistics
+      description: Retrieve ZKP system performance statistics
+      operationId: getZKPStats
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZKPStats'
+
+  /zkp/anonymous-purchase:
+    post:
+      tags: [ZKP]
+      summary: Anonymous purchase
+      description: Purchase package anonymously using ZKP
+      operationId: anonymousPurchase
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [packageId, qualityProof, blindedPayment]
+              properties:
+                packageId:
+                  type: string
+                qualityProof:
+                  $ref: '#/components/schemas/QualityProof'
+                blindedPayment:
+                  type: object
+                  properties:
+                    amount:
+                      type: number
+                    blindingFactor:
+                      type: string
+                    commitment:
+                      type: string
+      responses:
+        '200':
+          description: Purchase completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  purchase:
+                    type: object
+                  verification:
+                    type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /zkp/batch-verify:
+    post:
+      tags: [ZKP]
+      summary: Batch verify proofs
+      description: Efficiently verify multiple proofs
+      operationId: batchVerifyProofs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proofs]
+              properties:
+                proofs:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/QualityProof'
+                  minItems: 1
+                  maxItems: 100
+      responses:
+        '200':
+          description: Batch verification completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  batchSize:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      type: object
+                  summary:
+                    type: object
+
+  /zkp/recommended-config:
+    get:
+      tags: [ZKP]
+      summary: Get recommended ZKP config
+      description: Get recommended ZKP system configuration for use case
+      operationId: getRecommendedConfig
+      parameters:
+        - name: useCase
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [marketplace, research, enterprise, medical]
+        - name: vectorDimension
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+      responses:
+        '200':
+          description: Configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  recommended:
+                    type: object
+                  estimatedProofSize:
+                    type: string
+                  estimatedTime:
+                    type: object
+
+  /zkp/submit-on-chain:
+    post:
+      tags: [ZKP]
+      summary: Submit proof on-chain
+      description: Prepare proof for blockchain submission
+      operationId: submitProofOnChain
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proof, packageId, network]
+              properties:
+                proof:
+                  $ref: '#/components/schemas/QualityProof'
+                packageId:
+                  type: string
+                network:
+                  type: string
+                  enum: [polygon-amoy, ethereum-sepolia, arbitrum-sepolia]
+      responses:
+        '200':
+          description: Proof prepared for submission
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  preparation:
+                    type: object
+
+  # ============================================================================
+  # MULTI-MODAL ENDPOINTS
+  # ============================================================================
+
+  /multimodal/upload:
+    post:
+      tags: [Multi-Modal]
+      summary: Upload multi-modal package
+      description: Upload package with multiple modalities
+      operationId: uploadMultimodalPackage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultimodalPackage'
+      responses:
+        '200':
+          description: Package uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  packageId:
+                    type: string
+                  modalities:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /multimodal/search:
+    post:
+      tags: [Multi-Modal]
+      summary: Cross-modal search
+      description: Search across modalities (e.g., text → image)
+      operationId: crossModalSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [queryVector, queryModality]
+              properties:
+                queryVector:
+                  type: array
+                  items:
+                    type: number
+                queryModality:
+                  type: string
+                  enum: [text, image, audio, video]
+                targetModality:
+                  type: string
+                  enum: [text, image, audio, video]
+                limit:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 100
+                minSimilarity:
+                  type: number
+                  default: 0.7
+                  minimum: 0
+                  maximum: 1
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CrossModalResult'
+                  stats:
+                    type: object
+
+  # ============================================================================
+  # GPU ACCELERATION ENDPOINTS
+  # ============================================================================
+
+  /gpu/status:
+    get:
+      tags: [GPU]
+      summary: Get GPU status
+      description: Retrieve GPU acceleration status and metrics
+      operationId: getGPUStatus
+      responses:
+        '200':
+          description: GPU status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GPUStatus'
+
+  /gpu/batch-align:
+    post:
+      tags: [GPU]
+      summary: Batch align vectors
+      description: Align batch of vectors using GPU acceleration
+      operationId: batchAlignVectors
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vectors, wMatrix]
+              properties:
+                vectors:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: number
+                wMatrix:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: number
+      responses:
+        '200':
+          description: Alignment completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchAlignmentResult'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    PrivacySettings:
+      type: object
+      properties:
+        differentialPrivacyEnabled:
+          type: boolean
+        defaultEpsilon:
+          type: number
+        defaultDelta:
+          type: number
+        monthlyBudget:
+          type: number
+        budgetRemaining:
+          type: number
+        autoRenewBudget:
+          type: boolean
+        nextResetDate:
+          type: string
+          format: date-time
+
+    PrivacySettingsUpdate:
+      type: object
+      properties:
+        differentialPrivacyEnabled:
+          type: boolean
+        defaultEpsilon:
+          type: number
+          minimum: 0.1
+          maximum: 10
+        defaultDelta:
+          type: number
+          minimum: 0
+        monthlyBudget:
+          type: number
+          minimum: 5
+          maximum: 50
+        autoRenewBudget:
+          type: boolean
+
+    BudgetHistoryEntry:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date-time
+        budgetUsed:
+          type: number
+        budgetRemaining:
+          type: number
+
+    PrivacySimulationResult:
+      type: object
+      properties:
+        originalVector:
+          type: array
+          items:
+            type: number
+        noisyVector:
+          type: array
+          items:
+            type: number
+        analysis:
+          type: object
+          properties:
+            noiseScale:
+              type: number
+            meanNoise:
+              type: number
+            stdDevNoise:
+              type: number
+        interpretation:
+          type: string
+
+    QualityProof:
+      type: object
+      properties:
+        commitment:
+          type: string
+        proof:
+          type: object
+          properties:
+            pi_a:
+              type: array
+              items:
+                type: string
+            pi_b:
+              type: array
+              items:
+                type: array
+                items:
+                  type: string
+            pi_c:
+              type: array
+              items:
+                type: string
+        publicSignals:
+          type: object
+        metadata:
+          type: object
+          properties:
+            vectorDimension:
+              type: integer
+            qualityThreshold:
+              type: number
+            system:
+              type: string
+              enum: [groth16, plonk, stark, mock]
+            timestamp:
+              type: string
+              format: date-time
+            expiresAt:
+              type: string
+              format: date-time
+
+    VectorCommitment:
+      type: object
+      properties:
+        commitment:
+          type: string
+        blinding:
+          type: string
+        dimension:
+          type: integer
+
+    ZKPStats:
+      type: object
+      properties:
+        stats:
+          type: object
+          properties:
+            proofsGenerated:
+              type: integer
+            proofsVerified:
+              type: integer
+            successRate:
+              type: string
+            averageProofTime:
+              type: string
+            averageVerifyTime:
+              type: string
+        circuit:
+          type: object
+        info:
+          type: object
+
+    MultimodalPackage:
+      type: object
+      required: [name, description, modalities, fusionMethod, fusionWeights]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        modalities:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              vector:
+                type: array
+                items:
+                  type: number
+              dimension:
+                type: integer
+        fusionMethod:
+          type: string
+          enum: [early, late, hybrid, attention]
+        fusionWeights:
+          type: object
+          additionalProperties:
+            type: number
+        price:
+          type: number
+        tags:
+          type: array
+          items:
+            type: string
+
+    CrossModalResult:
+      type: object
+      properties:
+        packageId:
+          type: string
+        packageName:
+          type: string
+        modality:
+          type: string
+        similarity:
+          type: number
+        dimension:
+          type: integer
+
+    GPUStatus:
+      type: object
+      properties:
+        backend:
+          type: string
+          enum: [cpu, gpu, webgl]
+        gpuAvailable:
+          type: boolean
+        gpuDevice:
+          type: string
+        memoryUsage:
+          type: number
+        operationsCount:
+          type: integer
+        totalTime:
+          type: number
+        averageTime:
+          type: number
+
+    BatchAlignmentResult:
+      type: object
+      properties:
+        alignedVectors:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+        computeTime:
+          type: number
+        backend:
+          type: string
+        batchSize:
+          type: integer
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string

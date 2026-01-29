@@ -10,11 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useState } from "react";
-import { User, Mail, Shield, Key, Bell, CreditCard, BookOpen } from "lucide-react";
+import { User, Mail, Shield, Key, Bell, CreditCard, BookOpen, Lock } from "lucide-react";
 import { useLocation } from "wouter";
 import { ApiKeyManager } from "@/components/ApiKeyManager";
 import { ApiTutorial } from "@/components/ApiTutorial";
 import Navbar from "@/components/Navbar";
+import { Button as UIButton } from "@/components/ui/button";
 
 export default function Profile() {
   const { user, loading } = useAuth();
@@ -91,7 +92,7 @@ export default function Profile() {
 
         {/* Tabs */}
         <Tabs defaultValue="general" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="general">
               <User className="h-4 w-4 mr-2" />
               General
@@ -99,6 +100,10 @@ export default function Profile() {
             <TabsTrigger value="security">
               <Shield className="h-4 w-4 mr-2" />
               Security
+            </TabsTrigger>
+            <TabsTrigger value="privacy">
+              <Lock className="h-4 w-4 mr-2" />
+              Privacy
             </TabsTrigger>
             <TabsTrigger value="api">
               <Key className="h-4 w-4 mr-2" />
@@ -188,6 +193,42 @@ export default function Profile() {
             </Card>
           </TabsContent>
 
+          {/* Privacy Tab */}
+          <TabsContent value="privacy">
+            <Card>
+              <CardHeader>
+                <CardTitle>Differential Privacy Settings</CardTitle>
+                <CardDescription>
+                  Manage privacy protection for your vector uploads
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Lock className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-2">
+                      <p className="font-medium text-blue-500">Advanced Privacy Controls</p>
+                      <p className="text-sm text-muted-foreground">
+                        Configure differential privacy protection, manage your privacy budget,
+                        and test how noise affects your vectors.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex justify-center">
+                  <UIButton
+                    onClick={() => setLocation('/privacy-settings')}
+                    className="w-full max-w-md"
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    Open Privacy Settings
+                  </UIButton>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* API Keys Tab */}
           <TabsContent value="api">
             <ApiKeyManager />
@@ -210,43 +251,43 @@ export default function Profile() {
               <CardContent className="space-y-4">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div>
+                    <label htmlFor="notif-transactions" className="flex-1 cursor-pointer">
                       <p className="font-medium">Transaction Notifications</p>
                       <p className="text-sm text-muted-foreground">
                         Get notified when transactions complete
                       </p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="h-4 w-4" />
+                    </label>
+                    <input id="notif-transactions" type="checkbox" defaultChecked className="h-4 w-4" />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
-                    <div>
+                    <label htmlFor="notif-recommendations" className="flex-1 cursor-pointer">
                       <p className="font-medium">Recommendation Updates</p>
                       <p className="text-sm text-muted-foreground">
                         Receive personalized recommendations
                       </p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="h-4 w-4" />
+                    </label>
+                    <input id="notif-recommendations" type="checkbox" defaultChecked className="h-4 w-4" />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
-                    <div>
+                    <label htmlFor="notif-market" className="flex-1 cursor-pointer">
                       <p className="font-medium">Market Changes</p>
                       <p className="text-sm text-muted-foreground">
                         Stay updated on market trends
                       </p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="h-4 w-4" />
+                    </label>
+                    <input id="notif-market" type="checkbox" defaultChecked className="h-4 w-4" />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
-                    <div>
+                    <label htmlFor="notif-email" className="flex-1 cursor-pointer">
                       <p className="font-medium">Email Notifications</p>
                       <p className="text-sm text-muted-foreground">
                         Receive updates via email
                       </p>
-                    </div>
-                    <input type="checkbox" className="h-4 w-4" />
+                    </label>
+                    <input id="notif-email" type="checkbox" className="h-4 w-4" />
                   </div>
                 </div>
               </CardContent>

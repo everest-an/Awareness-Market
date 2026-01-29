@@ -17,8 +17,14 @@ import { getDb } from '../db';
 import { getErrorMessage } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
 import { vectorPackages, memoryPackages, chainPackages, packageDownloads, packagePurchases, users } from '../../drizzle/schema';
+import { AntiPoisoningVerifier } from '../latentmas/anti-poisoning';
+import { pricingEngine } from '../pricing-engine';
+import { SemanticAnchorDB } from '../latentmas/semantic-anchors';
+import { generateRecommendations, trackBrowsingAction } from '../recommendation-engine';
 
 const logger = createLogger('Packages:API');
+const poisonValidator = new AntiPoisoningVerifier();
+const semanticAnchors = new SemanticAnchorDB();
 
 type VectorPackage = InferSelectModel<typeof vectorPackages>;
 type MemoryPackage = InferSelectModel<typeof memoryPackages>;
@@ -163,6 +169,39 @@ function getPackageTable(packageType: 'vector' | 'memory' | 'chain') {
   }
 }
 
+/**
+ * Extract representative vector from KV-Cache for validation
+ * Uses mean pooling across all keys
+ */
+function extractRepresentativeVector(kvCache: any): number[] {
+  const allVectors: number[][] = [];
+
+  // Flatten all keys from all layers and heads
+  for (const layer of kvCache.keys) {
+    for (const head of layer) {
+      for (const keyVector of head) {
+        allVectors.push(keyVector);
+      }
+    }
+  }
+
+  if (allVectors.length === 0) {
+    throw new Error('Empty KV-Cache provided');
+  }
+
+  // Mean pooling
+  const dimension = allVectors[0].length;
+  const meanVector = new Array(dimension).fill(0);
+
+  for (const vector of allVectors) {
+    for (let i = 0; i < dimension; i++) {
+      meanVector[i] += vector[i] / allVectors.length;
+    }
+  }
+
+  return meanVector;
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -175,6 +214,66 @@ export const packagesApiRouter = router({
     .input(CreateVectorPackageSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        // NEW: Step 1 - Anti-Poisoning Verification
+        logger.info(`Verifying vector for poisoning attacks (user: ${ctx.user.id})`);
+
+        const polfResult = await poisonValidator.proofOfLatentFidelity(input.vector.vector);
+
+        if (!polfResult.isPassed) {
+          logger.warn(`Poisoning detected in vector package upload`, {
+            userId: ctx.user.id,
+            packageName: input.name,
+            reason: polfResult.reason,
+            anomalies: polfResult.anomalies,
+          });
+
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Security check failed: ${polfResult.reason}. Your vector shows signs of a poisoning attack.`,
+            cause: {
+              type: 'POISONING_DETECTED',
+              score: polfResult.score,
+              details: polfResult.anomalies,
+              recommendations: [
+                'Verify your training data is clean',
+                'Check for adversarial perturbations',
+                'Retrain the model with validated datasets',
+              ],
+            },
+          });
+        }
+
+        logger.info(`Vector passed anti-poisoning check (score: ${polfResult.score.toFixed(3)})`);
+
+        // NEW: Step 2 - Semantic Quality Validation
+        logger.info(`Performing semantic quality calibration (user: ${ctx.user.id})`);
+
+        const calibration = semanticAnchors.calibrateAlignment(input.vector.vector);
+        const calibrationScore = calibration.calibrationScore;
+
+        if (calibrationScore < 0.70) {
+          logger.warn(`Low quality vector rejected`, {
+            userId: ctx.user.id,
+            packageName: input.name,
+            calibrationScore,
+            coverage: calibration.coverage,
+          });
+
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Quality too low for marketplace listing (score: ${calibrationScore.toFixed(3)}). Minimum required: 0.70`,
+            cause: {
+              type: 'LOW_QUALITY',
+              calibrationScore,
+              coverage: calibration.coverage,
+              recommendations: calibration.recommendations,
+            },
+          });
+        }
+
+        logger.info(`Vector passed quality check (score: ${calibrationScore.toFixed(3)}, coverage: ${(calibration.coverage * 100).toFixed(1)}%)`);
+
+        // Existing: Step 3 - Create Package
         const result = await createVectorPackage(
           input.vector as VectorData,
           input.wMatrix as WMatrixData,
@@ -235,6 +334,40 @@ export const packagesApiRouter = router({
     .input(CreateMemoryPackageSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        // NEW: Step 1 - Anti-Poisoning Verification
+        logger.info(`Verifying KV-Cache for poisoning attacks (user: ${ctx.user.id})`);
+
+        // Extract representative vector from KV-Cache using mean pooling
+        const representativeVector = extractRepresentativeVector(input.kvCache);
+        const polfResult = await poisonValidator.proofOfLatentFidelity(representativeVector);
+
+        if (!polfResult.isPassed) {
+          logger.warn(`Poisoning detected in memory package upload`, {
+            userId: ctx.user.id,
+            packageName: input.name,
+            reason: polfResult.reason,
+            anomalies: polfResult.anomalies,
+          });
+
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Security check failed: ${polfResult.reason}. Your KV-Cache shows signs of a poisoning attack.`,
+            cause: {
+              type: 'POISONING_DETECTED',
+              score: polfResult.score,
+              details: polfResult.anomalies,
+              recommendations: [
+                'Verify your context data is clean',
+                'Check for adversarial manipulations in the memory',
+                'Regenerate the KV-Cache from trusted sources',
+              ],
+            },
+          });
+        }
+
+        logger.info(`KV-Cache passed anti-poisoning check (score: ${polfResult.score.toFixed(3)})`);
+
+        // Existing: Step 2 - Create Package
         const result = await createMemoryPackage(
           input.kvCache as unknown as KVCache,
           input.wMatrix as WMatrixData,
@@ -298,6 +431,56 @@ export const packagesApiRouter = router({
     .input(CreateChainPackageSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        // NEW: Step 1 - Anti-Poisoning Verification
+        logger.info(`Verifying reasoning chain for poisoning attacks (user: ${ctx.user.id})`);
+
+        // Validate critical steps: first and last (to balance security and performance)
+        const stepsToValidate = [
+          { index: 0, step: input.chain.steps[0] },
+          { index: input.chain.steps.length - 1, step: input.chain.steps[input.chain.steps.length - 1] },
+        ];
+
+        for (const { index, step } of stepsToValidate) {
+          if (!step) continue; // Skip if step doesn't exist
+
+          logger.info(`Validating step ${index + 1}/${input.chain.steps.length}`);
+
+          // Extract representative vector from step's KV snapshot
+          const representativeVector = extractRepresentativeVector(step.kvSnapshot);
+          const polfResult = await poisonValidator.proofOfLatentFidelity(representativeVector);
+
+          if (!polfResult.isPassed) {
+            logger.warn(`Poisoning detected in chain package step ${index + 1}`, {
+              userId: ctx.user.id,
+              packageName: input.name,
+              stepIndex: index,
+              reason: polfResult.reason,
+              anomalies: polfResult.anomalies,
+            });
+
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Security check failed at step ${index + 1}: ${polfResult.reason}. Your reasoning chain shows signs of a poisoning attack.`,
+              cause: {
+                type: 'POISONING_DETECTED',
+                score: polfResult.score,
+                stepIndex: index,
+                details: polfResult.anomalies,
+                recommendations: [
+                  'Verify your reasoning steps are from trusted sources',
+                  'Check for adversarial perturbations in the chain',
+                  'Regenerate the reasoning chain from clean data',
+                ],
+              },
+            });
+          }
+
+          logger.info(`Step ${index + 1} passed anti-poisoning check (score: ${polfResult.score.toFixed(3)})`);
+        }
+
+        logger.info(`All critical steps passed anti-poisoning validation`);
+
+        // Existing: Step 2 - Create Package
         const result = await createChainPackage(
           input.chain as unknown as ReasoningChainData,
           input.wMatrix as WMatrixData,
@@ -404,11 +587,149 @@ export const packagesApiRouter = router({
         .limit(input.limit)
         .offset(input.offset);
 
+      // Apply dynamic pricing to each package
+      const packagesWithDynamicPricing = packages.map(pkg => {
+        const basePrice = parseFloat(pkg.price.toString());
+        const epsilon = parseFloat(pkg.epsilon?.toString() || '0.05');
+
+        // Calculate dynamic price using PID controller
+        const pricingResult = pricingEngine.calculatePackagePrice(
+          input.packageType === 'vector' ? 'vector_package' :
+          input.packageType === 'memory' ? 'kv_cache' :
+          'reasoning_chain',
+          epsilon,
+          10, // 10% royalty percentage
+          basePrice
+        );
+
+        let currentPrice = pricingResult.totalPrice;
+
+        // Apply half-life decay for memory packages (whitepaper Section 12.6)
+        if (input.packageType === 'memory') {
+          const createdAt = new Date(pkg.createdAt).getTime();
+          const now = Date.now();
+          const ageMs = now - createdAt;
+          const halfLifeMs = 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
+
+          // Half-life decay formula: P(t) = P_base × 2^(-t / t_half)
+          const decayFactor = Math.pow(2, -ageMs / halfLifeMs);
+          currentPrice = currentPrice * decayFactor;
+        }
+
+        return {
+          ...pkg,
+          basePrice: pkg.price,
+          currentPrice: currentPrice.toFixed(2),
+          pricingBreakdown: {
+            alignmentFee: pricingResult.alignmentFee.toFixed(2),
+            royaltyFee: pricingResult.royaltyFee.toFixed(2),
+            qualityMultiplier: pricingResult.currentK.toFixed(2),
+            ...(input.packageType === 'memory' && {
+              decayFactor: Math.pow(2, -(Date.now() - new Date(pkg.createdAt).getTime()) / (90 * 24 * 60 * 60 * 1000)).toFixed(4),
+              ageInDays: Math.floor((Date.now() - new Date(pkg.createdAt).getTime()) / (24 * 60 * 60 * 1000)),
+            }),
+          },
+        };
+      });
+
       return {
         success: true,
-        packages,
-        total: packages.length,
+        packages: packagesWithDynamicPricing,
+        total: packagesWithDynamicPricing.length,
       };
+    }),
+
+  // ============================================================================
+  // Personalized Recommendations
+  // ============================================================================
+
+  /**
+   * Get personalized package recommendations for the current user
+   */
+  getRecommendations: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(20).default(5),
+      packageType: PackageTypeSchema.optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      try {
+        logger.info(`[Recommendations] Generating for user ${ctx.user.id}`);
+
+        // Generate recommendations using AI engine
+        const recommendations = await generateRecommendations({
+          userId: ctx.user.id,
+          limit: input.limit,
+        });
+
+        // Filter by package type if specified
+        let filtered = recommendations;
+        if (input.packageType) {
+          // Map vector recommendations to package types
+          // (In production, you'd have type metadata in the vectors)
+          filtered = recommendations; // Placeholder
+        }
+
+        return {
+          success: true,
+          recommendations: filtered.map(rec => ({
+            packageId: rec.vectorId,
+            score: rec.score,
+            reason: rec.reason,
+            package: rec.vector,
+          })),
+          total: filtered.length,
+        };
+      } catch (error) {
+        logger.error('[Recommendations] Error:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to generate recommendations',
+          cause: error,
+        });
+      }
+    }),
+
+  /**
+   * Track user browsing activity for recommendations
+   */
+  trackBrowsing: protectedProcedure
+    .input(z.object({
+      packageId: z.string(),
+      packageType: PackageTypeSchema,
+      action: z.enum(['view', 'click', 'search']),
+      metadata: z.record(z.any()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // Extract numeric ID from packageId (format: "vec_12345" -> 12345)
+        const numericId = parseInt(input.packageId.split('_')[1] || '0');
+
+        await trackBrowsingAction(
+          ctx.user.id,
+          numericId,
+          input.action,
+          {
+            packageType: input.packageType,
+            ...input.metadata,
+          }
+        );
+
+        logger.info(
+          `[Tracking] User ${ctx.user.id} ${input.action} package ${input.packageId}`
+        );
+
+        return {
+          success: true,
+          message: 'Browsing activity tracked successfully',
+        };
+      } catch (error) {
+        logger.error('[Tracking] Error:', error);
+        // Don't throw error - tracking failure shouldn't break user experience
+        return {
+          success: false,
+          message: 'Failed to track browsing activity',
+        };
+      }
     }),
 
   /**
@@ -437,9 +758,48 @@ export const packagesApiRouter = router({
         });
       }
 
+      // Apply dynamic pricing
+      const basePrice = parseFloat(pkg.price.toString());
+      const epsilon = parseFloat(pkg.epsilon?.toString() || '0.05');
+
+      const pricingResult = pricingEngine.calculatePackagePrice(
+        input.packageType === 'vector' ? 'vector_package' :
+        input.packageType === 'memory' ? 'kv_cache' :
+        'reasoning_chain',
+        epsilon,
+        10, // 10% royalty percentage
+        basePrice
+      );
+
+      let currentPrice = pricingResult.totalPrice;
+
+      // Apply half-life decay for memory packages
+      if (input.packageType === 'memory') {
+        const createdAt = new Date(pkg.createdAt).getTime();
+        const now = Date.now();
+        const ageMs = now - createdAt;
+        const halfLifeMs = 90 * 24 * 60 * 60 * 1000; // 90 days
+
+        const decayFactor = Math.pow(2, -ageMs / halfLifeMs);
+        currentPrice = currentPrice * decayFactor;
+      }
+
       return {
         success: true,
-        package: pkg,
+        package: {
+          ...pkg,
+          basePrice: pkg.price,
+          currentPrice: currentPrice.toFixed(2),
+          pricingBreakdown: {
+            alignmentFee: pricingResult.alignmentFee.toFixed(2),
+            royaltyFee: pricingResult.royaltyFee.toFixed(2),
+            qualityMultiplier: pricingResult.currentK.toFixed(2),
+            ...(input.packageType === 'memory' && {
+              decayFactor: Math.pow(2, -(Date.now() - new Date(pkg.createdAt).getTime()) / (90 * 24 * 60 * 60 * 1000)).toFixed(4),
+              ageInDays: Math.floor((Date.now() - new Date(pkg.createdAt).getTime()) / (24 * 60 * 60 * 1000)),
+            }),
+          },
+        },
       };
     }),
 

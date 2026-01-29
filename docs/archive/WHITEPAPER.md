@@ -158,7 +158,131 @@ LatentMAS defines three core operations in v1.0, extended to five in v2.0:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.2 Vector Alignment
+### 3.2 神经桥协议 (Neural Bridge Protocol)
+
+#### Core Principle: Manifold Alignment
+
+不同于传统的 API 调用通过冗长的文本（JSON）传递表层逻辑，LatentMAS 传输的是"思维过程本身"——通过直接在潜在空间中进行流形对齐，神经桥协议将源模型的隐藏状态 $h_s$ 映射到目标模型的潜在空间 $h_t$，同时最小化语义损失。
+
+#### Mathematical Formulation
+
+给定：
+
+- 源模型隐藏状态：$h_s \in \mathbb{R}^{d_s}$
+- 目标模型隐藏状态：$h_t \in \mathbb{R}^{d_t}$
+- 标准 W-Matrix：$W \in \mathbb{R}^{d_t \times d_s}$
+- 语义锚点集合：$\mathcal{A} = \{a_1, \ldots, a_K\} \subset \mathbb{R}^{d_t}$ (K=1024)
+
+目标函数（Contrastive Loss + Orthogonality Regularization）：
+
+$$\mathcal{L}_{total} = \mathcal{L}_{contrastive} + \lambda_1 \mathcal{L}_{alignment} + \lambda_2 \mathcal{L}_{ortho}$$
+
+其中：
+
+**Contrastive Loss** (InfoNCE):
+$$\mathcal{L}_{contrastive} = -\log \frac{\exp(\text{sim}(W h_s, a^+) / \tau)}{\sum_{a^- \in \mathcal{A}^-} \exp(\text{sim}(W h_s, a^-) / \tau)}$$
+
+- $a^+$: 与 $h_s$ 语义最接近的锚点（正样本）
+- $\mathcal{A}^-$: 不同语义类别的锚点（负样本集）
+- $\text{sim}(u, v) = \frac{u^T v}{\|u\| \|v\|}$ (余弦相似度)
+- $\tau = 0.07$: 温度参数
+
+**Alignment Loss** (仅在有监督场景):
+$$\mathcal{L}_{alignment} = \|W h_s - h_t\|_2^2$$
+
+**Orthogonality Regularization** (保证可逆性):
+$$\mathcal{L}_{ortho} = \|W^T W - I\|_F^2$$
+
+#### Verification Standard: "3% Semantic Loss"
+
+为了确保跨模型传输的可靠性，协议定义了严格的语义保真度验证：
+
+| 指标 | 阈值 | 说明 |
+| ---- | ---- | ---- |
+| **任务准确率保持** | ≥ 97% | 在下游任务（分类、问答）中准确率下降 ≤ 3% |
+| **余弦相似度** | ≥ 0.95 | 对齐前后向量的语义角度偏差 ≤ 18° |
+| **困惑度偏差** | ≤ 5% | 语言模型生成质量下降 ≤ 5% |
+
+#### Pseudo-code Implementation
+
+```python
+class NeuralBridge:
+    def __init__(self, source_model, target_model, w_matrix, semantic_anchors):
+        self.source = source_model
+        self.target = target_model
+        self.W = w_matrix  # Pre-computed standardized W-Matrix
+        self.anchors = semantic_anchors  # 1024 golden reference vectors
+
+    def align_and_transfer(self, input_context):
+        # Step 1: 源模型推理，提取隐藏状态
+        h_source = self.source.encode(input_context)
+
+        # Step 2: W-Matrix 变换到目标潜在空间
+        h_aligned = self.W @ h_source
+
+        # Step 3: 快速语义验证（确保 3% 损失以内）
+        semantic_quality = self._fast_validation(h_aligned)
+        if semantic_quality < 0.95:
+            raise ValueError(f"Alignment quality {semantic_quality:.3f} below threshold")
+
+        # Step 4: 目标模型基于对齐状态继续推理
+        output = self.target.decode(h_aligned)
+
+        return output, 1.0 - semantic_quality  # 返回语义损失
+
+    def _fast_validation(self, h_aligned):
+        """快速验证（无需推理）- 日常对齐使用"""
+        # 1. 找到最近的语义锚点
+        anchor_similarities = [
+            cosine_similarity(h_aligned, anchor)
+            for anchor in self.anchors
+        ]
+        max_anchor_sim = max(anchor_similarities)
+
+        # 2. 检查数值稳定性
+        if np.isnan(h_aligned).any() or np.isinf(h_aligned).any():
+            return 0.0
+
+        # 3. 检查分布一致性（应该接近标准高斯）
+        h_norm = (h_aligned - h_aligned.mean()) / (h_aligned.std() + 1e-8)
+        kl_div = self._compute_kl_divergence(h_norm)
+
+        if kl_div > 0.1:  # KL散度阈值
+            return max(0.0, max_anchor_sim - 0.1)
+
+        return max_anchor_sim
+
+    def verify_comprehensive(self, validation_set):
+        """完整验证（用于质量审计）- 成本高，仅在审计时使用"""
+        # 1. 任务准确率测试（GLUE benchmark）
+        task_scores = []
+        for task in ['sst2', 'mnli', 'qnli']:
+            score = self._evaluate_task(task, validation_set)
+            task_scores.append(score)
+        avg_task_accuracy = np.mean(task_scores)
+
+        # 2. 困惑度测试（WikiText-103）
+        ppl_source = self.source.perplexity(validation_set)
+        ppl_target = self.target.perplexity_aligned(validation_set, self.W)
+        ppl_deviation = abs(ppl_target - ppl_source) / ppl_source
+
+        return {
+            'task_accuracy': avg_task_accuracy,
+            'perplexity_deviation': ppl_deviation,
+            'passes_3pct_threshold': (
+                avg_task_accuracy >= 0.97 and ppl_deviation <= 0.05
+            )
+        }
+```
+
+#### Architecture Advantages
+
+1. **轻量级 MLP 替代重训练**：W-Matrix 仅需数百万参数，而非数十亿参数的完整模型对齐
+2. **零样本跨模型推理**：无需目标模型的标注数据，直接复用源模型的推理能力
+3. **语义锚点校准**：通过 1024 个黄金参考向量（覆盖 16 个语义类别）确保对齐质量
+4. **动态负载均衡**：根据 W-Matrix 的对齐损失 $\epsilon$ 动态调整市场价格，激励高质量对齐
+
+### 3.3 Vector Alignment
 
 **Definition:** Transform a vector from source model's latent space to target model's space while preserving semantic meaning.
 

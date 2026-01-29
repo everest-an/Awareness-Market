@@ -41,6 +41,10 @@ import { authUnifiedRouter } from './routers/auth-unified';
 import { apiAnalyticsRouter } from './routers/api-analytics';
 import { agentDiscoveryRouter } from './routers/agent-discovery';
 import { agentCollaborationRouter } from './routers/agent-collaboration';
+import { neuralBridgeRouter } from './routers/neural-bridge-api';
+import { creatorDashboardRouter } from './routers/creator-dashboard-api';
+import { zkpRouter } from './routers/zkp-api';
+import { multimodalRouter } from './routers/multimodal-api';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
   TrpcRequest,
@@ -853,36 +857,8 @@ export const appRouter = router({
       }),
   }),
 
-  // Creator Dashboard
-  creatorDashboard: router({
-    // Get dashboard overview
-    overview: creatorProcedure.query(async ({ ctx }) => {
-      const { getCreatorDashboardOverview } = await import("./creator-dashboard");
-      return await getCreatorDashboardOverview(ctx.user.id);
-    }),
-
-    // Get revenue analytics
-    revenueAnalytics: creatorProcedure
-      .input(z.object({ days: z.number().default(30) }))
-      .query(async ({ ctx, input }) => {
-        const { getCreatorRevenueAnalytics } = await import("./creator-dashboard");
-        return await getCreatorRevenueAnalytics(ctx.user.id, input.days);
-      }),
-
-    // Get performance metrics
-    performanceMetrics: creatorProcedure.query(async ({ ctx }) => {
-      const { getCreatorPerformanceMetrics } = await import("./creator-dashboard");
-      return await getCreatorPerformanceMetrics(ctx.user.id);
-    }),
-
-    // Get user feedback
-    userFeedback: creatorProcedure
-      .input(z.object({ limit: z.number().default(10) }))
-      .query(async ({ ctx, input }) => {
-        const { getCreatorUserFeedback } = await import("./creator-dashboard");
-        return await getCreatorUserFeedback(ctx.user.id, input.limit);
-      }),
-  }),
+  // Creator Dashboard (P1 Integration)
+  creatorDashboard: creatorDashboardRouter,
 
   // Notifications
   notifications: router({
@@ -1844,6 +1820,16 @@ export const appRouter = router({
   apiAnalytics: apiAnalyticsRouter,
   agentDiscovery: agentDiscoveryRouter,
   agentCollaboration: agentCollaborationRouter,
+
+  // Neural Bridge Protocol API (P1 - Technical Moat)
+  neuralBridge: neuralBridgeRouter,
+
+  // Zero-Knowledge Proof API (P2 - Privacy & Security)
+  zkp: zkpRouter,
+
+  // Multi-Modal Vectors API (P2 - Multi-Modal Support)
+  multimodal: multimodalRouter,
+
   // memoryExchange: Go microservice at :8080
 
   // Admin Analytics (admin-only)
