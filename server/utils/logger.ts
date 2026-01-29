@@ -35,7 +35,7 @@ interface LoggerConfig {
   prefix?: string;
 }
 
-class Logger {
+export class Logger {
   private config: LoggerConfig;
   private readonly colors = {
     reset: '\x1b[0m',

@@ -642,8 +642,13 @@ describe('Permission Verification and Access Control', () => {
     return `csrf-${authToken}`;
   }
 
+  const privacyBudgets: { [key: string]: { spent: number; total: number } } = {};
+
   async function spendPrivacyBudget(userId: string, epsilon: number): Promise<void> {
-    // Mock budget spending
+    if (!privacyBudgets[userId]) {
+      privacyBudgets[userId] = { spent: 0, total: 10.0 };
+    }
+    privacyBudgets[userId].spent += epsilon;
   }
 
   async function privacyProtectedQuery(userId: string, epsilon: number): Promise<any> {
@@ -651,17 +656,12 @@ describe('Permission Verification and Access Control', () => {
     if (budget.remaining < epsilon) {
       return { success: false, error: 'Insufficient privacy budget' };
     }
+    await spendPrivacyBudget(userId, epsilon);
     return { success: true };
   }
 
   async function getPrivacyBudget(userId: string): Promise<any> {
-    const budgets: { [key: string]: { spent: number; total: number } } = {
-      'user-12': { spent: 9.5, total: 10.0 },
-      'user-13': { spent: 5.0, total: 10.0 },
-      'user-14': { spent: 3.0, total: 10.0 },
-    };
-
-    const budget = budgets[userId] || { spent: 0, total: 10.0 };
+    const budget = privacyBudgets[userId] || { spent: 0, total: 10.0 };
     return { ...budget, remaining: budget.total - budget.spent };
   }
 
@@ -672,11 +672,13 @@ describe('Permission Verification and Access Control', () => {
     return { valid: true };
   }
 
+  const usedProofs = new Set<string>();
+
   async function anonymousPurchaseWithProof(packageId: string, proof: any): Promise<any> {
-    const usedProofs = ['0x123'];
-    if (usedProofs.includes(proof.a[0])) {
+    if (usedProofs.has(proof.a[0])) {
       return { success: false, error: 'Proof already used' };
     }
+    usedProofs.add(proof.a[0]);
     return { success: true };
   }
 
