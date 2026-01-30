@@ -90,8 +90,8 @@ export class TokenSystemClient {
     // If private key provided, create signer for write operations
     if (config.privateKey) {
       this.signer = new ethers.Wallet(config.privateKey, this.provider);
-      this.amemToken = this.amemToken.connect(this.signer);
-      this.creditSystem = this.creditSystem.connect(this.signer);
+      this.amemToken = this.amemToken.connect(this.signer) as ethers.Contract;
+      this.creditSystem = this.creditSystem.connect(this.signer) as ethers.Contract;
     }
   }
 

@@ -4,7 +4,7 @@
  * Replaces in-memory Map storage with persistent Prisma database
  */
 
-import { PrismaClient, WorkflowStatus, StepStatus, Orchestration, MemorySharing } from '@prisma/client';
+import { PrismaClient, WorkflowStatus, StepStatus, Orchestration, MemorySharing, Prisma } from '@prisma/client';
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('DB:Workflows');
@@ -201,8 +201,8 @@ export async function updateWorkflowStep(
       status: updates.status as StepStatus | undefined,
       startedAt: updates.startedAt,
       completedAt: updates.completedAt,
-      input: updates.input,
-      output: updates.output,
+      input: updates.input as Prisma.InputJsonValue | undefined,
+      output: updates.output as Prisma.InputJsonValue | undefined,
       error: updates.error,
       memoryKeys: updates.memoryKeys,
       executionTime: updates.executionTime,
