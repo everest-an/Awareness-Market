@@ -78,7 +78,7 @@ latentmasRouter.post("/align", async (req, res) => {
       },
     });
   } catch (error: unknown) {
-    logger.error(" Alignment error:", error);
+    logger.error(" Alignment error:", { error });
     res.status(400).json({ error: getErrorMessage(error) || "Alignment failed" });
   }
 });
@@ -131,7 +131,7 @@ latentmasRouter.post("/transform", async (req, res) => {
       },
     });
   } catch (error: unknown) {
-    logger.error(" Transform error:", error);
+    logger.error(" Transform error:", { error });
     res.status(400).json({ error: getErrorMessage(error) || "Transformation failed" });
   }
 });
@@ -167,7 +167,7 @@ latentmasRouter.post("/convert", async (req, res) => {
       },
     });
   } catch (error: unknown) {
-    logger.error(" Convert error:", error);
+    logger.error(" Convert error:", { error });
     res.status(400).json({ error: getErrorMessage(error) || "Conversion failed" });
   }
 });
@@ -222,7 +222,7 @@ latentmasRouter.post("/check-compatibility", async (req, res) => {
       },
     });
   } catch (error: unknown) {
-    logger.error(" Compatibility check error:", error);
+    logger.error(" Compatibility check error:", { error });
     res.status(400).json({ error: getErrorMessage(error) || "Compatibility check failed" });
   }
 });
@@ -274,7 +274,7 @@ latentmasRouter.post("/validate", async (req, res) => {
       quality_score: validation.isValid ? 0.95 : 0.0,
     });
   } catch (error: unknown) {
-    logger.error(" Validation error:", error);
+    logger.error(" Validation error:", { error });
     res.status(400).json({ error: getErrorMessage(error) || "Validation failed" });
   }
 });

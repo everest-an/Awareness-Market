@@ -174,7 +174,7 @@ Respond in JSON format:
 
     return enriched.slice(0, limit);
   } catch (error) {
-    logger.error("[Recommendations] LLM error:", error);
+    logger.error("[Recommendations] LLM error:", { error });
     return fallbackRecommendations(allVectors, limit);
   }
 }

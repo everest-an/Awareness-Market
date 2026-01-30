@@ -103,7 +103,7 @@ async function recordInteractionOnChain(
     logger.info(`[Collaboration] Recorded interaction on-chain: ${fromAgent} → ${toAgent} (${success ? 'success' : 'failed'})`);
     return receipt.hash;
   } catch (error) {
-    logger.error('[Collaboration] Failed to record on-chain interaction:', error);
+    logger.error('[Collaboration] Failed to record on-chain interaction:', { error });
     return null;
   }
 }
@@ -204,7 +204,7 @@ async function executeStep(
       executionTime,
     });
 
-    logger.error(`[Collaboration] Step failed: ${step.agentName}`, error);
+    logger.error(`[Collaboration] Step failed: ${step.agentName}`, { error });
     throw error;
   }
 }
@@ -299,7 +299,7 @@ async function executeWorkflow(workflowId: string): Promise<void> {
       completedAt: new Date(),
     });
 
-    logger.error(`[Collaboration] Workflow ${workflowId} failed:`, error);
+    logger.error(`[Collaboration] Workflow ${workflowId} failed:`, { error });
   }
 }
 
@@ -360,7 +360,7 @@ export const agentCollaborationRouter = router({
 
       // Start execution asynchronously
       executeWorkflow(workflowId).catch(error => {
-        logger.error(`[Collaboration] Workflow ${workflowId} execution error:`, error);
+        logger.error(`[Collaboration] Workflow ${workflowId} execution error:`, { error });
       });
 
       return {

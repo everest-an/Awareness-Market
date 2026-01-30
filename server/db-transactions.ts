@@ -50,7 +50,7 @@ export async function withTransaction<T>(
         const result = await fn(tx);
         return result;
       } catch (error) {
-        logger.error('[Transaction] Error, rolling back:', error);
+        logger.error('[Transaction] Error, rolling back:', { error });
         throw error;
       }
     });

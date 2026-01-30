@@ -194,7 +194,7 @@ export const latentmasMarketplaceRouter = router({
 
           logger.info(`[Privacy] Applied ${privatizedBiases.metadata.level} privacy: ε=${privatizedBiases.metadata.epsilon}, utility loss=${privatizedBiases.metadata.utilityLoss.toFixed(2)}%`);
         } catch (error) {
-          logger.error('[Privacy] Error applying differential privacy:', error);
+          logger.error('[Privacy] Error applying differential privacy:', { error });
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
             message: 'Failed to apply differential privacy',

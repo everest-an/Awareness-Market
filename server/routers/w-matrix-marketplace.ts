@@ -836,7 +836,7 @@ export const wMatrixMarketplaceRouter = router({
           message: `W-Matrix trained successfully in ${(trainingTime / 1000).toFixed(2)}s using ${backend}`,
         };
       } catch (error) {
-        logger.error('[GPU] Training error:', error);
+        logger.error('[GPU] Training error:', { error });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: error instanceof TRPCError ? error.message : 'Failed to train W-Matrix',

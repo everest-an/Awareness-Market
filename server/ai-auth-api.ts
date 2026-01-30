@@ -60,7 +60,7 @@ async function validateApiKey(req: express.Request, res: express.Response, next:
     
     next();
   } catch (error) {
-    logger.error(" API key validation error:", error);
+    logger.error(" API key validation error:", { error });
     return res.status(500).json({ error: "Authentication failed" });
   }
 }
@@ -129,7 +129,7 @@ router.post("/register", async (req, res) => {
       message: "AI agent registered successfully. Store your API key securely - it won't be shown again.",
     });
   } catch (error) {
-    logger.error(" Registration error:", error);
+    logger.error(" Registration error:", { error });
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
@@ -165,7 +165,7 @@ router.get("/keys", validateApiKey, async (req, res) => {
 
     return res.json({ keys });
   } catch (error) {
-    logger.error(" List keys error:", error);
+    logger.error(" List keys error:", { error });
     return res.status(500).json({ error: "Failed to list keys" });
   }
 });
@@ -214,7 +214,7 @@ router.post("/keys", validateApiKey, async (req, res) => {
       message: "API key created successfully. Store it securely - it won't be shown again.",
     });
   } catch (error) {
-    logger.error(" Create key error:", error);
+    logger.error(" Create key error:", { error });
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
@@ -245,7 +245,7 @@ router.delete("/keys/:keyId", validateApiKey, async (req, res) => {
 
     return res.json({ success: true, message: "API key revoked" });
   } catch (error) {
-    logger.error(" Revoke key error:", error);
+    logger.error(" Revoke key error:", { error });
     return res.status(500).json({ error: "Failed to revoke key" });
   }
 });

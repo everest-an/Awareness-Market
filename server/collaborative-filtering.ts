@@ -167,7 +167,7 @@ export async function generateCollaborativeRecommendations(
 
     return sortedRecommendations;
   } catch (error) {
-    logger.error("[Collaborative Filtering] Error generating recommendations:", error);
+    logger.error("[Collaborative Filtering] Error generating recommendations:", { error });
     return [];
   }
 }
@@ -194,6 +194,6 @@ export async function trackUserBehavior(
       metadata: metadata ? JSON.stringify(metadata) : undefined,
     });
   } catch (error) {
-    logger.error("[Collaborative Filtering] Error tracking behavior:", error);
+    logger.error("[Collaborative Filtering] Error tracking behavior:", { error });
   }
 }

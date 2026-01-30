@@ -87,7 +87,7 @@ async function initRedis(): Promise<boolean> {
     logger.info('Redis initialized successfully');
     return true;
   } catch (error: unknown) {
-    logger.error('Failed to connect to Redis:', getErrorMessage(error));
+    logger.error('Failed to connect to Redis:', { error: getErrorMessage(error) });
     logger.info('Falling back to in-memory storage');
     redisClient = null;
     redisConnected = false;
@@ -109,7 +109,7 @@ async function getRedisEntry(key: string): Promise<RateLimitEntry | null> {
     if (!data) return null;
     return JSON.parse(data);
   } catch (error) {
-    logger.error('Redis get error:', error);
+    logger.error('Redis get error:', { error });
     return null;
   }
 }
@@ -128,7 +128,7 @@ async function setRedisEntry(key: string, entry: RateLimitEntry): Promise<boolea
     );
     return true;
   } catch (error) {
-    logger.error('Redis set error:', error);
+    logger.error('Redis set error:', { error });
     return false;
   }
 }
@@ -143,7 +143,7 @@ async function deleteRedisEntry(key: string): Promise<boolean> {
     await redisClient.del(REDIS_KEY_PREFIX + key);
     return true;
   } catch (error) {
-    logger.error('Redis delete error:', error);
+    logger.error('Redis delete error:', { error });
     return false;
   }
 }

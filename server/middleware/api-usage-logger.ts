@@ -51,7 +51,7 @@ async function flushLogBuffer(): Promise<void> {
     
     await db.insert(apiUsageLogs).values(logsToInsert);
   } catch (error) {
-    logger.error('Failed to flush logs:', error);
+    logger.error('Failed to flush logs:', { error });
     // Re-add failed logs to buffer (with limit to prevent memory issues)
     if (logBuffer.length < 1000) {
       logBuffer.push(...logsToInsert);
