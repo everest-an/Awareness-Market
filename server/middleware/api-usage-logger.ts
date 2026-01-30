@@ -7,6 +7,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { getDb } from '../db';
 import { apiUsageLogs } from '../../drizzle/schema-api-usage';
+import { eq } from 'drizzle-orm';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('Middleware:APIUsageLogger');
@@ -209,11 +210,7 @@ export async function getUserApiStats(userId: number, days: number = 30): Promis
   const logs = await db
     .select()
     .from(apiUsageLogs)
-    .where(
-      // Note: In production, use proper date comparison with drizzle
-      // This is simplified for demonstration
-      (log) => log.userId === userId
-    )
+    .where(eq(apiUsageLogs.userId, userId))
     .limit(10000);
   
   // Calculate stats
