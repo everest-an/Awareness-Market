@@ -405,7 +405,7 @@ export const wMatrixMarketplaceRouter = router({
 
       await db
         .update(wMatrixListings)
-        .set(updates)
+        .set(updates as any)
         .where(eq(wMatrixListings.id, input.id));
 
       return { success: true };
