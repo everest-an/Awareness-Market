@@ -195,7 +195,7 @@ export class ERC6551TBAManager {
         owner,
       };
     } catch (error) {
-      logger.error('Error getting TBA:', error);
+      logger.error('Error getting TBA:', { error });
       return null;
     }
   }
