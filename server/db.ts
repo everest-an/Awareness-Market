@@ -1260,7 +1260,7 @@ export async function createPackagePurchase(data: {
       status: data.status,
     });
 
-    return Number(result.insertId);
+    return Number((result as any).insertId);
   } catch (error) {
     logger.error('Failed to create package purchase', { error, data });
     throw error;
