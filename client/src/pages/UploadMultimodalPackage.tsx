@@ -52,12 +52,12 @@ export default function UploadMultimodalPackage() {
     video: 0.1,
   });
 
-  const createMutation = trpc.multimodal.uploadMultimodalPackage.useMutation({
-    onSuccess: (data) => {
+  const createMutation = trpc.multimodal.uploadPackage.useMutation({
+    onSuccess: (data: any) => {
       toast.success('Multi-modal package created successfully!');
       setLocation(`/package/multimodal/${data.packageId}`);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Upload failed: ${error.message}`);
       setUploading(false);
     },
@@ -109,15 +109,24 @@ export default function UploadMultimodalPackage() {
         fusionWeights[mod] = weights[mod];
       });
 
+      // Convert modalities object to modalityVectors array
+      const modalityVectors = Object.entries(modalities).map(([modality, data]: [string, any]) => ({
+        modality: modality as 'text' | 'image' | 'audio' | 'video',
+        vector: data.vector,
+        model: 'custom',
+        confidence: 1.0,
+      }));
+
       await createMutation.mutateAsync({
         name,
         description,
-        modalities,
+        modalityVectors,
         fusionMethod,
         fusionWeights,
+        sourceModel: 'multimodal',
+        category: 'multimodal',
         price: parseFloat(price) || 0,
-        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-      });
+      } as any);
     } catch (error: any) {
       toast.error(`Upload error: ${error.message}`);
       setUploading(false);

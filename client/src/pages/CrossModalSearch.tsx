@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -37,17 +37,31 @@ export default function CrossModalSearch() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchStats, setSearchStats] = useState<any>(null);
 
-  // Search mutation
-  const searchMutation = trpc.multimodal.crossModalSearch.useMutation({
-    onSuccess: (data) => {
-      setSearchResults(data.results);
-      setSearchStats(data.stats);
-      toast.success(`Found ${data.results.length} cross-modal matches!`);
+  // Search query (using enabled flag to control execution)
+  const [searchParams, setSearchParams] = useState<any>(null);
+  const searchQuery = trpc.multimodal.crossModalSearch.useQuery(
+    searchParams || {
+      queryModality: 'text' as const,
+      queryVector: [],
+      targetModality: 'image' as const,
+      limit: 10,
     },
-    onError: (error: any) => {
-      toast.error(`Search failed: ${error.message}`);
-    },
-  });
+    {
+      enabled: !!searchParams,
+    }
+  );
+
+  // Handle search results
+  useEffect(() => {
+    if (searchQuery.data) {
+      setSearchResults(searchQuery.data.results);
+      setSearchStats((searchQuery.data as any).stats || searchQuery.data.info);
+      toast.success(`Found ${searchQuery.data.results.length} cross-modal matches!`);
+    }
+    if (searchQuery.error) {
+      toast.error(`Search failed: ${(searchQuery.error as any).message}`);
+    }
+  }, [searchQuery.data, searchQuery.error]);
 
   const handleSearch = () => {
     try {
@@ -57,12 +71,11 @@ export default function CrossModalSearch() {
         return;
       }
 
-      searchMutation.mutate({
+      setSearchParams({
         queryVector: vector,
         queryModality,
-        targetModality: targetModality || undefined,
+        targetModality: targetModality || 'image',
         limit,
-        minSimilarity,
       });
     } catch (error) {
       toast.error("Invalid JSON format");
@@ -233,10 +246,10 @@ export default function CrossModalSearch() {
 
                 <Button
                   onClick={handleSearch}
-                  disabled={searchMutation.isPending || !queryVector}
+                  disabled={searchQuery.isLoading || !queryVector}
                   className="w-full"
                 >
-                  {searchMutation.isPending ? (
+                  {searchQuery.isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Searching...
@@ -284,7 +297,7 @@ export default function CrossModalSearch() {
                 )}
               </div>
 
-              {searchResults.length === 0 && !searchMutation.isPending && (
+              {searchResults.length === 0 && !searchQuery.isLoading && (
                 <Card className="p-12">
                   <div className="flex flex-col items-center justify-center text-center">
                     <Sparkles className="h-16 w-16 text-muted-foreground mb-4" />

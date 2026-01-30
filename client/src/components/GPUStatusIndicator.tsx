@@ -52,7 +52,10 @@ export function GPUStatusIndicator({
     return null;
   }
 
-  const { backend, gpuAvailable, memoryUsage, operationsCount, averageTime } = gpuStatus;
+  const { backend, gpuAvailable, stats } = gpuStatus;
+  const memoryUsage = (gpuStatus as any).memoryUsage ?? 0;
+  const operationsCount = stats?.operationsCount ?? 0;
+  const averageTime = stats?.averageTime ?? 0;
   const isGPU = backend === 'gpu' && gpuAvailable;
 
   // Mock performance comparison data
@@ -206,12 +209,12 @@ export function GPUStatusIndicator({
         )}
 
         {/* GPU Info */}
-        {expanded && !showChart && gpuStatus.gpuDevice && (
+        {expanded && !showChart && (gpuStatus as any).gpuDevice && (
           <div className="mt-4 pt-4 border-t border-border">
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">GPU Device:</span>
-                <span className="font-mono">{gpuStatus.gpuDevice}</span>
+                <span className="font-mono">{(gpuStatus as any).gpuDevice}</span>
               </div>
               {memoryUsage !== undefined && (
                 <div className="flex items-center justify-between">

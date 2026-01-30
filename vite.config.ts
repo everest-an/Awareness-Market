@@ -227,19 +227,20 @@ export default defineConfig({
         // 模块预加载配置（关键！）
         // ============================================
         // 这确保了正确的加载顺序
-        manualChunksMeta: {
-          'react-core': {
-            // React 核心总是预加载
-            isEntry: false,
-            implicitlyLoadedBefore: [
-              'react-router',
-              'react-ecosystem',
-              'ui-components',
-              'charts',
-              'vendor'
-            ]
-          }
-        },
+        // Note: manualChunksMeta is not supported in current Vite version
+        // manualChunksMeta: {
+        //   'react-core': {
+        //     // React 核心总是预加载
+        //     isEntry: false,
+        //     implicitlyLoadedBefore: [
+        //       'react-router',
+        //       'react-ecosystem',
+        //       'ui-components',
+        //       'charts',
+        //       'vendor'
+        //     ]
+        //   }
+        // },
 
         // 优化文件名
         chunkFileNames: (chunkInfo) => {
