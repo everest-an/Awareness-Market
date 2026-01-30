@@ -37,9 +37,9 @@ export function PrivacySelector({
   // Initialize from user's saved settings
   useEffect(() => {
     if (privacySettings) {
-      setEnabled(privacySettings.differentialPrivacyEnabled);
-      setEpsilon(privacySettings.defaultEpsilon);
-      setDelta(privacySettings.defaultDelta);
+      setEnabled((privacySettings as any).differentialPrivacyEnabled ?? true);
+      setEpsilon((privacySettings as any).defaultEpsilon ?? 1.0);
+      setDelta((privacySettings as any).defaultDelta ?? 1e-5);
     }
   }, [privacySettings]);
 
@@ -48,7 +48,7 @@ export function PrivacySelector({
     onPrivacyChange({ enabled, epsilon, delta });
   }, [enabled, epsilon, delta, onPrivacyChange]);
 
-  const budgetRemaining = privacySettings?.budgetRemaining ?? 0;
+  const budgetRemaining = (privacySettings as any)?.budgetRemaining ?? privacySettings?.remainingPrivacyBudget ?? 0;
   const budgetWarning = budgetRemaining < epsilon;
   const budgetCritical = budgetRemaining < epsilon * 0.5;
 

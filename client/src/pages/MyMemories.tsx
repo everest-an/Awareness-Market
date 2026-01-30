@@ -20,10 +20,15 @@ export default function MyMemories() {
   const [activeTab, setActiveTab] = useState<"owned" | "created">("owned");
 
   // Fetch user's purchased packages
-  const { data: purchasedPackages, isLoading: purchasesLoading } = trpc.packages.myPurchases.useQuery();
+  const { data: purchasedPackagesData, isLoading: purchasesLoading } = trpc.packages.myPurchases.useQuery({ packageType: 'vector' } as any);
 
   // Fetch user's created vectors
   const { data: createdVectors, isLoading: creatorsLoading } = trpc.vectors.myVectors.useQuery();
+
+  // Handle both array and object response formats
+  const purchasedPackages = Array.isArray(purchasedPackagesData)
+    ? purchasedPackagesData
+    : (purchasedPackagesData as any)?.purchases || [];
 
   const ownedMemories = purchasedPackages?.map((pkg: any) => ({
     id: pkg.packageId || pkg.id,
@@ -113,7 +118,7 @@ export default function MyMemories() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${ownedMemories.reduce((sum, m) => sum + parseFloat(m.price), 0).toFixed(2)}
+              ${ownedMemories.reduce((sum: number, m: any) => sum + parseFloat(m.price), 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               On memory purchases
@@ -170,7 +175,7 @@ export default function MyMemories() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {ownedMemories.map((memory) => (
+              {ownedMemories.map((memory: any) => (
                 <Card key={memory.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between">

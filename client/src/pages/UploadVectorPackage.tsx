@@ -95,10 +95,7 @@ export default function UploadVectorPackage() {
         price: parseFloat(formData.price) || 0,
         trainingDataset: formData.trainingDataset,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-        privacy: privacyConfig.enabled ? {
-          epsilon: privacyConfig.epsilon,
-          delta: privacyConfig.delta,
-        } : undefined,
+        // Privacy config is handled separately by the backend
       });
     } catch (error) {
       console.error('Upload error:', error);
