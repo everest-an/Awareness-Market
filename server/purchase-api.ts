@@ -225,7 +225,7 @@ router.get('/:id/pricing', async (req, res) => {
     });
 
   } catch (error: unknown) {
-    logger.error('Failed to get pricing', { error: getErrorMessage(error), vectorId: req.params.vectorId });
+    logger.error('Failed to get pricing', { error: getErrorMessage(error), vectorId: req.params.id });
     res.status(500).json({ error: 'Failed to get pricing' });
   }
 });
@@ -372,7 +372,7 @@ router.get('/my-purchases', authenticateApiKey, async (req, res) => {
     });
 
   } catch (error: unknown) {
-    logger.error('Failed to fetch purchases', { error: getErrorMessage(error), userId: req.userId });
+    logger.error('Failed to fetch purchases', { error: getErrorMessage(error), userId: (req as any).userId });
     res.status(500).json({ error: 'Failed to fetch purchases' });
   }
 });

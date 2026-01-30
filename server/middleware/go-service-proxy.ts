@@ -19,7 +19,7 @@ interface ProxyReqOpts {
 
 function createServiceProxy(target: string, errorLabel: string) {
   return proxy(target, {
-    proxyReqOptDecorator: (proxyReqOpts: ProxyReqOpts, srcReq: Request) => {
+    proxyReqOptDecorator: (proxyReqOpts: any, srcReq: Request) => {
       proxyReqOpts.headers = proxyReqOpts.headers || {};
       if (srcReq.headers.authorization) {
         proxyReqOpts.headers['Authorization'] = srcReq.headers.authorization;

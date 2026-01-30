@@ -222,7 +222,7 @@ export const agentDiscoveryRouter = router({
           id: user.id,
           agentId: user.openId || `user_${user.id}`,
           agentName: user.name || 'Anonymous Agent',
-          walletAddress: user.loginMethod === 'erc8004' ? user.openId : undefined,
+          walletAddress: user.loginMethod === 'erc8004' ? (user.openId || undefined) : undefined,
           bio: user.bio || undefined,
           specializations,
           creditScore,
@@ -289,7 +289,7 @@ export const agentDiscoveryRouter = router({
       // Calculate stats
       const totalRevenue = vectors.reduce((sum, v) => sum + parseFloat(v.totalRevenue?.toString() || '0'), 0);
       const avgRating = vectors.length > 0
-        ? vectors.reduce((sum, v) => sum + (v.averageRating || 0), 0) / vectors.length
+        ? vectors.reduce((sum, v) => sum + parseFloat(String(v.averageRating || 0)), 0) / vectors.length
         : 0;
       const totalSales = vectors.reduce((sum, v) => sum + (v.totalCalls || 0), 0);
 
