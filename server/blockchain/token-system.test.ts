@@ -40,7 +40,10 @@ vi.mock('ethers', () => {
         // Simple mock: divide by 1e18
         const value = Number(wei) / 1e18;
         // Remove trailing .0 for integers
-        return value % 1 === 0 ? value.toFixed(0) : value.toString();
+        if (value % 1 === 0) {
+          return String(Math.floor(value));
+        }
+        return value.toString();
       },
       parseEther: (ether: string) => {
         // Simple mock: multiply by 1e18
@@ -97,7 +100,6 @@ describe('Token System Client', () => {
 
   describe('Token Balance Queries', () => {
     it('should format balance correctly', () => {
-      const { ethers } = require('ethers');
       const balanceWei = BigInt('1000000000000000000'); // 1 token
       const balanceFormatted = ethers.formatEther(balanceWei);
 
@@ -105,7 +107,6 @@ describe('Token System Client', () => {
     });
 
     it('should handle zero balance', () => {
-      const { ethers } = require('ethers');
       const balanceWei = BigInt('0');
       const balanceFormatted = ethers.formatEther(balanceWei);
 
@@ -113,7 +114,6 @@ describe('Token System Client', () => {
     });
 
     it('should handle decimal balances', () => {
-      const { ethers } = require('ethers');
       const balanceWei = BigInt('1500000000000000000'); // 1.5 tokens
       const balanceFormatted = ethers.formatEther(balanceWei);
 
@@ -228,7 +228,6 @@ describe('Token System Client', () => {
         },
       ];
 
-      const { ethers } = require('ethers');
       const formatted = mockHistory.map(p => ({
         packageId: p.packageId,
         packageType: p.packageType,
@@ -309,7 +308,6 @@ describe('Token System Client', () => {
     it('should convert rate to human-readable format', () => {
       // Rate stored as: 1 USD = 10 AMEM => 10 * 1e18
       const rateWei = BigInt('10000000000000000000');
-      const { ethers } = require('ethers');
       const rateFormatted = ethers.formatEther(rateWei);
 
       const usdToAmem = parseFloat(rateFormatted); // 10 AMEM

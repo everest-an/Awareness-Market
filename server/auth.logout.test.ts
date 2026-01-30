@@ -49,14 +49,27 @@ describe("auth.logout", () => {
     const result = await caller.auth.logout();
 
     expect(result).toEqual({ success: true });
-    expect(clearedCookies).toHaveLength(1);
-    expect(clearedCookies[0]?.name).toBe(COOKIE_NAME);
-    expect(clearedCookies[0]?.options).toMatchObject({
+
+    // Logout should clear 3 cookies: session cookie, jwt_token, and jwt_refresh
+    expect(clearedCookies).toHaveLength(3);
+
+    // Verify the session cookie is cleared
+    const sessionCookie = clearedCookies.find(c => c.name === COOKIE_NAME);
+    expect(sessionCookie).toBeDefined();
+    expect(sessionCookie?.options).toMatchObject({
       maxAge: -1,
       secure: true,
       sameSite: "none",
       httpOnly: true,
       path: "/",
     });
+
+    // Verify jwt_token and jwt_refresh are also cleared
+    const jwtToken = clearedCookies.find(c => c.name === 'jwt_token');
+    const jwtRefresh = clearedCookies.find(c => c.name === 'jwt_refresh');
+    expect(jwtToken).toBeDefined();
+    expect(jwtRefresh).toBeDefined();
+    expect(jwtToken?.options.maxAge).toBe(-1);
+    expect(jwtRefresh?.options.maxAge).toBe(-1);
   });
 });
