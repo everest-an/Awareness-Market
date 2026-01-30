@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { ENV } from "./env";
-import { createLogger } from './utils/logger';
+import { createLogger } from '../utils/logger';
 
 const logger = createLogger('Notification');
 

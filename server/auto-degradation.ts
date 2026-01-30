@@ -268,32 +268,31 @@ export class AutoDegradationEngine {
       : 'bronze'; // For deprecated, compare against bronze
 
     // Check each metric against thresholds
-    if (comparisonTier !== 'deprecated') {
-      const threshold = this.thresholds[comparisonTier as Exclude<QualityTier, 'deprecated'>];
+    // comparisonTier is guaranteed to not be 'deprecated' by the logic above
+    const threshold = this.thresholds[comparisonTier as Exclude<QualityTier, 'deprecated'>];
 
-      if (pkg.metrics.verificationScore < threshold.minVerificationScore) {
-        reasons.push(`Low verification score: ${pkg.metrics.verificationScore.toFixed(2)}`);
-      }
+    if (pkg.metrics.verificationScore < threshold.minVerificationScore) {
+      reasons.push(`Low verification score: ${pkg.metrics.verificationScore.toFixed(2)}`);
+    }
 
-      if (pkg.metrics.averageEpsilon > threshold.maxEpsilon) {
-        reasons.push(`High epsilon: ${pkg.metrics.averageEpsilon.toFixed(4)}`);
-      }
+    if (pkg.metrics.averageEpsilon > threshold.maxEpsilon) {
+      reasons.push(`High epsilon: ${pkg.metrics.averageEpsilon.toFixed(4)}`);
+    }
 
-      if (pkg.metrics.userRating < threshold.minUserRating) {
-        reasons.push(`Low user rating: ${pkg.metrics.userRating.toFixed(1)}`);
-      }
+    if (pkg.metrics.userRating < threshold.minUserRating) {
+      reasons.push(`Low user rating: ${pkg.metrics.userRating.toFixed(1)}`);
+    }
 
-      if (pkg.metrics.complaintRate > threshold.maxComplaintRate) {
-        reasons.push(`High complaint rate: ${(pkg.metrics.complaintRate * 100).toFixed(1)}%`);
-      }
+    if (pkg.metrics.complaintRate > threshold.maxComplaintRate) {
+      reasons.push(`High complaint rate: ${(pkg.metrics.complaintRate * 100).toFixed(1)}%`);
+    }
 
-      if (pkg.metrics.successRate < threshold.minSuccessRate) {
-        reasons.push(`Low success rate: ${(pkg.metrics.successRate * 100).toFixed(1)}%`);
-      }
+    if (pkg.metrics.successRate < threshold.minSuccessRate) {
+      reasons.push(`Low success rate: ${(pkg.metrics.successRate * 100).toFixed(1)}%`);
+    }
 
-      if (pkg.metrics.usageCount < threshold.minUsageCount) {
-        reasons.push(`Insufficient usage count: ${pkg.metrics.usageCount}`);
-      }
+    if (pkg.metrics.usageCount < threshold.minUsageCount) {
+      reasons.push(`Insufficient usage count: ${pkg.metrics.usageCount}`);
     }
 
     // Special handling for deprecated tier

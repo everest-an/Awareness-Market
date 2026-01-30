@@ -77,7 +77,7 @@ export class WasabiBackend implements StorageBackend {
       await this.client.send(command);
       const url = `${this.publicUrl}/${key}`;
 
-      logger.log(`[WasabiBackend] Uploaded ${key} (${(data.length / 1024 / 1024).toFixed(2)} MB)`);
+      logger.info(`[WasabiBackend] Uploaded ${key} (${(data.length / 1024 / 1024).toFixed(2)} MB)`);
       return { url, key };
     } catch (error) {
       logger.error('[WasabiBackend] Upload failed:', { error });
@@ -132,7 +132,7 @@ export class WasabiBackend implements StorageBackend {
       });
 
       await this.client.send(deleteCommand);
-      logger.log(`[WasabiBackend] Deleted ${key}`);
+      logger.info(`[WasabiBackend] Deleted ${key}`);
     } catch (error) {
       logger.error('[WasabiBackend] Delete failed:', { error });
       throw new Error(`Wasabi delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

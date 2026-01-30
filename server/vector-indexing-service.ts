@@ -6,7 +6,9 @@
  */
 
 import { getVectorDatabaseService, type VectorMetadata } from './vector-database';
-import type { Package, PackageType } from '../drizzle/schema';
+
+// Package types used in the system
+type PackageType = 'vector_package' | 'memory_package' | 'chain_package';
 
 // ============================================================================
 // Types
@@ -75,7 +77,7 @@ export class VectorIndexingService {
       // Build metadata
       const metadata: VectorMetadata = {
         packageId: pkg.id,
-        packageType: collectionType,
+        packageType: collectionType === 'vectors' ? 'vector' : collectionType === 'memories' ? 'memory' : 'chain',
         modelName: pkg.modelName,
         dimension: pkg.dimension,
         createdAt: pkg.createdAt.toISOString(),

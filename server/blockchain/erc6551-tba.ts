@@ -12,7 +12,7 @@
  */
 
 import { ethers } from 'ethers';
-import { createLogger } from './utils/logger';
+import { createLogger } from '../utils/logger';
 
 const logger = createLogger('ERC6551');
 
