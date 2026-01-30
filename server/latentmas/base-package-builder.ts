@@ -345,12 +345,12 @@ export abstract class BasePackageBuilder {
    */
   protected deserializeArray(buffer: Buffer, shape: number[]): number[] | number[][] | number[][][] {
     const flat: number[] = [];
-    
+
     for (let i = 0; i < buffer.length / 8; i++) {
       flat.push(buffer.readDoubleLE(i * 8));
     }
-    
-    return this.reshapeArray(flat, shape);
+
+    return this.reshapeArray(flat, shape) as number[] | number[][] | number[][][];
   }
 
   /**

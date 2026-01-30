@@ -91,7 +91,7 @@ export class DifferentialPrivacyEngine {
   ): PrivatizedVector {
     // Resolve config from preset if string is passed
     const resolvedConfig = typeof config === 'string'
-      ? PRIVACY_PRESETS[config]
+      ? PRIVACY_PRESETS[config as Exclude<PrivacyLevel, 'custom'>]
       : config;
 
     const { epsilon, delta, sigma: configSigma } = resolvedConfig;
