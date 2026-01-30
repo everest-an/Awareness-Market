@@ -226,7 +226,7 @@ This signature will not trigger any blockchain transaction.`;
         isActive: true,
       });
 
-      logger.info('New agent registered', { walletAddress, agentId: agentIdBytes });
+      logger.info('New agent registered', { walletAddress, agentId: onChainAgentId });
     } else {
       userId = userRecords[0].id;
       

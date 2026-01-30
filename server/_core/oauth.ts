@@ -3,7 +3,7 @@ import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
-import { createLogger } from './utils/logger';
+import { createLogger } from '../utils/logger';
 
 const logger = createLogger('OAuth');
 
