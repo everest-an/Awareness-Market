@@ -158,7 +158,7 @@ export const memoryNFTRouter = router({
 
         return familyTree;
       } catch (error) {
-        logger.error('[getProvenance] Failed to build family tree:', error);
+        logger.error('[getProvenance] Failed to build family tree:', { error });
 
         // If error is already a TRPCError, rethrow it
         if (error instanceof TRPCError) {

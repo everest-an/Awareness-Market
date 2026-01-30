@@ -376,7 +376,7 @@ export async function invokeVector(
         });
       }
     } catch (logError) {
-      logger.error('Failed to log error:', logError);
+      logger.error('Failed to log error:', { error: logError });
     }
 
     if (error instanceof TRPCError) {

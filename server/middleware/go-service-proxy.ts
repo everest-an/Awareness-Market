@@ -30,7 +30,7 @@ function createServiceProxy(target: string, errorLabel: string) {
       return proxyReqOpts;
     },
     proxyErrorHandler: (err: Error, res: Response, _next: NextFunction) => {
-      logger.error(`[${errorLabel} Proxy Error]`, err.message);
+      logger.error(`[${errorLabel} Proxy Error]`, { message: err.message });
       res.status(503).json({
         error: `${errorLabel} service unavailable`,
         message: err.message,
@@ -125,7 +125,7 @@ export async function checkGoServicesHealth(): Promise<{
     );
     results.vectorOperations = vectorRes.ok;
   } catch (err) {
-    logger.warn('Vector Operations health check failed:', err);
+    logger.warn('Vector Operations health check failed:', { error: err });
   }
 
   try {
@@ -135,7 +135,7 @@ export async function checkGoServicesHealth(): Promise<{
     );
     results.memoryExchange = memoryRes.ok;
   } catch (err) {
-    logger.warn('Memory Exchange health check failed:', err);
+    logger.warn('Memory Exchange health check failed:', { error: err });
   }
 
   try {
@@ -145,7 +145,7 @@ export async function checkGoServicesHealth(): Promise<{
     );
     results.wMatrix = wMatrixRes.ok;
   } catch (err) {
-    logger.warn('W-Matrix Marketplace health check failed:', err);
+    logger.warn('W-Matrix Marketplace health check failed:', { error: err });
   }
 
   results.allHealthy = results.vectorOperations && results.memoryExchange && results.wMatrix;

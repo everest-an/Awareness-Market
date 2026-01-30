@@ -60,7 +60,7 @@ export class B2Backend implements StorageBackend {
       
       return { url, key };
     } catch (error) {
-      logger.error('[B2Backend] Upload failed:', error);
+      logger.error('[B2Backend] Upload failed:', { error });
       throw new Error(`B2 upload failed: ${(error as Error).message}`);
     }
   }
@@ -77,7 +77,7 @@ export class B2Backend implements StorageBackend {
       
       return { url };
     } catch (error) {
-      logger.error('[B2Backend] Get URL failed:', error);
+      logger.error('[B2Backend] Get URL failed:', { error });
       throw new Error(`B2 get failed: ${(error as Error).message}`);
     }
   }
@@ -93,7 +93,7 @@ export class B2Backend implements StorageBackend {
       
       logger.info(`[B2Backend] Deleted ${key}`);
     } catch (error) {
-      logger.error('[B2Backend] Delete failed:', error);
+      logger.error('[B2Backend] Delete failed:', { error });
       throw new Error(`B2 delete failed: ${(error as Error).message}`);
     }
   }
@@ -109,7 +109,7 @@ export class B2Backend implements StorageBackend {
       await this.client.send(command);
       return true;
     } catch (error) {
-      logger.error('[B2Backend] Health check failed:', error);
+      logger.error('[B2Backend] Health check failed:', { error });
       return false;
     }
   }

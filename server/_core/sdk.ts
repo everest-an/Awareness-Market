@@ -32,7 +32,7 @@ const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserI
 
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
-    logger.info(" Initialized with baseURL:", ENV.oAuthServerUrl);
+    logger.info(" Initialized with baseURL:", { baseURL: ENV.oAuthServerUrl });
     if (!ENV.oAuthServerUrl) {
       logger.error(
         "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
@@ -229,7 +229,7 @@ class SDKServer {
         name,
       };
     } catch (error) {
-      logger.warn(" Session verification failed", String(error));
+      logger.warn(" Session verification failed", { error: String(error) });
       return null;
     }
   }
@@ -271,7 +271,7 @@ class SDKServer {
           return result.user as User;
         }
       } catch (error) {
-        logger.error(" JWT token validation failed:", error);
+        logger.error(" JWT token validation failed:", { error });
       }
     }
 
@@ -300,7 +300,7 @@ class SDKServer {
         });
         user = await db.getUserByOpenId(userInfo.openId);
       } catch (error) {
-        logger.error(" Failed to sync user from OAuth:", error);
+        logger.error(" Failed to sync user from OAuth:", { error });
         throw ForbiddenError("Failed to sync user info");
       }
     }

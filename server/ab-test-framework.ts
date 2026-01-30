@@ -66,7 +66,7 @@ export async function getABTestAssignment(
 
     return assignedAlgorithm as RecommendationAlgorithm;
   } catch (error) {
-    logger.error(" Error getting assignment:", error);
+    logger.error(" Error getting assignment:", { error });
     return "llm_based"; // Default fallback
   }
 }
@@ -118,7 +118,7 @@ export async function getRecommendationsWithABTest(
 
     return recommendations.map((r: any) => ({ ...r, algorithm }));
   } catch (error) {
-    logger.error(" Error getting recommendations:", error);
+    logger.error(" Error getting recommendations:", { error });
     return [];
   }
 }
@@ -158,7 +158,7 @@ export async function calculateABTestMetrics(experimentId: number) {
       },
     };
   } catch (error) {
-    logger.error(" Error calculating metrics:", error);
+    logger.error(" Error calculating metrics:", { error });
     return null;
   }
 }
@@ -226,7 +226,7 @@ export async function createABTestExperiment(
 
     return result.insertId;
   } catch (error) {
-    logger.error(" Error creating experiment:", error);
+    logger.error(" Error creating experiment:", { error });
     return null;
   }
 }
@@ -249,7 +249,7 @@ export async function startABTestExperiment(experimentId: number) {
 
     return true;
   } catch (error) {
-    logger.error(" Error starting experiment:", error);
+    logger.error(" Error starting experiment:", { error });
     return false;
   }
 }
@@ -272,7 +272,7 @@ export async function stopABTestExperiment(experimentId: number) {
 
     return true;
   } catch (error) {
-    logger.error(" Error stopping experiment:", error);
+    logger.error(" Error stopping experiment:", { error });
     return false;
   }
 }

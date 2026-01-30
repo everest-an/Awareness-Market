@@ -38,7 +38,7 @@ export const creatorDashboardRouter = router({
           analytics,
         };
       } catch (error) {
-        logger.error('[Revenue] Error:', error);
+        logger.error('[Revenue] Error:', { error });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch revenue analytics',
@@ -62,7 +62,7 @@ export const creatorDashboardRouter = router({
           metrics,
         };
       } catch (error) {
-        logger.error('[Performance] Error:', error);
+        logger.error('[Performance] Error:', { error });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch performance metrics',
@@ -89,7 +89,7 @@ export const creatorDashboardRouter = router({
           feedback,
         };
       } catch (error) {
-        logger.error('[Feedback] Error:', error);
+        logger.error('[Feedback] Error:', { error });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch user feedback',
@@ -127,7 +127,7 @@ export const creatorDashboardRouter = router({
           },
         };
       } catch (error) {
-        logger.error('[Overview] Error:', error);
+        logger.error('[Overview] Error:', { error });
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch dashboard overview',

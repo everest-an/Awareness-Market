@@ -194,7 +194,7 @@ export const agentDiscoveryRouter = router({
               }
             }
           } catch (e) {
-            logger.warn('[AgentDiscovery] Failed to fetch on-chain data:', e);
+            logger.warn('[AgentDiscovery] Failed to fetch on-chain data:', { error: e });
           }
         }
 
@@ -320,7 +320,7 @@ export const agentDiscoveryRouter = router({
             onChainReputation = onChainAgent.reputation;
           }
         } catch (e) {
-          logger.warn('[AgentDiscovery] Failed to fetch on-chain data:', e);
+          logger.warn('[AgentDiscovery] Failed to fetch on-chain data:', { error: e });
         }
       }
 
