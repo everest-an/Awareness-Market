@@ -66,13 +66,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     messages: messages.map((m) => ({
       role: m.role,
       content: m.content,
-    })),
+    })) as any,
     temperature,
     max_tokens,
   };
 
   if (response_format) {
-    requestParams.response_format = response_format;
+    requestParams.response_format = response_format as any;
   }
 
   if (tools) {
@@ -80,7 +80,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   }
 
   if (tool_choice) {
-    requestParams.tool_choice = tool_choice;
+    requestParams.tool_choice = tool_choice as any;
   }
 
   const response = await openai.chat.completions.create(requestParams);
@@ -94,8 +94,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
           id: tc.id,
           type: tc.type,
           function: {
-            name: tc.function?.name || '',
-            arguments: tc.function?.arguments || '',
+            name: (tc as any).function?.name || '',
+            arguments: (tc as any).function?.arguments || '',
           },
         })),
       },

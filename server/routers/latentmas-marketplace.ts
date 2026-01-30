@@ -204,7 +204,7 @@ export const latentmasMarketplaceRouter = router({
       }
 
       // Validate package
-      const validation = validateLatentMASPackage(modifiedInput);
+      const validation = validateLatentMASPackage(modifiedInput as any);
 
       if (!validation.valid) {
         throw new TRPCError({
@@ -462,13 +462,13 @@ export const latentmasMarketplaceRouter = router({
   validatePackage: publicProcedure
     .input(LatentMASPackageSchema)
     .mutation(async ({ input }) => {
-      const validation = validateLatentMASPackage(input);
-      
+      const validation = validateLatentMASPackage(input as any);
+
       return {
         valid: validation.valid,
         errors: validation.errors,
         warnings: validation.warnings,
-        recommendations: generateRecommendations(input, validation),
+        recommendations: generateRecommendations(input as any, validation),
       };
     }),
   
@@ -608,7 +608,7 @@ function generateRecommendations(
   }
   
   // Pricing recommendations
-  if (pkg.price > 500 && pkg.metrics.qualityScore < 0.7) {
+  if ((pkg as any).price > 500 && pkg.metrics.qualityScore < 0.7) {
     recommendations.push('Price may be too high for the quality score - consider lowering');
   }
   

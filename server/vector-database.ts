@@ -350,7 +350,7 @@ export class VectorDatabaseService {
 
     await this.client.delete(config.name, {
       wait: true,
-      filter: filter,
+      filter: filter as any,
     });
   }
 
