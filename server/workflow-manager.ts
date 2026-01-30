@@ -318,7 +318,7 @@ class WorkflowManager extends EventEmitter {
 
       await db
         .update(workflowSessions)
-        .set(dbUpdates)
+        .set(dbUpdates as any)
         .where(eq(workflowSessions.id, workflowId));
     } catch (error: unknown) {
       logger.error(`DB update error:`, { error });
@@ -376,7 +376,7 @@ class WorkflowManager extends EventEmitter {
 
       await db
         .update(workflowEvents)
-        .set(dbUpdates)
+        .set(dbUpdates as any)
         .where(eq(workflowEvents.id, eventId));
     } catch (error: unknown) {
       logger.error(`DB update event error:`, { error });

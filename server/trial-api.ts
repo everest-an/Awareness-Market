@@ -124,7 +124,7 @@ router.post("/execute", async (req: Request, res: Response) => {
         id: vectorId,
         description: vector.title,
         category: "trial",
-      },
+      } as any,
       context: input,
     });
 

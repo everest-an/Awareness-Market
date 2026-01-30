@@ -42,7 +42,7 @@ const isMessageArray = (value: unknown): value is Array<{ role: string; content:
 };
 
 const extractTextFromResult = (result: unknown) => {
-  const content = result?.choices?.[0]?.message?.content;
+  const content = (result as any)?.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
@@ -93,7 +93,7 @@ export async function runVector(params: { vector: LatentVector; context: unknown
   }
 
   const llmResult = await invokeLLM({
-    messages,
+    messages: messages as any,
   });
 
   const resultText = extractTextFromResult(llmResult);
