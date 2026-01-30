@@ -5,7 +5,7 @@
  * CPU vs GPU performance across different batch sizes and dimensions.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 interface BenchmarkResult {
   operation: string;
