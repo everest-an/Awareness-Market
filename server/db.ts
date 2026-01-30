@@ -1034,7 +1034,7 @@ export async function browseVectorPackages(filters: {
     const conditions: SQL[] = [];
 
     // Only show active packages by default
-    conditions.push(eq(vectorPackages.status, filters.status || 'active'));
+    conditions.push(eq(vectorPackages.status, (filters.status || 'active') as any));
 
     if (filters.sourceModel) {
       conditions.push(eq(vectorPackages.sourceModel, filters.sourceModel));
@@ -1154,7 +1154,7 @@ export async function browseMemoryPackages(filters: {
     const conditions: SQL[] = [];
 
     // Only show active packages by default
-    conditions.push(eq(memoryPackages.status, filters.status || 'active'));
+    conditions.push(eq(memoryPackages.status, (filters.status || 'active') as any));
 
     if (filters.sourceModel) {
       conditions.push(eq(memoryPackages.sourceModel, filters.sourceModel));

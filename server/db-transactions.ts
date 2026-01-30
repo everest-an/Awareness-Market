@@ -72,7 +72,7 @@ export async function updateWithOptimisticLock<T extends { id: number; version: 
     const [record] = await tx
       .select()
       .from(table)
-      .where(eq((table as MySqlTable & { id: unknown }).id, id))
+      .where(eq((table as any).id, id))
       .limit(1);
 
     if (!record || record.version !== currentVersion) {
@@ -201,7 +201,7 @@ export async function uploadPackageTransaction(params: {
       rating: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    } as any);
 
     // 2. Update user package count (if the column exists)
     // Note: Using raw SQL for increment since drizzle-orm/mysql doesn't support functional updates
