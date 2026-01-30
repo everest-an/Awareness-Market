@@ -224,7 +224,7 @@ export const aiAgentRouter = router({
             )
           )
           .limit(limit);
-        results.push(...vectors.map(v => ({ ...v, packageType: 'vector' })));
+        results.push(...vectors.map(v => ({ ...v, packageType: 'vector' } as any)));
       }
 
       if (packageType === 'memory' || packageType === 'all') {
@@ -238,7 +238,7 @@ export const aiAgentRouter = router({
             )
           )
           .limit(limit);
-        results.push(...memories.map(m => ({ ...m, packageType: 'memory' })));
+        results.push(...memories.map(m => ({ ...m, packageType: 'memory' } as any)));
       }
 
       if (packageType === 'chain' || packageType === 'all') {
@@ -252,7 +252,7 @@ export const aiAgentRouter = router({
             )
           )
           .limit(limit);
-        results.push(...chains.map(c => ({ ...c, packageType: 'chain' })));
+        results.push(...chains.map(c => ({ ...c, packageType: 'chain' } as any)));
       }
 
       return {
