@@ -7,6 +7,7 @@
 
 import { getDb } from '../db';
 import { migrationQueue } from '../../drizzle/schema-storage-tiers';
+import { vectorPackages, memoryPackages, chainPackages } from '../../drizzle/schema';
 import { eq, and, sql, or } from 'drizzle-orm';
 import type { PackageType, DataTier } from './access-tracker';
 import {
@@ -16,8 +17,148 @@ import {
 } from './access-tracker';
 import { getStorageRouter } from './storage-router';
 import { createLogger } from '../utils/logger';
+import * as crypto from 'crypto';
 
 const logger = createLogger('Storage:TierMigration');
+
+/**
+ * 包文件信息
+ */
+interface PackageFiles {
+  packageId: number;
+  packageType: PackageType;
+  files: Array<{
+    fieldName: string;
+    url: string;
+    key: string;
+  }>;
+}
+
+/**
+ * 从URL中提取存储键
+ */
+function extractStorageKey(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    // 移除开头的斜杠
+    return urlObj.pathname.replace(/^\//, '');
+  } catch {
+    // 如果不是完整URL，假设已经是键
+    return url;
+  }
+}
+
+/**
+ * 计算数据的SHA256哈希
+ */
+function computeHash(data: Buffer): string {
+  return crypto.createHash('sha256').update(data).digest('hex');
+}
+
+/**
+ * 从URL下载文件
+ */
+async function downloadFile(url: string): Promise<Buffer> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`下载失败: ${response.status} ${response.statusText}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+/**
+ * 获取包的所有文件信息
+ */
+async function getPackageFiles(packageId: number, packageType: PackageType): Promise<PackageFiles | null> {
+  try {
+    const db = await getDb();
+    if (!db) return null;
+
+    const files: PackageFiles['files'] = [];
+
+    switch (packageType) {
+      case 'vector': {
+        const result = await db.select().from(vectorPackages).where(eq(vectorPackages.id, packageId)).limit(1);
+        if (result.length === 0) return null;
+        const pkg = result[0];
+
+        if (pkg.vectorUrl) files.push({ fieldName: 'vectorUrl', url: pkg.vectorUrl, key: extractStorageKey(pkg.vectorUrl) });
+        if (pkg.wMatrixUrl) files.push({ fieldName: 'wMatrixUrl', url: pkg.wMatrixUrl, key: extractStorageKey(pkg.wMatrixUrl) });
+        if (pkg.packageUrl) files.push({ fieldName: 'packageUrl', url: pkg.packageUrl, key: extractStorageKey(pkg.packageUrl) });
+        break;
+      }
+      case 'memory': {
+        const result = await db.select().from(memoryPackages).where(eq(memoryPackages.id, packageId)).limit(1);
+        if (result.length === 0) return null;
+        const pkg = result[0];
+
+        if (pkg.kvCacheUrl) files.push({ fieldName: 'kvCacheUrl', url: pkg.kvCacheUrl, key: extractStorageKey(pkg.kvCacheUrl) });
+        if (pkg.wMatrixUrl) files.push({ fieldName: 'wMatrixUrl', url: pkg.wMatrixUrl, key: extractStorageKey(pkg.wMatrixUrl) });
+        if (pkg.packageUrl) files.push({ fieldName: 'packageUrl', url: pkg.packageUrl, key: extractStorageKey(pkg.packageUrl) });
+        break;
+      }
+      case 'chain': {
+        const result = await db.select().from(chainPackages).where(eq(chainPackages.id, packageId)).limit(1);
+        if (result.length === 0) return null;
+        const pkg = result[0];
+
+        if (pkg.chainUrl) files.push({ fieldName: 'chainUrl', url: pkg.chainUrl, key: extractStorageKey(pkg.chainUrl) });
+        if (pkg.wMatrixUrl) files.push({ fieldName: 'wMatrixUrl', url: pkg.wMatrixUrl, key: extractStorageKey(pkg.wMatrixUrl) });
+        if (pkg.packageUrl) files.push({ fieldName: 'packageUrl', url: pkg.packageUrl, key: extractStorageKey(pkg.packageUrl) });
+        break;
+      }
+    }
+
+    return { packageId, packageType, files };
+  } catch (error) {
+    logger.error('[TierMigration] 获取包文件信息失败:', { error });
+    return null;
+  }
+}
+
+/**
+ * 根据内容类型推断MIME类型
+ */
+function inferContentType(key: string): string {
+  if (key.endsWith('.safetensors')) return 'application/octet-stream';
+  if (key.endsWith('.json')) return 'application/json';
+  if (key.endsWith('.vectorpkg') || key.endsWith('.memorypkg') || key.endsWith('.chainpkg')) {
+    return 'application/octet-stream';
+  }
+  return 'application/octet-stream';
+}
+
+/**
+ * 更新包的文件URL
+ */
+async function updatePackageFileUrl(
+  packageId: number,
+  packageType: PackageType,
+  fieldName: string,
+  newUrl: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('数据库不可用');
+
+  switch (packageType) {
+    case 'vector':
+      await db.update(vectorPackages)
+        .set({ [fieldName]: newUrl })
+        .where(eq(vectorPackages.id, packageId));
+      break;
+    case 'memory':
+      await db.update(memoryPackages)
+        .set({ [fieldName]: newUrl })
+        .where(eq(memoryPackages.id, packageId));
+      break;
+    case 'chain':
+      await db.update(chainPackages)
+        .set({ [fieldName]: newUrl })
+        .where(eq(chainPackages.id, packageId));
+      break;
+  }
+}
 
 export interface MigrationTask {
   id?: number;
@@ -124,7 +265,6 @@ export class TierMigrationService {
       const taskId = result[0]?.id || 0;
       logger.info(`[TierMigration] Queued migration task ${taskId} for ${task.packageType}:${task.packageId}`);
       return taskId;
-      return taskId;
     } catch (error) {
       logger.error('[TierMigration] Failed to queue migration:', { error });
       throw error;
@@ -211,13 +351,69 @@ export class TierMigrationService {
 
       logger.info(`[TierMigration] Executing task ${taskId}: ${task.packageType}:${task.packageId} ${task.fromBackend} → ${task.toBackend}`);
 
-      // TODO: Actual file migration logic
-      // 1. Download from source backend
-      // 2. Upload to destination backend
-      // 3. Verify integrity
-      // 4. Delete from source (optional, keep for safety period)
-      
-      // For now, just update the tier assignment
+      const router = getStorageRouter();
+      const sourceBackend = router.getBackend(task.fromBackend);
+      const destBackend = router.getBackend(task.toBackend);
+
+      if (!sourceBackend) {
+        throw new Error(`源后端 ${task.fromBackend} 不可用`);
+      }
+      if (!destBackend) {
+        throw new Error(`目标后端 ${task.toBackend} 不可用`);
+      }
+
+      // 获取包的所有文件
+      const packageFiles = await getPackageFiles(task.packageId, task.packageType as PackageType);
+      if (!packageFiles || packageFiles.files.length === 0) {
+        throw new Error(`找不到包 ${task.packageType}:${task.packageId} 的文件`);
+      }
+
+      let totalMigratedBytes = 0;
+
+      // 迁移每个文件
+      for (const file of packageFiles.files) {
+        logger.info(`[TierMigration] 迁移文件: ${file.key}`);
+
+        try {
+          // 1. 从源后端获取签名URL并下载
+          const { url: downloadUrl } = await sourceBackend.get(file.key, 3600);
+          const fileData = await downloadFile(downloadUrl);
+          const originalHash = computeHash(fileData);
+          totalMigratedBytes += fileData.length;
+
+          logger.info(`[TierMigration] 下载完成: ${file.key} (${fileData.length} bytes, hash: ${originalHash.substring(0, 16)}...)`);
+
+          // 2. 上传到目标后端
+          const contentType = inferContentType(file.key);
+          const { url: newUrl } = await destBackend.put(file.key, fileData, contentType);
+
+          logger.info(`[TierMigration] 上传完成: ${file.key} → ${task.toBackend}`);
+
+          // 3. 验证完整性 - 从目标后端下载并比较哈希
+          const { url: verifyUrl } = await destBackend.get(file.key, 3600);
+          const verifyData = await downloadFile(verifyUrl);
+          const verifyHash = computeHash(verifyData);
+
+          if (originalHash !== verifyHash) {
+            throw new Error(`完整性验证失败: ${file.key} 哈希不匹配 (原: ${originalHash.substring(0, 16)}..., 新: ${verifyHash.substring(0, 16)}...)`);
+          }
+
+          logger.info(`[TierMigration] 完整性验证通过: ${file.key}`);
+
+          // 4. 更新数据库中的文件URL
+          await updatePackageFileUrl(task.packageId, task.packageType as PackageType, file.fieldName, newUrl);
+
+          // 注意: 暂不删除源文件，保留30天安全期
+          // 可以通过另一个定时任务来清理已迁移的旧文件
+          logger.info(`[TierMigration] 保留源文件 ${file.key} 用于安全期`);
+
+        } catch (fileError) {
+          logger.error(`[TierMigration] 文件迁移失败: ${file.key}`, { error: fileError });
+          throw fileError;
+        }
+      }
+
+      // 更新分层分配
       await updateTierAssignment(
         task.packageId,
         task.packageType as PackageType,
@@ -235,12 +431,13 @@ export class TierMigrationService {
         .where(eq(migrationQueue.id, taskId));
 
       const timeTaken = Date.now() - startTime;
-      logger.info(`[TierMigration] Task ${taskId} completed in ${timeTaken}ms`);
+      logger.info(`[TierMigration] Task ${taskId} completed in ${timeTaken}ms, migrated ${totalMigratedBytes} bytes`);
 
       return {
         success: true,
         taskId,
         timeTaken,
+        migratedBytes: totalMigratedBytes,
       };
     } catch (error) {
       const db = await getDb();

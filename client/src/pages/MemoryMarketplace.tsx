@@ -16,9 +16,27 @@ import {
   Upload,
 } from 'lucide-react';
 
+interface MemoryPackage {
+  id: number;
+  packageId: string;
+  name: string;
+  description: string;
+  version?: string;
+  tokenCount?: number;
+  compressionRatio?: number;
+  rating?: number | string;
+  sourceModel?: string;
+  targetModel?: string;
+  price: number | string;
+  downloads?: number;
+  contextDescription?: string;
+}
+
+type SortOption = 'recent' | 'popular' | 'price_asc' | 'price_desc' | 'rating';
+
 export default function MemoryMarketplace() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'price_asc' | 'price_desc' | 'rating'>('recent');
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [sourceModel, setSourceModel] = useState<string>('all');
 
   // Fetch memory packages using new unified API
@@ -115,14 +133,14 @@ export default function MemoryMarketplace() {
             </Card>
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
               <div className="text-3xl font-bold text-cyan-400 mb-2">
-                {packages.packages.reduce((sum: number, pkg: any) => sum + (pkg.downloads || 0), 0)}
+                {packages.packages.reduce((sum: number, pkg: MemoryPackage) => sum + (pkg.downloads || 0), 0)}
               </div>
               <div className="text-sm text-slate-400">Total Downloads</div>
             </Card>
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
               <div className="text-3xl font-bold text-green-400 mb-2">
                 {packages.packages.length > 0 
-                  ? (packages.packages.reduce((sum: number, pkg: any) => sum + (pkg.rating || 0), 0) / packages.packages.length).toFixed(1)
+                  ? (packages.packages.reduce((sum: number, pkg: MemoryPackage) => sum + (Number(pkg.rating) || 0), 0) / packages.packages.length).toFixed(1)
                   : '0.0'}
               </div>
               <div className="text-sm text-slate-400">Average Rating</div>
@@ -173,7 +191,7 @@ export default function MemoryMarketplace() {
                   key={sort.value}
                   variant={sortBy === sort.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setSortBy(sort.value as any)}
+                  onClick={() => setSortBy(sort.value as SortOption)}
                   className={sortBy === sort.value ? 'bg-purple-500 hover:bg-purple-600' : ''}
                 >
                   {sort.label}
@@ -191,7 +209,7 @@ export default function MemoryMarketplace() {
           </div>
         ) : packages?.packages && packages.packages.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {packages.packages.map((pkg: any) => (
+            {packages.packages.map((pkg: MemoryPackage) => (
               <Link key={pkg.id} href={`/package/memory/${pkg.packageId}`}>
                 <Card className="p-6 bg-slate-900/50 border-slate-800 hover:border-purple-500 transition-all cursor-pointer group h-full">
                   {/* Header */}

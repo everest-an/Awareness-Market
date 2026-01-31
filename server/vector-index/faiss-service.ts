@@ -5,7 +5,7 @@
  * Replaces O(n) brute-force search with approximate nearest neighbor (ANN).
  */
 
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -21,7 +21,7 @@ interface FaissConfig {
 interface SearchResult {
   id: string;
   distance: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -34,12 +34,12 @@ export class FaissIndexService {
   private indexPath: string;
   private metadataPath: string;
   private config: FaissConfig;
-  private pythonProcess: any = null;
+  private pythonProcess: ChildProcess | null = null;
   private useNativeFaiss: boolean = true;
 
   // In-memory fallback (if FAISS not available)
   private inMemoryVectors: Map<string, number[]> = new Map();
-  private inMemoryMetadata: Map<string, any> = new Map();
+  private inMemoryMetadata: Map<string, Record<string, unknown>> = new Map();
 
   constructor(
     indexName: string,
@@ -154,7 +154,7 @@ print("Index created successfully")
   /**
    * Add vectors to index
    */
-  async addVectors(vectors: Array<{ id: string; vector: number[]; metadata?: any }>): Promise<void> {
+  async addVectors(vectors: Array<{ id: string; vector: number[]; metadata?: Record<string, unknown> }>): Promise<void> {
     if (this.useNativeFaiss) {
       await this.addVectorsNative(vectors);
     } else {
@@ -165,7 +165,7 @@ print("Index created successfully")
   /**
    * Add vectors using native FAISS
    */
-  private async addVectorsNative(vectors: Array<{ id: string; vector: number[]; metadata?: any }>): Promise<void> {
+  private async addVectorsNative(vectors: Array<{ id: string; vector: number[]; metadata?: Record<string, unknown> }>): Promise<void> {
     // Prepare vectors as numpy array
     const vectorData = vectors.map(v => v.vector);
     const vectorIds = vectors.map(v => v.id);
@@ -202,7 +202,7 @@ print(f"Added {len(vectors)} vectors")
   /**
    * Add vectors to in-memory index
    */
-  private addVectorsInMemory(vectors: Array<{ id: string; vector: number[]; metadata?: any }>): void {
+  private addVectorsInMemory(vectors: Array<{ id: string; vector: number[]; metadata?: Record<string, unknown> }>): void {
     for (const { id, vector, metadata } of vectors) {
       this.inMemoryVectors.set(id, vector);
       if (metadata) {

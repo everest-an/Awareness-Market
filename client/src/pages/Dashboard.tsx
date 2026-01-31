@@ -22,6 +22,26 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Transaction data types
+interface TransactionData {
+  id: number;
+  amount: string | number;
+  type: string;
+  status: string;
+  createdAt: string;
+  vectorId?: number;
+  vector?: { title: string };
+  transactions?: TransactionData;
+}
+
+interface PurchaseData {
+  id: number;
+  amount: string | number;
+  vectorId: number;
+  vector?: { title: string };
+  transactions?: PurchaseData;
+}
+
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -51,7 +71,7 @@ export default function Dashboard() {
   );
   
   // Normalize purchases data to handle both joined and non-joined formats
-  const purchases = purchasesRaw?.map((p: any) => p.transactions || p) || [];
+  const purchases = purchasesRaw?.map((p: PurchaseData) => p.transactions || p) || [];
 
   // Calculate statistics
   const totalRevenue = myVectors?.reduce((sum, v) => sum + Number(v.totalRevenue || 0), 0) || 0;
@@ -61,7 +81,7 @@ export default function Dashboard() {
     ? myVectors.reduce((sum, v) => sum + Number(v.averageRating || 0), 0) / myVectors.length
     : 0;
 
-  const totalSpent = purchases?.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0) || 0;
+  const totalSpent = purchases?.reduce((sum: number, p: PurchaseData) => sum + Number(p.amount || 0), 0) || 0;
   const totalPurchases = purchases?.length || 0;
 
   if (authLoading) {
@@ -281,7 +301,7 @@ export default function Dashboard() {
                   </div>
                 ) : purchases && purchases.length > 0 ? (
                   <div className="space-y-3">
-                    {purchases.map((purchase: any) => (
+                    {purchases.map((purchase: PurchaseData & { status?: string; createdAt?: string }) => (
                       <div
                         key={purchase.id}
                         className="flex items-center justify-between p-4 border rounded-lg"
@@ -294,7 +314,7 @@ export default function Dashboard() {
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            ${Number(purchase.amount).toFixed(2)} â€?{new Date(purchase.createdAt).toLocaleDateString()}
+                            ${Number(purchase.amount).toFixed(2)} ï¿½?{new Date(purchase.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                         <Button
@@ -342,7 +362,7 @@ export default function Dashboard() {
                   </div>
                 ) : transactions && transactions.length > 0 ? (
                   <div className="space-y-2">
-                    {transactions.map((txData: any) => {
+                    {transactions.map((txData: TransactionData) => {
                       const tx = txData.transactions || txData;
                       return (
                       <div

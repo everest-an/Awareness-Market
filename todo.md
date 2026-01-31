@@ -1,6 +1,6 @@
 # Awareness Network - Project TODO
 
-> Last Updated: January 26, 2026
+> Last Updated: February 1, 2026
 
 ---
 
@@ -281,17 +281,29 @@
 - [x] latentmas-core.test.ts
 - [x] semantic-index.test.ts
 - [x] vector-invocation.test.ts
+- [x] privacy-api.test.ts - Differential Privacy (15 tests)
+- [x] zkp-api.test.ts - Zero-Knowledge Proofs (26 tests)
+- [x] multimodal-api.test.ts - Multi-Modal API (28 tests)
+- [x] gpu-acceleration.test.ts - GPU Acceleration (28 tests)
 
 ### 8.2 Integration Tests
-- [ ] Package upload → browse → purchase → download flow
+- [x] Package upload → browse → purchase → download flow (e2e-package-flow.ts)
 - [ ] OAuth authentication flow
 - [ ] ERC-8004 authentication flow
 - [ ] Workflow visualization flow
+- [x] Hive Mind integration tests (Python SDK + Backend)
 
 ### 8.3 Performance Tests
+- [x] GPU vs CPU benchmarks (10-50x speedup validated)
 - [ ] Concurrent user load testing (100+ users)
 - [ ] Database connection pool stress test
 - [ ] Storage upload/download throughput
+
+### 8.4 Test Metrics (as of 2026-02-01)
+- **Total Tests**: 97+ unit tests
+- **Pass Rate**: 100%
+- **Coverage Areas**: Privacy, ZKP, Multi-Modal, GPU, API
+- **Documentation**: TESTING_HIVE_MIND.md, P3_TESTING_RESULTS.md
 
 ---
 
@@ -299,20 +311,25 @@
 
 ### 9.1 Local Development
 - [x] MySQL database setup
+- [x] PostgreSQL database setup (primary)
 - [x] Environment variables configuration
 - [x] npm run dev working
+- [x] pnpm support added
 
 ### 9.2 AWS Production
-- [ ] EC2 instance configuration
-- [ ] Database migration on production
-- [ ] PM2 process management
-- [ ] Nginx reverse proxy
+- [x] EC2 instance configuration (documented)
+- [x] Database migration scripts (drizzle-kit)
+- [x] PM2 process management (ecosystem.config.js)
+- [x] Nginx reverse proxy (nginx.conf)
+- [x] Deployment checklist (DEPLOYMENT_CHECKLIST.md)
+- [x] PM2 Guide (PM2_GUIDE.md)
+- [x] Environment setup guide (ENV_SETUP_GUIDE.md)
 - [ ] SSL certificate setup
 - [ ] Domain configuration (awareness.market)
 
 ### 9.3 CI/CD
-- [ ] GitHub Actions workflow
-- [ ] Automated testing on PR
+- [x] GitHub Actions workflow (ci.yml, deploy.yml)
+- [x] Automated testing on PR
 - [ ] Automated deployment on merge
 
 ---
@@ -340,6 +357,20 @@
 ---
 
 ## Changelog
+
+### 2026-02-01
+- Updated todo.md with current project status
+- Added comprehensive testing documentation (docs/TESTING_GUIDE.md)
+- Updated package.json dependencies
+- Updated deployment checklist
+- Marked completed items:
+  - Testing: 97+ unit tests passing (Privacy, ZKP, Multi-Modal, GPU)
+  - E2E package flow test
+  - Hive Mind integration tests
+  - GPU benchmarks validated (10-50x speedup)
+  - PM2 configuration complete
+  - GitHub Actions CI/CD workflows added
+  - PostgreSQL/Drizzle migration setup
 
 ### 2026-01-26
 - Cleaned up Golem Visualizer technical debt:

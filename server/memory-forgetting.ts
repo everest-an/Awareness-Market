@@ -10,6 +10,10 @@
  * Reference: Whitepaper Section 11.4 "Memory Forgetting Mechanism"
  */
 
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('MemoryForgetting');
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -196,7 +200,7 @@ export class MemoryForgettingEngine {
         const result = this.applyForgetting(packageId);
         results.push(result);
       } catch (error) {
-        console.error(`Failed to apply forgetting to ${packageId}:`, error);
+        logger.error(`Failed to apply forgetting to ${packageId}`, { error });
       }
     }
 
@@ -433,14 +437,14 @@ export class ForgettingScheduler {
    */
   start(intervalHours: number = 24): void {
     if (this.isRunning) {
-      console.warn('Forgetting scheduler is already running');
+      logger.warn('Forgetting scheduler is already running');
       return;
     }
 
     this.isRunning = true;
     const intervalMs = intervalHours * 60 * 60 * 1000;
 
-    console.log(`Starting memory forgetting scheduler (every ${intervalHours} hours)`);
+    logger.info(`Starting memory forgetting scheduler (every ${intervalHours} hours)`);
 
     // Run immediately
     this.runForgettingTask();
@@ -460,7 +464,7 @@ export class ForgettingScheduler {
       this.intervalId = null;
     }
     this.isRunning = false;
-    console.log('Memory forgetting scheduler stopped');
+    logger.info('Memory forgetting scheduler stopped');
   }
 
   /**
@@ -472,7 +476,7 @@ export class ForgettingScheduler {
     deleted: number;
     errors: number;
   }> {
-    console.log('[Memory Forgetting] Running scheduled task...');
+    logger.info('Running scheduled forgetting task');
 
     const results = this.engine.applyForgettingBatch();
 
@@ -483,7 +487,7 @@ export class ForgettingScheduler {
       errors: 0,
     };
 
-    console.log('[Memory Forgetting] Task completed:', stats);
+    logger.info('Forgetting task completed', stats);
 
     return stats;
   }

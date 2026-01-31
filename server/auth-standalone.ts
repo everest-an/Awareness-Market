@@ -8,8 +8,13 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { getDb } from "./db";
 import { users } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, type InferSelectModel } from "drizzle-orm";
 import { nanoid } from "nanoid";
+
+// User type from database schema
+type User = InferSelectModel<typeof users>;
+// User type without password for API responses
+type SafeUser = Omit<User, 'password'>;
 
 // JWT secret from environment or fallback
 const JWT_SECRET = process.env.JWT_SECRET || "awareness-market-secret-change-in-production";
@@ -123,7 +128,7 @@ export async function registerWithEmail(params: {
 export async function loginWithEmail(params: {
   email: string;
   password: string;
-}): Promise<{ success: boolean; user?: any; accessToken?: string; refreshToken?: string; error?: string }> {
+}): Promise<{ success: boolean; user?: SafeUser; accessToken?: string; refreshToken?: string; error?: string }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -191,7 +196,7 @@ export async function findOrCreateOAuthUser(params: {
   email?: string;
   name?: string;
   avatar?: string;
-}): Promise<{ user: any; accessToken: string; refreshToken: string }> {
+}): Promise<{ user: SafeUser; accessToken: string; refreshToken: string }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -239,7 +244,7 @@ export async function findOrCreateOAuthUser(params: {
 /**
  * Get user from JWT token
  */
-export async function getUserFromToken(token: string): Promise<{ success: boolean; user?: any; error?: string }> {
+export async function getUserFromToken(token: string): Promise<{ success: boolean; user?: SafeUser; error?: string }> {
   const payload = verifyToken(token);
   
   if (!payload || payload.type !== "access") {

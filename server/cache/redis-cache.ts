@@ -90,7 +90,7 @@ export class RedisCacheService {
   /**
    * Get value from cache
    */
-  async get<T = any>(key: string): Promise<T | null> {
+  async get<T = unknown>(key: string): Promise<T | null> {
     try {
       const value = await this.client.get(key);
 
@@ -119,7 +119,7 @@ export class RedisCacheService {
   /**
    * Set value in cache
    */
-  async set(key: string, value: any, options?: CacheOptions): Promise<boolean> {
+  async set(key: string, value: unknown, options?: CacheOptions): Promise<boolean> {
     try {
       const ttl = options?.ttl || this.config.ttl!;
       let serialized = JSON.stringify(value);
@@ -149,7 +149,7 @@ export class RedisCacheService {
   /**
    * Get or set pattern (cache-aside)
    */
-  async getOrSet<T = any>(
+  async getOrSet<T = unknown>(
     key: string,
     fetcher: () => Promise<T>,
     options?: CacheOptions
@@ -424,7 +424,7 @@ export class CacheKeyBuilder {
   /**
    * Build listing cache key
    */
-  listing(page: number, limit: number, filters?: any): string {
+  listing(page: number, limit: number, filters?: Record<string, unknown>): string {
     const filterHash = filters ? this.hashObject(filters) : 'default';
     return `${this.prefix}listing:${page}:${limit}:${filterHash}`;
   }
@@ -439,7 +439,7 @@ export class CacheKeyBuilder {
   /**
    * Hash object for cache key
    */
-  private hashObject(obj: any): string {
+  private hashObject(obj: unknown): string {
     return Buffer.from(JSON.stringify(obj)).toString('base64').substring(0, 16);
   }
 }

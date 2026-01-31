@@ -14,6 +14,9 @@
  */
 
 import type { VerificationResult } from './latentmas/chain-verification';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('AutoDegradation');
 
 // ============================================================================
 // Types
@@ -399,7 +402,7 @@ export class AutoDegradationEngine {
         const result = this.evaluatePackage(packageId);
         results.push(result);
       } catch (error) {
-        console.error(`Failed to evaluate package ${packageId}:`, error);
+        logger.error(`Failed to evaluate package ${packageId}`, { error });
       }
     }
 

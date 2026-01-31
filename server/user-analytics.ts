@@ -38,14 +38,14 @@ export interface ApiKeyUsage {
 export async function getUserUsageStats(userId: string): Promise<UsageStats> {
   const database = await getDb();
   if (!database) {
-    // Return mock data if database is not available
+    // Return empty data if database is not available
     return {
-      totalRequests: 1247,
-      successRate: 98.5,
-      avgResponseTime: 145,
-      requestsToday: 42,
-      requestsThisWeek: 318,
-      requestsThisMonth: 1247,
+      totalRequests: 0,
+      successRate: 100,
+      avgResponseTime: 0,
+      requestsToday: 0,
+      requestsThisWeek: 0,
+      requestsThisMonth: 0,
     };
   }
 
@@ -158,14 +158,8 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
 export async function getPopularEndpoints(userId: string, limit: number = 10): Promise<EndpointStat[]> {
   const database = await getDb();
   if (!database) {
-    // Return mock data
-    return [
-      { endpoint: "/api/v1/memory-exchange/store", method: "POST", count: 342, avgResponseTime: 125, errorRate: 1.2 },
-      { endpoint: "/api/v1/vector-operations/search", method: "POST", count: 289, avgResponseTime: 210, errorRate: 0.7 },
-      { endpoint: "/api/v1/memory-exchange/query", method: "GET", count: 215, avgResponseTime: 95, errorRate: 2.3 },
-      { endpoint: "/api/v1/recommendations/get", method: "GET", count: 178, avgResponseTime: 150, errorRate: 0.5 },
-      { endpoint: "/api/v1/w-matrix/listings", method: "GET", count: 123, avgResponseTime: 180, errorRate: 1.8 },
-    ];
+    // Return empty data if database is not available
+    return [];
   }
 
   // Get user's API keys
@@ -209,18 +203,8 @@ export async function getPopularEndpoints(userId: string, limit: number = 10): P
 export async function getDailyUsage(userId: string, days: number = 30): Promise<DailyUsage[]> {
   const database = await getDb();
   if (!database) {
-    // Return mock data
-    const mockData: DailyUsage[] = [];
-    const now = new Date();
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      mockData.push({
-        date: date.toISOString().split('T')[0],
-        requests: Math.floor(Math.random() * 50) + 10,
-        errors: Math.floor(Math.random() * 3),
-      });
-    }
-    return mockData;
+    // Return empty data if database is not available
+    return [];
   }
 
   const startDate = new Date();
@@ -267,12 +251,8 @@ export async function getDailyUsage(userId: string, days: number = 30): Promise<
 export async function getApiKeyUsage(userId: string): Promise<ApiKeyUsage[]> {
   const database = await getDb();
   if (!database) {
-    // Return mock data
-    return [
-      { apiKeyId: 1, keyName: "Production Key", requests: 842, lastUsed: new Date() },
-      { apiKeyId: 2, keyName: "Development Key", requests: 305, lastUsed: new Date(Date.now() - 3600000) },
-      { apiKeyId: 3, keyName: "Testing Key", requests: 100, lastUsed: new Date(Date.now() - 86400000) },
-    ];
+    // Return empty data if database is not available
+    return [];
   }
 
   // Get user's API keys with usage stats

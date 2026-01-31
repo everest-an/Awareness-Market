@@ -88,6 +88,9 @@ export default function MemoryProvenance() {
     const treeData = treeLayout(root);
 
     // Add links (edges)
+    type TreeNode = d3.HierarchyPointNode<MemoryNode>;
+    type TreeLink = d3.HierarchyPointLink<MemoryNode>;
+
     g.selectAll('.link')
       .data(treeData.links())
       .join('path')
@@ -96,9 +99,9 @@ export default function MemoryProvenance() {
       .attr('stroke', '#64748b')
       .attr('stroke-width', 2)
       .attr('stroke-opacity', 0.6)
-      .attr('d', d3.linkHorizontal<any, any>()
-        .x((d: any) => d.y)
-        .y((d: any) => d.x)
+      .attr('d', d3.linkHorizontal<TreeLink, TreeNode>()
+        .x((d) => d.y)
+        .y((d) => d.x)
       );
 
     // Add nodes
@@ -106,16 +109,16 @@ export default function MemoryProvenance() {
       .data(treeData.descendants())
       .join('g')
       .attr('class', 'node')
-      .attr('transform', (d: any) => `translate(${d.y},${d.x})`)
+      .attr('transform', (d: TreeNode) => `translate(${d.y},${d.x})`)
       .style('cursor', 'pointer')
-      .on('click', (event, d: any) => {
+      .on('click', (_event: MouseEvent, d: TreeNode) => {
         setSelectedNode(d.data);
       });
 
     // Add circles for nodes
     nodes.append('circle')
       .attr('r', 8)
-      .attr('fill', (d: any) => {
+      .attr('fill', (d: TreeNode) => {
         const epsilon = d.data.epsilon;
         if (epsilon < 3) return '#10b981'; // Green (Platinum/Gold)
         if (epsilon < 4) return '#3b82f6'; // Blue (Silver)
@@ -127,9 +130,9 @@ export default function MemoryProvenance() {
     // Add labels
     nodes.append('text')
       .attr('dy', '0.31em')
-      .attr('x', (d: any) => d.children ? -12 : 12)
-      .attr('text-anchor', (d: any) => d.children ? 'end' : 'start')
-      .text((d: any) => d.data.title)
+      .attr('x', (d: TreeNode) => d.children ? -12 : 12)
+      .attr('text-anchor', (d: TreeNode) => d.children ? 'end' : 'start')
+      .text((d: TreeNode) => d.data.title)
       .attr('fill', '#f1f5f9')
       .attr('font-size', '13px')
       .attr('font-weight', '500')
@@ -140,17 +143,17 @@ export default function MemoryProvenance() {
     // Add epsilon labels
     nodes.append('text')
       .attr('dy', '1.8em')
-      .attr('x', (d: any) => d.children ? -12 : 12)
-      .attr('text-anchor', (d: any) => d.children ? 'end' : 'start')
-      .text((d: any) => `ε: ${d.data.epsilon}%`)
+      .attr('x', (d: TreeNode) => d.children ? -12 : 12)
+      .attr('text-anchor', (d: TreeNode) => d.children ? 'end' : 'start')
+      .text((d: TreeNode) => `ε: ${d.data.epsilon}%`)
       .attr('fill', '#94a3b8')
       .attr('font-size', '11px');
 
     // Add royalty flow indicators
-    treeData.links().forEach((link: any) => {
+    treeData.links().forEach((link: TreeLink) => {
       const midX = (link.source.y + link.target.y) / 2;
       const midY = (link.source.x + link.target.x) / 2;
-      
+
       g.append('circle')
         .attr('cx', midX)
         .attr('cy', midY)

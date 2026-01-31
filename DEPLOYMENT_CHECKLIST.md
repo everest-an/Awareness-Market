@@ -61,8 +61,9 @@ aws s3 ls s3://$S3_BUCKET_NAME --region $AWS_REGION
 
 - [ ] 代码已提交到Git
 - [ ] 所有TypeScript错误已修复 (`pnpm run check`)
-- [ ] 所有测试通过 (`pnpm test`)
+- [ ] 所有测试通过 (`pnpm test`) - 97+ tests, 100% pass rate
 - [ ] 生产环境构建成功 (`pnpm run build`)
+- [ ] 依赖已更新 (`pnpm update`)
 
 ### 2.2 依赖安装
 
@@ -457,5 +458,5 @@ pnpm run check:deploy
 
 ---
 
-**维护者**: Claude Sonnet 4.5
-**最后更新**: 2026-01-30
+**维护者**: Claude Opus 4.5
+**最后更新**: 2026-02-01

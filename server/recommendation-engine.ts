@@ -1,6 +1,6 @@
 /**
  * AI-Powered Recommendation Engine
- * 
+ *
  * Uses LLM to analyze user browsing history, preferences, and vector metadata
  * to provide personalized recommendations for AI capabilities.
  */
@@ -11,6 +11,31 @@ import { createLogger } from './utils/logger';
 
 const logger = createLogger('Recommendation');
 
+// Vector type for recommendations
+interface VectorInfo {
+  id: number;
+  title: string;
+  category: string | null;
+  description: string | null;
+  basePrice: string;
+  averageRating: string | null;
+  totalCalls: number;
+  status: string;
+}
+
+// Transaction with optional nested transactions
+interface TransactionData {
+  vectorId?: number;
+  transactions?: { vectorId: number };
+}
+
+// Viewed vector summary
+interface ViewedVectorSummary {
+  title: string;
+  category: string | null;
+  description?: string;
+}
+
 export interface RecommendationContext {
   userId: number;
   limit?: number;
@@ -20,7 +45,7 @@ export interface Recommendation {
   vectorId: number;
   score: number;
   reason: string;
-  vector?: any;
+  vector?: VectorInfo;
 }
 
 /**
@@ -63,7 +88,7 @@ export async function generateRecommendations(
     .filter(Boolean);
 
   const purchasedVectors = purchases
-    .map((p: any) => {
+    .map((p: TransactionData) => {
       const txData = p.transactions || p;
       const vector = allVectors.find(v => v.id === txData.vectorId);
       return vector ? {
@@ -86,10 +111,10 @@ export async function generateRecommendations(
 - Past Purchases: ${purchasedVectors.length} vectors
 
 **Recently Viewed Vectors:**
-${viewedVectors.slice(0, 5).map((v: any, i: number) => `${i + 1}. ${v.title} (${v.category}): ${v.description}`).join("\n")}
+${viewedVectors.slice(0, 5).map((v, i: number) => `${i + 1}. ${(v as ViewedVectorSummary).title} (${(v as ViewedVectorSummary).category}): ${(v as ViewedVectorSummary).description}`).join("\n")}
 
 **Past Purchases:**
-${purchasedVectors.slice(0, 3).map((v: any, i: number) => `${i + 1}. ${v.title} (${v.category})`).join("\n")}
+${purchasedVectors.slice(0, 3).map((v, i: number) => `${i + 1}. ${(v as ViewedVectorSummary).title} (${(v as ViewedVectorSummary).category})`).join("\n")}
 
 **Available Vectors to Recommend:**
 ${allVectors.slice(0, 20).map((v, i) => `${i + 1}. ID: ${v.id}, Title: ${v.title}, Category: ${v.category}, Price: $${v.basePrice}, Rating: ${v.averageRating || "N/A"}, Description: ${v.description?.substring(0, 150)}`).join("\n")}
@@ -182,7 +207,7 @@ Respond in JSON format:
 /**
  * Fallback recommendations based on simple heuristics
  */
-function fallbackRecommendations(vectors: any[], limit: number): Recommendation[] {
+function fallbackRecommendations(vectors: VectorInfo[], limit: number): Recommendation[] {
   // Sort by rating and popularity
   const sorted = [...vectors]
     .filter(v => v.status === "active")

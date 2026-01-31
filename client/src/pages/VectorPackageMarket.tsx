@@ -21,9 +21,27 @@ import {
   Globe,
 } from 'lucide-react';
 
+interface VectorPackage {
+  id: number;
+  packageId: string;
+  name: string;
+  description: string;
+  category?: string;
+  sourceModel?: string;
+  targetModel?: string;
+  epsilon?: number | string;
+  dimension?: number;
+  downloadCount?: number;
+  purchaseCount?: number;
+  tags?: string;
+  price: number | string;
+}
+
+type SortOption = 'recent' | 'popular' | 'price_asc' | 'price_desc';
+
 export default function VectorPackageMarket() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'price_asc' | 'price_desc'>('recent');
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [category, setCategory] = useState<string>('all');
   const [sourceModel, setSourceModel] = useState<string>('all');
 
@@ -149,20 +167,20 @@ export default function VectorPackageMarket() {
           </Card>
           <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
             <div className="text-3xl font-bold text-green-400 mb-2">
-              {packages.reduce((sum, p: any) => sum + (p.purchaseCount || 0), 0)}
+              {packages.reduce((sum, p: VectorPackage) => sum + (p.purchaseCount || 0), 0)}
             </div>
             <div className="text-sm text-slate-400">Total Purchases</div>
           </Card>
           <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
             <div className="text-3xl font-bold text-purple-400 mb-2">
-              {packages.reduce((sum, p: any) => sum + (p.downloadCount || 0), 0)}
+              {packages.reduce((sum, p: VectorPackage) => sum + (p.downloadCount || 0), 0)}
             </div>
             <div className="text-sm text-slate-400">Total Downloads</div>
           </Card>
           <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
             <div className="text-3xl font-bold text-yellow-400 mb-2">
               {packages.length > 0
-                ? ((packages.reduce((sum: number, p: any) => sum + Number(p.epsilon || 0), 0) / packages.length) * 100).toFixed(1)
+                ? ((packages.reduce((sum: number, p: VectorPackage) => sum + Number(p.epsilon || 0), 0) / packages.length) * 100).toFixed(1)
                 : '0'}%
             </div>
             <div className="text-sm text-slate-400">Avg Epsilon</div>
@@ -226,7 +244,7 @@ export default function VectorPackageMarket() {
                   key={sort.value}
                   variant={sortBy === sort.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setSortBy(sort.value as any)}
+                  onClick={() => setSortBy(sort.value as SortOption)}
                   className={sortBy === sort.value ? 'bg-cyan-500 hover:bg-cyan-600' : ''}
                 >
                   {sort.label}
@@ -241,7 +259,7 @@ export default function VectorPackageMarket() {
           <div className="text-center text-white py-12">Loading vector packages...</div>
         ) : packages.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {packages.map((pkg: any) => (
+            {packages.map((pkg: VectorPackage) => (
               <Link key={pkg.packageId} href={`/vector-package/${pkg.packageId}`}>
                 <Card className="p-6 bg-slate-900/50 border-slate-800 hover:border-cyan-500 transition-all cursor-pointer group">
                   {/* Header */}
