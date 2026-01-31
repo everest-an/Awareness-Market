@@ -6,15 +6,45 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
-import { 
-  Database, 
-  TrendingUp, 
-  ShoppingBag, 
+import {
+  Database,
+  TrendingUp,
+  ShoppingBag,
   Wallet,
   ExternalLink,
   Download,
   Eye
 } from "lucide-react";
+
+// Package and vector types
+interface PurchasedPackage {
+  packageId?: number;
+  id?: number;
+  name?: string;
+  type?: string;
+  purchasedAt?: Date | string;
+  price?: string;
+}
+
+interface CreatedVector {
+  id: number;
+  title: string;
+  vectorType?: string;
+  createdAt: Date | string;
+  basePrice: string;
+  totalCalls?: number;
+  totalRevenue?: string;
+}
+
+interface OwnedMemory {
+  id: number | undefined;
+  name: string;
+  type: string;
+  certification: string;
+  purchasedAt: Date | string;
+  price: string;
+  usageCount: number;
+}
 
 export default function MyMemories() {
   const [activeTab, setActiveTab] = useState<"owned" | "created">("owned");
@@ -28,9 +58,9 @@ export default function MyMemories() {
   // Handle both array and object response formats
   const purchasedPackages = Array.isArray(purchasedPackagesData)
     ? purchasedPackagesData
-    : (purchasedPackagesData as any)?.purchases || [];
+    : (purchasedPackagesData as { purchases?: PurchasedPackage[] })?.purchases || [];
 
-  const ownedMemories = purchasedPackages?.map((pkg: any) => ({
+  const ownedMemories = purchasedPackages?.map((pkg: PurchasedPackage) => ({
     id: pkg.packageId || pkg.id,
     name: pkg.name || 'Unnamed Package',
     type: pkg.type || 'vector-package',
@@ -40,7 +70,7 @@ export default function MyMemories() {
     usageCount: 0,
   })) || [];
 
-  const createdMemories = createdVectors?.map((vector: any) => ({
+  const createdMemories = createdVectors?.map((vector: CreatedVector) => ({
     id: vector.id,
     name: vector.title,
     type: vector.vectorType || 'embedding',
@@ -118,7 +148,7 @@ export default function MyMemories() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${ownedMemories.reduce((sum: number, m: any) => sum + parseFloat(m.price), 0).toFixed(2)}
+              ${ownedMemories.reduce((sum: number, m: OwnedMemory) => sum + parseFloat(m.price), 0).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               On memory purchases
@@ -175,7 +205,7 @@ export default function MyMemories() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {ownedMemories.map((memory: any) => (
+              {ownedMemories.map((memory: OwnedMemory) => (
                 <Card key={memory.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between">

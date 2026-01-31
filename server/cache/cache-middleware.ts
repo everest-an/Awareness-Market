@@ -7,12 +7,20 @@
 import { TRPCError } from '@trpc/server';
 import { getCache, cacheKeys } from './redis-cache';
 import crypto from 'crypto';
+import type { Request, Response, NextFunction } from 'express';
+
+interface MiddlewareContext {
+  next: () => Promise<unknown>;
+  ctx: unknown;
+  input?: unknown;
+  path: string;
+}
 
 interface CacheMiddlewareOptions {
   ttl?: number;
   tags?: string[];
   enabled?: boolean;
-  keyGenerator?: (input: any) => string;
+  keyGenerator?: (input: unknown) => string;
 }
 
 /**
@@ -21,7 +29,7 @@ interface CacheMiddlewareOptions {
 export function createCacheMiddleware(options: CacheMiddlewareOptions = {}) {
   const { ttl = 3600, tags = [], enabled = true } = options;
 
-  return async function cacheMiddleware({ next, ctx, input, path }: any) {
+  return async function cacheMiddleware({ next, ctx, input, path }: MiddlewareContext) {
     if (!enabled) {
       return next();
     }
@@ -57,7 +65,7 @@ export function createCacheMiddleware(options: CacheMiddlewareOptions = {}) {
 export function createInvalidationMiddleware(options: { tags?: string[] } = {}) {
   const { tags = [] } = options;
 
-  return async function invalidationMiddleware({ next, ctx }: any) {
+  return async function invalidationMiddleware({ next }: Pick<MiddlewareContext, 'next'>) {
     // Execute mutation
     const result = await next();
 
@@ -76,7 +84,7 @@ export function createInvalidationMiddleware(options: { tags?: string[] } = {}) 
 /**
  * Generate cache key from path and input
  */
-function generateCacheKey(path: string, input: any): string {
+function generateCacheKey(path: string, input: unknown): string {
   const inputHash = hashInput(input);
   return `query:${path}:${inputHash}`;
 }
@@ -84,7 +92,7 @@ function generateCacheKey(path: string, input: any): string {
 /**
  * Hash input for cache key
  */
-function hashInput(input: any): string {
+function hashInput(input: unknown): string {
   const str = JSON.stringify(input || {});
   return crypto.createHash('md5').update(str).digest('hex').substring(0, 16);
 }
@@ -93,12 +101,12 @@ function hashInput(input: any): string {
  * Decorator for cacheable queries
  */
 export function Cacheable(ttl?: number, tags?: string[]) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function <T extends object>(target: T, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const cache = getCache();
-      const cacheKey = `method:${target.constructor.name}:${propertyKey}:${hashInput(args)}`;
+      const cacheKey = `method:${(target as { constructor: { name: string } }).constructor.name}:${propertyKey}:${hashInput(args)}`;
 
       // Try cache
       const cached = await cache.get(cacheKey);
@@ -125,7 +133,7 @@ export function Cacheable(ttl?: number, tags?: string[]) {
 export function httpCacheMiddleware(options: { ttl?: number; varyBy?: string[] } = {}) {
   const { ttl = 60, varyBy = [] } = options;
 
-  return async (req: any, res: any, next: any) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     if (req.method !== 'GET') {
       return next();
     }
@@ -148,7 +156,7 @@ export function httpCacheMiddleware(options: { ttl?: number; varyBy?: string[] }
 
     // Intercept res.json to cache response
     const originalJson = res.json.bind(res);
-    res.json = function (body: any) {
+    res.json = function (body: unknown) {
       res.set('X-Cache', 'MISS');
 
       // Cache response (don't await)

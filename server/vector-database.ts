@@ -12,6 +12,9 @@
  */
 
 import { QdrantClient } from '@qdrant/js-client-rest';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('VectorDatabase');
 
 // ============================================================================
 // Types
@@ -116,12 +119,12 @@ export class VectorDatabaseService {
             on_disk_payload: config.onDiskPayload,
           });
 
-          console.log(`✅ Created collection: ${config.name}`);
+          logger.info(`Created collection: ${config.name}`);
         } else {
-          console.log(`ℹ️  Collection already exists: ${config.name}`);
+          logger.info(`Collection already exists: ${config.name}`);
         }
       } catch (error) {
-        console.error(`❌ Failed to initialize collection ${config.name}:`, error);
+        logger.error(`Failed to initialize collection ${config.name}`, { error });
         throw error;
       }
     }
@@ -419,7 +422,7 @@ export class VectorDatabaseService {
       await this.client.getCollections();
       return true;
     } catch (error) {
-      console.error('Qdrant health check failed:', error);
+      logger.error('Qdrant health check failed', { error });
       return false;
     }
   }
@@ -429,7 +432,7 @@ export class VectorDatabaseService {
    */
   async close(): Promise<void> {
     // Qdrant client doesn't need explicit close
-    console.log('Vector database service closed');
+    logger.info('Vector database service closed');
   }
 }
 
@@ -461,5 +464,5 @@ export async function initializeVectorDatabase(): Promise<void> {
     throw new Error('Vector database health check failed');
   }
 
-  console.log('✅ Vector database initialized successfully');
+  logger.info('Vector database initialized successfully');
 }

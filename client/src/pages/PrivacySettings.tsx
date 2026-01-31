@@ -28,6 +28,34 @@ import {
   Bar,
 } from 'recharts';
 
+interface SimulationResult {
+  analysis: {
+    noiseScale: number;
+    meanNoise: number;
+    stdDevNoise: number;
+  };
+  interpretation: string;
+  noisyVector: number[];
+}
+
+interface PrivacySettingsData {
+  differentialPrivacyEnabled?: boolean;
+  defaultEpsilon?: number;
+  defaultDelta?: number;
+  monthlyBudget?: number;
+  totalPrivacyBudget?: number;
+  autoRenewBudget?: boolean;
+  budgetRemaining?: number;
+  remainingPrivacyBudget?: number;
+  nextResetDate?: string;
+}
+
+interface BudgetHistoryItem {
+  date: string;
+  budgetRemaining: number;
+  budgetUsed: number;
+}
+
 export default function PrivacySettings() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
@@ -42,7 +70,7 @@ export default function PrivacySettings() {
   // Simulator State
   const [simulatorVector, setSimulatorVector] = useState('');
   const [simulatorEpsilon, setSimulatorEpsilon] = useState(1.0);
-  const [simulationResult, setSimulationResult] = useState<any>(null);
+  const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
 
   // Fetch current settings
   const { data: privacySettings, refetch: refetchSettings } = trpc.user.getPrivacySettings.useQuery(
@@ -52,7 +80,7 @@ export default function PrivacySettings() {
 
   // Fetch budget history
   const { data: budgetHistory } = trpc.user.getPrivacyBudgetHistory.useQuery(
-    { limit: 30 } as any,
+    { limit: 30 },
     { enabled: !!user }
   );
 
@@ -62,7 +90,7 @@ export default function PrivacySettings() {
       toast.success("Privacy settings updated successfully");
       refetchSettings();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`Failed to update settings: ${error.message}`);
     },
   });
@@ -73,7 +101,7 @@ export default function PrivacySettings() {
       setSimulationResult(data);
       toast.success("Privacy simulation completed");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`Simulation failed: ${error.message}`);
     },
   });
@@ -81,11 +109,12 @@ export default function PrivacySettings() {
   // Initialize from fetched settings
   useEffect(() => {
     if (privacySettings) {
-      setEpsilonEnabled((privacySettings as any).differentialPrivacyEnabled ?? true);
-      setEpsilon((privacySettings as any).defaultEpsilon ?? 1.0);
-      setDelta((privacySettings as any).defaultDelta ?? 1e-5);
-      setMonthlyBudget((privacySettings as any).monthlyBudget ?? privacySettings.totalPrivacyBudget ?? 10.0);
-      setAutoRenew((privacySettings as any).autoRenewBudget ?? false);
+      const settings = privacySettings as PrivacySettingsData;
+      setEpsilonEnabled(settings.differentialPrivacyEnabled ?? true);
+      setEpsilon(settings.defaultEpsilon ?? 1.0);
+      setDelta(settings.defaultDelta ?? 1e-5);
+      setMonthlyBudget(settings.monthlyBudget ?? settings.totalPrivacyBudget ?? 10.0);
+      setAutoRenew(settings.autoRenewBudget ?? false);
     }
   }, [privacySettings]);
 
@@ -106,8 +135,7 @@ export default function PrivacySettings() {
     updateSettingsMutation.mutate({
       defaultPrivacyLevel: 'medium',
       enableAutoPrivacy: epsilonEnabled,
-      // Note: API may not support all these fields yet
-    } as any);
+    });
   };
 
   const handleSimulate = () => {
@@ -121,18 +149,19 @@ export default function PrivacySettings() {
         vectorDimension: vector.length,
         privacyLevel: 'custom',
         customEpsilon: simulatorEpsilon,
-      } as any);
+      });
     } catch (error) {
       toast.error("Invalid JSON format");
     }
   };
 
-  const budgetRemaining = (privacySettings as any)?.budgetRemaining ?? privacySettings?.remainingPrivacyBudget ?? monthlyBudget;
+  const settings = privacySettings as PrivacySettingsData | undefined;
+  const budgetRemaining = settings?.budgetRemaining ?? settings?.remainingPrivacyBudget ?? monthlyBudget;
   const budgetUsed = monthlyBudget - budgetRemaining;
   const budgetPercentage = (budgetUsed / monthlyBudget) * 100;
 
   // Chart data
-  const budgetChartData = budgetHistory?.history?.map((item: any) => ({
+  const budgetChartData = budgetHistory?.history?.map((item: BudgetHistoryItem) => ({
     date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     remaining: item.budgetRemaining,
     used: item.budgetUsed,
@@ -416,8 +445,8 @@ export default function PrivacySettings() {
                   <div className="bg-muted/50 rounded-lg p-4">
                     <p className="text-sm text-muted-foreground mb-1">Next Reset</p>
                     <p className="text-2xl font-bold">
-                      {(privacySettings as any)?.nextResetDate
-                        ? new Date((privacySettings as any).nextResetDate).toLocaleDateString()
+                      {settings?.nextResetDate
+                        ? new Date(settings.nextResetDate).toLocaleDateString()
                         : 'N/A'}
                     </p>
                   </div>
@@ -428,7 +457,7 @@ export default function PrivacySettings() {
                   <div>
                     <h3 className="font-medium mb-3">Recent Activity</h3>
                     <div className="space-y-2">
-                      {budgetHistory.history.slice(0, 5).map((item: any, idx: number) => (
+                      {budgetHistory.history.slice(0, 5).map((item: BudgetHistoryItem, idx: number) => (
                         <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                           <div>
                             <p className="font-medium">{new Date(item.date).toLocaleDateString()}</p>

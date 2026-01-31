@@ -16,9 +16,28 @@ import {
   Brain,
 } from 'lucide-react';
 
+interface ChainPackage {
+  id: number;
+  packageId: string;
+  name: string;
+  description: string;
+  problemType?: string;
+  stepCount?: number;
+  solutionQuality?: number;
+  rating?: number | string;
+  sourceModel?: string;
+  targetModel?: string;
+  epsilon?: number | string;
+  informationRetention?: number;
+  price: number | string;
+  downloads?: number;
+}
+
+type SortOption = 'recent' | 'popular' | 'price_asc' | 'price_desc' | 'rating';
+
 export default function ChainPackageMarketplace() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'price_asc' | 'price_desc' | 'rating'>('recent');
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [sourceModel, setSourceModel] = useState<string>('all');
   const [problemType, setProblemType] = useState<string>('all');
 
@@ -119,14 +138,14 @@ export default function ChainPackageMarketplace() {
             </Card>
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
               <div className="text-3xl font-bold text-cyan-400 mb-2">
-                {packages.packages.reduce((sum: number, pkg: any) => sum + (pkg.downloads || 0), 0)}
+                {packages.packages.reduce((sum: number, pkg: ChainPackage) => sum + (pkg.downloads || 0), 0)}
               </div>
               <div className="text-sm text-slate-400">Total Downloads</div>
             </Card>
             <Card className="p-6 bg-slate-900/50 border-slate-800 text-center">
               <div className="text-3xl font-bold text-green-400 mb-2">
                 {packages.packages.length > 0 
-                  ? (packages.packages.reduce((sum: number, pkg: any) => sum + (pkg.rating || 0), 0) / packages.packages.length).toFixed(1)
+                  ? (packages.packages.reduce((sum: number, pkg: ChainPackage) => sum + (Number(pkg.rating) || 0), 0) / packages.packages.length).toFixed(1)
                   : '0.0'}
               </div>
               <div className="text-sm text-slate-400">Average Rating</div>
@@ -191,7 +210,7 @@ export default function ChainPackageMarketplace() {
                   key={sort.value}
                   variant={sortBy === sort.value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setSortBy(sort.value as any)}
+                  onClick={() => setSortBy(sort.value as SortOption)}
                   className={sortBy === sort.value ? 'bg-emerald-500 hover:bg-emerald-600' : ''}
                 >
                   {sort.label}
@@ -210,11 +229,11 @@ export default function ChainPackageMarketplace() {
         ) : packages && packages.packages && packages.packages.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {packages.packages
-              .filter((pkg: any) => {
+              .filter((pkg: ChainPackage) => {
                 const matchesProblemType = problemType === 'all' || pkg.problemType === problemType;
                 return matchesProblemType;
               })
-              .map((pkg: any) => (
+              .map((pkg: ChainPackage) => (
               <Link key={pkg.id} href={`/package/chain/${pkg.packageId}`}>
                 <Card className="p-6 bg-slate-900/50 border-slate-800 hover:border-emerald-500 transition-all cursor-pointer group h-full">
                   {/* Header */}

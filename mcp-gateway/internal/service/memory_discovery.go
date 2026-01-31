@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -361,12 +362,7 @@ func tokenize(text string) []string {
 
 // sortMemoriesByRelevance sorts memories by relevance score in descending order
 func sortMemoriesByRelevance(memories []model.Memory) {
-	// Simple bubble sort for now (replace with more efficient algorithm if needed)
-	for i := 0; i < len(memories); i++ {
-		for j := i + 1; j < len(memories); j++ {
-			if memories[i].RelevanceScore < memories[j].RelevanceScore {
-				memories[i], memories[j] = memories[j], memories[i]
-			}
-		}
-	}
+	sort.Slice(memories, func(i, j int) bool {
+		return memories[i].RelevanceScore > memories[j].RelevanceScore
+	})
 }

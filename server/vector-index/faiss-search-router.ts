@@ -49,13 +49,13 @@ export const faissSearchRouter = router({
           searchTime,
           indexType: 'FAISS',
         };
-      } catch (error: any) {
+      } catch (error) {
         console.error('FAISS search error:', error);
 
         // Fallback to brute-force if FAISS fails
         return {
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
           fallbackUsed: true,
         };
       }
@@ -71,7 +71,7 @@ export const faissSearchRouter = router({
           z.object({
             id: z.string(),
             vector: z.array(z.number()),
-            metadata: z.any().optional(),
+            metadata: z.record(z.string(), z.unknown()).optional(),
           })
         ),
         indexName: z.string().default('main'),
@@ -96,10 +96,10 @@ export const faissSearchRouter = router({
           message: `Added ${vectors.length} vectors to FAISS index`,
           indexName,
         };
-      } catch (error: any) {
+      } catch (error) {
         return {
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
     }),
@@ -125,10 +125,10 @@ export const faissSearchRouter = router({
           success: true,
           message: `Removed ${ids.length} vectors from FAISS index`,
         };
-      } catch (error: any) {
+      } catch (error) {
         return {
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
     }),
@@ -157,10 +157,10 @@ export const faissSearchRouter = router({
             performanceGain: '10-100x faster than brute-force',
           },
         };
-      } catch (error: any) {
+      } catch (error) {
         return {
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
     }),
@@ -191,10 +191,10 @@ export const faissSearchRouter = router({
           message: `Index ${indexName} rebuilt with type ${indexType}`,
           note: 'Full implementation would migrate all vectors from database',
         };
-      } catch (error: any) {
+      } catch (error) {
         return {
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
     }),
@@ -247,10 +247,10 @@ export const faissSearchRouter = router({
           averageTimePerQuery: totalTime / queries.length,
           totalTime,
         };
-      } catch (error: any) {
+      } catch (error) {
         return {
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
     }),

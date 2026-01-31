@@ -16,7 +16,6 @@ import trialRouter from "../trial-api";
 import purchaseRouter from "../purchase-api";
 import streamingRouter from "../streaming-api";
 import swaggerUi from "swagger-ui-express";
-import { Server as SocketIOServer } from "socket.io";
 import fs from "fs";
 import path from "path";
 import { initializeWorkflowWebSocket } from "../workflow-websocket";
@@ -25,6 +24,7 @@ import communityRouter from "../community-assistant";
 import { erc8004Router } from "../erc8004-api";
 import inferenceRouter from "../inference-api";
 import { createLogger } from "../utils/logger";
+import { initializeSocketIO } from "../socket-events.js";
 
 const logger = createLogger('Server');
 
@@ -136,30 +136,9 @@ async function startServer() {
     });
   }
   
-  // Socket.IO for real-time communication
-  const io = new SocketIOServer(server, {
-    cors: {
-      origin: "*",
-      methods: ["GET", "POST"],
-    },
-  });
-  
-  // Socket.IO connection handler
-  const socketLogger = createLogger('Socket.IO');
-  io.on("connection", (socket) => {
-    socketLogger.debug("Client connected", { socketId: socket.id });
+  // Initialize comprehensive Socket.IO with Hive Mind events
+  const io = initializeSocketIO(server);
 
-    // Join user-specific room for targeted notifications
-    socket.on("join", (userId: string) => {
-      socket.join(`user_${userId}`);
-      socketLogger.debug("User joined room", { userId, socketId: socket.id });
-    });
-
-    socket.on("disconnect", () => {
-      socketLogger.debug("Client disconnected", { socketId: socket.id });
-    });
-  });
-  
   // Attach io to app for use in other modules
   (app as any).io = io;
   

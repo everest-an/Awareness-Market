@@ -46,6 +46,8 @@ import { creatorDashboardRouter } from './routers/creator-dashboard-api';
 import { zkpRouter } from './routers/zkp-api';
 import { multimodalRouter } from './routers/multimodal-api';
 import { phantomAuthRouter } from './auth-phantom.js';
+import { latentUploadRouter } from './latentmas-upload.js';
+import { resonanceRouter } from './latentmas-resonance.js';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
   TrpcRequest,
@@ -1826,6 +1828,12 @@ export const appRouter = router({
 
   // Phantom Auth - Python SDK wallet authentication
   phantomAuth: phantomAuthRouter,
+
+  // Latent Memory Upload - Python SDK memory storage
+  latentUpload: latentUploadRouter,
+
+  // Resonance - Hive Mind query system
+  resonance: resonanceRouter,
 
   apiAnalytics: apiAnalyticsRouter,
   agentDiscovery: agentDiscoveryRouter,
