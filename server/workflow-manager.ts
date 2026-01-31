@@ -14,7 +14,7 @@ import type {
 } from "../shared/workflow-types";
 import { getDb } from "./db";
 import { workflowSessions, workflowEvents } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, type InferInsertModel } from "drizzle-orm";
 import { getErrorMessage } from "./utils/error-handling";
 import { createLogger } from "./utils/logger";
 
@@ -301,15 +301,9 @@ class WorkflowManager extends EventEmitter {
       const db = await getDb();
       if (!db) return;
 
-      interface SessionDbUpdates {
-        status?: string;
-        completedAt?: Date;
-        totalEvents?: number;
-        totalDuration?: number;
-        totalCost?: string;
-      }
+      type SessionUpdate = Partial<InferInsertModel<typeof workflowSessions>>;
 
-      const dbUpdates: SessionDbUpdates = {};
+      const dbUpdates: SessionUpdate = {};
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.completedAt) dbUpdates.completedAt = new Date(updates.completedAt);
       if (updates.totalEvents !== undefined) dbUpdates.totalEvents = updates.totalEvents;
@@ -318,7 +312,7 @@ class WorkflowManager extends EventEmitter {
 
       await db
         .update(workflowSessions)
-        .set(dbUpdates as any)
+        .set(dbUpdates)
         .where(eq(workflowSessions.id, workflowId));
     } catch (error: unknown) {
       logger.error(`DB update error:`, { error });
@@ -361,22 +355,17 @@ class WorkflowManager extends EventEmitter {
       const db = await getDb();
       if (!db) return;
 
-      interface EventDbUpdates {
-        status?: string;
-        duration?: number;
-        output?: unknown;
-        error?: unknown;
-      }
+      type EventUpdate = Partial<InferInsertModel<typeof workflowEvents>>;
 
-      const dbUpdates: EventDbUpdates = {};
+      const dbUpdates: EventUpdate = {};
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
-      if (updates.output !== undefined) dbUpdates.output = updates.output;
-      if (updates.error !== undefined) dbUpdates.error = updates.error;
+      if (updates.output !== undefined) dbUpdates.output = JSON.stringify(updates.output);
+      if (updates.error !== undefined) dbUpdates.error = JSON.stringify(updates.error);
 
       await db
         .update(workflowEvents)
-        .set(dbUpdates as any)
+        .set(dbUpdates)
         .where(eq(workflowEvents.id, eventId));
     } catch (error: unknown) {
       logger.error(`DB update event error:`, { error });
