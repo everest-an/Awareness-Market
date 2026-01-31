@@ -25,6 +25,7 @@
     "pm2:monit": "pm2 monit",
     "check:env": "tsx scripts/check-env-config.ts",
     "check:deploy": "tsx scripts/pre-deployment-check.ts",
+    "check:pgvector": "tsx scripts/check-pgvector.ts",
     "monitor": "tsx scripts/monitor-resources.ts",
     "monitor:watch": "tsx scripts/monitor-resources.ts --watch"
   },
