@@ -12,6 +12,15 @@ import { createLogger } from '../utils/logger';
 
 const logger = createLogger('Middleware:APIUsageLogger');
 
+// Type extensions for request/response with attached user and body
+interface RequestWithUser extends Request {
+  user?: { id: number };
+}
+
+interface ResponseWithBody extends Response {
+  __body?: { message?: string; error?: string };
+}
+
 interface ApiLogEntry {
   userId?: number;
   apiKeyId?: number;
@@ -135,16 +144,16 @@ export function apiUsageLogger(req: Request, res: Response, next: NextFunction):
     const { apiKeyId, apiKeyPrefix } = extractApiKeyInfo(req);
     
     // Get user ID from session/context if available
-    const userId = (req as any).user?.id;
-    
+    const userId = (req as RequestWithUser).user?.id;
+
     // Determine error info
     let errorCode: string | undefined;
     let errorMessage: string | undefined;
-    
+
     if (res.statusCode >= 400) {
       errorCode = `HTTP_${res.statusCode}`;
       // Try to extract error message from response
-      const responseBody = (res as any).__body;
+      const responseBody = (res as ResponseWithBody).__body;
       if (responseBody && typeof responseBody === 'object') {
         errorMessage = responseBody.message || responseBody.error;
       }
