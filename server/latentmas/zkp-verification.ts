@@ -315,7 +315,12 @@ export class ZKPVerificationEngine {
   /**
    * Generate mock proof for testing
    */
-  private generateMockProof(witness: any): Proof {
+  private generateMockProof(_witness: {
+    vector: number[];
+    qualityScore: number;
+    threshold: number;
+    commitment: VectorCommitment;
+  }): Proof {
     const pi_a = [this.generateRandomPoint(), this.generateRandomPoint()];
 
     const pi_b = [

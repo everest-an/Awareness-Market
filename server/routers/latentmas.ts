@@ -73,6 +73,22 @@ import {
 // Initialize global instances
 const semanticAnchorDB = createSemanticAnchorDB();
 
+// Zod schemas for CompressedKVCache type validation
+const KVCacheEntrySchema = z.object({
+  key: z.array(z.number()),
+  value: z.array(z.number()),
+  tokenIndex: z.number().int(),
+  attentionWeight: z.number(),
+});
+
+const CompressedKVCacheSchema = z.object({
+  entries: z.array(KVCacheEntrySchema),
+  compressionRatio: z.number(),
+  totalTokens: z.number().int(),
+  selectedTokens: z.number().int(),
+  cumulativeAttention: z.number(),
+});
+
 // In-memory storage for challenges and matrices (in production, use database)
 const activeChallenges = new Map<string, Challenge>();
 const wMatrices = new Map<string, DynamicWMatrix>();
@@ -142,7 +158,7 @@ export const latentmasRouter = router({
     decompress: publicProcedure
       .input(
         z.object({
-          compressed: z.any(), // CompressedKVCache type
+          compressed: CompressedKVCacheSchema,
           originalLength: z.number().int().positive(),
         })
       )
@@ -177,7 +193,7 @@ export const latentmasRouter = router({
     estimateBandwidth: publicProcedure
       .input(
         z.object({
-          compressed: z.any(), // CompressedKVCache type
+          compressed: CompressedKVCacheSchema,
           originalLength: z.number().int().positive(),
           vectorDimension: z.number().int().positive(),
         })
@@ -539,7 +555,7 @@ export const latentmasRouter = router({
     getByCategory: publicProcedure
       .input(
         z.object({
-          category: z.enum(SEMANTIC_CATEGORIES as any),
+          category: z.enum(SEMANTIC_CATEGORIES as unknown as [string, ...string[]]),
         })
       )
       .query(async ({ input }) => {

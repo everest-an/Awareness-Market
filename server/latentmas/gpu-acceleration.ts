@@ -40,6 +40,18 @@ export interface BatchAlignmentResult {
   batchSize: number;
 }
 
+// Minimal TensorFlow.js interface for dynamic import
+interface TensorFlowModule {
+  tidy<T>(fn: () => T): T;
+  tensor2d(values: number[][]): { arraySync(): unknown };
+  matMul(
+    a: { arraySync(): unknown },
+    b: { arraySync(): unknown },
+    transposeA?: boolean,
+    transposeB?: boolean
+  ): { arraySync(): unknown };
+}
+
 // ============================================================================
 // GPU Acceleration Engine
 // ============================================================================
@@ -47,7 +59,7 @@ export interface BatchAlignmentResult {
 export class GPUAccelerationEngine {
   private config: Required<GPUConfig>;
   private stats: GPUStats;
-  private tf: any = null;
+  private tf: TensorFlowModule | null = null;
   private isInitialized: boolean = false;
 
   constructor(config: GPUConfig = {}) {

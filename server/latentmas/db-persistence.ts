@@ -109,7 +109,7 @@ export class ChallengeDB {
   /**
    * Save Challenge to database
    */
-  static async save(challenge: Challenge, config?: any): Promise<void> {
+  static async save(challenge: Challenge, config?: Record<string, unknown>): Promise<void> {
     const db = await getDb();
     if (!db) throw new Error('Database not available');
 
@@ -167,7 +167,7 @@ export class ChallengeDB {
    */
   static async markCompleted(
     challengeId: string,
-    verificationResult: any
+    verificationResult: Record<string, unknown>
   ): Promise<void> {
     const db = await getDb();
     if (!db) return;

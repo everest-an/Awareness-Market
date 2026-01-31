@@ -329,7 +329,7 @@ export const wMatrixMarketplaceRouter = router({
       price: z.number().positive(),
       alignmentLoss: z.number().positive(),
       trainingDataSize: z.number().int().positive().optional(),
-      performanceMetrics: z.record(z.string(), z.any()).optional(),
+      performanceMetrics: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
