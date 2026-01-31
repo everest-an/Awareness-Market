@@ -24,6 +24,11 @@ interface PurchaseAuthenticatedRequest extends express.Request {
   permissions: string[];
 }
 
+// MySQL insert result type
+interface InsertResult {
+  insertId: number;
+}
+
 /**
  * Authenticate API requests using real API key validation
  */
@@ -128,7 +133,7 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
         transactionType: 'one-time'
       });
 
-    const transactionId = (transactionResult as any).insertId;
+    const transactionId = (transactionResult as unknown as InsertResult).insertId;
 
     // Generate access token
     const accessToken = `vat_${crypto.randomBytes(32).toString('hex')}`;

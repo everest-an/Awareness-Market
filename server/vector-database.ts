@@ -41,10 +41,23 @@ export interface SearchResult {
   vector?: number[];
 }
 
+// Qdrant filter type
+interface QdrantFilter {
+  must?: Array<{
+    key: string;
+    match?: { value?: unknown; any?: string[] };
+    range?: { gte?: number; lte?: number };
+  }>;
+  should?: Array<{
+    key: string;
+    match?: { value?: unknown };
+  }>;
+}
+
 export interface SearchOptions {
   limit?: number;
   offset?: number;
-  filter?: Record<string, any>;
+  filter?: QdrantFilter;
   includeVector?: boolean;
   minScore?: number;
 }
@@ -344,7 +357,7 @@ export class VectorDatabaseService {
    */
   async deleteByFilter(
     collectionType: 'vectors' | 'memories' | 'chains',
-    filter: Record<string, any>
+    filter: QdrantFilter
   ): Promise<void> {
     const config = this.collections.get(collectionType);
     if (!config) {
@@ -353,7 +366,7 @@ export class VectorDatabaseService {
 
     await this.client.delete(config.name, {
       wait: true,
-      filter: filter as any,
+      filter: filter as Parameters<typeof this.client.delete>[1]['filter'],
     });
   }
 
