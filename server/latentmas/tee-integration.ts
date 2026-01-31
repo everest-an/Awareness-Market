@@ -500,7 +500,7 @@ export class TEEIntegrationEngine {
   /**
    * Seal data for storage (encrypted with enclave key)
    */
-  async sealData(data: any): Promise<string> {
+  async sealData(data: unknown): Promise<string> {
     // In production, uses hardware-backed sealing key with AES-256-GCM
     // For development/testing, use simple base64 encoding
     const plaintext = JSON.stringify(data);
@@ -514,7 +514,7 @@ export class TEEIntegrationEngine {
   /**
    * Unseal data (decrypt with enclave key)
    */
-  async unsealData(sealedData: string): Promise<any> {
+  async unsealData(sealedData: string): Promise<unknown> {
     // Check for seal marker
     if (!sealedData.startsWith('SEALED:')) {
       throw new Error('Invalid sealed data format');

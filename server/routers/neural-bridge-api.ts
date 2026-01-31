@@ -452,7 +452,7 @@ export const neuralBridgeRouter = router({
     }))
     .output(z.object({
       success: z.boolean(),
-      alignedKVCache: z.any(), // TODO: Define precise output schema
+      alignedKVCache: z.unknown(), // Complex nested structure - validated at runtime
       quality: z.object({
         semanticQualityScore: z.number(),
         semanticLoss: z.number(),

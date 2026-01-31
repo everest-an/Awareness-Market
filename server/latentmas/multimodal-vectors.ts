@@ -482,11 +482,12 @@ export function createAudioTextVector(
 /**
  * Check if a vector is multi-modal
  */
-export function isMultiModal(vector: any): vector is MultiModalVector {
-  if (!vector) return false;
+export function isMultiModal(vector: unknown): vector is MultiModalVector {
+  if (!vector || typeof vector !== 'object') return false;
+  const v = vector as { modalityVectors?: unknown };
   return (
-    Array.isArray(vector.modalityVectors) &&
-    vector.modalityVectors.length > 1
+    Array.isArray(v.modalityVectors) &&
+    v.modalityVectors.length > 1
   );
 }
 

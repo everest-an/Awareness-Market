@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import type { LatentMASMemoryPackage } from '../latentmas/kv-cache-w-matrix-integration';
+// LatentMASPackageInput type is inferred from Zod schema below
 import { storagePut } from '../storage';
 import * as db from '../db';
 import { nanoid } from 'nanoid';
@@ -30,11 +30,11 @@ const LatentMASPackageSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().min(10).max(1000),
   version: z.string().regex(/^\d+\.\d+\.\d+$/), // Semantic versioning
-  
+
   // Model information
   sourceModel: z.string(),
   targetModel: z.string(),
-  
+
   // W-Matrix (REQUIRED)
   wMatrix: z.object({
     weights: z.array(z.array(z.number())), // 2D array
@@ -43,7 +43,7 @@ const LatentMASPackageSchema = z.object({
     orthogonalityScore: z.number().min(0),
     trainingAnchors: z.number().int().min(50), // Minimum 50 anchors
   }),
-  
+
   // KV-Cache (OPTIONAL - can be sold separately)
   kvCache: z.object({
     keys: z.array(z.array(z.array(z.number()))),
@@ -51,7 +51,7 @@ const LatentMASPackageSchema = z.object({
     tokenCount: z.number().int().positive(),
     compressionRatio: z.number().min(0).max(1),
   }).optional(),
-  
+
   // Quality metrics (REQUIRED)
   metrics: z.object({
     ttftReduction: z.number().min(0).max(100), // Percentage
@@ -59,14 +59,17 @@ const LatentMASPackageSchema = z.object({
     bandwidthSaving: z.number().min(0).max(100),
     qualityScore: z.number().min(0).max(1),
   }),
-  
+
   // Provenance (REQUIRED for trust)
   trainingDataset: z.string(),
   certificationLevel: z.enum(['platinum', 'gold', 'silver', 'bronze']),
-  
+
   // Pricing
   price: z.number().positive(),
 });
+
+// Type inferred from Zod schema for validation functions
+type LatentMASPackageInput = z.infer<typeof LatentMASPackageSchema>;
 
 // ============================================================================
 // Package Validation
@@ -75,7 +78,7 @@ const LatentMASPackageSchema = z.object({
 /**
  * Validate that a package conforms to LatentMAS paper specification
  */
-function validateLatentMASPackage(pkg: LatentMASMemoryPackage): {
+function validateLatentMASPackage(pkg: LatentMASPackageInput): {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -204,7 +207,7 @@ export const latentmasMarketplaceRouter = router({
       }
 
       // Validate package
-      const validation = validateLatentMASPackage(modifiedInput as any);
+      const validation = validateLatentMASPackage(modifiedInput);
 
       if (!validation.valid) {
         throw new TRPCError({
@@ -462,13 +465,13 @@ export const latentmasMarketplaceRouter = router({
   validatePackage: publicProcedure
     .input(LatentMASPackageSchema)
     .mutation(async ({ input }) => {
-      const validation = validateLatentMASPackage(input as any);
+      const validation = validateLatentMASPackage(input);
 
       return {
         valid: validation.valid,
         errors: validation.errors,
         warnings: validation.warnings,
-        recommendations: generateRecommendations(input as any, validation),
+        recommendations: generateRecommendations(input, validation),
       };
     }),
   
@@ -587,30 +590,30 @@ export const latentmasMarketplaceRouter = router({
 // ============================================================================
 
 function generateRecommendations(
-  pkg: LatentMASMemoryPackage,
+  pkg: LatentMASPackageInput,
   validation: { valid: boolean; errors: string[]; warnings: string[] }
 ): string[] {
   const recommendations: string[] = [];
-  
+
   // Epsilon recommendations
   if (pkg.wMatrix.epsilon > 0.10) {
     recommendations.push('Consider retraining with more anchor prompts to reduce epsilon');
   }
-  
+
   // Orthogonality recommendations
   if (pkg.wMatrix.orthogonalityScore > 2.0) {
     recommendations.push('Apply stronger Procrustes orthogonality constraint during training');
   }
-  
+
   // KV-Cache recommendations
   if (!pkg.kvCache) {
     recommendations.push('Consider including KV-Cache for better value proposition');
   }
-  
+
   // Pricing recommendations
-  if ((pkg as any).price > 500 && pkg.metrics.qualityScore < 0.7) {
+  if (pkg.price > 500 && pkg.metrics.qualityScore < 0.7) {
     recommendations.push('Price may be too high for the quality score - consider lowering');
   }
-  
+
   return recommendations;
 }

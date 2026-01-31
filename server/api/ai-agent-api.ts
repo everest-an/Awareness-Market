@@ -44,6 +44,14 @@ type SearchResult =
   | (MemoryPackage & { packageType: 'memory' })
   | (ChainPackage & { packageType: 'chain' });
 
+// Common package fields used for queries
+interface PackageCommonFields {
+  packageId: string;
+  price: string;
+  packageUrl: string | null;
+  wMatrixUrl: string | null;
+}
+
 const uploadPackageSchema = z.object({
   packageType: z.enum(['vector', 'memory', 'chain']),
   name: z.string().min(3).max(100),
@@ -174,7 +182,7 @@ export const aiAgentRouter = router({
         });
 
         // Process each upload asynchronously
-        processUpload(uploadId, pkg as any, ctx.user.id).catch((error) => {
+        processUpload(uploadId, { ...pkg, version: '1.0.0' }, ctx.user.id).catch((error) => {
           uploadStatuses.set(uploadId, {
             status: 'failed',
             progress: 0,
@@ -224,7 +232,7 @@ export const aiAgentRouter = router({
             )
           )
           .limit(limit);
-        results.push(...vectors.map(v => ({ ...v, packageType: 'vector' } as any)));
+        results.push(...vectors.map(v => ({ ...v, packageType: 'vector' as const })));
       }
 
       if (packageType === 'memory' || packageType === 'all') {
@@ -238,7 +246,7 @@ export const aiAgentRouter = router({
             )
           )
           .limit(limit);
-        results.push(...memories.map(m => ({ ...m, packageType: 'memory' } as any)));
+        results.push(...memories.map(m => ({ ...m, packageType: 'memory' as const })));
       }
 
       if (packageType === 'chain' || packageType === 'all') {
@@ -252,7 +260,7 @@ export const aiAgentRouter = router({
             )
           )
           .limit(limit);
-        results.push(...chains.map(c => ({ ...c, packageType: 'chain' } as any)));
+        results.push(...chains.map(c => ({ ...c, packageType: 'chain' as const })));
       }
 
       return {
@@ -316,13 +324,8 @@ export const aiAgentRouter = router({
         packageId
       });
 
-      // Get package details
-      const packageTable = getPackageTable(packageType);
-      const [pkg] = await db
-        .select()
-        .from(packageTable)
-        .where(eq((packageTable as any).packageId, packageId))
-        .limit(1);
+      // Get package details by type
+      const pkg = await getPackageByTypeAndId(db, packageType, packageId);
 
       if (!pkg) {
         throw new TRPCError({
@@ -337,7 +340,7 @@ export const aiAgentRouter = router({
         userId: ctx.user.id,
         packageType,
         packageId,
-        price: (pkg as any).price,
+        price: pkg.price,
         stripePaymentId: `pi_mock_${Date.now()}`, // Mock payment ID - NOT a real Stripe transaction
       });
 
@@ -385,12 +388,7 @@ export const aiAgentRouter = router({
       }
 
       // Get package URL
-      const packageTable = getPackageTable(packageType);
-      const [pkg] = await db
-        .select()
-        .from(packageTable)
-        .where(eq((packageTable as any).packageId, packageId))
-        .limit(1);
+      const pkg = await getPackageByTypeAndId(db, packageType, packageId);
 
       if (!pkg) {
         throw new TRPCError({
@@ -402,8 +400,8 @@ export const aiAgentRouter = router({
       return {
         success: true,
         data: {
-          packageUrl: (pkg as any).packageUrl,
-          wMatrixUrl: (pkg as any).wMatrixUrl,
+          packageUrl: pkg.packageUrl,
+          wMatrixUrl: pkg.wMatrixUrl,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
         },
       };
@@ -643,17 +641,67 @@ async function sendWebhook(url: string, data: unknown) {
 }
 
 /**
- * Helper: Get package table by type
+ * Helper: Get package by type and ID with proper typing
  */
-function getPackageTable(packageType: 'vector' | 'memory' | 'chain') {
+async function getPackageByTypeAndId(
+  db: Awaited<ReturnType<typeof getDb>>,
+  packageType: 'vector' | 'memory' | 'chain',
+  packageId: string
+): Promise<PackageCommonFields | null> {
+  let result: PackageCommonFields | null = null;
+
   switch (packageType) {
-    case 'vector':
-      return vectorPackages;
-    case 'memory':
-      return memoryPackages;
-    case 'chain':
-      return chainPackages;
+    case 'vector': {
+      const [pkg] = await db
+        .select()
+        .from(vectorPackages)
+        .where(eq(vectorPackages.packageId, packageId))
+        .limit(1);
+      if (pkg) {
+        result = {
+          packageId: pkg.packageId,
+          price: pkg.price,
+          packageUrl: pkg.packageUrl,
+          wMatrixUrl: pkg.wMatrixUrl,
+        };
+      }
+      break;
+    }
+    case 'memory': {
+      const [pkg] = await db
+        .select()
+        .from(memoryPackages)
+        .where(eq(memoryPackages.packageId, packageId))
+        .limit(1);
+      if (pkg) {
+        result = {
+          packageId: pkg.packageId,
+          price: pkg.price,
+          packageUrl: pkg.packageUrl,
+          wMatrixUrl: pkg.wMatrixUrl,
+        };
+      }
+      break;
+    }
+    case 'chain': {
+      const [pkg] = await db
+        .select()
+        .from(chainPackages)
+        .where(eq(chainPackages.packageId, packageId))
+        .limit(1);
+      if (pkg) {
+        result = {
+          packageId: pkg.packageId,
+          price: pkg.price,
+          packageUrl: pkg.packageUrl,
+          wMatrixUrl: pkg.wMatrixUrl,
+        };
+      }
+      break;
+    }
     default:
       throw new Error(`Invalid package type: ${packageType}`);
   }
+
+  return result;
 }

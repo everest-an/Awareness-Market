@@ -15,6 +15,12 @@ const logger = createLogger('GoService');
 // 类型定义
 // ==========================================
 
+// Generic API response wrapper used by Go services
+interface ApiResponse<T> {
+  success?: boolean;
+  data?: T;
+}
+
 export interface VectorStats {
   total: number;
   average_similarity: number;
@@ -97,7 +103,7 @@ export async function getVectorStats(): Promise<VectorStats> {
     throw new Error(`Vector stats error: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json() as any;
+  const data = await response.json() as ApiResponse<VectorStats> & VectorStats;
   return data.data || data;
 }
 
@@ -145,7 +151,7 @@ export async function getVectorPackage(vectorId: string): Promise<VectorPackage>
     throw new Error(`Get vector package error: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json() as any;
+  const data = await response.json() as ApiResponse<VectorPackage> & VectorPackage;
   return data.data || data;
 }
 
@@ -166,7 +172,7 @@ export async function getVectorBatch(vectorIds: string[]): Promise<VectorPackage
     throw new Error(`Batch vector error: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json() as any;
+  const data = await response.json() as ApiResponse<VectorPackage[]> & { vectors?: VectorPackage[] };
   return data.data || data.vectors || [];
 }
 
@@ -233,7 +239,7 @@ export async function publishMemoryPackage(
     throw new Error(`Memory publish error: ${response.status} ${response.statusText}`);
   }
 
-  const result = await response.json() as any;
+  const result = await response.json() as ApiResponse<MemoryPackage> & MemoryPackage;
   return result.data || result;
 }
 
@@ -258,7 +264,7 @@ export async function purchaseMemoryPackage(
     throw new Error(`Memory purchase error: ${response.status} ${response.statusText}`);
   }
 
-  return await response.json() as any;
+  return await response.json() as { success: boolean; transaction_id: string };
 }
 
 // ==========================================
@@ -294,7 +300,7 @@ export async function browseReasoningChains(
     throw new Error(`Reasoning chain browse error: ${response.status} ${response.statusText}`);
   }
 
-  return await response.json() as any;
+  return await response.json() as { success: boolean; data: ReasoningChain[]; total: number };
 }
 
 /**
@@ -326,7 +332,7 @@ export async function publishReasoningChain(
     );
   }
 
-  const result = await response.json() as any;
+  const result = await response.json() as ApiResponse<ReasoningChain> & ReasoningChain;
   return result.data || result;
 }
 
@@ -351,7 +357,7 @@ export async function useReasoningChain(
     throw new Error(`Reasoning chain use error: ${response.status} ${response.statusText}`);
   }
 
-  return await response.json() as any;
+  return await response.json() as { success: boolean; transaction_id: string };
 }
 
 // ==========================================
@@ -399,7 +405,7 @@ export async function getWMatrixVersions(
     throw new Error(`W-Matrix versions error: ${response.status} ${response.statusText}`);
   }
 
-  return await response.json() as any;
+  return await response.json() as { success: boolean; data: WMatrixVersion[]; total: number };
 }
 
 /**
@@ -418,7 +424,7 @@ export async function getWMatrixVersion(versionId: string): Promise<WMatrixVersi
     throw new Error(`Get W-Matrix version error: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json() as any;
+  const data = await response.json() as ApiResponse<WMatrixVersion> & WMatrixVersion;
   return data.data || data;
 }
 
@@ -452,7 +458,7 @@ export async function createWMatrixVersion(
     );
   }
 
-  const result = await response.json() as any;
+  const result = await response.json() as ApiResponse<WMatrixVersion> & WMatrixVersion;
   return result.data || result;
 }
 

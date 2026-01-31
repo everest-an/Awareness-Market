@@ -16,6 +16,7 @@ import {
   QualityCertifier,
   type ModelPair,
   type WMatrixStandard,
+  type WMatrixProtocol,
 } from './w-matrix-protocol';
 import { getErrorMessage } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
@@ -97,7 +98,7 @@ export interface AlignmentFactoryConfig {
 
 export interface GeneratedWMatrix {
   modelPair: ModelPair;
-  protocol: any; // WMatrixProtocol
+  protocol: WMatrixProtocol;
   quality: {
     epsilon: number;
     cosineSimilarity: number;

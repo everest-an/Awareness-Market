@@ -85,7 +85,7 @@ router.post("/register", async (req, res) => {
       agentName: z.string().min(1).max(255),
       agentType: z.string().optional(), // e.g., "GPT-4", "Claude", "Custom"
       email: z.string().email().optional(),
-      metadata: z.record(z.string(), z.any()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     });
 
     const body = schema.parse(req.body);

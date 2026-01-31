@@ -524,7 +524,7 @@ export const appRouter = router({
     invoke: protectedProcedure
       .input(z.object({
         vectorId: z.number(),
-        inputData: z.any(),
+        inputData: z.unknown(),
         options: z.object({
           temperature: z.number().optional(),
           maxTokens: z.number().optional(),

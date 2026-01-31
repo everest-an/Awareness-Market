@@ -100,7 +100,7 @@ router.get("/memory", async (req, res) => {
 router.put("/memory/:key", async (req, res) => {
   try {
     const schema = z.object({
-      data: z.record(z.string(), z.any()),
+      data: z.record(z.string(), z.unknown()),
       version: z.number().optional(),
       ttlDays: z.number().positive().optional(),
     });

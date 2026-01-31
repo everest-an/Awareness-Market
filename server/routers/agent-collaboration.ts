@@ -33,7 +33,7 @@ const collaborateSchema = z.object({
   memorySharing: z.boolean().default(true),
   memoryTTL: z.number().min(60).max(604800).default(86400), // 1 min to 7 days
   maxExecutionTime: z.number().min(60).max(3600).default(600), // 1 min to 1 hour
-  inputData: z.record(z.string(), z.any()).optional(),
+  inputData: z.record(z.string(), z.unknown()).optional(),
   recordOnChain: z.boolean().default(true), // Record interactions to ERC-8004
 });
 
