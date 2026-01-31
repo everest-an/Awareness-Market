@@ -8,6 +8,9 @@
 import { spawn, ChildProcess } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('FAISSService');
 
 interface FaissConfig {
   indexType: 'Flat' | 'IVF' | 'HNSW';
@@ -114,11 +117,11 @@ export class FaissIndexService {
     // Check if index already exists
     try {
       await fs.access(this.indexPath);
-      console.log(`FAISS index loaded: ${this.indexPath}`);
+      logger.info('FAISS index loaded', { path: this.indexPath });
     } catch {
       // Create new index
       await this.createNewIndex();
-      console.log(`FAISS index created: ${this.indexPath}`);
+      logger.info('FAISS index created', { path: this.indexPath });
     }
   }
 
@@ -397,9 +400,9 @@ print(json.dumps(stats))
 
       // Load vectors (would need to store vectors separately for in-memory mode)
       // For now, start with empty index
-      console.log('In-memory index initialized');
+      logger.info('In-memory index initialized');
     } catch {
-      console.log('No existing in-memory index found, starting fresh');
+      logger.info('No existing in-memory index found, starting fresh');
     }
   }
 

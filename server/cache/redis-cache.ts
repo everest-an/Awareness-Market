@@ -6,6 +6,9 @@
  */
 
 import Redis from 'ioredis';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('RedisCache');
 
 interface CacheConfig {
   host: string;
@@ -71,19 +74,19 @@ export class RedisCacheService {
    */
   private setupEventHandlers(): void {
     this.client.on('connect', () => {
-      console.log('✓ Redis connected');
+      logger.info('Redis connected');
     });
 
     this.client.on('error', (error) => {
-      console.error('Redis error:', error);
+      logger.error('Redis error', { error });
     });
 
     this.client.on('close', () => {
-      console.log('Redis connection closed');
+      logger.info('Redis connection closed');
     });
 
     this.client.on('reconnecting', () => {
-      console.log('Redis reconnecting...');
+      logger.info('Redis reconnecting');
     });
   }
 

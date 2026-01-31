@@ -16,6 +16,9 @@
  */
 
 import crypto from 'crypto';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ZKPVerification');
 
 // ============================================================================
 // Types
@@ -145,19 +148,19 @@ export class ZKPVerificationEngine {
     if (this.isInitialized) return;
 
     try {
-      console.log(`Initializing ZKP system (${this.config.system})...`);
+      logger.info('Initializing ZKP system', { system: this.config.system });
 
       // Generate or load keys
       await this.loadKeys();
 
       this.isInitialized = true;
-      console.log(`✅ ZKP system initialized (${this.config.system})`);
+      logger.info('ZKP system initialized', { system: this.config.system });
     } catch (error) {
-      console.error('Failed to initialize ZKP system:', error);
+      logger.error('Failed to initialize ZKP system', { error });
       // Fall back to mock system
       this.config.system = 'mock';
       this.isInitialized = true;
-      console.warn('⚠️  Using mock ZKP system');
+      logger.warn('Using mock ZKP system');
     }
   }
 
