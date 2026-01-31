@@ -26,6 +26,11 @@ const logger = createLogger('Packages:API');
 const poisonValidator = new AntiPoisoningVerifier();
 const semanticAnchors = new SemanticAnchorDB();
 
+// KV-Cache structure for vector extraction
+interface KVCacheStructure {
+  keys: number[][][][]; // [layers][heads][keys][dimension]
+}
+
 type VectorPackage = InferSelectModel<typeof vectorPackages>;
 type MemoryPackage = InferSelectModel<typeof memoryPackages>;
 type ChainPackage = InferSelectModel<typeof chainPackages>;
@@ -173,7 +178,7 @@ function getPackageTable(packageType: 'vector' | 'memory' | 'chain') {
  * Extract representative vector from KV-Cache for validation
  * Uses mean pooling across all keys
  */
-function extractRepresentativeVector(kvCache: any): number[] {
+function extractRepresentativeVector(kvCache: KVCacheStructure): number[] {
   const allVectors: number[][] = [];
 
   // Flatten all keys from all layers and heads
@@ -1093,8 +1098,8 @@ const polfResult = { isPassed: true, reason: "Mock", score: 1.0, anomalies: [] }
 
         // Category filter (only for vector packages)
         if (input.category && packageType === 'vector') {
-          // Use sql template for category filter since table type varies
-          conditions.push(sql`${(table as any).category} = ${input.category}`);
+          // Use vectorPackages directly since we know it's a vector package
+          conditions.push(eq(vectorPackages.category, input.category));
         }
 
         // Epsilon range filter

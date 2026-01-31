@@ -15,7 +15,9 @@ import { createLogger } from "../utils/logger";
 
 // db is async, must await in each procedure
 import { wMatrixListings, wMatrixPurchases } from "../../drizzle/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, type InferInsertModel } from "drizzle-orm";
+
+type WMatrixListingUpdate = Partial<InferInsertModel<typeof wMatrixListings>>;
 
 const logger = createLogger('WMatrixMarketplace');
 const gpuEngine = getGPUEngine({ enableFallback: true });
@@ -390,14 +392,7 @@ export const wMatrixMarketplaceRouter = router({
         });
       }
 
-      interface ListingUpdates {
-        title?: string;
-        description?: string;
-        price?: string;
-        status?: string;
-      }
-
-      const updates: ListingUpdates = {};
+      const updates: WMatrixListingUpdate = {};
       if (input.title) updates.title = input.title;
       if (input.description) updates.description = input.description;
       if (input.price) updates.price = input.price.toFixed(2);
@@ -405,7 +400,7 @@ export const wMatrixMarketplaceRouter = router({
 
       await db
         .update(wMatrixListings)
-        .set(updates as any)
+        .set(updates)
         .where(eq(wMatrixListings.id, input.id));
 
       return { success: true };
