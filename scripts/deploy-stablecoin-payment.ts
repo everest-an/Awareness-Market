@@ -2,11 +2,9 @@
  * Deploy StablecoinPaymentSystem Contract
  *
  * Usage:
- *   npx hardhat run scripts/deploy-stablecoin-payment.ts --network amoy
  *   npx hardhat run scripts/deploy-stablecoin-payment.ts --network polygon
  */
-
-import { ethers } from 'hardhat';
+import hre from 'hardhat';
 
 // Stablecoin addresses
 const STABLECOIN_ADDRESSES = {
@@ -15,7 +13,6 @@ const STABLECOIN_ADDRESSES = {
     USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
   },
   amoy: {
-    // Deploy mock tokens for testing or use existing test tokens
     USDC: process.env.USDC_TESTNET_ADDRESS || '',
     USDT: process.env.USDT_TESTNET_ADDRESS || '',
   },
@@ -24,23 +21,22 @@ const STABLECOIN_ADDRESSES = {
 async function main() {
   console.log('Deploying StablecoinPaymentSystem...\n');
 
-  const [deployer] = await ethers.getSigners();
+  const [deployer] = await hre.ethers.getSigners();
   console.log('Deploying with account:', deployer.address);
-  console.log('Account balance:', ethers.formatEther(await ethers.provider.getBalance(deployer.address)), 'ETH/POL\n');
+  console.log('Account balance:', hre.ethers.formatEther(await hre.ethers.provider.getBalance(deployer.address)), 'MATIC\n');
 
   // Get network
-  const network = await ethers.provider.getNetwork();
+  const network = await hre.ethers.provider.getNetwork();
   const networkName = network.chainId === 137n ? 'polygon' : 'amoy';
   console.log('Network:', networkName, '(Chain ID:', network.chainId.toString(), ')\n');
 
-  // Platform treasury address - receives platform fees (5%)
-  // Default: Your wallet address for receiving payments
+  // Platform treasury address
   const platformTreasury = process.env.PLATFORM_TREASURY_ADDRESS || '0x3d0ab53241A2913D7939ae02f7083169fE7b823B';
   console.log('Platform Treasury:', platformTreasury);
 
   // Deploy StablecoinPaymentSystem
   console.log('\nDeploying StablecoinPaymentSystem contract...');
-  const StablecoinPaymentSystem = await ethers.getContractFactory('StablecoinPaymentSystem');
+  const StablecoinPaymentSystem = await hre.ethers.getContractFactory('StablecoinPaymentSystem');
   const paymentSystem = await StablecoinPaymentSystem.deploy(platformTreasury);
   await paymentSystem.waitForDeployment();
 
@@ -49,7 +45,6 @@ async function main() {
 
   // Add supported stablecoins
   const stablecoins = STABLECOIN_ADDRESSES[networkName];
-
   if (stablecoins.USDC) {
     console.log('\nAdding USDC support...');
     const tx1 = await paymentSystem.addStablecoin(stablecoins.USDC);
@@ -96,7 +91,7 @@ async function main() {
   // Print verification command
   console.log('\n=== Contract Verification ===');
   console.log('Run this command to verify on explorer:\n');
-  console.log(`npx hardhat verify --network ${networkName} ${paymentSystemAddress} "${platformTreasury}"`);
+  console.log(`npx hardhat verify --network ${networkName} ${paymentSystemAddress} ${platformTreasury}`);
 
   return {
     paymentSystemAddress,
@@ -106,7 +101,7 @@ async function main() {
 }
 
 main()
-  .then((result) => {
+  .then(() => {
     console.log('\nDeployment successful!');
     process.exit(0);
   })
