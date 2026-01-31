@@ -16,6 +16,9 @@
  */
 
 import crypto from 'crypto';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('TEEIntegration');
 
 // ============================================================================
 // Types
@@ -138,14 +141,14 @@ export class TEEIntegrationEngine {
       }
 
       this.isInitialized = true;
-      console.log(`✅ TEE initialized (provider: ${this.config.provider})`);
+      logger.info('TEE initialized', { provider: this.config.provider });
     } catch (error) {
-      console.error('Failed to initialize TEE:', error);
+      logger.error('Failed to initialize TEE', { error });
       // Fall back to 'none' for graceful degradation
       this.config.provider = 'none';
       this.stats.isAvailable = true;
       this.isInitialized = true;
-      console.warn('⚠️  TEE unavailable - running without hardware isolation');
+      logger.warn('TEE unavailable - running without hardware isolation');
     }
   }
 
@@ -251,7 +254,7 @@ export class TEEIntegrationEngine {
     this.stats.attestationsPerformed++;
     const attestationTime = performance.now() - startTime;
 
-    console.log(`Attestation completed in ${attestationTime.toFixed(2)}ms`);
+    logger.info('Attestation completed', { durationMs: attestationTime.toFixed(2) });
 
     return attestation;
   }

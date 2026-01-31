@@ -6,6 +6,9 @@
  */
 
 import { getVectorDatabaseService, type VectorMetadata } from './vector-database';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('VectorIndexing');
 
 // Package types used in the system
 type PackageType = 'vector_package' | 'memory_package' | 'chain_package';
@@ -102,11 +105,11 @@ export class VectorIndexingService {
       // Index the vector
       await this.vectorDB.indexVector(collectionType, pkg.id, vector, metadata);
 
-      console.log(`✅ Indexed package ${pkg.id} in ${collectionType} collection`);
+      logger.info('Indexed package', { packageId: pkg.id, collection: collectionType });
 
       return { packageId: pkg.id, indexed: true };
     } catch (error) {
-      console.error(`❌ Failed to index package ${pkg.id}:`, error);
+      logger.error('Failed to index package', { packageId: pkg.id, error });
       return {
         packageId: pkg.id,
         indexed: false,
@@ -173,7 +176,7 @@ export class VectorIndexingService {
           vectors
         );
 
-        console.log(`✅ Batch indexed ${vectors.length} packages in ${collectionType}`);
+        logger.info('Batch indexed packages', { count: vectors.length, collection: collectionType });
 
         results.push(
           ...pkgs.map(pkg => ({
@@ -182,7 +185,7 @@ export class VectorIndexingService {
           }))
         );
       } catch (error) {
-        console.error(`❌ Failed to batch index ${collectionType}:`, error);
+        logger.error('Failed to batch index', { collection: collectionType, error });
         results.push(
           ...pkgs.map(pkg => ({
             packageId: pkg.id,
@@ -209,10 +212,10 @@ export class VectorIndexingService {
     try {
       const collectionType = this.getCollectionType(packageType);
       await this.vectorDB.updateMetadata(collectionType, packageId, updates);
-      console.log(`✅ Updated metadata for package ${packageId}`);
+      logger.info('Updated metadata', { packageId });
       return true;
     } catch (error) {
-      console.error(`❌ Failed to update metadata for ${packageId}:`, error);
+      logger.error('Failed to update metadata', { packageId, error });
       return false;
     }
   }
@@ -226,10 +229,10 @@ export class VectorIndexingService {
     try {
       const collectionType = this.getCollectionType(packageType);
       await this.vectorDB.deleteVector(collectionType, packageId);
-      console.log(`✅ Removed package ${packageId} from index`);
+      logger.info('Removed package from index', { packageId });
       return true;
     } catch (error) {
-      console.error(`❌ Failed to remove package ${packageId}:`, error);
+      logger.error('Failed to remove package', { packageId, error });
       return false;
     }
   }

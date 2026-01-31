@@ -8,6 +8,9 @@ import { TRPCError } from '@trpc/server';
 import { getCache, cacheKeys } from './redis-cache';
 import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('CacheMiddleware');
 
 interface MiddlewareContext {
   next: () => Promise<unknown>;
@@ -181,7 +184,7 @@ export class CacheWarmer {
    * Warm up cache with popular packages
    */
   async warmPackages(packageIds: string[]): Promise<void> {
-    console.log(`Warming cache for ${packageIds.length} packages...`);
+    logger.info('Warming cache for packages', { count: packageIds.length });
 
     // This would typically fetch from database
     // For now, just a placeholder
@@ -191,18 +194,18 @@ export class CacheWarmer {
       // await this.cache.set(key, packageData, { ttl: 3600 });
     }
 
-    console.log('Cache warming complete');
+    logger.info('Cache warming complete');
   }
 
   /**
    * Warm up cache with search results
    */
   async warmSearches(popularQueries: string[]): Promise<void> {
-    console.log(`Warming cache for ${popularQueries.length} search queries...`);
+    logger.info('Warming cache for search queries', { count: popularQueries.length });
 
     // Pre-compute and cache popular search results
 
-    console.log('Search cache warming complete');
+    logger.info('Search cache warming complete');
   }
 
   /**
@@ -211,7 +214,7 @@ export class CacheWarmer {
   startPeriodicWarming(intervalMs: number = 3600000): void {
     // Every hour
     setInterval(async () => {
-      console.log('Periodic cache warming started...');
+      logger.info('Periodic cache warming started');
       // Implement warming logic
     }, intervalMs);
   }

@@ -10,6 +10,10 @@
  * Falls back to CPU if GPU is unavailable.
  */
 
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('GPUAcceleration');
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -97,15 +101,15 @@ export class GPUAccelerationEngine {
         this.tf = tf;
         this.stats.gpuAvailable = this.config.backend === 'gpu';
         this.isInitialized = true;
-        console.log(`✅ GPU Acceleration initialized (backend: ${this.config.backend})`);
+        logger.info('GPU Acceleration initialized', { backend: this.config.backend });
       } else {
         // TensorFlow not available - use native JavaScript
-        console.warn('⚠️  TensorFlow not found - using native JavaScript (slower)');
+        logger.warn('TensorFlow not found - using native JavaScript (slower)');
         this.config.backend = 'cpu';
         this.isInitialized = true;
       }
     } catch (error) {
-      console.error('Failed to initialize GPU acceleration:', error);
+      logger.error('Failed to initialize GPU acceleration', { error });
       if (this.config.enableFallback) {
         this.config.backend = 'cpu';
         this.isInitialized = true;
