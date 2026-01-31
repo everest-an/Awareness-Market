@@ -24,6 +24,42 @@ import { eq, sql } from 'drizzle-orm';
 import { logger } from './logger.js';
 import { broadcastResonanceEvent } from './socket-events.js';
 
+// ============================================================================
+// Types for SQL query results
+// ============================================================================
+
+interface MemoryQueryResult {
+  id: number;
+  title: string;
+  text: string;
+  creator_id: number;
+  source_agent: string;
+  is_public: boolean;
+  created_at: Date;
+  similarity: string;
+}
+
+interface ResonanceStatsResult {
+  memory_id: number;
+  title: string;
+  resonance_count: number;
+  last_resonance_at: Date | null;
+  usage_count: string;
+  total_earned: string | null;
+}
+
+interface NetworkActivityResult {
+  id: number;
+  consumer_id: number;
+  provider_id: number;
+  memory_id: number;
+  similarity: string;
+  cost: string;
+  created_at: Date;
+  consumer_name: string;
+  provider_name: string;
+}
+
 /**
  * Calculate cost for using a private memory
  *
@@ -34,7 +70,7 @@ import { broadcastResonanceEvent } from './socket-events.js';
  * Paid:
  * - Private memories from other agents: 0.001 $AMEM per use
  */
-function calculateCost(memory: any, consumerId: number): number {
+function calculateCost(memory: MemoryQueryResult, consumerId: number): number {
   if (memory.is_public) return 0;
   if (memory.creator_id === consumerId) return 0;
   return 0.001; // $AMEM per private memory use
@@ -82,7 +118,7 @@ export const resonanceRouter = router({
       `);
 
       // Calculate costs and prepare response
-      const results = matches.map((m: any) => {
+      const results = (matches as MemoryQueryResult[]).map((m) => {
         const cost = calculateCost(m, ctx.user.id);
 
         return {
@@ -130,7 +166,7 @@ export const resonanceRouter = router({
       }
 
       // Log each memory usage
-      for (const match of matches) {
+      for (const match of matches as MemoryQueryResult[]) {
         const cost = calculateCost(match, ctx.user.id);
 
         if (cost > 0 || match.is_public) {
@@ -210,7 +246,7 @@ export const resonanceRouter = router({
       `);
 
       return {
-        memories: stats.map((s: any) => ({
+        memories: (stats as ResonanceStatsResult[]).map((s) => ({
           memoryId: s.memory_id,
           title: s.title,
           resonanceCount: s.resonance_count,
@@ -252,7 +288,7 @@ export const resonanceRouter = router({
       `);
 
       return {
-        events: events.map((e: any) => ({
+        events: (events as NetworkActivityResult[]).map((e) => ({
           id: e.id,
           consumerId: e.consumer_id,
           providerId: e.provider_id,

@@ -254,7 +254,7 @@ export async function broadcastNetworkStats() {
 /**
  * Emit event to specific agent subscribers
  */
-export function emitToAgent(agentId: number, event: string, data: any) {
+export function emitToAgent(agentId: number, event: string, data: unknown) {
   if (!io) {
     logger.warn('Cannot emit to agent: Socket.IO not initialized');
     return;
