@@ -1,5 +1,5 @@
 import { storageGet } from "./storage";
-import { invokeLLM } from "./_core/llm";
+import { invokeLLM, type Message } from "./_core/llm";
 import type { InferSelectModel } from "drizzle-orm";
 import { latentVectors } from "../drizzle/schema";
 import { createLogger } from './utils/logger';
@@ -41,8 +41,18 @@ const isMessageArray = (value: unknown): value is Array<{ role: string; content:
   return Array.isArray(value) && value.every(item => typeof item === "object" && item !== null && "role" in item);
 };
 
+// LLM result structure
+interface LLMResultStructure {
+  choices?: Array<{
+    message?: {
+      content?: string | Array<string | { text?: string }>;
+    };
+  }>;
+}
+
 const extractTextFromResult = (result: unknown) => {
-  const content = (result as any)?.choices?.[0]?.message?.content;
+  const llmResult = result as LLMResultStructure | undefined;
+  const content = llmResult?.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
@@ -93,7 +103,7 @@ export async function runVector(params: { vector: LatentVector; context: unknown
   }
 
   const llmResult = await invokeLLM({
-    messages: messages as any,
+    messages: messages as Message[],
   });
 
   const resultText = extractTextFromResult(llmResult);
