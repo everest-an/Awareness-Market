@@ -22,7 +22,11 @@
     "pm2:restart": "pm2 restart ecosystem.config.js",
     "pm2:stop": "pm2 stop ecosystem.config.js",
     "pm2:logs": "pm2 logs",
-    "pm2:monit": "pm2 monit"
+    "pm2:monit": "pm2 monit",
+    "check:env": "tsx scripts/check-env-config.ts",
+    "check:deploy": "tsx scripts/pre-deployment-check.ts",
+    "monitor": "tsx scripts/monitor-resources.ts",
+    "monitor:watch": "tsx scripts/monitor-resources.ts --watch"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",
@@ -104,6 +108,7 @@
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
+    "postgres": "^3.4.8",
     "prisma": "^6.19.2",
     "react": "^19.2.1",
     "react-day-picker": "^9.11.1",

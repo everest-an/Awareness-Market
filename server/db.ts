@@ -1,6 +1,7 @@
 import { eq, and, desc, sql, gte, lte, like, or, inArray, type SQL } from "drizzle-orm";
 import crypto from "crypto";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import {
   InsertUser,
   users,
@@ -33,22 +34,27 @@ import {
   type InsertVectorPackage,
   type MemoryPackage,
   type InsertMemoryPackage,
-} from "../drizzle/schema";
-import { mcpTokens } from "../drizzle/schema-mcp-tokens";
+} from "../drizzle/schema-pg";
+import { mcpTokens } from "../drizzle/schema-mcp-tokens-pg";
 import { ENV } from './_core/env';
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('Database:Operations');
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _client: ReturnType<typeof postgres> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Create PostgreSQL connection
+      _client = postgres(process.env.DATABASE_URL);
+      _db = drizzle(_client);
+      logger.info('Connected to PostgreSQL database');
     } catch (error) {
       logger.warn('Failed to connect', { error });
       _db = null;
+      _client = null;
     }
   }
   return _db;
@@ -106,7 +112,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
