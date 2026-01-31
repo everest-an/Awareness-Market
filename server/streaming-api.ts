@@ -179,7 +179,7 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
 
     // Process each request
     const results = await Promise.all(
-      requests.map(async (request: any) => {
+      requests.map(async (request: BatchVectorRequest) => {
         const { vectorId, input } = request;
         const vector = vectorMap.get(vectorId);
 

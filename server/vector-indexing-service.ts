@@ -35,6 +35,17 @@ export interface IndexingResult {
   error?: string;
 }
 
+// Qdrant filter types
+interface QdrantFilterCondition {
+  key: string;
+  match?: { value?: unknown; any?: string[] };
+  range?: { gte?: number; lte?: number };
+}
+
+interface QdrantFilter {
+  must: QdrantFilterCondition[];
+}
+
 // ============================================================================
 // Vector Indexing Service
 // ============================================================================
@@ -244,7 +255,7 @@ export class VectorIndexingService {
     const collectionType = this.getCollectionType(packageType);
 
     // Build filter
-    const filter: any = { must: [] };
+    const filter: QdrantFilter = { must: [] };
 
     if (options.tags && options.tags.length > 0) {
       filter.must.push({
@@ -296,7 +307,7 @@ export class VectorIndexingService {
     const collectionType = this.getCollectionType(packageType);
 
     // Build filter
-    const filter: any = options.tags
+    const filter: QdrantFilter | undefined = options.tags
       ? { must: [{ key: 'tags', match: { any: options.tags } }] }
       : undefined;
 
@@ -383,7 +394,7 @@ export class VectorIndexingService {
   /**
    * Create average embedding from KV-Cache (simplified)
    */
-  private createAverageEmbedding(kvCache: any): number[] | null {
+  private createAverageEmbedding(kvCache: unknown): number[] | null {
     try {
       // This is a placeholder - actual implementation would:
       // 1. Extract key/value tensors
