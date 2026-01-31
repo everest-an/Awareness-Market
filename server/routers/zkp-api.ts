@@ -24,6 +24,7 @@ import {
   type ZKPConfig,
 } from "../latentmas/zkp-verification";
 import { getDb } from "../db";
+import { assertDatabaseAvailable } from "../utils/error-handling";
 import { latentVectors, packagePurchases, vectorPackages } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
@@ -287,12 +288,7 @@ export const zkpRouter = router({
     .mutation(async ({ input, ctx }) => {
       try {
         const db = await getDb();
-        if (!db) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Database not available',
-          });
-        }
+        assertDatabaseAvailable(db);
 
         // Verify quality proof first
         const zkpEngine = getZKPEngine();

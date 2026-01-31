@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { getDb } from '../db';
+import { assertDatabaseAvailable } from '../utils/error-handling';
 import { memoryNFTs } from '../../drizzle/schema-memory-nft';
 import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 import { createLogger } from '../utils/logger';
@@ -50,9 +51,7 @@ export const memoryNFTRouter = router({
     .input(browseMemoriesSchema)
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
-      }
+      assertDatabaseAvailable(db);
 
       const conditions: SQL[] = [];
       if (input.memoryType) conditions.push(eq(memoryNFTs.memoryType, input.memoryType));
@@ -102,9 +101,7 @@ export const memoryNFTRouter = router({
     .input(getDetailSchema)
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
-      }
+      assertDatabaseAvailable(db);
 
       const records = await db
         .select()
@@ -179,9 +176,7 @@ export const memoryNFTRouter = router({
     .input(purchaseSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
-      }
+      assertDatabaseAvailable(db);
 
       const records = await db
         .select()
@@ -213,9 +208,7 @@ export const memoryNFTRouter = router({
   getStats: publicProcedure
     .query(async () => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
-      }
+      assertDatabaseAvailable(db);
 
       const [{ count }] = await db
         .select({ count: sql<number>`count(*)` })

@@ -15,7 +15,7 @@ import { getDb } from '../db';
 import { users } from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { ethers } from 'ethers';
-import { getErrorMessage } from '../utils/error-handling';
+import { getErrorMessage, assertDatabaseAvailable } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
 import * as workflowDb from '../db-workflows';
 
@@ -133,7 +133,7 @@ async function executeStep(
     // 3. Collect output
 
     const db = await getDb();
-    if (!db) throw new Error('Database unavailable');
+    assertDatabaseAvailable(db);
 
     // Get agent info
     const agentRecords = await db
@@ -315,9 +315,7 @@ export const agentCollaborationRouter = router({
     .input(collaborateSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       // Validate agents exist
       const steps: Array<{ agentId: string; agentName: string }> = [];

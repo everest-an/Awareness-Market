@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { getDb } from "../db";
+import { assertDatabaseAvailable } from "../utils/error-handling";
 import { users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -11,7 +12,7 @@ export const userRouter = router({
   // Get current user profile
   me: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+    assertDatabaseAvailable(db);
     
     const user = await db
       .select()
@@ -48,7 +49,7 @@ export const userRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      assertDatabaseAvailable(db);
       
       await db
         .update(users)
@@ -75,7 +76,7 @@ export const userRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      assertDatabaseAvailable(db);
 
       await db
         .update(users)

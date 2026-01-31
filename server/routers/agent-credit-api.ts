@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { getDb } from '../db';
+import { assertDatabaseAvailable } from '../utils/error-handling';
 import { users, latentVectors } from '../../drizzle/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 
@@ -40,9 +41,7 @@ export const agentCreditRouter = router({
     .input(getProfileSchema)
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       // Find user by address (could be in name or bio)
       // For now, use a simple query - in production, map addresses to user IDs
@@ -108,9 +107,7 @@ export const agentCreditRouter = router({
     .input(getLeaderboardSchema)
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       // Get top creators by total revenue and ratings
       const topCreators = await db
@@ -173,9 +170,7 @@ export const agentCreditRouter = router({
   getGradeDistribution: publicProcedure
     .query(async () => {
       const db = await getDb();
-      if (!db) {
-        return { S: 0, A: 0, B: 0, C: 0, D: 0 };
-      }
+      assertDatabaseAvailable(db);
 
       // Calculate grade distribution based on creators' performance
       const creators = await db
@@ -214,9 +209,7 @@ export const agentCreditRouter = router({
     .input(getHistorySchema)
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) {
-        return [];
-      }
+      assertDatabaseAvailable(db);
 
       // Get recent activities for the agent
       // In a real system, this would come from a credit_history table

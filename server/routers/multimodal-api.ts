@@ -29,6 +29,7 @@ import {
 import { storagePut } from "../storage";
 import { nanoid } from "nanoid";
 import { getDb } from "../db";
+import { assertDatabaseAvailable } from "../utils/error-handling";
 import { vectorPackages } from "../../drizzle/schema";
 import { eq, and, like } from "drizzle-orm";
 
@@ -177,12 +178,7 @@ export const multimodalRouter = router({
     .query(async ({ input }) => {
       try {
         const db = await getDb();
-        if (!db) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Database not available',
-          });
-        }
+        assertDatabaseAvailable(db);
 
         const [pkg] = await db
           .select()
@@ -295,12 +291,7 @@ export const multimodalRouter = router({
     .query(async ({ input }) => {
       try {
         const db = await getDb();
-        if (!db) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Database not available',
-          });
-        }
+        assertDatabaseAvailable(db);
 
         // Fetch multi-modal packages
         const packages = await db
@@ -403,12 +394,7 @@ export const multimodalRouter = router({
     .query(async ({ input }) => {
       try {
         const db = await getDb();
-        if (!db) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Database not available',
-          });
-        }
+        assertDatabaseAvailable(db);
 
         // Build query with conditional where clause
         const whereClause = input.category
@@ -558,12 +544,7 @@ export const multimodalRouter = router({
     .query(async () => {
       try {
         const db = await getDb();
-        if (!db) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Database not available',
-          });
-        }
+        assertDatabaseAvailable(db);
 
         const packages = await db
           .select()
