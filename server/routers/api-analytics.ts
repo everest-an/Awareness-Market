@@ -9,6 +9,7 @@ import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { eq, desc, and, gte, sql } from 'drizzle-orm';
 import { getDb } from '../db';
+import { assertDatabaseAvailable } from '../utils/error-handling';
 import { apiUsageLogs, apiUsageDailyStats } from '../../drizzle/schema-api-usage';
 import { getUserApiStats, getGlobalApiStats } from '../middleware/api-usage-logger';
 
@@ -39,9 +40,7 @@ export const apiAnalyticsRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       const conditions = [eq(apiUsageLogs.userId, ctx.user.id)];
       
@@ -85,9 +84,7 @@ export const apiAnalyticsRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - input.days);
@@ -162,9 +159,7 @@ export const apiAnalyticsRouter = router({
       }
 
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       const startDate = new Date();
       startDate.setHours(startDate.getHours() - input.hours);
@@ -211,9 +206,7 @@ export const apiAnalyticsRouter = router({
       }
 
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - input.days);
@@ -263,9 +256,7 @@ export const apiAnalyticsRouter = router({
       }
 
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - input.days);

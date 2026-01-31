@@ -2,6 +2,7 @@ import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
+import { assertDatabaseAvailable, assertPackageExists } from "../utils/error-handling";
 import { createWMatrixPurchaseCheckout, stripe } from "../stripe-client";
 import { pricingEngine } from "../pricing-engine";
 import {
@@ -34,7 +35,7 @@ export const wMatrixMarketplaceRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
 
       const [listing] = await db
         .select()
@@ -89,7 +90,7 @@ export const wMatrixMarketplaceRouter = router({
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
 
       const session = await stripe.checkout.sessions.retrieve(input.sessionId);
 
@@ -163,7 +164,7 @@ export const wMatrixMarketplaceRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
       
       const { sourceModel, targetModel, minPrice, maxPrice, search, sortBy, limit, offset } = input;
 
@@ -260,7 +261,7 @@ export const wMatrixMarketplaceRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
       
       const [listing] = await db
         .select()
@@ -333,7 +334,7 @@ export const wMatrixMarketplaceRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
       
       const [result] = await db.insert(wMatrixListings).values({
         sellerId: ctx.user.id,
@@ -370,7 +371,7 @@ export const wMatrixMarketplaceRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
       
       // Verify ownership
       const [listing] = await db
@@ -416,7 +417,7 @@ export const wMatrixMarketplaceRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
       
       // Get listing details
       const [listing] = await db
@@ -488,7 +489,7 @@ export const wMatrixMarketplaceRouter = router({
   myPurchases: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
       
       const purchases = await db
         .select({
@@ -514,7 +515,7 @@ export const wMatrixMarketplaceRouter = router({
   myListings: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
       
       const listings = await db
         .select()
@@ -531,7 +532,7 @@ export const wMatrixMarketplaceRouter = router({
   getPopularModelPairs: publicProcedure
     .query(async () => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
       
       const pairs = await db
         .select({
@@ -563,7 +564,7 @@ export const wMatrixMarketplaceRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
 
       const listings = await db
         .select()
@@ -667,7 +668,7 @@ export const wMatrixMarketplaceRouter = router({
   getCertificationStats: publicProcedure
     .query(async () => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      assertDatabaseAvailable(db);
 
       const listings = await db
         .select()

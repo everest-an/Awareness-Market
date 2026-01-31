@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
+import { assertDatabaseAvailable } from "../utils/error-handling";
 import { workflowSessions, workflowEvents } from "../../drizzle/schema";
 import { eq, and, gte, lte, desc, asc, like, or, sql } from "drizzle-orm";
 
@@ -115,7 +116,7 @@ export const workflowHistoryRouter = router({
     )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database unavailable');
+      assertDatabaseAvailable(db);
 
       const session = await db
         .select()
@@ -142,7 +143,7 @@ export const workflowHistoryRouter = router({
     )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database unavailable');
+      assertDatabaseAvailable(db);
 
       const events = await db
         .select()
@@ -170,7 +171,7 @@ export const workflowHistoryRouter = router({
     )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database unavailable');
+      assertDatabaseAvailable(db);
       const offset = (input.page - 1) * input.pageSize;
       const searchPattern = `%${input.query}%`;
 
@@ -230,11 +231,11 @@ export const workflowHistoryRouter = router({
     )
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database unavailable');
+      assertDatabaseAvailable(db);
 
       // Build filter conditions
       const conditions = [];
-      
+
       if (input.userId) {
         conditions.push(eq(workflowSessions.userId, input.userId));
       }
@@ -288,7 +289,7 @@ export const workflowHistoryRouter = router({
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new Error('Database unavailable');
+      assertDatabaseAvailable(db);
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - input.olderThanDays);
 

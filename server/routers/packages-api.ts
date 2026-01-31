@@ -14,7 +14,7 @@ import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { eq, desc, and, or, like, sql, type SQL, type InferSelectModel } from 'drizzle-orm';
 import { getDb } from '../db';
-import { getErrorMessage } from '../utils/error-handling';
+import { getErrorMessage, assertDatabaseAvailable, assertPackageExists, throwValidationFailed } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
 import { vectorPackages, memoryPackages, chainPackages, packageDownloads, packagePurchases, users } from '../../drizzle/schema';
 import { AntiPoisoningVerifier } from '../latentmas/anti-poisoning';
@@ -366,12 +366,7 @@ export const packagesApiRouter = router({
 
         // Save to database
         const db = await getDb();
-        if (!db) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Database unavailable',
-          });
-        }
+        assertDatabaseAvailable(db);
         const insertResult = await db.insert(vectorPackages).values({
           packageId: result.packageId,
           userId: ctx.user.id,
@@ -470,12 +465,7 @@ export const packagesApiRouter = router({
 
         // Save to database
         const db = await getDb();
-        if (!db) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Database unavailable',
-          });
-        }
+        assertDatabaseAvailable(db);
         const insertResult = await db.insert(memoryPackages).values({
           packageId: result.packageId,
           userId: ctx.user.id,
@@ -587,12 +577,7 @@ export const packagesApiRouter = router({
 
         // Save to database
         const db = await getDb();
-        if (!db) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Database unavailable',
-          });
-        }
+        assertDatabaseAvailable(db);
         const insertResult = await db.insert(chainPackages).values({
           packageId: result.packageId,
           userId: ctx.user.id,
@@ -633,7 +618,7 @@ export const packagesApiRouter = router({
     .input(BrowsePackagesSchema)
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
+      assertDatabaseAvailable(db);
       const table = getPackageTable(input.packageType);
 
       // Build query conditions
@@ -798,7 +783,7 @@ export const packagesApiRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
+      assertDatabaseAvailable(db);
       const table = getPackageTable(input.packageType);
 
       const [pkg] = await db
@@ -834,7 +819,7 @@ export const packagesApiRouter = router({
     .input(PurchasePackageSchema)
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
+      assertDatabaseAvailable(db);
       const table = getPackageTable(input.packageType);
 
       // Get package
@@ -935,7 +920,7 @@ export const packagesApiRouter = router({
     .input(DownloadPackageSchema)
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
+      assertDatabaseAvailable(db);
       const table = getPackageTable(input.packageType);
 
       // Check if purchased
@@ -1020,7 +1005,7 @@ export const packagesApiRouter = router({
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
+      assertDatabaseAvailable(db);
       const table = getPackageTable(input.packageType);
 
       const packages = await db
@@ -1042,7 +1027,7 @@ export const packagesApiRouter = router({
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
+      assertDatabaseAvailable(db);
 
       const purchases = await db
         .select()
@@ -1079,7 +1064,7 @@ export const packagesApiRouter = router({
     }))
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
+      assertDatabaseAvailable(db);
       const results: Array<{
         type: 'vector' | 'memory' | 'chain';
         package: VectorPackage | MemoryPackage | ChainPackage;

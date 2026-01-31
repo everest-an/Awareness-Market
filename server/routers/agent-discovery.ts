@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { getDb } from '../db';
+import { assertDatabaseAvailable } from '../utils/error-handling';
 import { users, latentVectors } from '../../drizzle/schema';
 import { eq, desc, sql, and, inArray, gte } from 'drizzle-orm';
 import { getOnChainAgent, checkCapability } from '../auth-erc8004';
@@ -102,9 +103,7 @@ export const agentDiscoveryRouter = router({
     .input(discoverAgentsSchema)
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       // Get all creators with their statistics
       const creatorsQuery = db
@@ -257,9 +256,7 @@ export const agentDiscoveryRouter = router({
     .input(getAgentProfileSchema)
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       // Build condition based on input
       const condition = input.userId
@@ -364,9 +361,7 @@ export const agentDiscoveryRouter = router({
     .input(checkCompatibilitySchema)
     .query(async ({ input }) => {
       const db = await getDb();
-      if (!db) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
-      }
+      assertDatabaseAvailable(db);
 
       // For now, return compatibility based on shared categories
       // In production, would check W-Matrix availability for model alignment
