@@ -13,6 +13,16 @@ import { createLogger } from "./utils/logger";
 
 const logger = createLogger('AI:AuthAPI');
 
+// Type extension for authenticated requests
+export interface AuthenticatedRequest extends express.Request {
+  apiKeyUserId: number;
+  apiKeyPermissions: string[];
+}
+
+interface InsertResult {
+  insertId: number;
+}
+
 const router = express.Router();
 
 // Middleware to validate API key from header
@@ -55,9 +65,9 @@ async function validateApiKey(req: express.Request, res: express.Response, next:
       .where(eq(apiKeys.id, keyRecord.id));
 
     // Attach user info to request
-    (req as any).apiKeyUserId = keyRecord.userId;
-    (req as any).apiKeyPermissions = keyRecord.permissions ? JSON.parse(keyRecord.permissions) : [];
-    
+    (req as AuthenticatedRequest).apiKeyUserId = keyRecord.userId;
+    (req as AuthenticatedRequest).apiKeyPermissions = keyRecord.permissions ? JSON.parse(keyRecord.permissions) : [];
+
     next();
   } catch (error) {
     logger.error(" API key validation error:", { error });
@@ -95,7 +105,7 @@ router.post("/register", async (req, res) => {
       role: "consumer", // AI agents start as consumers
     });
 
-    const userId = Number((insertResult as any).insertId);
+    const userId = Number((insertResult as unknown as InsertResult).insertId);
 
     // Generate API key
     const rawApiKey = `ak_${crypto.randomBytes(32).toString("hex")}`;
@@ -143,7 +153,7 @@ router.post("/register", async (req, res) => {
  */
 router.get("/keys", validateApiKey, async (req, res) => {
   try {
-    const userId = (req as any).apiKeyUserId;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId;
     const db = await getDb();
     if (!db) {
       return res.status(500).json({ error: "Database unavailable" });
@@ -183,7 +193,7 @@ router.post("/keys", validateApiKey, async (req, res) => {
     });
 
     const body = schema.parse(req.body);
-    const userId = (req as any).apiKeyUserId;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId;
     const db = await getDb();
     if (!db) {
       return res.status(500).json({ error: "Database unavailable" });
@@ -229,7 +239,7 @@ router.post("/keys", validateApiKey, async (req, res) => {
 router.delete("/keys/:keyId", validateApiKey, async (req, res) => {
   try {
     const keyId = parseInt(req.params.keyId);
-    const userId = (req as any).apiKeyUserId;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId;
     const db = await getDb();
     if (!db) {
       return res.status(500).json({ error: "Database unavailable" });

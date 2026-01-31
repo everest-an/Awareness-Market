@@ -180,7 +180,7 @@ export async function trackUserBehavior(
   vectorId: number,
   actionType: "view" | "click" | "trial" | "purchase" | "review",
   duration?: number,
-  metadata?: any
+  metadata?: Record<string, unknown>
 ) {
   try {
     const db = await getDb();

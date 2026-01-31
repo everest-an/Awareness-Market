@@ -92,7 +92,7 @@ export async function getRecommendationsWithABTest(
     if (!activeExperiment) {
       // No active experiment, use default LLM-based
       const recommendations = await generateLLMRecommendations({ userId, limit });
-      return recommendations.map((r: any) => ({ ...r, algorithm: "llm_based" }));
+      return recommendations.map((r) => ({ ...r, algorithm: "llm_based" as const }));
     }
 
     // Get user's assignment
@@ -116,7 +116,7 @@ export async function getRecommendationsWithABTest(
         break;
     }
 
-    return recommendations.map((r: any) => ({ ...r, algorithm }));
+    return recommendations.map((r) => ({ ...r, algorithm }));
   } catch (error) {
     logger.error(" Error getting recommendations:", { error });
     return [];
