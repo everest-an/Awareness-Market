@@ -15,7 +15,7 @@ export interface MemoryNFT$Type {
   readonly deployedLinkReferences: {};
   readonly immutableReferences: {};
   readonly inputSourceName: "project/contracts/MemoryNFT.sol";
-  readonly buildInfoId: "solc-0_8_20-e47c381d9314a46125329769832f3a0e4c99ae7d";
+  readonly buildInfoId: "solc-0_8_20-7d3ac340e6b26ee68d7c03bb160494d2b5d9cbc9";
 };
 
 import "hardhat/types/artifacts";
