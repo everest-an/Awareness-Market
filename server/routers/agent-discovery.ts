@@ -261,19 +261,20 @@ export const agentDiscoveryRouter = router({
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database unavailable' });
       }
 
-      let userQuery = db.select().from(users);
+      // Build condition based on input
+      const condition = input.userId
+        ? eq(users.id, input.userId)
+        : input.agentId
+          ? eq(users.openId, input.agentId)
+          : input.walletAddress
+            ? eq(users.openId, input.walletAddress.toLowerCase())
+            : null;
 
-      if (input.userId) {
-        userQuery = userQuery.where(eq(users.id, input.userId)) as any;
-      } else if (input.agentId) {
-        userQuery = userQuery.where(eq(users.openId, input.agentId)) as any;
-      } else if (input.walletAddress) {
-        userQuery = userQuery.where(eq(users.openId, input.walletAddress.toLowerCase())) as any;
-      } else {
+      if (!condition) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Must provide userId, agentId, or walletAddress' });
       }
 
-      const userRecords = await userQuery.limit(1);
+      const userRecords = await db.select().from(users).where(condition).limit(1);
       const user = userRecords[0];
 
       if (!user) {
