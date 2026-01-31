@@ -16,6 +16,11 @@ type User = InferSelectModel<typeof users>;
 // User type without password for API responses
 type SafeUser = Omit<User, 'password'>;
 
+// MySQL result type
+interface InsertResult {
+  insertId: number;
+}
+
 // JWT secret from environment or fallback
 const JWT_SECRET = process.env.JWT_SECRET || "awareness-market-secret-change-in-production";
 const JWT_EXPIRES_IN = "7d"; // Token expires in 7 days
@@ -112,7 +117,7 @@ export async function registerWithEmail(params: {
     emailVerified: false,
   });
 
-  const userId = Number((result as any).insertId);
+  const userId = Number((result as unknown as InsertResult).insertId);
   
   // Generate tokens
   const user = { id: userId, email: params.email, role: "consumer" };
@@ -230,7 +235,7 @@ export async function findOrCreateOAuthUser(params: {
     emailVerified: true, // OAuth emails are pre-verified
   });
 
-  const newUserList = await db.select().from(users).where(eq(users.id, Number((result as any).insertId))).limit(1);
+  const newUserList = await db.select().from(users).where(eq(users.id, Number((result as unknown as InsertResult).insertId))).limit(1);
   const newUser = newUserList[0];
   
   // Generate tokens
