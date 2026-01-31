@@ -3,9 +3,17 @@ import { getDb } from "./db";
 import { runVector } from "./vector-runtime";
 import { trialUsage, latentVectors } from "../drizzle/schema";
 import { eq, and, count, sql } from "drizzle-orm";
+import type { InferSelectModel } from "drizzle-orm";
 import { createLogger } from "./utils/logger";
 
 const logger = createLogger('Trial');
+
+type LatentVector = InferSelectModel<typeof latentVectors>;
+
+// Type extension for authenticated request
+interface AuthenticatedRequest extends Request {
+  user?: { id: number };
+}
 
 const router = Router();
 
@@ -14,7 +22,7 @@ const router = Router();
  */
 router.get("/remaining/:vectorId", async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as AuthenticatedRequest).user?.id;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -68,7 +76,7 @@ router.get("/remaining/:vectorId", async (req: Request, res: Response) => {
  */
 router.post("/execute", async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as AuthenticatedRequest).user?.id;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -124,7 +132,7 @@ router.post("/execute", async (req: Request, res: Response) => {
         id: vectorId,
         description: vector.title,
         category: "trial",
-      } as any,
+      } as unknown as LatentVector,
       context: input,
     });
 
@@ -164,7 +172,7 @@ router.post("/execute", async (req: Request, res: Response) => {
  */
 router.get("/history", async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as AuthenticatedRequest).user?.id;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
