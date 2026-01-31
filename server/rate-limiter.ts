@@ -17,6 +17,11 @@
 import rateLimit from 'express-rate-limit';
 import type { Request, Response } from 'express';
 
+// Type for authenticated request with user
+interface RequestWithUser extends Request {
+  user?: { id?: number | string };
+}
+
 /**
  * Global rate limiter - applies to all API requests
  */
@@ -49,7 +54,7 @@ export const uploadLimiter = rateLimit({
   max: 10, // 10 uploads per hour per user
   keyGenerator: (req: Request) => {
     // Use user ID if authenticated, otherwise use IP
-    return (req as any).user?.id?.toString() || req.ip || 'anonymous';
+    return (req as RequestWithUser).user?.id?.toString() || req.ip || 'anonymous';
   },
   message: {
     error: 'Upload limit exceeded. You can upload up to 10 packages per hour.',
@@ -76,7 +81,7 @@ export const purchaseLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 50, // 50 purchases per hour per user
   keyGenerator: (req: Request) => {
-    return (req as any).user?.id?.toString() || req.ip || 'anonymous';
+    return (req as RequestWithUser).user?.id?.toString() || req.ip || 'anonymous';
   },
   message: {
     error: 'Purchase limit exceeded. You can make up to 50 purchases per hour.',
@@ -103,7 +108,7 @@ export const browseLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 200, // 200 requests per minute per user
   keyGenerator: (req: Request) => {
-    return (req as any).user?.id?.toString() || req.ip || 'anonymous';
+    return (req as RequestWithUser).user?.id?.toString() || req.ip || 'anonymous';
   },
   message: {
     error: 'Browse limit exceeded. You can make up to 200 requests per minute.',

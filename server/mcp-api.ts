@@ -16,7 +16,7 @@ import { z } from "zod";
 import * as db from "./db";
 import { runVector } from "./vector-runtime";
 import { invokeLLM } from "./_core/llm";
-import { validateApiKey } from "./ai-auth-api";
+import { validateApiKey, AuthenticatedRequest } from "./ai-auth-api";
 import type { InferSelectModel } from "drizzle-orm";
 import { createLogger } from "./utils/logger";
 
@@ -33,8 +33,24 @@ interface Agent {
 
 const mcpRouter = Router();
 
+interface LLMResult {
+  choices?: Array<{
+    message?: {
+      content?: string | Array<string | { text?: string }>;
+    };
+  }>;
+  model?: string;
+  usage?: unknown;
+}
+
+interface LLMMessage {
+  role: string;
+  content: string;
+}
+
 const extractTextFromResult = (result: unknown) => {
-  const content = (result as any)?.choices?.[0]?.message?.content;
+  const llmResult = result as LLMResult | undefined;
+  const content = llmResult?.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
@@ -123,7 +139,7 @@ mcpRouter.post("/tokens", validateApiKey, async (req, res) => {
     });
 
     const body = schema.parse(req.body);
-    const userId = (req as any).apiKeyUserId as number;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId as number;
 
     const created = await db.createMcpToken({
       userId,
@@ -154,7 +170,7 @@ mcpRouter.post("/tokens", validateApiKey, async (req, res) => {
  */
 mcpRouter.get("/tokens", validateApiKey, async (req, res) => {
   try {
-    const userId = (req as any).apiKeyUserId as number;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId as number;
     const tokens = await db.listMcpTokens(userId);
     res.json({ tokens });
   } catch (error) {
@@ -170,7 +186,7 @@ mcpRouter.get("/tokens", validateApiKey, async (req, res) => {
 mcpRouter.delete("/tokens/:tokenId", validateApiKey, async (req, res) => {
   try {
     const tokenId = parseInt(req.params.tokenId);
-    const userId = (req as any).apiKeyUserId as number;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId as number;
     await db.revokeMcpToken({ userId, tokenId });
     res.json({ success: true, message: "MCP token revoked" });
   } catch (error) {
@@ -440,7 +456,7 @@ mcpRouter.post("/sync", async (req, res) => {
 
         const llmResult = await invokeLLM({
           messages: agentMessages.length > 0
-            ? agentMessages.filter((m): m is { role: string; content: string } => m !== null) as any[]
+            ? agentMessages.filter((m): m is LLMMessage => m !== null)
             : [{ role: "user", content: JSON.stringify(agentContext) }],
         });
 

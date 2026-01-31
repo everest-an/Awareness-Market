@@ -1005,12 +1005,12 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const { id, ...updates } = input;
-        const data: any = { ...updates };
+        const data: Record<string, unknown> = { ...updates };
 
         if (updates.tags) {
           data.tags = JSON.stringify(updates.tags);
         }
-        
+
         // Set publishedAt when publishing
         if (updates.status === "published") {
           const existing = await blogDb.getBlogPostById(id);
@@ -1018,7 +1018,7 @@ export const appRouter = router({
             data.publishedAt = new Date();
           }
         }
-        
+
         return await blogDb.updateBlogPost(id, data);
       }),
 
@@ -1094,12 +1094,12 @@ export const appRouter = router({
       const permissions = await db.getUserAccessPermissions(ctx.user.id);
 
       const totalSpent = transactions
-        .filter((t: any) => {
-          const tx = 'status' in t ? t : t.transactions;
+        .filter((t) => {
+          const tx = 'status' in t ? t : (t as { transactions: { status: string } }).transactions;
           return tx.status === "completed";
         })
-        .reduce((sum: number, t: any) => {
-          const tx = 'amount' in t ? t : t.transactions;
+        .reduce((sum: number, t) => {
+          const tx = 'amount' in t ? t : (t as { transactions: { amount: string } }).transactions;
           return sum + parseFloat(tx.amount);
         }, 0);
 

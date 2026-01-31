@@ -11,7 +11,7 @@ import { eq, and } from "drizzle-orm";
 import { createLogger } from "./utils/logger";
 
 const logger = createLogger('AI:MemoryAPI');
-import { validateApiKey } from "./ai-auth-api";
+import { validateApiKey, AuthenticatedRequest } from "./ai-auth-api";
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ router.use(validateApiKey);
 router.get("/memory/:key", async (req, res) => {
   try {
     const memoryKey = req.params.key;
-    const userId = (req as any).apiKeyUserId;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId;
     const db = await getDb();
     if (!db) {
       return res.status(500).json({ error: "Database unavailable" });
@@ -69,7 +69,7 @@ router.get("/memory/:key", async (req, res) => {
  */
 router.get("/memory", async (req, res) => {
   try {
-    const userId = (req as any).apiKeyUserId;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId;
     const db = await getDb();
     if (!db) {
       return res.status(500).json({ error: "Database unavailable" });
@@ -107,7 +107,7 @@ router.put("/memory/:key", async (req, res) => {
 
     const body = schema.parse(req.body);
     const memoryKey = req.params.key;
-    const userId = (req as any).apiKeyUserId;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId;
     const db = await getDb();
     if (!db) {
       return res.status(500).json({ error: "Database unavailable" });
@@ -187,7 +187,7 @@ router.put("/memory/:key", async (req, res) => {
 router.delete("/memory/:key", async (req, res) => {
   try {
     const memoryKey = req.params.key;
-    const userId = (req as any).apiKeyUserId;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId;
     const db = await getDb();
     if (!db) {
       return res.status(500).json({ error: "Database unavailable" });

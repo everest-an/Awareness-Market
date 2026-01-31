@@ -17,6 +17,13 @@ const logger = createLogger('Purchase:API');
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-12-15.clover' });
 
+// Type extension for authenticated requests
+interface PurchaseAuthenticatedRequest extends express.Request {
+  userId: number;
+  apiKeyId: number;
+  permissions: string[];
+}
+
 /**
  * Authenticate API requests using real API key validation
  */
@@ -34,9 +41,9 @@ async function authenticateApiKey(req: express.Request, res: express.Response, n
   }
   
   // Attach user info to request
-  (req as any).userId = validation.userId;
-  (req as any).apiKeyId = validation.keyId;
-  (req as any).permissions = validation.permissions;
+  (req as PurchaseAuthenticatedRequest).userId = validation.userId!;
+  (req as PurchaseAuthenticatedRequest).apiKeyId = validation.keyId!;
+  (req as PurchaseAuthenticatedRequest).permissions = validation.permissions!;
   next();
 }
 
@@ -75,7 +82,7 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
     }
 
     // Get buyer info from authenticated API key
-    const buyerId = (req as any).userId;
+    const buyerId = (req as PurchaseAuthenticatedRequest).userId;
     
     // Calculate fees
     const amount = parseFloat(vector.basePrice);
@@ -345,7 +352,7 @@ router.get('/my-purchases', authenticateApiKey, async (req, res) => {
     if (!db) {
       return res.status(500).json({ error: 'Database connection failed' });
     }
-    const buyerId = (req as any).userId;
+    const buyerId = (req as PurchaseAuthenticatedRequest).userId;
     
     const purchases = await db
       .select({
@@ -372,7 +379,7 @@ router.get('/my-purchases', authenticateApiKey, async (req, res) => {
     });
 
   } catch (error: unknown) {
-    logger.error('Failed to fetch purchases', { error: getErrorMessage(error), userId: (req as any).userId });
+    logger.error('Failed to fetch purchases', { error: getErrorMessage(error), userId: (req as PurchaseAuthenticatedRequest).userId });
     res.status(500).json({ error: 'Failed to fetch purchases' });
   }
 });
