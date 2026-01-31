@@ -8,6 +8,15 @@ import { getDb } from './db.js';
 import { apiKeys } from '../drizzle/schema.ts';
 import { eq, and } from 'drizzle-orm';
 
+// MySQL result types
+interface InsertResult {
+  insertId: number;
+}
+
+interface UpdateDeleteResult {
+  affectedRows: number;
+}
+
 /**
  * Generate a secure API key with prefix and checksum
  * Format: ak_live_32_random_hex_chars
@@ -59,7 +68,7 @@ export async function createApiKey(params: {
     isActive: true
   });
 
-  const id = (result as any).insertId;
+  const id = (result as unknown as InsertResult).insertId;
 
   return { id, key, keyPrefix };
 }
@@ -203,7 +212,7 @@ export async function revokeApiKey(keyId: number, userId: number): Promise<boole
       )
     );
 
-  return (result as any).affectedRows > 0;
+  return (result as unknown as UpdateDeleteResult).affectedRows > 0;
 }
 
 /**
@@ -224,7 +233,7 @@ export async function deleteApiKey(keyId: number, userId: number): Promise<boole
       )
     );
 
-  return (result as any).affectedRows > 0;
+  return (result as unknown as UpdateDeleteResult).affectedRows > 0;
 }
 
 /**

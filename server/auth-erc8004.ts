@@ -29,6 +29,22 @@ import { createLogger } from './utils/logger';
 
 const logger = createLogger('ERC8004');
 
+// MySQL result type
+interface InsertResult {
+  insertId: number;
+}
+
+// JWT payload type
+interface JWTPayload {
+  userId: number;
+  walletAddress: string;
+  agentId?: string;
+  isOnChain: boolean;
+  type: string;
+  exp?: number;
+  iat?: number;
+}
+
 // Contract ABI (minimal interface for auth)
 const ERC8004_ABI = [
   "function agents(bytes32) view returns (address owner, string metadataUri, string agentType, uint256 registeredAt, bool isActive)",
@@ -211,7 +227,7 @@ This signature will not trigger any blockchain transaction.`;
         bio: onChainAgentId ? `ERC-8004 Agent: ${onChainAgentId.slice(0, 16)}...` : "AI Agent",
       });
       
-      userId = Number((result as any).insertId);
+      userId = Number((result as unknown as InsertResult).insertId);
       
       // Generate API key for the agent
       const rawApiKey = `ak_${crypto.randomBytes(32).toString("hex")}`;
@@ -391,7 +407,7 @@ export function verifyERC8004Token(token: string): {
   error?: string;
 } {
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as any;
+    const payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
     
     if (payload.type !== "erc8004") {
       return { valid: false, error: "Invalid token type" };

@@ -2,6 +2,12 @@ import { getDb } from "./db";
 import { apiUsageLogs, rateLimitConfig, apiKeys, users } from "../drizzle/schema";
 import { eq, sql, desc, and, gte } from "drizzle-orm";
 
+// MySQL insert result type (may be array or single object depending on driver)
+interface InsertResult {
+  insertId: number;
+}
+type DrizzleInsertResult = InsertResult | InsertResult[];
+
 /**
  * Get API usage statistics for a specific time period
  */
@@ -228,7 +234,7 @@ export async function getRateLimitConfig(apiKeyId: number) {
   });
 
   return {
-    id: Number((result as any)[0]?.insertId || (result as any).insertId || 0),
+    id: Number(Array.isArray(result) ? (result as InsertResult[])[0]?.insertId : (result as unknown as InsertResult).insertId) || 0,
     apiKeyId,
     requestsPerHour: 1000,
     requestsPerDay: 10000,
