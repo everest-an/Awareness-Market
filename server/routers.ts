@@ -45,6 +45,7 @@ import { neuralBridgeRouter } from './routers/neural-bridge-api';
 import { creatorDashboardRouter } from './routers/creator-dashboard-api';
 import { zkpRouter } from './routers/zkp-api';
 import { multimodalRouter } from './routers/multimodal-api';
+import { phantomAuthRouter } from './auth-phantom.js';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
   TrpcRequest,
@@ -1822,6 +1823,10 @@ export const appRouter = router({
   workflowHistory: workflowHistoryRouter,
   user: userRouter,
   authUnified: authUnifiedRouter,
+
+  // Phantom Auth - Python SDK wallet authentication
+  phantomAuth: phantomAuthRouter,
+
   apiAnalytics: apiAnalyticsRouter,
   agentDiscovery: agentDiscoveryRouter,
   agentCollaboration: agentCollaborationRouter,
