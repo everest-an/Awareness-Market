@@ -23,7 +23,7 @@ import {
   index,
   jsonb
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Define enums first (PostgreSQL requirement)
 export const role_enum = pgEnum('role', ["user", "admin", "creator", "consumer"]);
@@ -87,6 +87,13 @@ export const users = pgTable("users", {
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
   bio: text("bio"),
   avatar: text("avatar"),
+
+  // Moltbook Compatibility: Phantom Wallet support
+  walletAddress: varchar("wallet_address", { length: 42 }).unique(), // Ethereum address (0x...)
+  totalMemories: integer("total_memories").default(0).notNull(), // Count of uploaded memories
+  totalResonances: integer("total_resonances").default(0).notNull(), // Count of times their memories were used
+  creditsBalance: numeric("credits_balance", { precision: 12, scale: 4 }).default("1000.0000").notNull(), // Free credits
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow(),
@@ -132,12 +139,26 @@ export const latentVectors = pgTable("latent_vectors", {
   avgUserRating: numeric("avg_user_rating", { precision: 3, scale: 2 }), // 0.00-5.00
   lastAccessedAt: timestamp("last_accessed_at"),
   dynamicKFactor: numeric("dynamic_k_factor", { precision: 6, scale: 4 }).default("1.0000").notNull(), // PID-adjusted multiplier
+
+  // ==========================================
+  // Moltbook Compatibility: pgvector support
+  // ==========================================
+  embeddingVector: sql`vector(1536)`, // pgvector column for semantic search
+  embeddingProvider: varchar("embedding_provider", { length: 50 }).default("openai"), // "openai", "local", "cloud"
+  embeddingModel: varchar("embedding_model", { length: 100 }), // e.g., "text-embedding-3-small"
+  embeddingDimension: integer("embedding_dimension").default(1536), // Actual dimension
+  resonanceCount: integer("resonance_count").default(0).notNull(), // How many times used by other agents
+  lastResonanceAt: timestamp("last_resonance_at"), // Last time matched in Hive Mind query
+  isPublic: boolean("is_public").default(false).notNull(), // Public memories are free to use
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 }, (table) => ({
   creatorIdx: index("creator_idx").on(table.creatorId),
   categoryIdx: index("category_idx").on(table.category),
   statusIdx: index("status_idx").on(table.status),
+  // pgvector index for fast similarity search (IVFFlat algorithm)
+  embeddingIdx: index("embedding_vector_idx").using("ivfflat", sql`${table.embeddingVector} vector_cosine_ops`),
 }));
 
 /**
@@ -280,6 +301,34 @@ export const userPreferences = pgTable("user_preferences", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
+
+// ==========================================
+// Moltbook Compatibility: Memory Usage Logging
+// ==========================================
+
+/**
+ * Memory Usage Log - tracks when agents use each other's memories
+ * Used for Hive Mind resonance analytics and credit settlement
+ */
+export const memoryUsageLog = pgTable("memory_usage_log", {
+  id: serial("id").primaryKey(),
+  consumerId: integer("consumer_id").notNull(), // Agent that used the memory
+  providerId: integer("provider_id").notNull(), // Agent that provided the memory
+  memoryId: integer("memory_id").notNull(), // latent_vectors.id
+  similarity: numeric("similarity", { precision: 5, scale: 4 }), // Cosine similarity (0-1)
+  cost: numeric("cost", { precision: 10, scale: 4 }).default("0.0000"), // $AMEM cost
+  contextQuery: text("context_query"), // Original query that triggered the match
+  wasHelpful: boolean("was_helpful"), // Optional feedback
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  consumerIdx: index("memory_usage_consumer_idx").on(table.consumerId),
+  providerIdx: index("memory_usage_provider_idx").on(table.providerId),
+  memoryIdx: index("memory_usage_memory_idx").on(table.memoryId),
+  createdAtIdx: index("memory_usage_created_at_idx").on(table.createdAt),
+}));
+
+export type MemoryUsageLog = typeof memoryUsageLog.$inferSelect;
+export type InsertMemoryUsageLog = typeof memoryUsageLog.$inferInsert;
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
