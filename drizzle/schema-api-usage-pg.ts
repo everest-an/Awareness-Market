@@ -4,13 +4,13 @@
  * Tracks all API calls for analytics and rate limiting
  */
 
-import { pgTable, varchar, integer, timestamp, text, numeric, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, varchar, integer, timestamp, text, numeric, boolean, index, serial } from "drizzle-orm/pg-core";
 
 /**
  * API Usage Logs - Individual API call records
  */
 export const apiUsageLogs = pgTable('api_usage_logs', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   
   // User/API Key identification
   userId: integer('user_id'),
@@ -51,7 +51,7 @@ export const apiUsageLogs = pgTable('api_usage_logs', {
  * API Usage Daily Aggregates - Pre-computed daily stats
  */
 export const apiUsageDailyStats = pgTable('api_usage_daily_stats', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   
   // Aggregation key
   userId: integer('user_id'),
@@ -90,7 +90,7 @@ export const apiUsageDailyStats = pgTable('api_usage_daily_stats', {
  * API Endpoints Registry - Track all available endpoints
  */
 export const apiEndpoints = pgTable('api_endpoints', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   
   // Endpoint details
   path: varchar('path', { length: 255 }).notNull().unique(),

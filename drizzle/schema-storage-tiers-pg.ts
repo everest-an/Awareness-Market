@@ -5,14 +5,14 @@
  * for intelligent cost optimization
  */
 
-import { pgTable, integer, varchar, timestamp, index, primaryKey, numeric, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, integer, serial, varchar, timestamp, index, primaryKey, numeric, pgEnum } from "drizzle-orm/pg-core";
 
 /**
  * Package Access Log
  * Records every access to track data temperature
  */
 export const packageAccessLog = pgTable('packageAccessLog', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   packageId: integer('package_id').notNull(),
   packageType: pgEnum('package_type', ['vector', 'memory', 'chain']).notNull(),
   accessType: pgEnum('access_type', ['download', 'view', 'purchase']).notNull(),
@@ -47,7 +47,7 @@ export const packageStorageTier = pgTable('packageStorageTier', {
  * Tracks pending and completed tier migrations
  */
 export const migrationQueue = pgTable('migrationQueue', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   packageId: integer('package_id').notNull(),
   packageType: pgEnum('package_type', ['vector', 'memory', 'chain']).notNull(),
   fromBackend: varchar('from_backend', { length: 20 }).notNull(),
@@ -70,7 +70,7 @@ export const migrationQueue = pgTable('migrationQueue', {
  * Daily cost tracking per tier and backend
  */
 export const storageCostMetrics = pgTable('storageCostMetrics', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   date: timestamp('date').notNull(),
   tier: pgEnum('tier', ['hot', 'warm', 'cold']).notNull(),
   backend: varchar('backend', { length: 20 }).notNull(),

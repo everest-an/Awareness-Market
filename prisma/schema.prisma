@@ -32,7 +32,15 @@ model User {
   lastSignedIn         DateTime? @map("lastSignedIn")
 
   // Relations
-  createdWorkflows     Workflow[]
+  createdWorkflows      Workflow[]
+  createdVectors        LatentVector[]
+  transactions          Transaction[]
+  accessPermissions     AccessPermission[]
+  reviews               Review[]
+  subscriptions         UserSubscription[]
+  notifications         Notification[]
+  apiKeys               ApiKey[]
+  mcpTokens             McpToken[]
 
   @@map("users")
 }
@@ -306,4 +314,384 @@ enum ListingStatus {
   active
   inactive
   suspended
+}
+
+// ============================================================================
+// Core Business Tables
+// ============================================================================
+
+model LatentVector {
+  id                  Int       @id @default(autoincrement())
+  creatorId           Int       @map("creator_id")
+  title               String    @db.VarChar(255)
+  description         String
+  category            String    @db.VarChar(100)
+  vectorFileKey       String    @map("vector_file_key")
+  vectorFileUrl       String    @map("vector_file_url")
+  modelArchitecture   String?   @map("model_architecture") @db.VarChar(100)
+  vectorDimension     Int?      @map("vector_dimension")
+  performanceMetrics  String?   @map("performance_metrics")
+  basePrice           Decimal   @map("base_price") @db.Decimal(10, 2)
+  pricingModel        String    @default("per-call") @map("pricing_model") @db.VarChar(50)
+  status              String    @default("draft") @db.VarChar(20)
+  totalCalls          Int       @default(0) @map("total_calls")
+  totalRevenue        Decimal   @default(0) @map("total_revenue") @db.Decimal(12, 2)
+  averageRating       Decimal?  @default(0) @map("average_rating") @db.Decimal(3, 2)
+  reviewCount         Int       @default(0) @map("review_count")
+  freeTrialCalls      Int       @default(3) @map("free_trial_calls")
+  createdAt           DateTime  @default(now()) @map("createdAt")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  // Relations
+  creator             User              @relation(fields: [creatorId], references: [id])
+  transactions        Transaction[]
+  accessPermissions   AccessPermission[]
+  reviews             Review[]
+  apiCallLogs         ApiCallLog[]
+
+  @@index([creatorId])
+  @@index([category])
+  @@index([status])
+  @@map("latent_vectors")
+}
+
+model Transaction {
+  id                    Int       @id @default(autoincrement())
+  buyerId               Int       @map("buyer_id")
+  vectorId              Int       @map("vector_id")
+  amount                Decimal   @db.Decimal(10, 2)
+  platformFee           Decimal   @map("platform_fee") @db.Decimal(10, 2)
+  creatorEarnings       Decimal   @map("creator_earnings") @db.Decimal(10, 2)
+  stripePaymentIntentId String?   @map("stripe_payment_intent_id") @db.VarChar(255)
+  status                String    @default("pending") @db.VarChar(20)
+  transactionType       String    @default("one-time") @map("transaction_type") @db.VarChar(20)
+  createdAt             DateTime  @default(now()) @map("createdAt")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  // Relations
+  buyer                 User              @relation(fields: [buyerId], references: [id])
+  vector                LatentVector      @relation(fields: [vectorId], references: [id])
+  accessPermissions     AccessPermission[]
+
+  @@index([buyerId])
+  @@index([vectorId])
+  @@index([status])
+  @@map("transactions")
+}
+
+model AccessPermission {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  vectorId        Int       @map("vector_id")
+  transactionId   Int       @map("transaction_id")
+  accessToken     String    @unique @map("access_token") @db.VarChar(255)
+  expiresAt       DateTime? @map("expires_at")
+  callsRemaining  Int?      @map("calls_remaining")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("createdAt")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id])
+  vector          LatentVector  @relation(fields: [vectorId], references: [id])
+  transaction     Transaction   @relation(fields: [transactionId], references: [id])
+
+  @@index([userId, vectorId])
+  @@index([accessToken])
+  @@map("access_permissions")
+}
+
+model Review {
+  id                  Int       @id @default(autoincrement())
+  vectorId            Int       @map("vector_id")
+  userId              Int       @map("user_id")
+  rating              Int
+  comment             String?
+  isVerifiedPurchase  Boolean   @default(false) @map("is_verified_purchase")
+  createdAt           DateTime  @default(now()) @map("createdAt")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  // Relations
+  vector              LatentVector  @relation(fields: [vectorId], references: [id])
+  user                User          @relation(fields: [userId], references: [id])
+
+  @@index([vectorId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+model SubscriptionPlan {
+  id              Int       @id @default(autoincrement())
+  name            String    @db.VarChar(100)
+  description     String?
+  price           Decimal   @db.Decimal(10, 2)
+  billingCycle    String    @map("billing_cycle") @db.VarChar(20)
+  features        String?
+  callLimit       Int?      @map("call_limit")
+  stripePriceId   String?   @map("stripe_price_id") @db.VarChar(255)
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("createdAt")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  // Relations
+  subscriptions   UserSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model UserSubscription {
+  id                  Int       @id @default(autoincrement())
+  userId              Int       @map("user_id")
+  planId              Int       @map("plan_id")
+  stripeSubscriptionId String?  @map("stripe_subscription_id") @db.VarChar(255)
+  status              String    @default("active") @db.VarChar(20)
+  currentPeriodStart  DateTime  @map("current_period_start")
+  currentPeriodEnd    DateTime  @map("current_period_end")
+  cancelAtPeriodEnd   Boolean   @default(false) @map("cancel_at_period_end")
+  createdAt           DateTime  @default(now()) @map("createdAt")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  // Relations
+  user                User              @relation(fields: [userId], references: [id])
+  plan                SubscriptionPlan  @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("user_subscriptions")
+}
+
+model ApiKey {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  keyHash     String    @unique @map("key_hash") @db.VarChar(255)
+  keyPrefix   String    @map("key_prefix") @db.VarChar(16)
+  name        String    @db.VarChar(255)
+  permissions String?
+  lastUsedAt  DateTime? @map("last_used_at")
+  expiresAt   DateTime? @map("expires_at")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("createdAt")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+model McpToken {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  tokenHash   String    @unique @map("token_hash") @db.VarChar(255)
+  tokenPrefix String    @map("token_prefix") @db.VarChar(16)
+  name        String    @db.VarChar(255)
+  permissions String?
+  lastUsedAt  DateTime? @map("last_used_at")
+  expiresAt   DateTime? @map("expires_at")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("createdAt")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("mcp_tokens")
+}
+
+model ApiCallLog {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  vectorId     Int       @map("vector_id")
+  permissionId Int       @map("permission_id")
+  responseTime Int?      @map("response_time")
+  success      Boolean   @default(true)
+  errorMessage String?   @map("error_message")
+  createdAt    DateTime  @default(now()) @map("createdAt")
+
+  // Relations
+  vector       LatentVector  @relation(fields: [vectorId], references: [id])
+
+  @@index([userId])
+  @@index([vectorId])
+  @@index([createdAt])
+  @@map("api_call_logs")
+}
+
+model Notification {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  type            String    @db.VarChar(50)
+  title           String    @db.VarChar(255)
+  message         String
+  isRead          Boolean   @default(false) @map("is_read")
+  relatedEntityId Int?      @map("related_entity_id")
+  createdAt       DateTime  @default(now()) @map("createdAt")
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+model UserPreference {
+  id                      Int       @id @default(autoincrement())
+  userId                  Int       @unique @map("user_id")
+  preferredCategories     String?   @map("preferred_categories")
+  priceRange              String?   @map("price_range")
+  lastRecommendationUpdate DateTime? @map("last_recommendation_update")
+  createdAt               DateTime  @default(now()) @map("createdAt")
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  @@map("user_preferences")
+}
+
+model BrowsingHistory {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  vectorId  Int       @map("vector_id")
+  action    String    @db.VarChar(20)
+  metadata  String?
+  createdAt DateTime  @default(now()) @map("createdAt")
+
+  @@index([userId])
+  @@index([vectorId])
+  @@index([createdAt])
+  @@map("browsing_history")
+}
+
+model AiMemory {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  memoryKey   String    @map("memory_key") @db.VarChar(255)
+  memoryData  String    @map("memory_data")
+  version     Int       @default(1)
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("createdAt")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  @@index([userId, memoryKey])
+  @@map("ai_memory")
+}
+
+// ============================================================================
+// LatentMAS Package System
+// ============================================================================
+
+model VectorPackage {
+  id                  Int       @id @default(autoincrement())
+  packageId           String    @unique @map("package_id") @db.VarChar(64)
+  userId              Int       @map("user_id")
+  name                String    @db.VarChar(255)
+  description         String
+  vectorUrl           String    @map("vector_url")
+  wMatrixUrl          String    @map("w_matrix_url")
+  packageUrl          String    @map("package_url")
+  sourceModel         String    @map("source_model") @db.VarChar(50)
+  targetModel         String    @map("target_model") @db.VarChar(50)
+  dimension           Int
+  epsilon             Decimal   @db.Decimal(10, 8)
+  informationRetention Decimal  @map("information_retention") @db.Decimal(5, 4)
+  qualityScore        Decimal?  @default(0) @map("quality_score") @db.Decimal(5, 4)
+  category            String    @default("nlp") @db.VarChar(50)
+  price               Decimal   @db.Decimal(10, 2)
+  downloads           Int       @default(0)
+  rating              Decimal?  @default(0) @db.Decimal(3, 2)
+  reviewCount         Int       @default(0) @map("review_count")
+  status              String    @default("draft") @db.VarChar(20)
+  createdAt           DateTime  @default(now()) @map("createdAt")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  @@index([userId])
+  @@index([category])
+  @@index([status])
+  @@index([sourceModel, targetModel])
+  @@map("vector_packages")
+}
+
+model MemoryPackage {
+  id                  Int       @id @default(autoincrement())
+  packageId           String    @unique @map("package_id") @db.VarChar(64)
+  userId              Int       @map("user_id")
+  name                String    @db.VarChar(255)
+  description         String
+  memoryType          String    @default("kv_cache") @map("memory_type") @db.VarChar(50)
+  kvCacheUrl          String    @map("kv_cache_url")
+  wMatrixUrl          String    @map("w_matrix_url")
+  packageUrl          String    @map("package_url")
+  sourceModel         String    @map("source_model") @db.VarChar(50)
+  targetModel         String    @map("target_model") @db.VarChar(50)
+  tokenCount          Int       @map("token_count")
+  compressionRatio    Decimal   @map("compression_ratio") @db.Decimal(5, 4)
+  contextDescription  String    @map("context_description")
+  epsilon             Decimal   @db.Decimal(10, 8)
+  informationRetention Decimal  @map("information_retention") @db.Decimal(5, 4)
+  price               Decimal   @db.Decimal(10, 2)
+  downloads           Int       @default(0)
+  rating              Decimal?  @default(0) @db.Decimal(3, 2)
+  reviewCount         Int       @default(0) @map("review_count")
+  status              String    @default("draft") @db.VarChar(20)
+  createdAt           DateTime  @default(now()) @map("createdAt")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  @@index([userId])
+  @@index([status])
+  @@index([sourceModel, targetModel])
+  @@map("memory_packages")
+}
+
+model ChainPackage {
+  id                  Int       @id @default(autoincrement())
+  packageId           String    @unique @map("package_id") @db.VarChar(64)
+  userId              Int       @map("user_id")
+  name                String    @db.VarChar(255)
+  description         String
+  chainUrl            String    @map("chain_url")
+  wMatrixUrl          String    @map("w_matrix_url")
+  packageUrl          String    @map("package_url")
+  sourceModel         String    @map("source_model") @db.VarChar(50)
+  targetModel         String    @map("target_model") @db.VarChar(50)
+  stepCount           Int       @map("step_count")
+  problemType         String    @map("problem_type") @db.VarChar(100)
+  solutionQuality     Decimal   @map("solution_quality") @db.Decimal(5, 4)
+  epsilon             Decimal   @db.Decimal(10, 8)
+  informationRetention Decimal  @map("information_retention") @db.Decimal(5, 4)
+  price               Decimal   @db.Decimal(10, 2)
+  downloads           Int       @default(0)
+  rating              Decimal?  @default(0) @db.Decimal(3, 2)
+  reviewCount         Int       @default(0) @map("review_count")
+  status              String    @default("draft") @db.VarChar(20)
+  createdAt           DateTime  @default(now()) @map("createdAt")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
+
+  @@index([userId])
+  @@index([problemType])
+  @@index([status])
+  @@index([sourceModel, targetModel])
+  @@map("chain_packages")
+}
+
+model PackagePurchase {
+  id                    Int       @id @default(autoincrement())
+  packageType           String    @map("package_type") @db.VarChar(20)
+  packageId             String    @map("package_id") @db.VarChar(64)
+  buyerId               Int       @map("buyer_id")
+  sellerId              Int       @map("seller_id")
+  price                 Decimal   @db.Decimal(10, 2)
+  platformFee           Decimal   @map("platform_fee") @db.Decimal(10, 2)
+  sellerEarnings        Decimal   @map("seller_earnings") @db.Decimal(10, 2)
+  stripePaymentIntentId String?   @map("stripe_payment_intent_id") @db.VarChar(255)
+  status                String    @default("pending") @db.VarChar(20)
+  purchasedAt           DateTime  @default(now()) @map("purchasedAt")
+
+  @@index([packageType, packageId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@map("package_purchases")
 }

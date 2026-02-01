@@ -2,7 +2,7 @@
  * Memory NFT and Token Bound Account Schema
  */
 
-import { pgTable, varchar, text, integer, bigint, timestamp, json, index } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, integer, serial, bigint, timestamp, json, index } from "drizzle-orm/pg-core";
 
 // ============================================================================
 // Memory NFT Table
@@ -54,7 +54,7 @@ export const memoryNFTs = pgTable('memory_nfts', {
 // ============================================================================
 
 export const tokenBoundAccounts = pgTable('token_bound_accounts', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   address: varchar('address', { length: 42 }).notNull().unique(),
   
   // NFT info
@@ -89,7 +89,7 @@ export const tokenBoundAccounts = pgTable('token_bound_accounts', {
 // ============================================================================
 
 export const tbaTransactions = pgTable('tba_transactions', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   tbaAddress: varchar('tba_address', { length: 42 }).notNull(),
   
   // Transaction details
@@ -121,7 +121,7 @@ export const tbaTransactions = pgTable('tba_transactions', {
 // ============================================================================
 
 export const memoryProvenance = pgTable('memory_provenance', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   
   // Child memory (derived)
   childNftId: varchar('child_nft_id', { length: 255 }).notNull(),
@@ -154,7 +154,7 @@ export const memoryProvenance = pgTable('memory_provenance', {
 // ============================================================================
 
 export const agentCreditScores = pgTable('agent_credit_scores', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   
   // Agent identity
   agentAddress: varchar('agent_address', { length: 42 }).notNull().unique(),
@@ -192,7 +192,7 @@ export const agentCreditScores = pgTable('agent_credit_scores', {
 // ============================================================================
 
 export const creditScoreHistory = pgTable('credit_score_history', {
-  id: integer('id').primaryKey().autoincrement(),
+  id: serial('id').primaryKey(),
   
   agentAddress: varchar('agent_address', { length: 42 }).notNull(),
   
