@@ -1,120 +1,93 @@
-import { eq, and, desc, sql, gte, lte, like, or, inArray, type SQL } from "drizzle-orm";
-import crypto from "crypto";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import {
-  InsertUser,
-  users,
-  latentVectors,
-  transactions,
-  accessPermissions,
-  reviews,
-  subscriptionPlans,
-  userSubscriptions,
-  apiKeys,
-  apiCallLogs,
-  aiMemory,
-  notifications,
-  userPreferences,
-  browsingHistory,
-  vectorPackages,
-  memoryPackages,
-  packagePurchases,
-  type LatentVector,
-  type Transaction,
-  type AccessPermission,
-  type Review,
-  type SubscriptionPlan,
-  type UserSubscription,
-  type Notification,
-  type BrowsingHistory,
-  type InsertBrowsingHistory,
-  type UserPreference,
-  type VectorPackage,
-  type InsertVectorPackage,
-  type MemoryPackage,
-  type InsertMemoryPackage,
-} from "../drizzle/schema-pg";
-import { mcpTokens } from "../drizzle/schema-mcp-tokens-pg";
+import * as crypto from "crypto";
+import { prisma } from './db-prisma';
+import type {
+  User,
+  LatentVector,
+  Transaction,
+  AccessPermission,
+  Review,
+  SubscriptionPlan,
+  UserSubscription,
+  ApiKey,
+  McpToken,
+  ApiCallLog,
+  AiMemory,
+  Notification,
+  UserPreference,
+  BrowsingHistory,
+  VectorPackage,
+  MemoryPackage,
+  PackagePurchase,
+  Prisma,
+} from '@prisma/client';
 import { ENV } from './_core/env';
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('Database:Operations');
 
-let _db: ReturnType<typeof drizzle> | null = null;
-let _client: ReturnType<typeof postgres> | null = null;
+// Type aliases for backward compatibility
+export type InsertUser = Prisma.UserCreateInput;
+export type InsertBrowsingHistory = Prisma.BrowsingHistoryCreateInput;
+export type InsertVectorPackage = Prisma.VectorPackageCreateInput;
+export type InsertMemoryPackage = Prisma.MemoryPackageCreateInput;
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      // Create PostgreSQL connection
-      _client = postgres(process.env.DATABASE_URL);
-      _db = drizzle(_client);
-      logger.info('Connected to PostgreSQL database');
-    } catch (error) {
-      logger.warn('Failed to connect', { error });
-      _db = null;
-      _client = null;
-    }
-  }
-  return _db;
+  return prisma;
 }
+
+export {
+  User,
+  LatentVector,
+  Transaction,
+  AccessPermission,
+  Review,
+  SubscriptionPlan,
+  UserSubscription,
+  ApiKey,
+  McpToken,
+  ApiCallLog,
+  AiMemory,
+  Notification,
+  UserPreference,
+  BrowsingHistory,
+  VectorPackage,
+  MemoryPackage,
+  PackagePurchase,
+};
 
 // ===== User Management =====
 
-export async function upsertUser(user: InsertUser): Promise<void> {
+export async function upsertUser(user: Partial<User> & { openId: string }): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
 
-  const db = await getDb();
-  if (!db) {
-    logger.warn('Cannot upsert user: database not available');
-    return;
-  }
-
   try {
-    const values: InsertUser = {
+    const createData: Prisma.UserCreateInput = {
       openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod", "bio", "avatar"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
+      name: user.name ?? null,
+      email: user.email ?? null,
+      loginMethod: user.loginMethod ?? null,
+      bio: user.bio ?? null,
+      avatar: user.avatar ?? null,
+      role: user.role ?? (user.openId === ENV.ownerOpenId ? 'admin' : 'user'),
+      lastSignedIn: user.lastSignedIn ?? new Date(),
     };
 
-    textFields.forEach(assignNullable);
+    const updateData: Prisma.UserUpdateInput = {
+      ...(user.name !== undefined && { name: user.name }),
+      ...(user.email !== undefined && { email: user.email }),
+      ...(user.loginMethod !== undefined && { loginMethod: user.loginMethod }),
+      ...(user.bio !== undefined && { bio: user.bio }),
+      ...(user.avatar !== undefined && { avatar: user.avatar }),
+      ...(user.role !== undefined && { role: user.role }),
+      lastSignedIn: user.lastSignedIn ?? new Date(),
+    };
 
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onConflictDoUpdate({
-      target: users.openId,
-      set: updateSet,
+    await prisma.user.upsert({
+      where: { openId: user.openId },
+      create: createData,
+      update: updateData,
     });
   } catch (error) {
     logger.error('Failed to upsert user', { error, openId: user.openId });
@@ -123,30 +96,38 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 }
 
 export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    logger.warn('Cannot get user: database not available', { openId });
+  try {
+    return await prisma.user.findUnique({
+      where: { openId },
+    });
+  } catch (error) {
+    logger.warn('Cannot get user: database error', { openId, error });
     return undefined;
   }
-
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
 }
 
 export async function getUserById(id: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  
-  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    return await prisma.user.findUnique({
+      where: { id },
+    });
+  } catch (error) {
+    logger.warn('Cannot get user by id', { id, error });
+    return undefined;
+  }
 }
 
 export async function updateUserRole(userId: number, role: "user" | "admin" | "creator" | "consumer") {
-  const db = await getDb();
-  if (!db) return false;
-  
-  await db.update(users).set({ role }).where(eq(users.id, userId));
-  return true;
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role },
+    });
+    return true;
+  } catch (error) {
+    logger.error('Failed to update user role', { userId, role, error });
+    return false;
+  }
 }
 
 export async function updateUserProfile(userId: number, updates: {
@@ -155,42 +136,82 @@ export async function updateUserProfile(userId: number, updates: {
   bio?: string | null;
   avatar?: string | null;
 }) {
-  const db = await getDb();
-  if (!db) return undefined;
-
-  await db.update(users).set({
-    ...(updates.name !== undefined ? { name: updates.name } : {}),
-    ...(updates.email !== undefined ? { email: updates.email } : {}),
-    ...(updates.bio !== undefined ? { bio: updates.bio } : {}),
-    ...(updates.avatar !== undefined ? { avatar: updates.avatar } : {}),
-  }).where(eq(users.id, userId));
-
-  return await getUserById(userId);
+  try {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(updates.name !== undefined && { name: updates.name }),
+        ...(updates.email !== undefined && { email: updates.email }),
+        ...(updates.bio !== undefined && { bio: updates.bio }),
+        ...(updates.avatar !== undefined && { avatar: updates.avatar }),
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to update user profile', { userId, error });
+    return undefined;
+  }
 }
 
 // ===== Latent Vectors Management =====
 
-export async function createLatentVector(vector: typeof latentVectors.$inferInsert) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(latentVectors).values(vector);
-  return result;
+export async function createLatentVector(vector: {
+  creatorId: number;
+  title: string;
+  description: string;
+  category: string;
+  vectorFileKey: string;
+  vectorFileUrl: string;
+  modelArchitecture?: string | null;
+  vectorDimension?: number | null;
+  performanceMetrics?: string | null;
+  basePrice: string;
+  pricingModel?: string;
+  status?: string;
+}) {
+  try {
+    return await prisma.latentVector.create({
+      data: {
+        creator: { connect: { id: vector.creatorId } },
+        title: vector.title,
+        description: vector.description,
+        category: vector.category,
+        vectorFileKey: vector.vectorFileKey,
+        vectorFileUrl: vector.vectorFileUrl,
+        modelArchitecture: vector.modelArchitecture,
+        vectorDimension: vector.vectorDimension,
+        performanceMetrics: vector.performanceMetrics,
+        basePrice: vector.basePrice,
+        pricingModel: vector.pricingModel ?? 'per-call',
+        status: vector.status ?? 'draft',
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to create latent vector', { error });
+    throw new Error("Database not available");
+  }
 }
 
 export async function getLatentVectorById(id: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  
-  const result = await db.select().from(latentVectors).where(eq(latentVectors.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    return await prisma.latentVector.findUnique({
+      where: { id },
+    });
+  } catch (error) {
+    logger.error('Failed to get latent vector', { id, error });
+    return undefined;
+  }
 }
 
 export async function getLatentVectorsByCreator(creatorId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  
-  return await db.select().from(latentVectors).where(eq(latentVectors.creatorId, creatorId)).orderBy(desc(latentVectors.createdAt));
+  try {
+    return await prisma.latentVector.findMany({
+      where: { creatorId },
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (error) {
+    logger.error('Failed to get vectors by creator', { creatorId, error });
+    return [];
+  }
 }
 
 export async function searchLatentVectors(params: {
@@ -204,155 +225,180 @@ export async function searchLatentVectors(params: {
   limit?: number;
   offset?: number;
 }) {
-  const db = await getDb();
-  if (!db) return [];
-  
-  const conditions = [];
-  
-  if (params.category) {
-    conditions.push(eq(latentVectors.category, params.category));
+  try {
+    const where: Prisma.LatentVectorWhereInput = {
+      ...(params.category && { category: params.category }),
+      ...(params.minPrice !== undefined && { basePrice: { gte: params.minPrice } }),
+      ...(params.maxPrice !== undefined && { basePrice: { ...({} as any), lte: params.maxPrice } }),
+      ...(params.minRating !== undefined && { averageRating: { gte: params.minRating } }),
+      ...(params.searchTerm && {
+        OR: [
+          { title: { contains: params.searchTerm, mode: 'insensitive' } },
+          { description: { contains: params.searchTerm, mode: 'insensitive' } },
+        ],
+      }),
+      status: params.status || "active",
+    };
+
+    // Combine min and max price if both exist
+    if (params.minPrice !== undefined && params.maxPrice !== undefined) {
+      where.basePrice = { gte: params.minPrice, lte: params.maxPrice };
+    }
+
+    // Apply sorting
+    const sortBy = params.sortBy || "newest";
+    let orderBy: Prisma.LatentVectorOrderByWithRelationInput = {};
+    switch (sortBy) {
+      case "newest":
+        orderBy = { createdAt: 'desc' };
+        break;
+      case "oldest":
+        orderBy = { createdAt: 'asc' };
+        break;
+      case "price_low":
+        orderBy = { basePrice: 'asc' };
+        break;
+      case "price_high":
+        orderBy = { basePrice: 'desc' };
+        break;
+      case "rating":
+        orderBy = { averageRating: 'desc' };
+        break;
+      case "popular":
+        orderBy = { totalCalls: 'desc' };
+        break;
+    }
+
+    return await prisma.latentVector.findMany({
+      where,
+      orderBy,
+      ...(params.limit && { take: params.limit }),
+      ...(params.offset && { skip: params.offset }),
+    });
+  } catch (error) {
+    logger.error('Failed to search latent vectors', { error, params });
+    return [];
   }
-  
-  if (params.minPrice !== undefined) {
-    conditions.push(gte(latentVectors.basePrice, params.minPrice.toString()));
-  }
-  
-  if (params.maxPrice !== undefined) {
-    conditions.push(lte(latentVectors.basePrice, params.maxPrice.toString()));
-  }
-  
-  if (params.minRating !== undefined) {
-    conditions.push(gte(latentVectors.averageRating, params.minRating.toString()));
-  }
-  
-  if (params.searchTerm) {
-    conditions.push(
-      or(
-        like(latentVectors.title, `%${params.searchTerm}%`),
-        like(latentVectors.description, `%${params.searchTerm}%`)
-      )
-    );
-  }
-  
-  if (params.status) {
-    conditions.push(eq(latentVectors.status, params.status));
-  } else {
-    conditions.push(eq(latentVectors.status, "active"));
-  }
-  
-  let query = db.select().from(latentVectors);
-  
-  if (conditions.length > 0) {
-    query = query.where(and(...conditions)) as any;
-  }
-  
-  // Apply sorting
-  const sortBy = params.sortBy || "newest";
-  switch (sortBy) {
-    case "newest":
-      query = query.orderBy(desc(latentVectors.createdAt)) as any;
-      break;
-    case "oldest":
-      query = query.orderBy(latentVectors.createdAt) as any;
-      break;
-    case "price_low":
-      query = query.orderBy(latentVectors.basePrice) as any;
-      break;
-    case "price_high":
-      query = query.orderBy(desc(latentVectors.basePrice)) as any;
-      break;
-    case "rating":
-      query = query.orderBy(desc(latentVectors.averageRating)) as any;
-      break;
-    case "popular":
-      query = query.orderBy(desc(latentVectors.totalCalls)) as any;
-      break;
-  }
-  
-  if (params.limit) {
-    query = query.limit(params.limit) as any;
-  }
-  
-  if (params.offset) {
-    query = query.offset(params.offset) as any;
-  }
-  
-  return await query;
 }
 
 export async function getAllCategories() {
-  const db = await getDb();
-  if (!db) return [];
-  
-  const result = await db
-    .selectDistinct({ category: latentVectors.category })
-    .from(latentVectors)
-    .where(eq(latentVectors.status, "active"));
-  
-  return result.map(r => r.category);
+  try {
+    const result = await prisma.latentVector.findMany({
+      where: { status: "active" },
+      select: { category: true },
+      distinct: ['category'],
+    });
+    return result.map(r => r.category);
+  } catch (error) {
+    logger.error('Failed to get categories', { error });
+    return [];
+  }
 }
 
-export async function updateLatentVector(id: number, updates: Partial<typeof latentVectors.$inferInsert>) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  await db.update(latentVectors).set(updates).where(eq(latentVectors.id, id));
-  return true;
+export async function updateLatentVector(id: number, updates: Prisma.LatentVectorUpdateInput) {
+  try {
+    await prisma.latentVector.update({
+      where: { id },
+      data: updates,
+    });
+    return true;
+  } catch (error) {
+    logger.error('Failed to update latent vector', { id, error });
+    throw new Error("Database not available");
+  }
 }
 
 export async function incrementVectorStats(vectorId: number, revenue: number) {
-  const db = await getDb();
-  if (!db) return;
-  
-  await db.update(latentVectors)
-    .set({
-      totalCalls: sql`${latentVectors.totalCalls} + 1`,
-      totalRevenue: sql`${latentVectors.totalRevenue} + ${revenue}`,
-    })
-    .where(eq(latentVectors.id, vectorId));
+  try {
+    await prisma.latentVector.update({
+      where: { id: vectorId },
+      data: {
+        totalCalls: { increment: 1 },
+        totalRevenue: { increment: revenue },
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to increment vector stats', { vectorId, revenue, error });
+  }
 }
 
 // ===== Transactions =====
 
-export async function createTransaction(transaction: typeof transactions.$inferInsert) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(transactions).values(transaction);
-  return result;
+export async function createTransaction(transaction: {
+  buyerId: number;
+  vectorId: number;
+  amount: string;
+  platformFee: string;
+  creatorEarnings: string;
+  status?: string;
+  transactionType?: string;
+  stripePaymentIntentId?: string | null;
+}) {
+  try {
+    return await prisma.transaction.create({
+      data: {
+        buyer: { connect: { id: transaction.buyerId } },
+        vector: { connect: { id: transaction.vectorId } },
+        amount: transaction.amount,
+        platformFee: transaction.platformFee,
+        creatorEarnings: transaction.creatorEarnings,
+        status: transaction.status ?? 'pending',
+        transactionType: transaction.transactionType ?? 'one-time',
+        stripePaymentIntentId: transaction.stripePaymentIntentId,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to create transaction', { error });
+    throw new Error("Database not available");
+  }
 }
 
 export async function getTransactionById(id: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  
-  const result = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    return await prisma.transaction.findUnique({
+      where: { id },
+    });
+  } catch (error) {
+    logger.error('Failed to get transaction', { id, error });
+    return undefined;
+  }
 }
 
 export async function getUserTransactions(userId: number, role: "buyer" | "creator") {
-  const db = await getDb();
-  if (!db) return [];
-  
-  if (role === "buyer") {
-    return await db.select().from(transactions).where(eq(transactions.buyerId, userId)).orderBy(desc(transactions.createdAt));
-  } else {
-    // Get transactions for vectors created by this user
-    return await db
-      .select()
-      .from(transactions)
-      .innerJoin(latentVectors, eq(transactions.vectorId, latentVectors.id))
-      .where(eq(latentVectors.creatorId, userId))
-      .orderBy(desc(transactions.createdAt));
+  try {
+    if (role === "buyer") {
+      return await prisma.transaction.findMany({
+        where: { buyerId: userId },
+        orderBy: { createdAt: 'desc' },
+      });
+    } else {
+      // Get transactions for vectors created by this user
+      return await prisma.transaction.findMany({
+        where: {
+          vector: {
+            creatorId: userId,
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to get user transactions', { userId, role, error });
+    return [];
   }
 }
 
 export async function updateTransactionStatus(id: number, status: "pending" | "completed" | "failed" | "refunded") {
-  const db = await getDb();
-  if (!db) return false;
-  
-  await db.update(transactions).set({ status }).where(eq(transactions.id, id));
-  return true;
+  try {
+    await prisma.transaction.update({
+      where: { id },
+      data: { status },
+    });
+    return true;
+  } catch (error) {
+    logger.error('Failed to update transaction status', { id, status, error });
+    return false;
+  }
 }
 
 export async function updateTransactionPaymentInfo(params: {
@@ -360,40 +406,47 @@ export async function updateTransactionPaymentInfo(params: {
   status?: "pending" | "completed" | "failed" | "refunded";
   stripePaymentIntentId?: string | null;
 }) {
-  const db = await getDb();
-  if (!db) return false;
+  try {
+    const updates: Prisma.TransactionUpdateInput = {};
+    if (params.status) updates.status = params.status;
+    if (params.stripePaymentIntentId !== undefined) {
+      updates.stripePaymentIntentId = params.stripePaymentIntentId;
+    }
 
-  const updates: Record<string, unknown> = {};
-  if (params.status) updates.status = params.status;
-  if (params.stripePaymentIntentId !== undefined) {
-    updates.stripePaymentIntentId = params.stripePaymentIntentId;
+    if (Object.keys(updates).length === 0) return false;
+
+    await prisma.transaction.update({
+      where: { id: params.id },
+      data: updates,
+    });
+    return true;
+  } catch (error) {
+    logger.error('Failed to update transaction payment info', { params, error });
+    return false;
   }
-
-  if (Object.keys(updates).length === 0) return false;
-
-  await db.update(transactions).set(updates).where(eq(transactions.id, params.id));
-  return true;
 }
 
 // ===== API Keys =====
 
 export async function getUserApiKeys(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
-
-  return await db
-    .select({
-      id: apiKeys.id,
-      name: apiKeys.name,
-      keyPrefix: apiKeys.keyPrefix,
-      permissions: apiKeys.permissions,
-      lastUsedAt: apiKeys.lastUsedAt,
-      expiresAt: apiKeys.expiresAt,
-      isActive: apiKeys.isActive,
-      createdAt: apiKeys.createdAt,
-    })
-    .from(apiKeys)
-    .where(eq(apiKeys.userId, userId));
+  try {
+    return await prisma.apiKey.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        keyPrefix: true,
+        permissions: true,
+        lastUsedAt: true,
+        expiresAt: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get user API keys', { userId, error });
+    return [];
+  }
 }
 
 export async function createApiKey(params: {
@@ -404,32 +457,38 @@ export async function createApiKey(params: {
   permissions?: string | null;
   expiresAt?: Date | null;
 }) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const result = await db.insert(apiKeys).values({
-    userId: params.userId,
-    name: params.name,
-    keyHash: params.keyHash,
-    keyPrefix: params.keyPrefix,
-    permissions: params.permissions ?? null,
-    expiresAt: params.expiresAt ?? null,
-    isActive: true,
-  });
-
-  return result;
+  try {
+    return await prisma.apiKey.create({
+      data: {
+        userId: params.userId,
+        name: params.name,
+        keyHash: params.keyHash,
+        keyPrefix: params.keyPrefix,
+        permissions: params.permissions ?? null,
+        expiresAt: params.expiresAt ?? null,
+        isActive: true,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to create API key', { params, error });
+    throw new Error("Database not available");
+  }
 }
 
 export async function revokeApiKey(params: { userId: number; keyId: number }) {
-  const db = await getDb();
-  if (!db) return false;
-
-  await db
-    .update(apiKeys)
-    .set({ isActive: false })
-    .where(and(eq(apiKeys.id, params.keyId), eq(apiKeys.userId, params.userId)));
-
-  return true;
+  try {
+    await prisma.apiKey.updateMany({
+      where: {
+        id: params.keyId,
+        userId: params.userId,
+      },
+      data: { isActive: false },
+    });
+    return true;
+  } catch (error) {
+    logger.error('Failed to revoke API key', { params, error });
+    return false;
+  }
 }
 
 // ===== MCP Tokens =====
@@ -442,205 +501,252 @@ export async function createMcpToken(params: {
   permissions?: string[];
   expiresInDays?: number;
 }) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  try {
+    const rawToken = `mcp_${crypto.randomBytes(32).toString("hex")}`;
+    const tokenHash = hashToken(rawToken);
+    const tokenPrefix = rawToken.substring(0, 12);
+    const expiresAt = params.expiresInDays
+      ? new Date(Date.now() + params.expiresInDays * 24 * 60 * 60 * 1000)
+      : null;
 
-  const rawToken = `mcp_${crypto.randomBytes(32).toString("hex")}`;
-  const tokenHash = hashToken(rawToken);
-  const tokenPrefix = rawToken.substring(0, 12);
-  const expiresAt = params.expiresInDays
-    ? new Date(Date.now() + params.expiresInDays * 24 * 60 * 60 * 1000)
-    : null;
+    await prisma.mcpToken.create({
+      data: {
+        userId: params.userId,
+        tokenHash,
+        tokenPrefix,
+        name: params.name,
+        permissions: JSON.stringify(params.permissions || ["sync", "memory"]),
+        expiresAt,
+        isActive: true,
+      },
+    });
 
-  await db.insert(mcpTokens).values({
-    userId: params.userId,
-    tokenHash,
-    tokenPrefix,
-    name: params.name,
-    permissions: JSON.stringify(params.permissions || ["sync", "memory"]),
-    expiresAt,
-    isActive: true,
-  });
-
-  return {
-    token: rawToken,
-    tokenPrefix,
-    expiresAt,
-  };
+    return {
+      token: rawToken,
+      tokenPrefix,
+      expiresAt,
+    };
+  } catch (error) {
+    logger.error('Failed to create MCP token', { params, error });
+    throw new Error("Database not available");
+  }
 }
 
 export async function listMcpTokens(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
-
-  return await db
-    .select({
-      id: mcpTokens.id,
-      name: mcpTokens.name,
-      tokenPrefix: mcpTokens.tokenPrefix,
-      permissions: mcpTokens.permissions,
-      lastUsedAt: mcpTokens.lastUsedAt,
-      expiresAt: mcpTokens.expiresAt,
-      isActive: mcpTokens.isActive,
-      createdAt: mcpTokens.createdAt,
-    })
-    .from(mcpTokens)
-    .where(eq(mcpTokens.userId, userId));
+  try {
+    return await prisma.mcpToken.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        tokenPrefix: true,
+        permissions: true,
+        lastUsedAt: true,
+        expiresAt: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to list MCP tokens', { userId, error });
+    return [];
+  }
 }
 
 export async function revokeMcpToken(params: { userId: number; tokenId: number }) {
-  const db = await getDb();
-  if (!db) return false;
-
-  await db
-    .update(mcpTokens)
-    .set({ isActive: false })
-    .where(and(eq(mcpTokens.id, params.tokenId), eq(mcpTokens.userId, params.userId)));
-
-  return true;
+  try {
+    await prisma.mcpToken.updateMany({
+      where: {
+        id: params.tokenId,
+        userId: params.userId,
+      },
+      data: { isActive: false },
+    });
+    return true;
+  } catch (error) {
+    logger.error('Failed to revoke MCP token', { params, error });
+    return false;
+  }
 }
 
 export async function getMcpTokenByToken(token: string) {
-  const db = await getDb();
-  if (!db) return undefined;
+  try {
+    const tokenHash = hashToken(token);
+    const record = await prisma.mcpToken.findFirst({
+      where: {
+        tokenHash,
+        isActive: true,
+      },
+    });
 
-  const tokenHash = hashToken(token);
-  const result = await db
-    .select()
-    .from(mcpTokens)
-    .where(and(eq(mcpTokens.tokenHash, tokenHash), eq(mcpTokens.isActive, true)))
-    .limit(1);
+    if (!record) return undefined;
 
-  if (result.length === 0) return undefined;
+    if (record.expiresAt && new Date(record.expiresAt) < new Date()) {
+      return undefined;
+    }
 
-  const record = result[0];
-  if (record.expiresAt && new Date(record.expiresAt) < new Date()) {
+    await prisma.mcpToken.update({
+      where: { id: record.id },
+      data: { lastUsedAt: new Date() },
+    });
+
+    return record;
+  } catch (error) {
+    logger.error('Failed to get MCP token by token', { error });
     return undefined;
   }
-
-  await db.update(mcpTokens).set({ lastUsedAt: new Date() }).where(eq(mcpTokens.id, record.id));
-
-  return record;
 }
 
 // ===== Access Permissions =====
 
-export async function createAccessPermission(permission: typeof accessPermissions.$inferInsert) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(accessPermissions).values(permission);
-  return result;
+export async function createAccessPermission(permission: {
+  userId: number;
+  vectorId: number;
+  transactionId: number;
+  accessToken: string;
+  expiresAt?: Date | null;
+  callsRemaining?: number | null;
+  isActive?: boolean;
+}) {
+  try {
+    const result = await prisma.accessPermission.create({
+      data: {
+        user: { connect: { id: permission.userId } },
+        vector: { connect: { id: permission.vectorId } },
+        transaction: { connect: { id: permission.transactionId } },
+        accessToken: permission.accessToken,
+        expiresAt: permission.expiresAt,
+        callsRemaining: permission.callsRemaining,
+        isActive: permission.isActive ?? true,
+      },
+    });
+    return result;
+  } catch (error) {
+    logger.error('Failed to create access permission', { error });
+    throw error;
+  }
 }
 
 export async function getAccessPermissionByToken(token: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  
-  const result = await db.select().from(accessPermissions).where(eq(accessPermissions.accessToken, token)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    return await prisma.accessPermission.findUnique({
+      where: { accessToken: token },
+    });
+  } catch (error) {
+    logger.error('Failed to get access permission by token', { error });
+    return undefined;
+  }
 }
 
 export async function getUserAccessPermissions(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
+  try {
+    const permissions = await prisma.accessPermission.findMany({
+      where: {
+        userId,
+        isActive: true,
+      },
+      include: {
+        vector: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
 
-  return await db
-    .select({
-      id: accessPermissions.id,
-      userId: accessPermissions.userId,
-      vectorId: accessPermissions.vectorId,
-      transactionId: accessPermissions.transactionId,
-      accessToken: accessPermissions.accessToken,
-      expiresAt: accessPermissions.expiresAt,
-      callsRemaining: accessPermissions.callsRemaining,
-      isActive: accessPermissions.isActive,
-      createdAt: accessPermissions.createdAt,
-      updatedAt: accessPermissions.updatedAt,
-      vectorTitle: latentVectors.title,
-    })
-    .from(accessPermissions)
-    .leftJoin(latentVectors, eq(accessPermissions.vectorId, latentVectors.id))
-    .where(and(eq(accessPermissions.userId, userId), eq(accessPermissions.isActive, true)));
+    return permissions.map(p => ({
+      id: p.id,
+      userId: p.userId,
+      vectorId: p.vectorId,
+      transactionId: p.transactionId,
+      accessToken: p.accessToken,
+      expiresAt: p.expiresAt,
+      callsRemaining: p.callsRemaining,
+      isActive: p.isActive,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      vectorTitle: p.vector.title,
+    }));
+  } catch (error) {
+    logger.error('Failed to get user access permissions', { error, userId });
+    return [];
+  }
 }
 
 export async function getAccessPermissionById(permissionId: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-
-  const result = await db
-    .select({
-      id: accessPermissions.id,
-      userId: accessPermissions.userId,
-      vectorId: accessPermissions.vectorId,
-      transactionId: accessPermissions.transactionId,
-      accessToken: accessPermissions.accessToken,
-      expiresAt: accessPermissions.expiresAt,
-      callsRemaining: accessPermissions.callsRemaining,
-      isActive: accessPermissions.isActive,
-      createdAt: accessPermissions.createdAt,
-      updatedAt: accessPermissions.updatedAt,
-    })
-    .from(accessPermissions)
-    .where(eq(accessPermissions.id, permissionId))
-    .limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    return await prisma.accessPermission.findUnique({
+      where: { id: permissionId },
+    });
+  } catch (error) {
+    logger.error('Failed to get access permission by ID', { error, permissionId });
+    return undefined;
+  }
 }
 
 export async function renewAccessPermission(params: {
   permissionId: number;
   extendDays?: number;
 }) {
-  const db = await getDb();
-  if (!db) return undefined;
+  try {
+    const permission = await getAccessPermissionById(params.permissionId);
+    if (!permission) return undefined;
 
-  const permission = await getAccessPermissionById(params.permissionId);
-  if (!permission) return undefined;
+    const newToken = crypto.randomBytes(24).toString("hex");
+    const updates: Prisma.AccessPermissionUpdateInput = {
+      accessToken: newToken,
+      isActive: true,
+    };
 
-  const newToken = crypto.randomBytes(24).toString("hex");
-  const updates: Record<string, unknown> = {
-    accessToken: newToken,
-    isActive: true,
-  };
+    if (permission.expiresAt) {
+      const extendDays = params.extendDays ?? 30;
+      updates.expiresAt = new Date(permission.expiresAt.getTime() + extendDays * 24 * 60 * 60 * 1000);
+    }
 
-  if (permission.expiresAt) {
-    const extendDays = params.extendDays ?? 30;
-    updates.expiresAt = new Date(permission.expiresAt.getTime() + extendDays * 24 * 60 * 60 * 1000);
+    await prisma.accessPermission.update({
+      where: { id: params.permissionId },
+      data: updates,
+    });
+
+    return {
+      accessToken: newToken,
+      expiresAt: (updates.expiresAt as Date | undefined) ?? permission.expiresAt,
+    };
+  } catch (error) {
+    logger.error('Failed to renew access permission', { error, permissionId: params.permissionId });
+    return undefined;
   }
-
-  await db.update(accessPermissions).set(updates).where(eq(accessPermissions.id, params.permissionId));
-
-  return {
-    accessToken: newToken,
-    expiresAt: (updates.expiresAt as Date | undefined) ?? permission.expiresAt,
-  };
 }
 
 export async function decrementCallsRemaining(permissionId: number) {
-  const db = await getDb();
-  if (!db) return;
-  
-  await db.update(accessPermissions)
-    .set({
-      callsRemaining: sql`${accessPermissions.callsRemaining} - 1`,
-    })
-    .where(eq(accessPermissions.id, permissionId));
+  try {
+    await prisma.accessPermission.update({
+      where: { id: permissionId },
+      data: {
+        callsRemaining: {
+          decrement: 1,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to decrement calls remaining', { error, permissionId });
+  }
 }
 
 // ===== AI Memory =====
 
 export async function getAIMemoryByKey(params: { userId: number; memoryKey: string }) {
-  const db = await getDb();
-  if (!db) return undefined;
-
-  const result = await db
-    .select()
-    .from(aiMemory)
-    .where(and(eq(aiMemory.userId, params.userId), eq(aiMemory.memoryKey, params.memoryKey)))
-    .limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    return await prisma.aiMemory.findFirst({
+      where: {
+        userId: params.userId,
+        memoryKey: params.memoryKey,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get AI memory by key', { error, ...params });
+    return undefined;
+  }
 }
 
 export async function upsertAIMemory(params: {
@@ -649,323 +755,457 @@ export async function upsertAIMemory(params: {
   data: Record<string, unknown>;
   ttlDays?: number;
 }) {
-  const db = await getDb();
-  if (!db) return undefined;
+  try {
+    const existing = await getAIMemoryByKey({ userId: params.userId, memoryKey: params.memoryKey });
+    const expiresAt = params.ttlDays
+      ? new Date(Date.now() + params.ttlDays * 24 * 60 * 60 * 1000)
+      : null;
 
-  const existing = await getAIMemoryByKey({ userId: params.userId, memoryKey: params.memoryKey });
-  const expiresAt = params.ttlDays
-    ? new Date(Date.now() + params.ttlDays * 24 * 60 * 60 * 1000)
-    : null;
+    if (existing) {
+      await prisma.aiMemory.update({
+        where: { id: existing.id },
+        data: {
+          memoryData: JSON.stringify(params.data),
+          version: existing.version + 1,
+          expiresAt,
+        },
+      });
 
-  if (existing) {
-    await db
-      .update(aiMemory)
-      .set({
-        memoryData: JSON.stringify(params.data),
+      return {
+        key: params.memoryKey,
         version: existing.version + 1,
         expiresAt,
-        updatedAt: new Date(),
-      })
-      .where(eq(aiMemory.id, existing.id));
+      };
+    }
+
+    await prisma.aiMemory.create({
+      data: {
+        userId: params.userId,
+        memoryKey: params.memoryKey,
+        memoryData: JSON.stringify(params.data),
+        version: 1,
+        expiresAt,
+      },
+    });
 
     return {
       key: params.memoryKey,
-      version: existing.version + 1,
+      version: 1,
       expiresAt,
     };
+  } catch (error) {
+    logger.error('Failed to upsert AI memory', { error, ...params });
+    return undefined;
   }
-
-  await db.insert(aiMemory).values({
-    userId: params.userId,
-    memoryKey: params.memoryKey,
-    memoryData: JSON.stringify(params.data),
-    version: 1,
-    expiresAt,
-  });
-
-  return {
-    key: params.memoryKey,
-    version: 1,
-    expiresAt,
-  };
 }
 
 // ===== Reviews =====
 
-export async function createReview(review: typeof reviews.$inferInsert) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(reviews).values(review);
-  
-  // Update vector's average rating
-  const allReviews = await db.select().from(reviews).where(eq(reviews.vectorId, review.vectorId));
-  const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
-  
-  await db.update(latentVectors)
-    .set({
-      averageRating: avgRating.toFixed(2),
-      reviewCount: allReviews.length,
-    })
-    .where(eq(latentVectors.id, review.vectorId));
-  
-  return result;
+export async function createReview(review: {
+  vectorId: number;
+  userId: number;
+  rating: number;
+  comment?: string | null;
+  isVerifiedPurchase?: boolean;
+}) {
+  try {
+    const result = await prisma.review.create({
+      data: {
+        vector: { connect: { id: review.vectorId } },
+        user: { connect: { id: review.userId } },
+        rating: review.rating,
+        comment: review.comment,
+        isVerifiedPurchase: review.isVerifiedPurchase ?? false,
+      },
+    });
+
+    // Update vector's average rating
+    const allReviews = await prisma.review.findMany({
+      where: { vectorId: review.vectorId },
+    });
+    const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+
+    await prisma.latentVector.update({
+      where: { id: review.vectorId },
+      data: {
+        averageRating: avgRating.toFixed(2),
+        reviewCount: allReviews.length,
+      },
+    });
+
+    return result;
+  } catch (error) {
+    logger.error('Failed to create review', { error });
+    throw error;
+  }
 }
 
 export async function getVectorReviews(vectorId: number) {
-  const db = await getDb();
-  if (!db) return [];
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { vectorId },
+      include: {
+        user: {
+          select: {
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-  return await db
-    .select({
-      id: reviews.id,
-      vectorId: reviews.vectorId,
-      userId: reviews.userId,
-      rating: reviews.rating,
-      comment: reviews.comment,
-      isVerifiedPurchase: reviews.isVerifiedPurchase,
-      createdAt: reviews.createdAt,
-      reviewerName: users.name,
-      reviewerAvatar: users.avatar,
-    })
-    .from(reviews)
-    .leftJoin(users, eq(reviews.userId, users.id))
-    .where(eq(reviews.vectorId, vectorId))
-    .orderBy(desc(reviews.createdAt));
+    return reviews.map(r => ({
+      id: r.id,
+      vectorId: r.vectorId,
+      userId: r.userId,
+      rating: r.rating,
+      comment: r.comment,
+      isVerifiedPurchase: r.isVerifiedPurchase,
+      createdAt: r.createdAt,
+      reviewerName: r.user.name,
+      reviewerAvatar: r.user.avatar,
+    }));
+  } catch (error) {
+    logger.error('Failed to get vector reviews', { error, vectorId });
+    return [];
+  }
 }
 
 // ===== Subscriptions =====
 
 export async function getSubscriptionPlans() {
-  const db = await getDb();
-  if (!db) return [];
-  
-  return await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true));
+  try {
+    return await prisma.subscriptionPlan.findMany({
+      where: { isActive: true },
+    });
+  } catch (error) {
+    logger.error('Failed to get subscription plans', { error });
+    return [];
+  }
 }
 
 export async function getUserSubscription(userId: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  
-  const result = await db
-    .select()
-    .from(userSubscriptions)
-    .where(and(eq(userSubscriptions.userId, userId), eq(userSubscriptions.status, "active")))
-    .limit(1);
-  
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    return await prisma.userSubscription.findFirst({
+      where: {
+        userId,
+        status: "active",
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get user subscription', { error, userId });
+    return undefined;
+  }
 }
 
-export async function createUserSubscription(subscription: typeof userSubscriptions.$inferInsert) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(userSubscriptions).values(subscription);
-  return result;
+export async function createUserSubscription(subscription: {
+  userId: number;
+  planId: number;
+  stripeSubscriptionId?: string | null;
+  status?: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd?: boolean;
+}) {
+  try {
+    const result = await prisma.userSubscription.create({
+      data: {
+        user: { connect: { id: subscription.userId } },
+        plan: { connect: { id: subscription.planId } },
+        stripeSubscriptionId: subscription.stripeSubscriptionId,
+        status: subscription.status ?? 'active',
+        currentPeriodStart: subscription.currentPeriodStart,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
+      },
+    });
+    return result;
+  } catch (error) {
+    logger.error('Failed to create user subscription', { error });
+    throw error;
+  }
 }
 
-export async function updateUserSubscription(id: number, updates: Partial<typeof userSubscriptions.$inferInsert>) {
-  const db = await getDb();
-  if (!db) return false;
-  
-  await db.update(userSubscriptions).set(updates).where(eq(userSubscriptions.id, id));
-  return true;
+export async function updateUserSubscription(id: number, updates: Prisma.UserSubscriptionUpdateInput) {
+  try {
+    await prisma.userSubscription.update({
+      where: { id },
+      data: updates,
+    });
+    return true;
+  } catch (error) {
+    logger.error('Failed to update user subscription', { error, id });
+    return false;
+  }
 }
 
 // ===== API Call Logs =====
 
-export async function logApiCall(log: typeof apiCallLogs.$inferInsert) {
-  const db = await getDb();
-  if (!db) return;
-  
-  await db.insert(apiCallLogs).values(log);
+export async function logApiCall(log: {
+  userId: number;
+  vectorId: number;
+  permissionId: number;
+  responseTime?: number | null;
+  success?: boolean;
+  errorMessage?: string | null;
+}) {
+  try {
+    await prisma.apiCallLog.create({
+      data: {
+        userId: log.userId,
+        vector: { connect: { id: log.vectorId } },
+        permissionId: log.permissionId,
+        responseTime: log.responseTime,
+        success: log.success ?? true,
+        errorMessage: log.errorMessage,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to log API call', { error });
+  }
 }
 
 export async function getVectorCallStats(vectorId: number, days: number = 30) {
-  const db = await getDb();
-  if (!db) return [];
-  
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-  
-  return await db
-    .select()
-    .from(apiCallLogs)
-    .where(and(eq(apiCallLogs.vectorId, vectorId), gte(apiCallLogs.createdAt, startDate)))
-    .orderBy(desc(apiCallLogs.createdAt));
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    return await prisma.apiCallLog.findMany({
+      where: {
+        vectorId,
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get vector call stats', { error, vectorId });
+    return [];
+  }
 }
 
 export async function getCreatorRevenueTrend(userId: number, days: number = 30) {
-  const db = await getDb();
-  if (!db) return [];
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days + 1);
 
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days + 1);
+    const rows = await prisma.$queryRaw<Array<{ date: Date; revenue: number }>>`
+      SELECT DATE("createdAt") as date,
+             SUM("creator_earnings") as revenue
+      FROM transactions t
+      INNER JOIN latent_vectors v ON t.vector_id = v.id
+      WHERE v.creator_id = ${userId}
+        AND t.status = 'completed'
+        AND t."createdAt" >= ${startDate}
+      GROUP BY DATE("createdAt")
+      ORDER BY DATE("createdAt")
+    `;
 
-  const rows = await db.execute(sql`
-    SELECT DATE(t.createdAt) as date,
-           SUM(t.creator_earnings) as revenue
-    FROM transactions t
-    INNER JOIN latent_vectors v ON t.vector_id = v.id
-    WHERE v.creator_id = ${userId}
-      AND t.status = 'completed'
-      AND t.createdAt >= ${startDate}
-    GROUP BY DATE(t.createdAt)
-    ORDER BY DATE(t.createdAt)
-  `);
-
-  return (rows as unknown) as Array<{ date: string; revenue: number | string }>;
+    return rows.map(row => ({
+      date: row.date.toISOString().split('T')[0],
+      revenue: Number(row.revenue),
+    }));
+  } catch (error) {
+    logger.error('Failed to get creator revenue trend', { error, userId });
+    return [];
+  }
 }
 
 export async function getCreatorCallTrend(userId: number, days: number = 30) {
-  const db = await getDb();
-  if (!db) return [];
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days + 1);
 
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days + 1);
+    const rows = await prisma.$queryRaw<Array<{ date: Date; calls: bigint }>>`
+      SELECT DATE("createdAt") as date,
+             COUNT(*) as calls
+      FROM api_call_logs a
+      INNER JOIN latent_vectors v ON a.vector_id = v.id
+      WHERE v.creator_id = ${userId}
+        AND a."createdAt" >= ${startDate}
+      GROUP BY DATE("createdAt")
+      ORDER BY DATE("createdAt")
+    `;
 
-  const rows = await db.execute(sql`
-    SELECT DATE(a.createdAt) as date,
-           COUNT(*) as calls
-    FROM api_call_logs a
-    INNER JOIN latent_vectors v ON a.vector_id = v.id
-    WHERE v.creator_id = ${userId}
-      AND a.createdAt >= ${startDate}
-    GROUP BY DATE(a.createdAt)
-    ORDER BY DATE(a.createdAt)
-  `);
-
-  return (rows as unknown) as Array<{ date: string; calls: number | string }>;
+    return rows.map(row => ({
+      date: row.date.toISOString().split('T')[0],
+      calls: Number(row.calls),
+    }));
+  } catch (error) {
+    logger.error('Failed to get creator call trend', { error, userId });
+    return [];
+  }
 }
 
 export async function getConsumerUsageStats(userId: number, days: number = 30) {
-  const db = await getDb();
-  if (!db) return { totalCalls: 0, avgResponseTime: 0, successRate: 0 };
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days + 1);
 
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days + 1);
+    const rows = await prisma.$queryRaw<Array<{
+      totalCalls: bigint;
+      avgResponseTime: number;
+      successRate: number;
+    }>>`
+      SELECT COUNT(*) as "totalCalls",
+             AVG(response_time) as "avgResponseTime",
+             AVG(CASE WHEN success THEN 1 ELSE 0 END) as "successRate"
+      FROM api_call_logs
+      WHERE user_id = ${userId}
+        AND "createdAt" >= ${startDate}
+    `;
 
-  const rows = await db.execute(sql`
-    SELECT COUNT(*) as totalCalls,
-           AVG(response_time) as avgResponseTime,
-           AVG(success) as successRate
-    FROM api_call_logs
-    WHERE user_id = ${userId}
-      AND createdAt >= ${startDate}
-  `);
-
-  const row = (rows as any[])[0] || {};
-  return {
-    totalCalls: Number(row.totalCalls || 0),
-    avgResponseTime: Number(row.avgResponseTime || 0),
-    successRate: Number(row.successRate || 0),
-  };
+    const row = rows[0];
+    if (!row) {
+      return { totalCalls: 0, avgResponseTime: 0, successRate: 0 };
+    }
+    return {
+      totalCalls: Number(row.totalCalls || 0),
+      avgResponseTime: Number(row.avgResponseTime || 0),
+      successRate: Number(row.successRate || 0),
+    };
+  } catch (error) {
+    logger.error('Failed to get consumer usage stats', { error, userId });
+    return { totalCalls: 0, avgResponseTime: 0, successRate: 0 };
+  }
 }
 
 export async function getConsumerAverageRating(userId: number) {
-  const db = await getDb();
-  if (!db) return 0;
+  try {
+    const result = await prisma.review.aggregate({
+      where: { userId },
+      _avg: {
+        rating: true,
+      },
+    });
 
-  const rows = await db.execute(sql`
-    SELECT AVG(rating) as avgRating
-    FROM reviews
-    WHERE user_id = ${userId}
-  `);
-
-  const row = (rows as any[])[0] || {};
-  return Number(row.avgRating || 0);
+    return result._avg.rating || 0;
+  } catch (error) {
+    logger.error('Failed to get consumer average rating', { error, userId });
+    return 0;
+  }
 }
 
 // ===== Notifications =====
 
-export async function createNotification(notification: typeof notifications.$inferInsert) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const result = await db.insert(notifications).values(notification);
-  return result;
+export async function createNotification(notification: {
+  userId: number;
+  type: string;
+  title: string;
+  message: string;
+  relatedEntityId?: number | null;
+}) {
+  try {
+    const result = await prisma.notification.create({
+      data: {
+        user: { connect: { id: notification.userId } },
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        relatedEntityId: notification.relatedEntityId,
+      },
+    });
+    return result;
+  } catch (error) {
+    logger.error('Failed to create notification', { error });
+    throw error;
+  }
 }
 
 export async function getUserNotifications(userId: number, unreadOnly: boolean = false) {
-  const db = await getDb();
-  if (!db) return [];
-  
-  const conditions = [eq(notifications.userId, userId)];
-  if (unreadOnly) {
-    conditions.push(eq(notifications.isRead, false));
+  try {
+    const where: Prisma.NotificationWhereInput = { userId };
+    if (unreadOnly) {
+      where.isRead = false;
+    }
+
+    return await prisma.notification.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get user notifications', { error, userId });
+    return [];
   }
-  
-  return await db
-    .select()
-    .from(notifications)
-    .where(and(...conditions))
-    .orderBy(desc(notifications.createdAt));
 }
 
 export async function markNotificationAsRead(id: number) {
-  const db = await getDb();
-  if (!db) return false;
-  
-  await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
-  return true;
+  try {
+    await prisma.notification.update({
+      where: { id },
+      data: { isRead: true },
+    });
+    return true;
+  } catch (error) {
+    logger.error('Failed to mark notification as read', { error, id });
+    return false;
+  }
 }
 
 // ===== User Preferences =====
 
 export async function getUserPreferences(userId: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  
-  const result = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    return await prisma.userPreference.findUnique({
+      where: { userId },
+    });
+  } catch (error) {
+    logger.error('Failed to get user preferences', { error, userId });
+    return undefined;
+  }
 }
 
-export async function upsertUserPreferences(userId: number, prefs: Partial<typeof userPreferences.$inferInsert>) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const existing = await getUserPreferences(userId);
-  
-  if (existing) {
-    await db.update(userPreferences).set(prefs).where(eq(userPreferences.userId, userId));
-  } else {
-    await db.insert(userPreferences).values({ userId, ...prefs });
+export async function upsertUserPreferences(userId: number, prefs: Prisma.UserPreferenceUpdateInput) {
+  try {
+    await prisma.userPreference.upsert({
+      where: { userId },
+      create: {
+        userId,
+        ...prefs,
+      } as Prisma.UserPreferenceCreateInput,
+      update: prefs,
+    });
+    return true;
+  } catch (error) {
+    logger.error('Failed to upsert user preferences', { error, userId });
+    throw error;
   }
-  
-  return true;
 }
 
 // ===== Browsing History =====
 
 export async function insertBrowsingHistory(history: InsertBrowsingHistory) {
-  const db = await getDb();
-  if (!db) return;
-  
   try {
-    await db.insert(browsingHistory).values(history);
+    await prisma.browsingHistory.create({
+      data: history,
+    });
   } catch (error) {
     logger.error('Failed to insert browsing history', { error, userId: history.userId });
   }
 }
 
 export async function getBrowsingHistory(userId: number, since?: Date) {
-  const db = await getDb();
-  if (!db) return [];
-  
   try {
-    const conditions = [eq(browsingHistory.userId, userId)];
+    const where: Prisma.BrowsingHistoryWhereInput = { userId };
     if (since) {
-      conditions.push(gte(browsingHistory.createdAt, since));
+      where.createdAt = { gte: since };
     }
 
-    const result = await db
-      .select()
-      .from(browsingHistory)
-      .where(and(...conditions))
-      .orderBy(desc(browsingHistory.createdAt))
-      .limit(100);
-
-    return result;
+    return await prisma.browsingHistory.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 100,
+    });
   } catch (error) {
     logger.error('Failed to get browsing history', { error, userId });
     return [];
@@ -975,13 +1215,10 @@ export async function getBrowsingHistory(userId: number, since?: Date) {
 // ===== Vector Packages (LatentMAS Marketplace) =====
 
 export async function createVectorPackage(packageData: InsertVectorPackage) {
-  const db = await getDb();
-  if (!db) {
-    throw new Error("Database not available");
-  }
-
   try {
-    const result = await db.insert(vectorPackages).values(packageData);
+    const result = await prisma.vectorPackage.create({
+      data: packageData,
+    });
     return result;
   } catch (error) {
     logger.error('Failed to create vector package', { error, name: packageData.name });
@@ -990,17 +1227,10 @@ export async function createVectorPackage(packageData: InsertVectorPackage) {
 }
 
 export async function getVectorPackageById(id: number): Promise<VectorPackage | null> {
-  const db = await getDb();
-  if (!db) return null;
-
   try {
-    const result = await db
-      .select()
-      .from(vectorPackages)
-      .where(eq(vectorPackages.id, id))
-      .limit(1);
-
-    return result[0] || null;
+    return await prisma.vectorPackage.findUnique({
+      where: { id },
+    });
   } catch (error) {
     logger.error('Failed to get vector package by ID', { error, id });
     return null;
@@ -1008,17 +1238,10 @@ export async function getVectorPackageById(id: number): Promise<VectorPackage | 
 }
 
 export async function getVectorPackageByPackageId(packageId: string): Promise<VectorPackage | null> {
-  const db = await getDb();
-  if (!db) return null;
-
   try {
-    const result = await db
-      .select()
-      .from(vectorPackages)
-      .where(eq(vectorPackages.packageId, packageId))
-      .limit(1);
-
-    return result[0] || null;
+    return await prisma.vectorPackage.findUnique({
+      where: { packageId },
+    });
   } catch (error) {
     logger.error('Failed to get vector package by packageId', { error, packageId });
     return null;
@@ -1034,37 +1257,32 @@ export async function browseVectorPackages(filters: {
   limit?: number;
   offset?: number;
 }): Promise<VectorPackage[]> {
-  const db = await getDb();
-  if (!db) return [];
-
   try {
-    const conditions: SQL[] = [];
-
-    // Only show active packages by default
-    conditions.push(eq(vectorPackages.status, (filters.status || 'active') as any));
+    const where: Prisma.VectorPackageWhereInput = {
+      status: filters.status || 'active',
+    };
 
     if (filters.sourceModel) {
-      conditions.push(eq(vectorPackages.sourceModel, filters.sourceModel));
+      where.sourceModel = filters.sourceModel;
     }
     if (filters.targetModel) {
-      conditions.push(eq(vectorPackages.targetModel, filters.targetModel));
+      where.targetModel = filters.targetModel;
     }
     if (filters.maxEpsilon !== undefined) {
-      conditions.push(lte(vectorPackages.epsilon, filters.maxEpsilon.toString()));
+      where.epsilon = { lte: filters.maxEpsilon };
     }
     if (filters.category) {
-      conditions.push(eq(vectorPackages.category, filters.category as any));
+      where.category = filters.category;
     }
 
-    const result = await db
-      .select()
-      .from(vectorPackages)
-      .where(and(...conditions))
-      .orderBy(desc(vectorPackages.createdAt))
-      .limit(filters.limit || 20)
-      .offset(filters.offset || 0);
-
-    return result;
+    return await prisma.vectorPackage.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: filters.limit || 20,
+      skip: filters.offset || 0,
+    });
   } catch (error) {
     logger.error('Failed to browse vector packages', { error, filters });
     return [];
@@ -1076,15 +1294,11 @@ export async function updateVectorPackageStats(id: number, updates: {
   rating?: string;
   reviewCount?: number;
 }) {
-  const db = await getDb();
-  if (!db) return false;
-
   try {
-    await db
-      .update(vectorPackages)
-      .set(updates)
-      .where(eq(vectorPackages.id, id));
-
+    await prisma.vectorPackage.update({
+      where: { id },
+      data: updates,
+    });
     return true;
   } catch (error) {
     logger.error('Failed to update vector package stats', { error, id, updates });
@@ -1093,15 +1307,15 @@ export async function updateVectorPackageStats(id: number, updates: {
 }
 
 export async function incrementVectorPackageDownloads(id: number) {
-  const db = await getDb();
-  if (!db) return false;
-
   try {
-    await db
-      .update(vectorPackages)
-      .set({ downloads: sql`${vectorPackages.downloads} + 1` })
-      .where(eq(vectorPackages.id, id));
-
+    await prisma.vectorPackage.update({
+      where: { id },
+      data: {
+        downloads: {
+          increment: 1,
+        },
+      },
+    });
     return true;
   } catch (error) {
     logger.error('Failed to increment downloads', { error, id });
@@ -1112,13 +1326,10 @@ export async function incrementVectorPackageDownloads(id: number) {
 // ===== Memory Packages (LatentMAS Marketplace) =====
 
 export async function createMemoryPackage(packageData: InsertMemoryPackage) {
-  const db = await getDb();
-  if (!db) {
-    throw new Error("Database not available");
-  }
-
   try {
-    const result = await db.insert(memoryPackages).values(packageData);
+    const result = await prisma.memoryPackage.create({
+      data: packageData,
+    });
     return result;
   } catch (error) {
     logger.error('Failed to create memory package', { error, name: packageData.name });
@@ -1127,17 +1338,10 @@ export async function createMemoryPackage(packageData: InsertMemoryPackage) {
 }
 
 export async function getMemoryPackageById(id: number): Promise<MemoryPackage | null> {
-  const db = await getDb();
-  if (!db) return null;
-
   try {
-    const result = await db
-      .select()
-      .from(memoryPackages)
-      .where(eq(memoryPackages.id, id))
-      .limit(1);
-
-    return result[0] || null;
+    return await prisma.memoryPackage.findUnique({
+      where: { id },
+    });
   } catch (error) {
     logger.error('Failed to get memory package', { error, id });
     return null;
@@ -1154,40 +1358,35 @@ export async function browseMemoryPackages(filters: {
   limit?: number;
   offset?: number;
 }): Promise<MemoryPackage[]> {
-  const db = await getDb();
-  if (!db) return [];
-
   try {
-    const conditions: SQL[] = [];
-
-    // Only show active packages by default
-    conditions.push(eq(memoryPackages.status, (filters.status || 'active') as any));
+    const where: Prisma.MemoryPackageWhereInput = {
+      status: filters.status || 'active',
+    };
 
     if (filters.sourceModel) {
-      conditions.push(eq(memoryPackages.sourceModel, filters.sourceModel));
+      where.sourceModel = filters.sourceModel;
     }
     if (filters.targetModel) {
-      conditions.push(eq(memoryPackages.targetModel, filters.targetModel));
+      where.targetModel = filters.targetModel;
     }
     if (filters.memoryType) {
-      conditions.push(eq(memoryPackages.memoryType, filters.memoryType as any));
+      where.memoryType = filters.memoryType;
     }
     if (filters.maxEpsilon !== undefined) {
-      conditions.push(lte(memoryPackages.epsilon, filters.maxEpsilon.toString()));
+      where.epsilon = { lte: filters.maxEpsilon };
     }
     if (filters.minTokenCount !== undefined) {
-      conditions.push(gte(memoryPackages.tokenCount, filters.minTokenCount));
+      where.tokenCount = { gte: filters.minTokenCount };
     }
 
-    const result = await db
-      .select()
-      .from(memoryPackages)
-      .where(and(...conditions))
-      .orderBy(desc(memoryPackages.createdAt))
-      .limit(filters.limit || 20)
-      .offset(filters.offset || 0);
-
-    return result;
+    return await prisma.memoryPackage.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: filters.limit || 20,
+      skip: filters.offset || 0,
+    });
   } catch (error) {
     logger.error('Failed to browse memory packages', { error, filters });
     return [];
@@ -1195,32 +1394,24 @@ export async function browseMemoryPackages(filters: {
 }
 
 export async function getVectorPackagesStatistics() {
-  const db = await getDb();
-  if (!db) {
-    return {
-      totalPackages: 0,
-      totalDownloads: 0,
-      averageEpsilon: 0,
-      averageRating: 0,
-    };
-  }
-
   try {
-    const result = await db
-      .select({
-        totalPackages: sql<number>`COUNT(*)`,
-        totalDownloads: sql<number>`SUM(${vectorPackages.downloads})`,
-        averageEpsilon: sql<number>`AVG(${vectorPackages.epsilon})`,
-        averageRating: sql<number>`AVG(${vectorPackages.rating})`,
-      })
-      .from(vectorPackages)
-      .where(eq(vectorPackages.status, 'active'));
+    const result = await prisma.vectorPackage.aggregate({
+      where: { status: 'active' },
+      _count: true,
+      _sum: {
+        downloads: true,
+      },
+      _avg: {
+        epsilon: true,
+        rating: true,
+      },
+    });
 
-    return result[0] || {
-      totalPackages: 0,
-      totalDownloads: 0,
-      averageEpsilon: 0,
-      averageRating: 0,
+    return {
+      totalPackages: result._count || 0,
+      totalDownloads: Number(result._sum.downloads || 0),
+      averageEpsilon: Number(result._avg.epsilon || 0),
+      averageRating: Number(result._avg.rating || 0),
     };
   } catch (error) {
     logger.error('Failed to get vector packages statistics', { error });
@@ -1243,9 +1434,6 @@ export async function createPackagePurchase(data: {
   amount: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
 }): Promise<number> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-
   try {
     // Get package details to determine seller
     const pkg = await getVectorPackageById(data.packageId);
@@ -1256,18 +1444,20 @@ export async function createPackagePurchase(data: {
     const platformFee = price * platformFeeRate;
     const sellerEarnings = price - platformFee;
 
-    const result = await db.insert(packagePurchases).values({
-      packageType: 'vector',
-      packageId: pkg.packageId,
-      buyerId: data.userId,
-      sellerId: pkg.userId,
-      price: data.amount,
-      platformFee: platformFee.toFixed(2),
-      sellerEarnings: sellerEarnings.toFixed(2),
-      status: data.status,
+    const result = await prisma.packagePurchase.create({
+      data: {
+        packageType: 'vector',
+        packageId: pkg.packageId,
+        buyerId: data.userId,
+        sellerId: pkg.userId,
+        price: data.amount,
+        platformFee: platformFee.toFixed(2),
+        sellerEarnings: sellerEarnings.toFixed(2),
+        status: data.status,
+      },
     });
 
-    return Number((result as any).insertId);
+    return result.id;
   } catch (error) {
     logger.error('Failed to create package purchase', { error, data });
     throw error;
@@ -1278,22 +1468,13 @@ export async function getUserPackagePurchaseByPackageId(
   userId: number,
   packageId: string
 ): Promise<any | null> {
-  const db = await getDb();
-  if (!db) return null;
-
   try {
-    const result = await db
-      .select()
-      .from(packagePurchases)
-      .where(
-        and(
-          eq(packagePurchases.buyerId, userId),
-          eq(packagePurchases.packageId, packageId)
-        )
-      )
-      .limit(1);
-
-    return result[0] || null;
+    return await prisma.packagePurchase.findFirst({
+      where: {
+        buyerId: userId,
+        packageId,
+      },
+    });
   } catch (error) {
     logger.error('Failed to get package purchase', { error, userId, packageId });
     return null;
@@ -1306,27 +1487,21 @@ export async function updatePackagePurchaseStatus(data: {
   status: 'pending' | 'completed' | 'failed' | 'refunded';
   completedAt?: Date;
 }): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('Database not available');
-
   try {
     // Get package ID string
     const pkg = await getVectorPackageById(data.packageId);
     if (!pkg) throw new Error('Package not found');
 
-    await db
-      .update(packagePurchases)
-      .set({ 
+    await prisma.packagePurchase.updateMany({
+      where: {
+        buyerId: data.userId,
+        packageId: pkg.packageId,
+      },
+      data: {
         status: data.status,
-        // @ts-ignore - timestamp update
-        purchasedAt: data.completedAt || new Date()
-      })
-      .where(
-        and(
-          eq(packagePurchases.buyerId, data.userId),
-          eq(packagePurchases.packageId, pkg.packageId)
-        )
-      );
+        purchasedAt: data.completedAt || new Date(),
+      },
+    });
 
     logger.info('Package purchase status updated', {
       userId: data.userId,
