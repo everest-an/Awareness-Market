@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "path";
 import { defineConfig, Plugin } from "vite";
-import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+// import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
 /**
  * 自定义插件：确保正确的模块加载顺序
@@ -103,7 +103,7 @@ function ensureReactLoadOrder(): Plugin {
 const plugins = [
   react(),
   tailwindcss(),
-  vitePluginManusRuntime(),
+  // vitePluginManusRuntime(), // Disabled for Vercel deployment
   ensureReactLoadOrder()
 ];
 
