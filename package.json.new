@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "build:frontend": "vite build",
+    "build:backend": "esbuild server/_core/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:@prisma/client --external:better-sqlite3 --external:@tensorflow/tfjs-node",
+    "build": "npm run build:frontend && npm run build:backend",
+    "deploy:backend": "./scripts/deploy-backend.sh",
+    "deploy:frontend": "vercel --prod"
+  }
+}
