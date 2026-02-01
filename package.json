@@ -27,7 +27,10 @@
     "check:deploy": "tsx scripts/pre-deployment-check.ts",
     "check:pgvector": "tsx scripts/check-pgvector.ts",
     "monitor": "tsx scripts/monitor-resources.ts",
-    "monitor:watch": "tsx scripts/monitor-resources.ts --watch"
+    "monitor:watch": "tsx scripts/monitor-resources.ts --watch",
+    "build:frontend": "vite build",
+    "build:backend": "esbuild server/_core/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:@prisma/client --external:better-sqlite3 --external:@tensorflow/tfjs-node",
+    "deploy:backend": "./scripts/deploy-backend.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",
