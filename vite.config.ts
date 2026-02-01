@@ -110,7 +110,7 @@ const plugins = [
   react(),
   tailwindcss(),
   // vitePluginManusRuntime(), // Disabled for Vercel deployment
-  ensureReactLoadOrder()
+  // ensureReactLoadOrder() // Disabled for testing
 ];
 
 export default defineConfig({
