@@ -1,15 +1,38 @@
 {
-    "rewrites": [
+  "buildCommand": "npx vite build",
+  "outputDirectory": "dist/public",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "http://44.220.181.78:3001/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
         {
-            "source": "/api/(.*)",
-            "destination": "/api/index.ts"
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
         },
         {
-            "source": "/(.*)",
-            "destination": "/index.html"
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
         }
-    ],
-    "env": {
-        "NODE_ENV": "production"
+      ]
     }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
