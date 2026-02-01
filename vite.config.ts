@@ -90,7 +90,13 @@ function ensureReactLoadOrder(): Plugin {
       // 在 body 结束前插入排序后的 scripts
       const scriptTags = sortedScripts
         .filter(s => !s.isPreload)
-        .map(s => s.tag)
+        .map(s => {
+          // 确保 script 标签正确闭合
+          if (s.tag.endsWith('>') && !s.tag.endsWith('</script>')) {
+            return s.tag.replace('>', '></script>');
+          }
+          return s.tag;
+        })
         .join('\n    ');
 
       newHtml = newHtml.replace('</body>', `  ${scriptTags}\n  </body>`);
