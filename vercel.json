@@ -5,10 +5,6 @@
   "framework": null,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "http://44.220.181.78:3001/api/$1"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
