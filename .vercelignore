@@ -6,6 +6,7 @@ __pycache__
 
 # Ignore server files
 server/
+api/
 ecosystem.config.cjs
 
 # Ignore development files
