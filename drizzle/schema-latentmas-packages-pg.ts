@@ -13,15 +13,16 @@
  * - 4.5: latent_thought_dim column
  */
 
-import { 
-  pgTable, 
-  integer, 
-  varchar, 
-  text, 
-  timestamp, 
-  numeric, 
-  boolean, 
-  pgEnum, 
+import {
+  pgTable,
+  serial,
+  integer,
+  varchar,
+  text,
+  timestamp,
+  numeric,
+  boolean,
+  pgEnum,
   index,
   bigint
 } from "drizzle-orm/pg-core";
@@ -39,7 +40,7 @@ export const packageModeEnum = pgEnum('package_mode', ['static', 'latent']);
  * latent working memory support including drift metrics and Wa alignment.
  */
 export const latentmasVectorPackages = pgTable('latentmas_vector_packages', {
-  id: integer('id').autoincrement().primaryKey(),
+  id: serial('id').primaryKey(),
   
   // Reference to base vector package
   vectorPackageId: integer('vector_package_id').notNull().unique(),
@@ -87,7 +88,7 @@ export const latentmasVectorPackages = pgTable('latentmas_vector_packages', {
  * KV-Cache state transfer and Wa alignment metadata.
  */
 export const latentmasMemoryPackages = pgTable('latentmas_memory_packages', {
-  id: integer('id').autoincrement().primaryKey(),
+  id: serial('id').primaryKey(),
   
   // Reference to base memory package
   memoryPackageId: integer('memory_package_id').notNull().unique(),
@@ -135,7 +136,7 @@ export const latentmasMemoryPackages = pgTable('latentmas_memory_packages', {
  * reasoning chain KV-Cache snapshots and step-by-step quality metrics.
  */
 export const latentmasChainPackages = pgTable('latentmas_chain_packages', {
-  id: integer('id').autoincrement().primaryKey(),
+  id: serial('id').primaryKey(),
   
   // Reference to base chain package
   chainPackageId: integer('chain_package_id').notNull().unique(),
@@ -211,7 +212,7 @@ export const latentSpaceStatusEnum = pgEnum('latent_space_status', ['active', 'a
  */
 export const userLatentSpaces = pgTable('user_latent_spaces', {
   // Primary key
-  id: integer('id').autoincrement().primaryKey(),
+  id: serial('id').primaryKey(),
   
   // User reference (references users table)
   userId: integer('user_id').notNull(),
