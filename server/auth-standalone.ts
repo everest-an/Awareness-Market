@@ -2,23 +2,28 @@
  * Standalone Authentication System
  * Supports email/password, GitHub OAuth, Hugging Face OAuth, and Google OAuth
  * JWT token-based authentication
+ *
+ * Uses Prisma Client for PostgreSQL
  */
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { getDb } from "./db";
-import { users } from "../drizzle/schema";
-import { eq, type InferSelectModel } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 import { nanoid } from "nanoid";
 
-// User type from database schema
-type User = InferSelectModel<typeof users>;
-// User type without password for API responses
-type SafeUser = Omit<User, 'password'>;
-
-// MySQL result type
-interface InsertResult {
-  insertId: number;
+// User type for API responses (without password)
+interface SafeUser {
+  id: number;
+  openId: string;
+  name: string | null;
+  email: string | null;
+  avatar: string | null;
+  role: string;
+  loginMethod: string | null;
+  emailVerified: boolean | null;
+  lastSignedIn: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // JWT secret from environment or fallback
@@ -66,7 +71,7 @@ export function verifyToken(token: string): JWTPayload | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     return decoded;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -94,12 +99,12 @@ export async function registerWithEmail(params: {
   password: string;
   name?: string;
 }): Promise<{ success: boolean; userId?: number; accessToken?: string; refreshToken?: string; error?: string }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
   // Check if email already exists
-  const existing = await db.select().from(users).where(eq(users.email, params.email)).limit(1);
-  if (existing.length > 0) {
+  const existing = await prisma.user.findFirst({
+    where: { email: params.email }
+  });
+
+  if (existing) {
     return { success: false, error: "Email already registered" };
   }
 
@@ -107,24 +112,23 @@ export async function registerWithEmail(params: {
   const passwordHash = await hashPassword(params.password);
 
   // Create user
-  const result = await db.insert(users).values({
-    email: params.email,
-    password: passwordHash,
-    name: params.name || params.email.split("@")[0],
-    openId: nanoid(), // Generate unique openId for compatibility
-    loginMethod: "email",
-    role: "consumer",
-    emailVerified: false,
+  const newUser = await prisma.user.create({
+    data: {
+      email: params.email,
+      password: passwordHash,
+      name: params.name || params.email.split("@")[0],
+      openId: nanoid(),
+      loginMethod: "email",
+      role: "consumer",
+      emailVerified: false,
+    }
   });
 
-  const userId = Number((result as unknown as InsertResult).insertId);
-  
   // Generate tokens
-  const user = { id: userId, email: params.email, role: "consumer" };
-  const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken(user);
+  const accessToken = generateAccessToken(newUser);
+  const refreshToken = generateRefreshToken(newUser);
 
-  return { success: true, userId, accessToken, refreshToken };
+  return { success: true, userId: newUser.id, accessToken, refreshToken };
 }
 
 /**
@@ -134,16 +138,14 @@ export async function loginWithEmail(params: {
   email: string;
   password: string;
 }): Promise<{ success: boolean; user?: SafeUser; accessToken?: string; refreshToken?: string; error?: string }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   // Find user by email
-  const userList = await db.select().from(users).where(eq(users.email, params.email)).limit(1);
-  if (userList.length === 0) {
+  const user = await prisma.user.findFirst({
+    where: { email: params.email }
+  });
+
+  if (!user) {
     return { success: false, error: "Invalid email or password" };
   }
-
-  const user = userList[0];
 
   // Verify password
   if (!user.password) {
@@ -156,14 +158,17 @@ export async function loginWithEmail(params: {
   }
 
   // Update last signed in
-  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastSignedIn: new Date() }
+  });
 
   // Generate tokens
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
 
   // Return user without password
-  const { password, ...userWithoutPassword } = user;
+  const { password: _, ...userWithoutPassword } = user;
   return { success: true, user: userWithoutPassword, accessToken, refreshToken };
 }
 
@@ -172,23 +177,21 @@ export async function loginWithEmail(params: {
  */
 export async function refreshAccessToken(refreshToken: string): Promise<{ success: boolean; accessToken?: string; error?: string }> {
   const payload = verifyToken(refreshToken);
-  
+
   if (!payload || payload.type !== "refresh") {
     return { success: false, error: "Invalid refresh token" };
   }
 
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   // Verify user still exists
-  const userList = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
-  if (userList.length === 0) {
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId }
+  });
+
+  if (!user) {
     return { success: false, error: "User not found" };
   }
 
-  const user = userList[0];
   const accessToken = generateAccessToken(user);
-
   return { success: true, accessToken };
 }
 
@@ -202,47 +205,47 @@ export async function findOrCreateOAuthUser(params: {
   name?: string;
   avatar?: string;
 }): Promise<{ user: SafeUser; accessToken: string; refreshToken: string }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   // Generate openId from provider and providerId
   const openId = `${params.provider}:${params.providerId}`;
 
   // Try to find existing user
-  const existing = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  
-  if (existing.length > 0) {
-    const user = existing[0];
+  let user = await prisma.user.findFirst({
+    where: { openId }
+  });
+
+  if (user) {
     // Update last signed in
-    await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
-    
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastSignedIn: new Date() }
+    });
+
     // Generate tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-    
-    const { password, ...userWithoutPassword } = user;
+
+    const { password: _, ...userWithoutPassword } = user;
     return { user: userWithoutPassword, accessToken, refreshToken };
   }
 
   // Create new user
-  const result = await db.insert(users).values({
-    openId,
-    email: params.email,
-    name: params.name || params.email?.split("@")[0] || "User",
-    avatar: params.avatar,
-    loginMethod: params.provider,
-    role: "consumer",
-    emailVerified: true, // OAuth emails are pre-verified
+  user = await prisma.user.create({
+    data: {
+      openId,
+      email: params.email,
+      name: params.name || params.email?.split("@")[0] || "User",
+      avatar: params.avatar,
+      loginMethod: params.provider,
+      role: "consumer",
+      emailVerified: true, // OAuth emails are pre-verified
+    }
   });
 
-  const newUserList = await db.select().from(users).where(eq(users.id, Number((result as unknown as InsertResult).insertId))).limit(1);
-  const newUser = newUserList[0];
-  
   // Generate tokens
-  const accessToken = generateAccessToken(newUser);
-  const refreshToken = generateRefreshToken(newUser);
-  
-  const { password, ...userWithoutPassword } = newUser;
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  const { password: _, ...userWithoutPassword } = user;
   return { user: userWithoutPassword, accessToken, refreshToken };
 }
 
@@ -251,20 +254,20 @@ export async function findOrCreateOAuthUser(params: {
  */
 export async function getUserFromToken(token: string): Promise<{ success: boolean; user?: SafeUser; error?: string }> {
   const payload = verifyToken(token);
-  
+
   if (!payload || payload.type !== "access") {
     return { success: false, error: "Invalid token" };
   }
 
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId }
+  });
 
-  const userList = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
-  if (userList.length === 0) {
+  if (!user) {
     return { success: false, error: "User not found" };
   }
 
-  const { password, ...userWithoutPassword } = userList[0];
+  const { password: _, ...userWithoutPassword } = user;
   return { success: true, user: userWithoutPassword };
 }
 
@@ -272,33 +275,31 @@ export async function getUserFromToken(token: string): Promise<{ success: boolea
  * Request password reset - send verification code to email
  */
 export async function requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   // Check if user exists
-  const userList = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  if (userList.length === 0) {
+  const user = await prisma.user.findFirst({
+    where: { email }
+  });
+
+  if (!user) {
     // Don't reveal if email exists for security
     return { success: true };
   }
 
   const { generateVerificationCode, sendPasswordResetEmail } = await import("./email-service");
-  const { passwordResetCodes } = await import("../drizzle/schema");
 
   // Generate 6-digit code
   const code = generateVerificationCode();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  // Store code in database
-  await db.insert(passwordResetCodes).values({
-    email,
-    code,
-    expiresAt,
-  });
+  // Store code in database using raw SQL (passwordResetCodes may not be in Prisma schema yet)
+  await prisma.$executeRaw`
+    INSERT INTO password_reset_codes (email, code, expires_at, created_at)
+    VALUES (${email}, ${code}, ${expiresAt}, ${new Date()})
+  `;
 
   // Send email
   const emailSent = await sendPasswordResetEmail(email, code, 10);
-  
+
   if (!emailSent) {
     return { success: false, error: "Failed to send email" };
   }
@@ -310,24 +311,12 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
  * Verify reset code
  */
 export async function verifyResetCode(email: string, code: string): Promise<{ success: boolean; error?: string }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const { passwordResetCodes } = await import("../drizzle/schema");
-  const { and, isNull } = await import("drizzle-orm");
-
-  // Find unused code for this email
-  const codeList = await db
-    .select()
-    .from(passwordResetCodes)
-    .where(
-      and(
-        eq(passwordResetCodes.email, email),
-        eq(passwordResetCodes.code, code),
-        isNull(passwordResetCodes.used)
-      )
-    )
-    .limit(1);
+  // Find unused code for this email using raw SQL
+  const codeList = await prisma.$queryRaw<{ id: number; expires_at: Date }[]>`
+    SELECT id, expires_at FROM password_reset_codes
+    WHERE email = ${email} AND code = ${code} AND used IS NULL
+    LIMIT 1
+  `;
 
   if (codeList.length === 0) {
     return { success: false, error: "Invalid or expired code" };
@@ -336,7 +325,7 @@ export async function verifyResetCode(email: string, code: string): Promise<{ su
   const resetCode = codeList[0];
 
   // Check if expired
-  if (new Date() > new Date(resetCode.expiresAt)) {
+  if (new Date() > new Date(resetCode.expires_at)) {
     return { success: false, error: "Code has expired" };
   }
 
@@ -351,9 +340,6 @@ export async function resetPassword(
   code: string,
   newPassword: string
 ): Promise<{ success: boolean; error?: string }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   // Verify code first
   const verifyResult = await verifyResetCode(email, code);
   if (!verifyResult.success) {
@@ -364,22 +350,17 @@ export async function resetPassword(
   const passwordHash = await hashPassword(newPassword);
 
   // Update user password
-  await db.update(users).set({ password: passwordHash }).where(eq(users.email, email));
+  await prisma.user.updateMany({
+    where: { email },
+    data: { password: passwordHash }
+  });
 
   // Mark code as used
-  const { passwordResetCodes } = await import("../drizzle/schema");
-  const { and, isNull } = await import("drizzle-orm");
-  
-  await db
-    .update(passwordResetCodes)
-    .set({ used: new Date() })
-    .where(
-      and(
-        eq(passwordResetCodes.email, email),
-        eq(passwordResetCodes.code, code),
-        isNull(passwordResetCodes.used)
-      )
-    );
+  await prisma.$executeRaw`
+    UPDATE password_reset_codes
+    SET used = ${new Date()}
+    WHERE email = ${email} AND code = ${code} AND used IS NULL
+  `;
 
   return { success: true };
 }
