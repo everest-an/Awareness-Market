@@ -1,19 +1,16 @@
 /**
  * Memory NFT API
- * 
+ *
  * tRPC endpoints for Memory NFT marketplace
+ * Uses Prisma Client for PostgreSQL
  */
 
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { getDb } from '../db';
-import { assertDatabaseAvailable } from '../utils/error-handling';
-import { memoryNFTs } from '../../drizzle/schema-memory-nft';
-import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
-import { createLogger } from '../utils/logger';
-
-const logger = createLogger('MemoryNFT:API');
+import { prisma } from '../db-prisma.js';
+import { logger } from '../utils/logger.js';
+import type { Prisma } from '@prisma/client';
 
 // ============================================================================
 // Input Schemas
@@ -50,29 +47,30 @@ export const memoryNFTRouter = router({
   browse: publicProcedure
     .input(browseMemoriesSchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
+      const where: Prisma.MemoryNFTWhereInput = {};
 
-      const conditions: SQL[] = [];
-      if (input.memoryType) conditions.push(eq(memoryNFTs.memoryType, input.memoryType));
-      if (input.certification) conditions.push(eq(memoryNFTs.certification, input.certification));
-
-      let orderByClause: SQL = desc(memoryNFTs.mintedAt);
-      if (input.sortBy === 'price') {
-        orderByClause = desc(sql`CAST(${memoryNFTs.price} AS DECIMAL(18,2))`);
-      } else if (input.sortBy === 'quality') {
-        orderByClause = desc(sql`CAST(${memoryNFTs.epsilon} AS DECIMAL(18,6))`);
-      } else if (input.sortBy === 'popular') {
-        orderByClause = desc(memoryNFTs.downloads);
+      if (input.memoryType) {
+        where.memoryType = input.memoryType;
+      }
+      if (input.certification) {
+        where.certification = input.certification;
       }
 
-      const records = await db
-        .select()
-        .from(memoryNFTs)
-        .where(conditions.length ? and(...conditions) : undefined)
-        .orderBy(orderByClause)
-        .limit(input.limit)
-        .offset(input.offset);
+      let orderBy: Prisma.MemoryNFTOrderByWithRelationInput = { mintedAt: 'desc' };
+      if (input.sortBy === 'price') {
+        orderBy = { price: 'desc' };
+      } else if (input.sortBy === 'quality') {
+        orderBy = { epsilon: 'asc' }; // Lower epsilon = better quality
+      } else if (input.sortBy === 'popular') {
+        orderBy = { downloads: 'desc' };
+      }
+
+      const records = await prisma.memoryNFT.findMany({
+        where,
+        orderBy,
+        take: input.limit,
+        skip: input.offset,
+      });
 
       return records.map((record) => ({
         id: record.id,
@@ -100,20 +98,14 @@ export const memoryNFTRouter = router({
   getDetail: publicProcedure
     .input(getDetailSchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
+      const record = await prisma.memoryNFT.findUnique({
+        where: { id: input.nftId },
+      });
 
-      const records = await db
-        .select()
-        .from(memoryNFTs)
-        .where(eq(memoryNFTs.id, input.nftId))
-        .limit(1);
-
-      if (!records.length) {
+      if (!record) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Memory NFT not found' });
       }
 
-      const record = records[0];
       return {
         id: record.id,
         name: record.name,
@@ -141,7 +133,7 @@ export const memoryNFTRouter = router({
     .input(getProvenanceSchema)
     .query(async ({ input }) => {
       // Build family tree from database
-      const { buildFamilyTree } = await import('../db-provenance');
+      const { buildFamilyTree } = await import('../db-provenance.js');
 
       try {
         const familyTree = await buildFamilyTree(input.memoryId);
@@ -175,25 +167,20 @@ export const memoryNFTRouter = router({
   purchase: protectedProcedure
     .input(purchaseSchema)
     .mutation(async ({ input, ctx }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
+      const record = await prisma.memoryNFT.findUnique({
+        where: { id: input.nftId },
+      });
 
-      const records = await db
-        .select()
-        .from(memoryNFTs)
-        .where(eq(memoryNFTs.id, input.nftId))
-        .limit(1);
-
-      if (!records.length) {
+      if (!record) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Memory NFT not found' });
       }
 
-      await db
-        .update(memoryNFTs)
-        .set({
-          downloads: sql`${memoryNFTs.downloads} + 1`,
-        })
-        .where(eq(memoryNFTs.id, input.nftId));
+      await prisma.memoryNFT.update({
+        where: { id: input.nftId },
+        data: {
+          downloads: { increment: 1 },
+        },
+      });
 
       return {
         success: true,
@@ -207,22 +194,31 @@ export const memoryNFTRouter = router({
    */
   getStats: publicProcedure
     .query(async () => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
+      const count = await prisma.memoryNFT.count();
 
-      const [{ count }] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(memoryNFTs);
+      const avgResult = await prisma.memoryNFT.aggregate({
+        _avg: {
+          downloads: true,
+        },
+      });
 
-      const [{ avgEpsilon }] = await db
-        .select({ avgEpsilon: sql<number>`avg(CAST(${memoryNFTs.epsilon} AS DECIMAL(18,6)))` })
-        .from(memoryNFTs);
+      // Calculate average epsilon manually since it's stored as string
+      const records = await prisma.memoryNFT.findMany({
+        select: { epsilon: true },
+        where: { epsilon: { not: null } },
+      });
+
+      let avgEpsilon = 0;
+      if (records.length > 0) {
+        const sum = records.reduce((acc, r) => acc + (r.epsilon ? parseFloat(r.epsilon) : 0), 0);
+        avgEpsilon = sum / records.length;
+      }
 
       return {
-        totalMemories: Number(count || 0),
+        totalMemories: count,
         totalSales: 0,
         totalVolume: '0',
-        avgEpsilon: avgEpsilon ? avgEpsilon.toFixed(2) : '0.00',
+        avgEpsilon: avgEpsilon.toFixed(2),
       };
     }),
 });

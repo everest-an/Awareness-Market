@@ -740,3 +740,50 @@ model MemoryUsageLog {
   @@index([createdAt])
   @@map("memory_usage_log")
 }
+
+// ============================================================================
+// Memory NFT and Provenance
+// ============================================================================
+
+model MemoryNFT {
+  id                  String    @id @db.VarChar(255)
+  contractAddress     String    @map("contract_address") @db.VarChar(42)
+  tokenId             String    @map("token_id") @db.VarChar(78)
+  owner               String    @db.VarChar(42)
+  tbaAddress          String?   @map("tba_address") @db.VarChar(42)
+
+  // Metadata
+  name                String    @db.VarChar(255)
+  description         String?
+  memoryType          String    @map("memory_type") @db.VarChar(50)
+
+  // Quality metrics
+  epsilon             String?   @db.VarChar(20)
+  certification       String?   @db.VarChar(20)
+  qualityGrade        String?   @map("quality_grade") @db.VarChar(20)
+
+  // Asset references
+  assetUrl            String?   @map("asset_url")
+  metadataUrl         String?   @map("metadata_url")
+
+  // Provenance
+  parentNftId         String?   @map("parent_nft_id") @db.VarChar(255)
+  derivationType      String?   @map("derivation_type") @db.VarChar(50)
+  royaltyPercent      Int       @default(30) @map("royalty_percent")
+  totalRoyaltiesPaid  String    @default("0") @map("total_royalties_paid") @db.VarChar(78)
+
+  // Marketplace
+  price               String?   @db.VarChar(78)
+  downloads           Int       @default(0)
+
+  // Timestamps
+  mintedAt            DateTime  @default(now()) @map("minted_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([contractAddress, tokenId])
+  @@index([owner])
+  @@index([tbaAddress])
+  @@index([memoryType])
+  @@index([parentNftId])
+  @@map("memory_nfts")
+}
