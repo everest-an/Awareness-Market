@@ -12,11 +12,11 @@
 import { z } from 'zod';
 import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { eq, desc, and, or, like, sql, type SQL, type InferSelectModel } from 'drizzle-orm';
+// Drizzle imports removed - using Prisma now
 import { getDb } from '../db';
 import { getErrorMessage, assertDatabaseAvailable, assertPackageExists, throwValidationFailed } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
-import { vectorPackages, memoryPackages, chainPackages, packageDownloads, packagePurchases, users } from '../../drizzle/schema';
+// Drizzle schema imports removed - using Prisma now
 import { AntiPoisoningVerifier } from '../latentmas/anti-poisoning';
 import { pricingEngine } from '../pricing-engine';
 import { SemanticAnchorDB } from '../latentmas/semantic-anchors';
@@ -31,9 +31,7 @@ interface KVCacheStructure {
   keys: number[][][][]; // [layers][heads][keys][dimension]
 }
 
-type VectorPackage = InferSelectModel<typeof vectorPackages>;
-type MemoryPackage = InferSelectModel<typeof memoryPackages>;
-type ChainPackage = InferSelectModel<typeof chainPackages>;
+import type { VectorPackage, MemoryPackage, ChainPackage } from '@prisma/client';
 import {
   createVectorPackage,
   extractVectorPackage,
@@ -163,16 +161,7 @@ const DownloadPackageSchema = z.object({
 // Helper Functions
 // ============================================================================
 
-function getPackageTable(packageType: 'vector' | 'memory' | 'chain') {
-  switch (packageType) {
-    case 'vector':
-      return vectorPackages;
-    case 'memory':
-      return memoryPackages;
-    case 'chain':
-      return chainPackages;
-  }
-}
+// getPackageTable removed - using Prisma models directly
 
 /**
  * Calculate dynamic pricing for a package
@@ -617,51 +606,90 @@ export const packagesApiRouter = router({
   browsePackages: publicProcedure
     .input(BrowsePackagesSchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
+      const prisma = await getDb();
+      assertDatabaseAvailable(prisma);
 
-      // Build query conditions
-      const conditions: SQL[] = [];
+      // Build Prisma where conditions
+      const where: any = {
+        status: 'active',
+      };
 
       if (input.sourceModel) {
-        conditions.push(eq(table.sourceModel, input.sourceModel));
+        where.sourceModel = input.sourceModel;
       }
 
       if (input.targetModel) {
-        conditions.push(eq(table.targetModel, input.targetModel));
+        where.targetModel = input.targetModel;
       }
 
       if (input.search) {
-        const searchCondition = or(
-          like(table.name, `%${input.search}%`),
-          like(table.description, `%${input.search}%`)
-        );
-        if (searchCondition) conditions.push(searchCondition);
+        where.OR = [
+          { name: { contains: input.search, mode: 'insensitive' } },
+          { description: { contains: input.search, mode: 'insensitive' } },
+        ];
       }
 
-      if (input.minPrice !== undefined) {
-        conditions.push(sql`${table.price} >= ${input.minPrice}`);
+      if (input.minPrice !== undefined || input.maxPrice !== undefined) {
+        where.price = {};
+        if (input.minPrice !== undefined) {
+          where.price.gte = String(input.minPrice);
+        }
+        if (input.maxPrice !== undefined) {
+          where.price.lte = String(input.maxPrice);
+        }
       }
 
-      if (input.maxPrice !== undefined) {
-        conditions.push(sql`${table.price} <= ${input.maxPrice}`);
+      // Determine sort order
+      let orderBy: any = { createdAt: 'desc' };
+      switch (input.sortBy) {
+        case 'recent':
+          orderBy = { createdAt: 'desc' };
+          break;
+        case 'popular':
+          orderBy = { downloads: 'desc' };
+          break;
+        case 'price_asc':
+          orderBy = { price: 'asc' };
+          break;
+        case 'price_desc':
+          orderBy = { price: 'desc' };
+          break;
+        case 'rating':
+          orderBy = { rating: 'desc' };
+          break;
       }
 
-      // Query packages
-      const packages = await db
-        .select()
-        .from(table)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(
-          input.sortBy === 'recent' ? desc(table.createdAt) :
-          input.sortBy === 'popular' ? desc(table.downloads) :
-          input.sortBy === 'price_asc' ? table.price :
-          input.sortBy === 'price_desc' ? desc(table.price) :
-          desc(table.createdAt)
-        )
-        .limit(input.limit)
-        .offset(input.offset);
+      // Query packages based on type
+      let packages: any[] = [];
+      
+      try {
+        if (input.packageType === 'vector') {
+          packages = await prisma.vectorPackage.findMany({
+            where,
+            orderBy,
+            take: input.limit,
+            skip: input.offset,
+          });
+        } else if (input.packageType === 'memory') {
+          packages = await prisma.memoryPackage.findMany({
+            where,
+            orderBy,
+            take: input.limit,
+            skip: input.offset,
+          });
+        } else if (input.packageType === 'chain') {
+          packages = await prisma.chainPackage.findMany({
+            where,
+            orderBy,
+            take: input.limit,
+            skip: input.offset,
+          });
+        }
+      } catch (error) {
+        logger.error('Failed to browse packages', { error, packageType: input.packageType });
+        // Return empty array on error
+        packages = [];
+      }
 
       // Apply dynamic pricing to each package
       const packagesWithDynamicPricing = packages.map(pkg => {
