@@ -1,6 +1,4 @@
-import { getDb } from "./db";
-import { abTestExperiments, abTestAssignments, userBehavior } from "../drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 import { generateCollaborativeRecommendations } from "./collaborative-filtering";
 import { generateRecommendations as generateLLMRecommendations } from "./recommendation-engine";
 import { createLogger } from "./utils/logger";
@@ -21,31 +19,22 @@ export async function getABTestAssignment(
   experimentId: number
 ): Promise<RecommendationAlgorithm> {
   try {
-    const db = await getDb();
-    if (!db) return "llm_based"; // Default fallback
-
     // Check if user already has an assignment
-    const [existing] = await db
-      .select()
-      .from(abTestAssignments)
-      .where(
-        and(
-          eq(abTestAssignments.userId, userId),
-          eq(abTestAssignments.experimentId, experimentId)
-        )
-      )
-      .limit(1);
+    const existing = await prisma.abTestAssignment.findFirst({
+      where: {
+        userId,
+        experimentId,
+      },
+    });
 
     if (existing) {
       return existing.assignedAlgorithm as RecommendationAlgorithm;
     }
 
     // Get experiment details
-    const [experiment] = await db
-      .select()
-      .from(abTestExperiments)
-      .where(eq(abTestExperiments.id, experimentId))
-      .limit(1);
+    const experiment = await prisma.abTestExperiment.findUnique({
+      where: { id: experimentId },
+    });
 
     if (!experiment || experiment.status !== "running") {
       return "llm_based"; // Default if no active experiment
@@ -58,10 +47,12 @@ export async function getABTestAssignment(
       : experiment.algorithmB;
 
     // Save assignment
-    await db.insert(abTestAssignments).values({
-      experimentId,
-      userId,
-      assignedAlgorithm,
+    await prisma.abTestAssignment.create({
+      data: {
+        experimentId,
+        userId,
+        assignedAlgorithm,
+      },
     });
 
     return assignedAlgorithm as RecommendationAlgorithm;
@@ -79,15 +70,10 @@ export async function getRecommendationsWithABTest(
   limit: number = 10
 ): Promise<Array<{ vectorId: number; score: number; reason: string; algorithm: string }>> {
   try {
-    const db = await getDb();
-    if (!db) return [];
-
     // Get active experiment
-    const [activeExperiment] = await db
-      .select()
-      .from(abTestExperiments)
-      .where(eq(abTestExperiments.status, "running"))
-      .limit(1);
+    const activeExperiment = await prisma.abTestExperiment.findFirst({
+      where: { status: "running" },
+    });
 
     if (!activeExperiment) {
       // No active experiment, use default LLM-based
@@ -128,14 +114,10 @@ export async function getRecommendationsWithABTest(
  */
 export async function calculateABTestMetrics(experimentId: number) {
   try {
-    const db = await getDb();
-    if (!db) return null;
-
     // Get all assignments for this experiment
-    const assignments = await db
-      .select()
-      .from(abTestAssignments)
-      .where(eq(abTestAssignments.experimentId, experimentId));
+    const assignments = await prisma.abTestAssignment.findMany({
+      where: { experimentId },
+    });
 
     const algorithmA = assignments.filter(a => a.assignedAlgorithm === "llm_based");
     const algorithmB = assignments.filter(a => a.assignedAlgorithm === "collaborative_filtering");
@@ -175,24 +157,27 @@ async function calculateAlgorithmMetrics(userIds: number[]) {
     };
   }
 
-  const db = await getDb();
-  if (!db) return { clickThroughRate: 0, conversionRate: 0, avgEngagementTime: 0 };
+  // Count interactions using raw SQL
+  const metrics = await prisma.$queryRaw<Array<{
+    totalViews: bigint;
+    totalClicks: bigint;
+    totalPurchases: bigint;
+    avgDuration: number | null;
+  }>>`
+    SELECT
+      SUM(CASE WHEN action_type = 'view' THEN 1 ELSE 0 END) as "totalViews",
+      SUM(CASE WHEN action_type = 'click' THEN 1 ELSE 0 END) as "totalClicks",
+      SUM(CASE WHEN action_type = 'purchase' THEN 1 ELSE 0 END) as "totalPurchases",
+      AVG(duration) as "avgDuration"
+    FROM user_behavior
+    WHERE user_id = ANY(${userIds})
+  `;
 
-  // Count interactions
-  const [metrics] = await db
-    .select({
-      totalViews: sql<number>`SUM(CASE WHEN ${userBehavior.actionType} = 'view' THEN 1 ELSE 0 END)`,
-      totalClicks: sql<number>`SUM(CASE WHEN ${userBehavior.actionType} = 'click' THEN 1 ELSE 0 END)`,
-      totalPurchases: sql<number>`SUM(CASE WHEN ${userBehavior.actionType} = 'purchase' THEN 1 ELSE 0 END)`,
-      avgDuration: sql<number>`AVG(${userBehavior.duration})`,
-    })
-    .from(userBehavior)
-    .where(sql`${userBehavior.userId} IN (${userIds.join(",")})`);
-
-  const totalViews = Number(metrics?.totalViews || 0);
-  const totalClicks = Number(metrics?.totalClicks || 0);
-  const totalPurchases = Number(metrics?.totalPurchases || 0);
-  const avgDuration = Number(metrics?.avgDuration || 0);
+  const result = metrics[0];
+  const totalViews = Number(result?.totalViews || 0);
+  const totalClicks = Number(result?.totalClicks || 0);
+  const totalPurchases = Number(result?.totalPurchases || 0);
+  const avgDuration = Number(result?.avgDuration || 0);
 
   return {
     clickThroughRate: totalViews > 0 ? (totalClicks / totalViews) * 100 : 0,
@@ -212,19 +197,18 @@ export async function createABTestExperiment(
   trafficSplit: number = 0.5
 ) {
   try {
-    const db = await getDb();
-    if (!db) return null;
-
-    const [result] = await db.insert(abTestExperiments).values({
-      name,
-      description,
-      algorithmA,
-      algorithmB,
-      trafficSplit: trafficSplit.toString(),
-      status: "draft",
+    const result = await prisma.abTestExperiment.create({
+      data: {
+        name,
+        description,
+        algorithmA,
+        algorithmB,
+        trafficSplit: trafficSplit.toString(),
+        status: "draft",
+      },
     });
 
-    return result.insertId;
+    return result.id;
   } catch (error) {
     logger.error(" Error creating experiment:", { error });
     return null;
@@ -236,16 +220,13 @@ export async function createABTestExperiment(
  */
 export async function startABTestExperiment(experimentId: number) {
   try {
-    const db = await getDb();
-    if (!db) return false;
-
-    await db
-      .update(abTestExperiments)
-      .set({
+    await prisma.abTestExperiment.update({
+      where: { id: experimentId },
+      data: {
         status: "running",
         startDate: new Date(),
-      })
-      .where(eq(abTestExperiments.id, experimentId));
+      },
+    });
 
     return true;
   } catch (error) {
@@ -259,16 +240,13 @@ export async function startABTestExperiment(experimentId: number) {
  */
 export async function stopABTestExperiment(experimentId: number) {
   try {
-    const db = await getDb();
-    if (!db) return false;
-
-    await db
-      .update(abTestExperiments)
-      .set({
+    await prisma.abTestExperiment.update({
+      where: { id: experimentId },
+      data: {
         status: "completed",
         endDate: new Date(),
-      })
-      .where(eq(abTestExperiments.id, experimentId));
+      },
+    });
 
     return true;
   } catch (error) {
