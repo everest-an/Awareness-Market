@@ -110,7 +110,7 @@ const plugins = [
   react(),
   tailwindcss(),
   // vitePluginManusRuntime(), // Disabled for Vercel deployment
-  // ensureReactLoadOrder() // Disabled for testing
+  // ensureReactLoadOrder() // Disabled - causes HTML corruption to fix module loading order
 ];
 
 export default defineConfig({
@@ -135,99 +135,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // 精确的手动分块逻辑
-        manualChunks: (id) => {
-          // 跳过外部依赖 ethers（可选的 Web3 功能）
-          if (id.includes('ethers') || id.includes('@ethersproject')) {
-            return undefined;
-          }
-
-          // ============================================
-          // 1. React 核心（最高优先级，必须最先加载）
-          // ============================================
-          // 精确匹配 react 和 react-dom 包
-          if (
-            id.includes('node_modules/react/index.js') ||
-            id.includes('node_modules/react/jsx-runtime.js') ||
-            id.includes('node_modules/react/jsx-dev-runtime.js') ||
-            id.includes('node_modules/react-dom/index.js') ||
-            id.includes('node_modules/react-dom/client.js') ||
-            id.includes('node_modules/scheduler/') ||
-            id.match(/node_modules\/react\/[^/]*\.js$/) ||
-            id.match(/node_modules\/react-dom\/[^/]*\.js$/)
-          ) {
-            return 'react-core';
-          }
-
-          // ============================================
-          // 2. React Router（依赖 React）
-          // ============================================
-          if (
-            id.includes('node_modules/react-router') ||
-            id.includes('node_modules/@remix-run/router')
-          ) {
-            return 'react-router';
-          }
-
-          // ============================================
-          // 3. React 生态系统（依赖 React，但不互相依赖）
-          // ============================================
-          if (
-            id.includes('node_modules/@tanstack/react-query') ||
-            id.includes('node_modules/@tanstack/query-core') ||
-            id.includes('node_modules/react-hook-form') ||
-            id.includes('node_modules/framer-motion') ||
-            id.includes('node_modules/react-hot-toast') ||
-            id.includes('node_modules/react-use') ||
-            id.includes('node_modules/zustand')
-          ) {
-            return 'react-ecosystem';
-          }
-
-          // ============================================
-          // 4. UI 组件库（依赖 React 生态）
-          // ============================================
-          if (
-            id.includes('node_modules/@radix-ui') ||
-            id.includes('node_modules/@floating-ui') ||
-            id.includes('node_modules/react-icons')
-          ) {
-            return 'ui-components';
-          }
-
-          // ============================================
-          // 5. 图表库（通常很大，独立打包）
-          // ============================================
-          if (
-            id.includes('node_modules/recharts') ||
-            id.includes('node_modules/d3-') ||
-            id.includes('node_modules/victory')
-          ) {
-            return 'charts';
-          }
-
-          // ============================================
-          // 6. 工具库（不依赖 React，可以独立加载）
-          // ============================================
-          if (
-            id.includes('node_modules/axios') ||
-            id.includes('node_modules/ky') ||
-            id.includes('node_modules/lodash') ||
-            id.includes('node_modules/date-fns') ||
-            id.includes('node_modules/dayjs') ||
-            id.includes('node_modules/clsx') ||
-            id.includes('node_modules/class-variance-authority') ||
-            id.includes('node_modules/tailwind-merge')
-          ) {
-            return 'utils';
-          }
-
-          // ============================================
-          // 7. 其他第三方库
-          // ============================================
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-        },
+        manualChunks: undefined, // Disabled code splitting
 
         // ============================================
         // 模块预加载配置（关键！）
