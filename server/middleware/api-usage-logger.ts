@@ -1,13 +1,11 @@
 /**
  * API Usage Logger Middleware
- * 
+ *
  * Logs all API requests for analytics and monitoring
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { getDb } from '../db';
-import { apiUsageLogs } from '../../drizzle/schema-api-usage';
-import { eq } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('Middleware:APIUsageLogger');
@@ -49,17 +47,13 @@ const FLUSH_INTERVAL = 5000; // 5 seconds
  */
 async function flushLogBuffer(): Promise<void> {
   if (logBuffer.length === 0) return;
-  
+
   const logsToInsert = logBuffer.splice(0, logBuffer.length);
-  
+
   try {
-    const db = await getDb();
-    if (!db) {
-      logger.error('Database unavailable, dropping logs');
-      return;
-    }
-    
-    await db.insert(apiUsageLogs).values(logsToInsert);
+    await prisma.apiUsageLog.createMany({
+      data: logsToInsert,
+    });
   } catch (error) {
     logger.error('Failed to flush logs:', { error });
     // Re-add failed logs to buffer (with limit to prevent memory issues)
@@ -200,28 +194,15 @@ export async function getUserApiStats(userId: number, days: number = 30): Promis
   topEndpoints: Array<{ endpoint: string; count: number }>;
   dailyUsage: Array<{ date: string; count: number }>;
 }> {
-  const db = await getDb();
-  if (!db) {
-    return {
-      totalRequests: 0,
-      successfulRequests: 0,
-      failedRequests: 0,
-      avgResponseTime: 0,
-      topEndpoints: [],
-      dailyUsage: [],
-    };
-  }
-  
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
-  
+
   // Get raw logs for the period
-  const logs = await db
-    .select()
-    .from(apiUsageLogs)
-    .where(eq(apiUsageLogs.userId, userId))
-    .limit(10000);
-  
+  const logs = await prisma.apiUsageLog.findMany({
+    where: { userId },
+    take: 10000,
+  });
+
   // Calculate stats
   const totalRequests = logs.length;
   const successfulRequests = logs.filter(l => l.statusCode < 400).length;
@@ -229,7 +210,7 @@ export async function getUserApiStats(userId: number, days: number = 30): Promis
   const avgResponseTime = logs.length > 0
     ? Math.round(logs.reduce((sum, l) => sum + l.responseTimeMs, 0) / logs.length)
     : 0;
-  
+
   // Top endpoints
   const endpointCounts = new Map<string, number>();
   logs.forEach(l => {
@@ -239,7 +220,7 @@ export async function getUserApiStats(userId: number, days: number = 30): Promis
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
     .map(([endpoint, count]) => ({ endpoint, count }));
-  
+
   // Daily usage
   const dailyCounts = new Map<string, number>();
   logs.forEach(l => {
@@ -249,7 +230,7 @@ export async function getUserApiStats(userId: number, days: number = 30): Promis
   const dailyUsage = Array.from(dailyCounts.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([date, count]) => ({ date, count }));
-  
+
   return {
     totalRequests,
     successfulRequests,
@@ -271,25 +252,12 @@ export async function getGlobalApiStats(days: number = 7): Promise<{
   topEndpoints: Array<{ endpoint: string; count: number; avgTime: number }>;
   statusCodeDistribution: Record<string, number>;
 }> {
-  const db = await getDb();
-  if (!db) {
-    return {
-      totalRequests: 0,
-      uniqueUsers: 0,
-      avgResponseTime: 0,
-      errorRate: 0,
-      topEndpoints: [],
-      statusCodeDistribution: {},
-    };
-  }
-  
   // Get recent logs
-  const logs = await db
-    .select()
-    .from(apiUsageLogs)
-    .orderBy(apiUsageLogs.createdAt)
-    .limit(50000);
-  
+  const logs = await prisma.apiUsageLog.findMany({
+    orderBy: { createdAt: 'asc' },
+    take: 50000,
+  });
+
   const totalRequests = logs.length;
   const uniqueUsers = new Set(logs.map(l => l.userId).filter(Boolean)).size;
   const avgResponseTime = logs.length > 0
@@ -297,7 +265,7 @@ export async function getGlobalApiStats(days: number = 7): Promise<{
     : 0;
   const errorCount = logs.filter(l => l.statusCode >= 400).length;
   const errorRate = totalRequests > 0 ? (errorCount / totalRequests) * 100 : 0;
-  
+
   // Top endpoints with avg time
   const endpointStats = new Map<string, { count: number; totalTime: number }>();
   logs.forEach(l => {
@@ -314,14 +282,14 @@ export async function getGlobalApiStats(days: number = 7): Promise<{
       count: stats.count,
       avgTime: Math.round(stats.totalTime / stats.count),
     }));
-  
+
   // Status code distribution
   const statusCodeDistribution: Record<string, number> = {};
   logs.forEach(l => {
     const category = `${Math.floor(l.statusCode / 100)}xx`;
     statusCodeDistribution[category] = (statusCodeDistribution[category] || 0) + 1;
   });
-  
+
   return {
     totalRequests,
     uniqueUsers,

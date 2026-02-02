@@ -322,20 +322,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       return;
     }
 
-    // Get listing details
-    const dbModule = await import('./db');
-    const db = await dbModule.getDb();
-    if (!db) {
-      logger.error("Database unavailable", { sessionId: session.id });
-      return;
-    }
-    const { wMatrixListings, wMatrixPurchases } = await import('../drizzle/schema');
-    const { eq, sql, and } = await import('drizzle-orm');
+    // Get listing details using Prisma
+    const { prisma } = await import('./db-prisma');
 
-    const [listing] = await db
-      .select()
-      .from(wMatrixListings)
-      .where(eq(wMatrixListings.id, listingId));
+    const listing = await prisma.wMatrixListing.findUnique({
+      where: { id: listingId }
+    });
 
     if (!listing) {
       logger.error("W-Matrix listing not found", {
@@ -347,16 +339,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     // Check if purchase already exists
-    const [existingPurchase] = await db
-      .select()
-      .from(wMatrixPurchases)
-      .where(
-        and(
-          eq(wMatrixPurchases.listingId, listingId),
-          eq(wMatrixPurchases.buyerId, userId),
-          eq(wMatrixPurchases.status, "completed")
-        )
-      );
+    const existingPurchase = await prisma.wMatrixPurchase.findFirst({
+      where: {
+        listingId,
+        buyerId: userId,
+        status: "completed"
+      }
+    });
 
     if (existingPurchase) {
       logger.info("W-Matrix already purchased", {
@@ -372,23 +361,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       ? session.payment_intent
       : session.payment_intent?.id || null;
 
-    // Create or update purchase record
-    await db.insert(wMatrixPurchases).values({
-      listingId,
-      buyerId: userId,
-      price: listing.price,
-      stripePaymentIntentId: paymentIntentId,
-      status: "completed",
+    // Create purchase record
+    await prisma.wMatrixPurchase.create({
+      data: {
+        listingId,
+        buyerId: userId,
+        price: listing.price,
+        stripePaymentIntentId: paymentIntentId,
+        status: "completed",
+      }
     });
 
     // Update listing stats
-    await db
-      .update(wMatrixListings)
-      .set({
-        totalSales: sql`${wMatrixListings.totalSales} + 1`,
-        totalRevenue: sql`${wMatrixListings.totalRevenue} + ${listing.price}`,
-      })
-      .where(eq(wMatrixListings.id, listingId));
+    await prisma.wMatrixListing.update({
+      where: { id: listingId },
+      data: {
+        totalSales: { increment: 1 },
+        totalRevenue: { increment: parseFloat(listing.price) },
+      }
+    });
 
     logger.info("W-Matrix purchase completed", {
       userId,
@@ -397,7 +388,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
     // Create notification for buyer
-    await dbModule.createNotification({
+    await db.createNotification({
       userId,
       type: "transaction",
       title: "W-Matrix Purchase Successful",
@@ -406,7 +397,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
     // Send email to buyer
-    const user = await dbModule.getUserById(userId);
+    const user = await db.getUserById(userId);
     if (user?.email) {
       const emailText = `Your purchase of W-Matrix "${listing.title}" (${listing.sourceModel} → ${listing.targetModel}) was successful. You can now download and use this alignment matrix.`;
       await sendEmail({
@@ -418,12 +409,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     // Notify seller
-    const seller = await dbModule.getUserById(listing.sellerId);
+    const seller = await db.getUserById(listing.sellerId);
     if (seller) {
       const platformFeeRate = 0.15; // 15%
       const sellerEarnings = parseFloat(listing.price) * (1 - platformFeeRate);
 
-      await dbModule.createNotification({
+      await db.createNotification({
         userId: listing.sellerId,
         type: "transaction",
         title: "New W-Matrix Sale",

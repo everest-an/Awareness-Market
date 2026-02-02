@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
-import { getDb } from "../db";
-import { assertDatabaseAvailable } from "../utils/error-handling";
-import { users } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { prisma } from "../db-prisma";
 import { TRPCError } from "@trpc/server";
 import type { PrivacyLevel, PrivacyConfig } from "../latentmas/differential-privacy";
 import { getDPEngine, createPrivacyDisclosure } from "../latentmas/differential-privacy";
@@ -11,16 +8,11 @@ import { getDPEngine, createPrivacyDisclosure } from "../latentmas/differential-
 export const userRouter = router({
   // Get current user profile
   me: protectedProcedure.query(async ({ ctx }) => {
-    const db = await getDb();
-    assertDatabaseAvailable(db);
-    
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
+    const user = await prisma.user.findUnique({
+      where: { id: ctx.user.id }
+    });
 
-    if (!user[0]) {
+    if (!user) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "User not found",
@@ -28,15 +20,15 @@ export const userRouter = router({
     }
 
     return {
-      id: user[0].id,
-      name: user[0].name,
-      email: user[0].email,
-      role: user[0].role,
-      userType: user[0].userType,
-      onboardingCompleted: user[0].onboardingCompleted,
-      bio: user[0].bio,
-      avatar: user[0].avatar,
-      createdAt: user[0].createdAt,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      userType: user.userType,
+      onboardingCompleted: user.onboardingCompleted,
+      bio: user.bio,
+      avatar: user.avatar,
+      createdAt: user.createdAt,
     };
   }),
 
@@ -48,16 +40,13 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
-      await db
-        .update(users)
-        .set({
+      await prisma.user.update({
+        where: { id: ctx.user.id },
+        data: {
           userType: input.userType,
           onboardingCompleted: true,
-        })
-        .where(eq(users.id, ctx.user.id));
+        }
+      });
 
       return {
         success: true,
@@ -75,17 +64,14 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
-      await db
-        .update(users)
-        .set({
+      await prisma.user.update({
+        where: { id: ctx.user.id },
+        data: {
           name: input.name,
           bio: input.bio,
           avatar: input.avatar,
-        })
-        .where(eq(users.id, ctx.user.id));
+        }
+      });
 
       return {
         success: true,

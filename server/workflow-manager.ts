@@ -12,9 +12,7 @@ import type {
   WorkflowEventType,
   WorkflowEventStatus,
 } from "../shared/workflow-types";
-import { getDb } from "./db";
-import { workflowSessions, workflowEvents } from "../drizzle/schema";
-import { eq, type InferInsertModel } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 import { getErrorMessage } from "./utils/error-handling";
 import { createLogger } from "./utils/logger";
 
@@ -271,22 +269,21 @@ class WorkflowManager extends EventEmitter {
    */
   private async saveSessionToDb(session: WorkflowSession): Promise<void> {
     try {
-      const db = await getDb();
-      if (!db) return;
-
-      await db.insert(workflowSessions).values({
-        id: session.id,
-        userId: session.userId,
-        type: session.type,
-        status: session.status,
-        title: session.title,
-        description: session.description || null,
-        tags: session.tags ? JSON.stringify(session.tags) : null,
-        startedAt: new Date(session.startedAt),
-        completedAt: session.completedAt ? new Date(session.completedAt) : null,
-        totalEvents: session.totalEvents,
-        totalDuration: session.totalDuration,
-        totalCost: session.totalCost.toString(),
+      await prisma.workflowSession.create({
+        data: {
+          id: session.id,
+          userId: session.userId,
+          type: session.type,
+          status: session.status,
+          title: session.title,
+          description: session.description || null,
+          tags: session.tags ? JSON.stringify(session.tags) : null,
+          startedAt: new Date(session.startedAt),
+          completedAt: session.completedAt ? new Date(session.completedAt) : null,
+          totalEvents: session.totalEvents,
+          totalDuration: session.totalDuration,
+          totalCost: session.totalCost.toString(),
+        }
       });
     } catch (error: unknown) {
       logger.error(`DB save error:`, { error });
@@ -298,22 +295,23 @@ class WorkflowManager extends EventEmitter {
    */
   private async updateSessionInDb(workflowId: string, updates: Partial<WorkflowSession>): Promise<void> {
     try {
-      const db = await getDb();
-      if (!db) return;
-
-      type SessionUpdate = Partial<InferInsertModel<typeof workflowSessions>>;
-
-      const dbUpdates: SessionUpdate = {};
+      const dbUpdates: {
+        status?: string;
+        completedAt?: Date;
+        totalEvents?: number;
+        totalDuration?: number;
+        totalCost?: string;
+      } = {};
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.completedAt) dbUpdates.completedAt = new Date(updates.completedAt);
       if (updates.totalEvents !== undefined) dbUpdates.totalEvents = updates.totalEvents;
       if (updates.totalDuration !== undefined) dbUpdates.totalDuration = updates.totalDuration;
       if (updates.totalCost !== undefined) dbUpdates.totalCost = updates.totalCost.toString();
 
-      await db
-        .update(workflowSessions)
-        .set(dbUpdates)
-        .where(eq(workflowSessions.id, workflowId));
+      await prisma.workflowSession.update({
+        where: { id: workflowId },
+        data: dbUpdates,
+      });
     } catch (error: unknown) {
       logger.error(`DB update error:`, { error });
     }
@@ -324,23 +322,22 @@ class WorkflowManager extends EventEmitter {
    */
   private async saveEventToDb(event: WorkflowEvent): Promise<void> {
     try {
-      const db = await getDb();
-      if (!db) return;
-
-      await db.insert(workflowEvents).values({
-        id: event.id,
-        workflowId: event.workflowId,
-        type: event.type,
-        status: event.status,
-        title: event.title,
-        description: event.description || null,
-        timestamp: event.timestamp,
-        duration: event.duration || null,
-        input: event.input || null,
-        output: event.output || null,
-        metadata: event.metadata || null,
-        error: event.error || null,
-        parentEventId: event.parentEventId || null,
+      await prisma.workflowEvent.create({
+        data: {
+          id: event.id,
+          workflowId: event.workflowId,
+          type: event.type,
+          status: event.status,
+          title: event.title,
+          description: event.description || null,
+          timestamp: event.timestamp,
+          duration: event.duration || null,
+          input: event.input || null,
+          output: event.output || null,
+          metadata: event.metadata || null,
+          error: event.error || null,
+          parentEventId: event.parentEventId || null,
+        }
       });
     } catch (error: unknown) {
       logger.error(`DB save event error:`, { error });
@@ -352,21 +349,21 @@ class WorkflowManager extends EventEmitter {
    */
   private async updateEventInDb(eventId: string, updates: Partial<WorkflowEvent>): Promise<void> {
     try {
-      const db = await getDb();
-      if (!db) return;
-
-      type EventUpdate = Partial<InferInsertModel<typeof workflowEvents>>;
-
-      const dbUpdates: EventUpdate = {};
+      const dbUpdates: {
+        status?: string;
+        duration?: number;
+        output?: unknown;
+        error?: unknown;
+      } = {};
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
       if (updates.output !== undefined) dbUpdates.output = JSON.stringify(updates.output);
       if (updates.error !== undefined) dbUpdates.error = JSON.stringify(updates.error);
 
-      await db
-        .update(workflowEvents)
-        .set(dbUpdates)
-        .where(eq(workflowEvents.id, eventId));
+      await prisma.workflowEvent.update({
+        where: { id: eventId },
+        data: dbUpdates,
+      });
     } catch (error: unknown) {
       logger.error(`DB update event error:`, { error });
     }

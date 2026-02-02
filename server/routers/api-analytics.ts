@@ -1,16 +1,14 @@
 /**
  * API Analytics Router
- * 
+ *
  * Provides endpoints for viewing API usage statistics
  */
 
 import { z } from 'zod';
 import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { eq, desc, and, gte, sql } from 'drizzle-orm';
-import { getDb } from '../db';
-import { assertDatabaseAvailable } from '../utils/error-handling';
-import { apiUsageLogs, apiUsageDailyStats } from '../../drizzle/schema-api-usage';
+import { prisma } from '../db-prisma';
+import type { Prisma } from '@prisma/client';
 import { getUserApiStats, getGlobalApiStats } from '../middleware/api-usage-logger';
 
 export const apiAnalyticsRouter = router({
@@ -39,35 +37,34 @@ export const apiAnalyticsRouter = router({
       statusCode: z.number().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
+      const where: Prisma.ApiUsageLogWhereInput = {
+        userId: ctx.user.id,
+      };
 
-      const conditions = [eq(apiUsageLogs.userId, ctx.user.id)];
-      
       if (input.endpoint) {
-        conditions.push(eq(apiUsageLogs.endpoint, input.endpoint));
-      }
-      
-      if (input.statusCode) {
-        conditions.push(eq(apiUsageLogs.statusCode, input.statusCode));
+        where.endpoint = input.endpoint;
       }
 
-      const logs = await db
-        .select({
-          id: apiUsageLogs.id,
-          endpoint: apiUsageLogs.endpoint,
-          method: apiUsageLogs.method,
-          path: apiUsageLogs.path,
-          statusCode: apiUsageLogs.statusCode,
-          responseTimeMs: apiUsageLogs.responseTimeMs,
-          errorCode: apiUsageLogs.errorCode,
-          errorMessage: apiUsageLogs.errorMessage,
-          createdAt: apiUsageLogs.createdAt,
-        })
-        .from(apiUsageLogs)
-        .where(and(...conditions))
-        .orderBy(desc(apiUsageLogs.createdAt))
-        .limit(input.limit);
+      if (input.statusCode) {
+        where.statusCode = input.statusCode;
+      }
+
+      const logs = await prisma.apiUsageLog.findMany({
+        where,
+        select: {
+          id: true,
+          endpoint: true,
+          method: true,
+          path: true,
+          statusCode: true,
+          responseTimeMs: true,
+          errorCode: true,
+          errorMessage: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: input.limit,
+      });
 
       return {
         success: true,
@@ -83,38 +80,35 @@ export const apiAnalyticsRouter = router({
       days: z.number().min(1).max(90).default(30),
     }))
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - input.days);
 
-      // Get endpoint statistics
-      const stats = await db
-        .select({
-          endpoint: apiUsageLogs.endpoint,
-          totalCalls: sql<number>`COUNT(*)`,
-          avgResponseTime: sql<number>`AVG(${apiUsageLogs.responseTimeMs})`,
-          successRate: sql<number>`SUM(CASE WHEN ${apiUsageLogs.statusCode} < 400 THEN 1 ELSE 0 END) * 100.0 / COUNT(*)`,
-        })
-        .from(apiUsageLogs)
-        .where(
-          and(
-            eq(apiUsageLogs.userId, ctx.user.id),
-            gte(apiUsageLogs.createdAt, startDate)
-          )
-        )
-        .groupBy(apiUsageLogs.endpoint)
-        .orderBy(sql`COUNT(*) DESC`)
-        .limit(20);
+      // Get endpoint statistics using raw SQL
+      const stats = await prisma.$queryRaw<Array<{
+        endpoint: string;
+        totalCalls: bigint;
+        avgResponseTime: number | null;
+        successRate: number | null;
+      }>>`
+        SELECT
+          endpoint,
+          COUNT(*) as "totalCalls",
+          AVG(response_time_ms) as "avgResponseTime",
+          SUM(CASE WHEN status_code < 400 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as "successRate"
+        FROM api_usage_logs
+        WHERE user_id = ${ctx.user.id} AND created_at >= ${startDate}
+        GROUP BY endpoint
+        ORDER BY COUNT(*) DESC
+        LIMIT 20
+      `;
 
       return {
         success: true,
         endpoints: stats.map(s => ({
           endpoint: s.endpoint,
           totalCalls: Number(s.totalCalls),
-          avgResponseTime: Math.round(Number(s.avgResponseTime)),
-          successRate: Math.round(Number(s.successRate) * 100) / 100,
+          avgResponseTime: Math.round(Number(s.avgResponseTime || 0)),
+          successRate: Math.round(Number(s.successRate || 0) * 100) / 100,
         })),
       };
     }),
@@ -158,31 +152,33 @@ export const apiAnalyticsRouter = router({
         });
       }
 
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       const startDate = new Date();
       startDate.setHours(startDate.getHours() - input.hours);
 
-      // Get hourly traffic
-      const traffic = await db
-        .select({
-          hour: sql<string>`DATE_FORMAT(${apiUsageLogs.createdAt}, '%Y-%m-%d %H:00:00')`,
-          totalRequests: sql<number>`COUNT(*)`,
-          avgResponseTime: sql<number>`AVG(${apiUsageLogs.responseTimeMs})`,
-          errorCount: sql<number>`SUM(CASE WHEN ${apiUsageLogs.statusCode} >= 400 THEN 1 ELSE 0 END)`,
-        })
-        .from(apiUsageLogs)
-        .where(gte(apiUsageLogs.createdAt, startDate))
-        .groupBy(sql`DATE_FORMAT(${apiUsageLogs.createdAt}, '%Y-%m-%d %H:00:00')`)
-        .orderBy(sql`DATE_FORMAT(${apiUsageLogs.createdAt}, '%Y-%m-%d %H:00:00')`);
+      // Get hourly traffic using PostgreSQL date_trunc
+      const traffic = await prisma.$queryRaw<Array<{
+        hour: Date;
+        totalRequests: bigint;
+        avgResponseTime: number | null;
+        errorCount: bigint;
+      }>>`
+        SELECT
+          date_trunc('hour', created_at) as hour,
+          COUNT(*) as "totalRequests",
+          AVG(response_time_ms) as "avgResponseTime",
+          SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as "errorCount"
+        FROM api_usage_logs
+        WHERE created_at >= ${startDate}
+        GROUP BY date_trunc('hour', created_at)
+        ORDER BY date_trunc('hour', created_at)
+      `;
 
       return {
         success: true,
         traffic: traffic.map(t => ({
-          hour: t.hour,
+          hour: t.hour.toISOString(),
           totalRequests: Number(t.totalRequests),
-          avgResponseTime: Math.round(Number(t.avgResponseTime)),
+          avgResponseTime: Math.round(Number(t.avgResponseTime || 0)),
           errorCount: Number(t.errorCount),
         })),
       };
@@ -205,34 +201,37 @@ export const apiAnalyticsRouter = router({
         });
       }
 
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - input.days);
 
-      // Get slow endpoints
-      const slowEndpoints = await db
-        .select({
-          endpoint: apiUsageLogs.endpoint,
-          avgResponseTime: sql<number>`AVG(${apiUsageLogs.responseTimeMs})`,
-          maxResponseTime: sql<number>`MAX(${apiUsageLogs.responseTimeMs})`,
-          p95ResponseTime: sql<number>`PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ${apiUsageLogs.responseTimeMs})`,
-          callCount: sql<number>`COUNT(*)`,
-        })
-        .from(apiUsageLogs)
-        .where(gte(apiUsageLogs.createdAt, startDate))
-        .groupBy(apiUsageLogs.endpoint)
-        .having(sql`AVG(${apiUsageLogs.responseTimeMs}) > ${input.threshold}`)
-        .orderBy(sql`AVG(${apiUsageLogs.responseTimeMs}) DESC`)
-        .limit(20);
+      // Get slow endpoints using raw SQL
+      const slowEndpoints = await prisma.$queryRaw<Array<{
+        endpoint: string;
+        avgResponseTime: number | null;
+        maxResponseTime: number | null;
+        p95ResponseTime: number | null;
+        callCount: bigint;
+      }>>`
+        SELECT
+          endpoint,
+          AVG(response_time_ms) as "avgResponseTime",
+          MAX(response_time_ms) as "maxResponseTime",
+          PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY response_time_ms) as "p95ResponseTime",
+          COUNT(*) as "callCount"
+        FROM api_usage_logs
+        WHERE created_at >= ${startDate}
+        GROUP BY endpoint
+        HAVING AVG(response_time_ms) > ${input.threshold}
+        ORDER BY AVG(response_time_ms) DESC
+        LIMIT 20
+      `;
 
       return {
         success: true,
         endpoints: slowEndpoints.map(e => ({
           endpoint: e.endpoint,
-          avgResponseTime: Math.round(Number(e.avgResponseTime)),
-          maxResponseTime: Number(e.maxResponseTime),
+          avgResponseTime: Math.round(Number(e.avgResponseTime || 0)),
+          maxResponseTime: Number(e.maxResponseTime || 0),
           p95ResponseTime: Math.round(Number(e.p95ResponseTime || 0)),
           callCount: Number(e.callCount),
         })),
@@ -255,30 +254,27 @@ export const apiAnalyticsRouter = router({
         });
       }
 
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - input.days);
 
-      // Get error breakdown by endpoint and status code
-      const errors = await db
-        .select({
-          endpoint: apiUsageLogs.endpoint,
-          statusCode: apiUsageLogs.statusCode,
-          errorCode: apiUsageLogs.errorCode,
-          count: sql<number>`COUNT(*)`,
-        })
-        .from(apiUsageLogs)
-        .where(
-          and(
-            gte(apiUsageLogs.createdAt, startDate),
-            gte(apiUsageLogs.statusCode, 400)
-          )
-        )
-        .groupBy(apiUsageLogs.endpoint, apiUsageLogs.statusCode, apiUsageLogs.errorCode)
-        .orderBy(sql`COUNT(*) DESC`)
-        .limit(50);
+      // Get error breakdown by endpoint and status code using raw SQL
+      const errors = await prisma.$queryRaw<Array<{
+        endpoint: string;
+        statusCode: number;
+        errorCode: string | null;
+        count: bigint;
+      }>>`
+        SELECT
+          endpoint,
+          status_code as "statusCode",
+          error_code as "errorCode",
+          COUNT(*) as count
+        FROM api_usage_logs
+        WHERE created_at >= ${startDate} AND status_code >= 400
+        GROUP BY endpoint, status_code, error_code
+        ORDER BY COUNT(*) DESC
+        LIMIT 50
+      `;
 
       return {
         success: true,

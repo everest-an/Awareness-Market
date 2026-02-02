@@ -30,12 +30,10 @@
 import axios from "axios";
 import { findOrCreateOAuthUser } from "./auth-standalone";
 import { getErrorMessage } from "./utils/error-handling";
-import type { InferSelectModel } from "drizzle-orm";
-import { users } from "../drizzle/schema";
+import type { User } from "@prisma/client";
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('OAuth');
-type User = InferSelectModel<typeof users>;
 
 // OAuth Configuration
 const OAUTH_CONFIG = {
