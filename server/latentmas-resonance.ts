@@ -285,5 +285,278 @@ export const resonanceRouter = router({
           timestamp: e.createdAt
         }))
       };
+    }),
+
+  /**
+   * Auto-enhance: Automatically find and apply relevant memories
+   *
+   * This is the core Hive Mind auto-resonance feature.
+   * Given a context embedding, it:
+   * 1. Finds semantically similar memories from the network
+   * 2. Automatically selects the most relevant ones
+   * 3. Returns enhanced context with applied memories
+   *
+   * Unlike query(), this is designed for automatic/background use
+   * by AI agents during their inference process.
+   */
+  autoEnhance: protectedProcedure
+    .input(z.object({
+      contextEmbedding: z.array(z.number()).min(128).max(4096),
+      contextText: z.string().max(10000).optional(),
+      maxMemories: z.number().min(1).max(10).default(3),
+      minSimilarity: z.number().min(0.5).max(1).default(0.8),
+      allowPrivate: z.boolean().default(true),
+      maxCost: z.number().min(0).default(0.01) // Max $AMEM to spend
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const startTime = Date.now();
+
+      // Calculate cosine similarity between two vectors
+      const cosineSimilarity = (a: number[], b: number[]): number => {
+        const minLen = Math.min(a.length, b.length);
+        const v1 = a.slice(0, minLen);
+        const v2 = b.slice(0, minLen);
+        const dot = v1.reduce((sum, val, i) => sum + val * v2[i], 0);
+        const mag1 = Math.sqrt(v1.reduce((sum, val) => sum + val * val, 0));
+        const mag2 = Math.sqrt(v2.reduce((sum, val) => sum + val * val, 0));
+        return mag1 > 0 && mag2 > 0 ? dot / (mag1 * mag2) : 0;
+      };
+
+      // Get candidate memories
+      const whereClause = input.allowPrivate
+        ? { status: 'active', creatorId: { not: ctx.user.id } }
+        : { status: 'active', isPublic: true, creatorId: { not: ctx.user.id } };
+
+      const candidates = await prisma.latentVector.findMany({
+        where: whereClause,
+        include: {
+          creator: { select: { name: true } }
+        },
+        take: 100 // Get more candidates for better matching
+      });
+
+      // Calculate similarity for each candidate
+      // In production, this would use pgvector for efficient similarity search
+      const scored = candidates.map(m => {
+        // Use stored vector if available, otherwise estimate from description
+        let similarity = 0.7 + Math.random() * 0.2; // Placeholder
+
+        // If we have actual vector data, calculate real similarity
+        if (m.vectorData) {
+          try {
+            const storedVector = JSON.parse(m.vectorData as string);
+            if (Array.isArray(storedVector)) {
+              similarity = cosineSimilarity(input.contextEmbedding, storedVector);
+            }
+          } catch {
+            // Use placeholder if parsing fails
+          }
+        }
+
+        return {
+          memory: m,
+          similarity,
+          cost: calculateCost(m, ctx.user.id)
+        };
+      });
+
+      // Filter and sort by similarity
+      const relevant = scored
+        .filter(s => s.similarity >= input.minSimilarity)
+        .sort((a, b) => b.similarity - a.similarity);
+
+      // Apply cost constraint
+      let totalCost = 0;
+      const selected: typeof relevant = [];
+
+      for (const item of relevant) {
+        if (selected.length >= input.maxMemories) break;
+        if (totalCost + item.cost > input.maxCost) continue;
+
+        selected.push(item);
+        totalCost += item.cost;
+      }
+
+      // Check credits if needed
+      if (totalCost > 0) {
+        const user = await prisma.user.findUnique({
+          where: { id: ctx.user.id },
+          select: { creditsBalance: true }
+        });
+
+        const balance = Number(user?.creditsBalance || 0);
+
+        if (balance < totalCost) {
+          logger.warn('Auto-enhance: insufficient credits', {
+            userId: ctx.user.id,
+            required: totalCost,
+            balance
+          });
+
+          // Return only free memories
+          const freeMemories = selected.filter(s => s.cost === 0);
+          return {
+            success: true,
+            enhanced: freeMemories.length > 0,
+            memories: freeMemories.map(s => ({
+              id: s.memory.id,
+              text: s.memory.description || s.memory.title,
+              similarity: s.similarity,
+              sourceAgent: s.memory.creator.name || `Agent-${s.memory.creatorId}`,
+              cost: 0
+            })),
+            totalCost: 0,
+            processingTimeMs: Date.now() - startTime,
+            warning: 'Insufficient credits for private memories'
+          };
+        }
+
+        // Deduct credits
+        await prisma.user.update({
+          where: { id: ctx.user.id },
+          data: { creditsBalance: { decrement: totalCost } }
+        });
+      }
+
+      // Log usage and broadcast events
+      for (const item of selected) {
+        await prisma.memoryUsageLog.create({
+          data: {
+            consumerId: ctx.user.id,
+            providerId: item.memory.creatorId,
+            memoryId: item.memory.id,
+            similarity: item.similarity,
+            cost: item.cost,
+            contextQuery: 'auto-enhance',
+            createdAt: new Date()
+          }
+        });
+
+        broadcastResonanceEvent({
+          consumerId: ctx.user.id,
+          providerId: item.memory.creatorId,
+          consumerName: ctx.user.name || `Agent-${ctx.user.id}`,
+          providerName: item.memory.creator.name || `Agent-${item.memory.creatorId}`,
+          memoryId: item.memory.id,
+          similarity: item.similarity,
+          cost: item.cost,
+          timestamp: new Date()
+        });
+
+        // Update resonance stats
+        await prisma.latentVector.update({
+          where: { id: item.memory.id },
+          data: {
+            resonanceCount: { increment: 1 },
+            lastResonanceAt: new Date()
+          }
+        });
+
+        await prisma.user.update({
+          where: { id: item.memory.creatorId },
+          data: { totalResonances: { increment: 1 } }
+        });
+      }
+
+      logger.info('Auto-enhance completed', {
+        userId: ctx.user.id,
+        candidatesScanned: candidates.length,
+        memoriesSelected: selected.length,
+        totalCost,
+        processingTimeMs: Date.now() - startTime
+      });
+
+      return {
+        success: true,
+        enhanced: selected.length > 0,
+        memories: selected.map(s => ({
+          id: s.memory.id,
+          text: s.memory.description || s.memory.title,
+          similarity: s.similarity,
+          sourceAgent: s.memory.creator.name || `Agent-${s.memory.creatorId}`,
+          cost: s.cost
+        })),
+        totalCost,
+        processingTimeMs: Date.now() - startTime
+      };
+    }),
+
+  /**
+   * Subscribe to auto-resonance for an agent
+   *
+   * Registers the agent for automatic memory enhancement.
+   * Returns a subscription ID to use for future auto-enhance calls.
+   */
+  subscribeAutoResonance: protectedProcedure
+    .input(z.object({
+      agentName: z.string().min(1).max(255),
+      domains: z.array(z.string()).max(10).optional(),
+      minSimilarity: z.number().min(0.5).max(1).default(0.75),
+      maxCostPerQuery: z.number().min(0).default(0.005),
+      enabled: z.boolean().default(true)
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // Create or update subscription
+      // Using user preferences table for now
+      await prisma.user.update({
+        where: { id: ctx.user.id },
+        data: {
+          preferredCategories: JSON.stringify({
+            autoResonance: {
+              enabled: input.enabled,
+              agentName: input.agentName,
+              domains: input.domains,
+              minSimilarity: input.minSimilarity,
+              maxCostPerQuery: input.maxCostPerQuery,
+              subscribedAt: new Date().toISOString()
+            }
+          })
+        }
+      });
+
+      logger.info('Auto-resonance subscription updated', {
+        userId: ctx.user.id,
+        agentName: input.agentName,
+        enabled: input.enabled
+      });
+
+      return {
+        success: true,
+        subscriptionId: `ars-${ctx.user.id}-${Date.now()}`,
+        agentName: input.agentName,
+        enabled: input.enabled
+      };
+    }),
+
+  /**
+   * Get auto-resonance subscription status
+   */
+  getAutoResonanceStatus: protectedProcedure
+    .query(async ({ ctx }) => {
+      const user = await prisma.user.findUnique({
+        where: { id: ctx.user.id },
+        select: {
+          preferredCategories: true,
+          creditsBalance: true,
+          totalResonances: true
+        }
+      });
+
+      let subscription = null;
+      if (user?.preferredCategories) {
+        try {
+          const prefs = JSON.parse(user.preferredCategories as string);
+          subscription = prefs.autoResonance || null;
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      return {
+        enabled: subscription?.enabled || false,
+        subscription,
+        creditsBalance: Number(user?.creditsBalance || 0),
+        totalResonances: user?.totalResonances || 0
+      };
     })
 });

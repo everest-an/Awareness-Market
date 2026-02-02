@@ -48,6 +48,7 @@ import { multimodalRouter } from './routers/multimodal-api';
 import { phantomAuthRouter } from './auth-phantom.js';
 import { latentUploadRouter } from './latentmas-upload.js';
 import { resonanceRouter } from './latentmas-resonance.js';
+import { embeddingRouter } from './routers/embedding-api';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
   TrpcRequest,
@@ -1847,6 +1848,9 @@ export const appRouter = router({
 
   // Multi-Modal Vectors API (P2 - Multi-Modal Support)
   multimodal: multimodalRouter,
+
+  // Embedding API (P2 - Auto-Vectorization Engine)
+  embedding: embeddingRouter,
 
   // memoryExchange: Go microservice at :8080
 

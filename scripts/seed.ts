@@ -33,6 +33,7 @@ const seedVectors = args.length === 0 || args.includes('--vectors');
 const seedUsers = args.length === 0 || args.includes('--users');
 const seedPackages = args.length === 0 || args.includes('--packages');
 const seedAgents = args.length === 0 || args.includes('--agents');
+const seedMemoryNFTs = args.length === 0 || args.includes('--memory-nfts');
 
 // ============================================================================
 // Sample Data
@@ -148,6 +149,130 @@ const SAMPLE_CHAIN_PACKAGES = [
     solutionQuality: '0.92',
     stepCount: 8,
     price: '19.99',
+  },
+];
+
+// Memory NFT seed data for provenance tracking
+const SAMPLE_MEMORY_NFTS = [
+  // Genesis (root) memory - no parent
+  {
+    id: 'genesis-kv-cache-001',
+    name: 'Genesis: GPT-4 Reasoning Patterns',
+    description: 'Original KV-Cache capturing advanced reasoning patterns from GPT-4. Foundation for derivative memories.',
+    memoryType: 'kv-cache',
+    epsilon: '2.3',
+    certification: 'platinum',
+    qualityGrade: 'excellent',
+    price: '99.99',
+    downloads: 156,
+    royaltyPercent: 30,
+    parentNftId: null,
+    derivationType: null,
+  },
+  // First-generation derivative
+  {
+    id: 'derived-kv-cache-001',
+    name: 'Fine-tuned: Legal Reasoning',
+    description: 'Derived from Genesis patterns, optimized for legal document analysis and contract review.',
+    memoryType: 'kv-cache',
+    epsilon: '2.8',
+    certification: 'gold',
+    qualityGrade: 'excellent',
+    price: '79.99',
+    downloads: 89,
+    royaltyPercent: 30,
+    parentNftId: 'genesis-kv-cache-001',
+    derivationType: 'fine-tune',
+  },
+  // Second first-gen derivative (sibling)
+  {
+    id: 'derived-kv-cache-002',
+    name: 'Merged: Medical + Reasoning',
+    description: 'Merge of Genesis reasoning with medical knowledge base. Specialized for healthcare AI.',
+    memoryType: 'kv-cache',
+    epsilon: '3.1',
+    certification: 'gold',
+    qualityGrade: 'good',
+    price: '89.99',
+    downloads: 67,
+    royaltyPercent: 25,
+    parentNftId: 'genesis-kv-cache-001',
+    derivationType: 'merge',
+  },
+  // Second-generation derivative (child of first derivative)
+  {
+    id: 'derived-kv-cache-003',
+    name: 'Distilled: Contract Analysis',
+    description: 'Distilled version of Legal Reasoning memory. Smaller footprint, optimized for contract-specific tasks.',
+    memoryType: 'kv-cache',
+    epsilon: '3.4',
+    certification: 'silver',
+    qualityGrade: 'good',
+    price: '49.99',
+    downloads: 234,
+    royaltyPercent: 30,
+    parentNftId: 'derived-kv-cache-001',
+    derivationType: 'distill',
+  },
+  // Another genesis memory (different root)
+  {
+    id: 'genesis-w-matrix-001',
+    name: 'Genesis: Cross-Model Alignment W-Matrix',
+    description: 'Original W-Matrix for aligning representations between GPT-4 and Claude models.',
+    memoryType: 'w-matrix',
+    epsilon: '1.9',
+    certification: 'platinum',
+    qualityGrade: 'excellent',
+    price: '149.99',
+    downloads: 312,
+    royaltyPercent: 35,
+    parentNftId: null,
+    derivationType: null,
+  },
+  // Derivative of W-matrix
+  {
+    id: 'derived-w-matrix-001',
+    name: 'Optimized: Fast Alignment Matrix',
+    description: 'Optimized version of cross-model alignment. 3x faster inference with minimal quality loss.',
+    memoryType: 'w-matrix',
+    epsilon: '2.5',
+    certification: 'gold',
+    qualityGrade: 'excellent',
+    price: '119.99',
+    downloads: 178,
+    royaltyPercent: 30,
+    parentNftId: 'genesis-w-matrix-001',
+    derivationType: 'optimize',
+  },
+  // Reasoning chain memory
+  {
+    id: 'genesis-chain-001',
+    name: 'Genesis: Mathematical Proof Chain',
+    description: 'Complete reasoning chain for mathematical theorem proving. Includes step-by-step derivations.',
+    memoryType: 'reasoning-chain',
+    epsilon: '2.1',
+    certification: 'platinum',
+    qualityGrade: 'excellent',
+    price: '79.99',
+    downloads: 445,
+    royaltyPercent: 30,
+    parentNftId: null,
+    derivationType: null,
+  },
+  // Third-generation derivative (deeper in the tree)
+  {
+    id: 'derived-kv-cache-004',
+    name: 'Micro: Quick Contract Check',
+    description: 'Ultra-compact derivative of Contract Analysis. For rapid preliminary contract screening.',
+    memoryType: 'kv-cache',
+    epsilon: '4.2',
+    certification: 'bronze',
+    qualityGrade: 'fair',
+    price: '19.99',
+    downloads: 567,
+    royaltyPercent: 25,
+    parentNftId: 'derived-kv-cache-003',
+    derivationType: 'distill',
   },
 ];
 
@@ -333,6 +458,61 @@ async function seedPackagesData(creatorId: number) {
   console.log(`  Total: ${total} packages`);
 }
 
+async function seedMemoryNFTsData(ownerId: string) {
+  console.log('\n📦 Seeding Memory NFTs (Provenance)...');
+
+  // Use raw SQL to handle case where Prisma client hasn't been regenerated
+  for (const nft of SAMPLE_MEMORY_NFTS) {
+    // Check if already exists
+    const existing = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM memory_nfts WHERE id = ${nft.id} LIMIT 1
+    `;
+
+    if (existing.length > 0) {
+      console.log(`  ⏭️  ${nft.name} (already exists)`);
+      continue;
+    }
+
+    const tokenId = nanoid(10);
+    const contractAddress = '0x1234567890abcdef1234567890abcdef12345678';
+    const assetUrl = `https://awareness-storage.s3.amazonaws.com/memory-nfts/${nft.id}.json`;
+    const metadataUrl = `ipfs://Qm${nanoid(44)}`;
+    const now = new Date();
+
+    await prisma.$executeRaw`
+      INSERT INTO memory_nfts (
+        id, contract_address, token_id, owner, name, description,
+        memory_type, epsilon, certification, quality_grade,
+        asset_url, metadata_url, parent_nft_id, derivation_type,
+        royalty_percent, total_royalties_paid, price, downloads,
+        minted_at, updated_at
+      ) VALUES (
+        ${nft.id}, ${contractAddress}, ${tokenId}, ${ownerId}, ${nft.name}, ${nft.description},
+        ${nft.memoryType}, ${nft.epsilon}, ${nft.certification}, ${nft.qualityGrade},
+        ${assetUrl}, ${metadataUrl}, ${nft.parentNftId}, ${nft.derivationType},
+        ${nft.royaltyPercent}, '0', ${nft.price}, ${nft.downloads},
+        ${now}, ${now}
+      )
+    `;
+
+    const parentInfo = nft.parentNftId ? ` (parent: ${nft.parentNftId})` : ' (genesis)';
+    console.log(`  ✓ ${nft.name}${parentInfo}`);
+  }
+
+  // Print family tree structure
+  console.log('\n  📊 Memory Provenance Tree:');
+  console.log('  ├── genesis-kv-cache-001 (GPT-4 Reasoning)');
+  console.log('  │   ├── derived-kv-cache-001 (Legal Reasoning)');
+  console.log('  │   │   └── derived-kv-cache-003 (Contract Analysis)');
+  console.log('  │   │       └── derived-kv-cache-004 (Quick Contract Check)');
+  console.log('  │   └── derived-kv-cache-002 (Medical + Reasoning)');
+  console.log('  ├── genesis-w-matrix-001 (Cross-Model Alignment)');
+  console.log('  │   └── derived-w-matrix-001 (Fast Alignment)');
+  console.log('  └── genesis-chain-001 (Mathematical Proof Chain)');
+
+  console.log(`\n  Total: ${SAMPLE_MEMORY_NFTS.length} Memory NFTs`);
+}
+
 async function cleanDatabase() {
   // 🛡️ PRODUCTION SAFETY CHECK
   const nodeEnv = process.env.NODE_ENV || 'development';
@@ -360,6 +540,7 @@ async function cleanDatabase() {
   // Warning message
   console.log('\n⚠️  WARNING: About to DELETE ALL DATA from the following tables:');
   const tables = [
+    'MemoryNFT',
     'MemoryUsageLog',
     'PackagePurchase',
     'ChainPackage',
@@ -383,6 +564,12 @@ async function cleanDatabase() {
   console.log('\n🧹 Cleaning database...');
 
   // Delete in order to respect foreign key constraints
+  try {
+    // Clear MemoryNFT first (has self-referential FK)
+    await prisma.$executeRaw`DELETE FROM memory_nfts`;
+    console.log('  ✓ Cleared MemoryNFT');
+  } catch (e) { /* Table might be empty or not exist */ }
+
   try {
     // Use raw SQL since Prisma client may not have this model yet
     await prisma.$executeRaw`DELETE FROM memory_usage_log`;
@@ -544,6 +731,12 @@ async function main() {
       console.log('  ℹ️  Run the server and call POST /api/agents/register');
     }
 
+    if (seedMemoryNFTs) {
+      // Get a wallet address for the owner
+      const ownerAddress = '0xABCDEF1234567890abcdef1234567890ABCDEF12';
+      await seedMemoryNFTsData(ownerAddress);
+    }
+
     console.log('\n✅ Seeding completed successfully!');
     console.log('\n📊 Summary:');
     if (seedUsers) console.log(`   - ${SAMPLE_USERS.length} users`);
@@ -553,6 +746,7 @@ async function main() {
       console.log(`   - ${SAMPLE_MEMORY_PACKAGES.length} memory packages`);
       console.log(`   - ${SAMPLE_CHAIN_PACKAGES.length} chain packages`);
     }
+    if (seedMemoryNFTs) console.log(`   - ${SAMPLE_MEMORY_NFTS.length} Memory NFTs (provenance tree)`);
 
   } catch (error) {
     console.error('\n❌ Error:', error);
