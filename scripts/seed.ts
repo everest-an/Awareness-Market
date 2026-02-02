@@ -1,7 +1,9 @@
 #!/usr/bin/env tsx
 /**
  * Unified Seed Script for Awareness Network
- * 
+ *
+ * Uses Prisma Client with PostgreSQL (Supabase)
+ *
  * Usage:
  *   npm run seed              # Run all seeders
  *   npm run seed -- --vectors # Seed only vectors
@@ -11,13 +13,15 @@
  *   npm run seed -- --clean   # Clear all data first
  */
 
-import { drizzle } from 'drizzle-orm/mysql2';
-import mysql from 'mysql2/promise';
+import { PrismaClient, UserRole } from '@prisma/client';
 import * as dotenv from 'dotenv';
 import { nanoid } from 'nanoid';
-import * as schema from '../drizzle/schema';
 
 dotenv.config();
+
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+});
 
 // ============================================================================
 // Configuration
@@ -35,11 +39,11 @@ const seedAgents = args.length === 0 || args.includes('--agents');
 // ============================================================================
 
 const SAMPLE_USERS = [
-  { name: 'Alice Chen', email: 'alice@example.com', role: 'creator' as const },
-  { name: 'Bob Smith', email: 'bob@example.com', role: 'creator' as const },
-  { name: 'Carol Wang', email: 'carol@example.com', role: 'consumer' as const },
-  { name: 'David Lee', email: 'david@example.com', role: 'consumer' as const },
-  { name: 'AI Agent Alpha', email: 'agent-alpha@awareness.market', role: 'creator' as const },
+  { name: 'Alice Chen', email: 'alice@example.com', role: UserRole.creator },
+  { name: 'Bob Smith', email: 'bob@example.com', role: UserRole.creator },
+  { name: 'Carol Wang', email: 'carol@example.com', role: UserRole.consumer },
+  { name: 'David Lee', email: 'david@example.com', role: UserRole.consumer },
+  { name: 'AI Agent Alpha', email: 'agent-alpha@awareness.market', role: UserRole.creator },
 ];
 
 const SAMPLE_VECTORS = [
@@ -151,24 +155,32 @@ const SAMPLE_CHAIN_PACKAGES = [
 // Seed Functions
 // ============================================================================
 
-async function seedUsersData(db: any, connection: any) {
+async function seedUsersData(): Promise<number[]> {
   console.log('\n📦 Seeding users...');
   const userIds: number[] = [];
 
   for (const user of SAMPLE_USERS) {
-    const [result] = await connection.execute(
-      `INSERT INTO users (openId, name, email, loginMethod, role, createdAt, updatedAt, lastSignedIn)
-       VALUES (?, ?, ?, ?, ?, NOW(), NOW(), NOW())
-       ON DUPLICATE KEY UPDATE name = VALUES(name)`,
-      [
-        `seed_${nanoid(12)}`,
-        user.name,
-        user.email,
-        'email',
-        user.role,
-      ]
-    );
-    userIds.push((result as any).insertId || 1);
+    const existingUser = await prisma.user.findFirst({
+      where: { email: user.email },
+    });
+
+    if (existingUser) {
+      console.log(`  ⏭️  ${user.name} (already exists)`);
+      userIds.push(existingUser.id);
+      continue;
+    }
+
+    const newUser = await prisma.user.create({
+      data: {
+        openId: `seed_${nanoid(12)}`,
+        name: user.name,
+        email: user.email,
+        loginMethod: 'email',
+        role: user.role,
+        lastSignedIn: new Date(),
+      },
+    });
+    userIds.push(newUser.id);
     console.log(`  ✓ ${user.name} (${user.role})`);
   }
 
@@ -176,103 +188,144 @@ async function seedUsersData(db: any, connection: any) {
   return userIds;
 }
 
-async function seedVectorsData(db: any, connection: any, creatorId: number) {
+async function seedVectorsData(creatorId: number) {
   console.log('\n📦 Seeding latent vectors...');
 
   for (const vector of SAMPLE_VECTORS) {
-    await connection.execute(
-      `INSERT INTO latent_vectors (
-        creator_id, title, description, category, base_price, 
-        vector_file_key, vector_file_url, source_model, w_matrix_standard,
-        hidden_dim, memory_type, status, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-      ON DUPLICATE KEY UPDATE title = VALUES(title)`,
-      [
+    const existingVector = await prisma.latentVector.findFirst({
+      where: { title: vector.title },
+    });
+
+    if (existingVector) {
+      console.log(`  ⏭️  ${vector.title} (already exists)`);
+      continue;
+    }
+
+    await prisma.latentVector.create({
+      data: {
         creatorId,
-        vector.title,
-        vector.description,
-        vector.category,
-        vector.basePrice,
-        `vectors/${nanoid(16)}.bin`,
-        `https://awareness-storage.s3.amazonaws.com/vectors/${nanoid(16)}.bin`,
-        vector.sourceModel,
-        '8192',
-        8192,
-        'reasoning_chain',
-        'active',
-      ]
-    );
+        title: vector.title,
+        description: vector.description,
+        category: vector.category,
+        basePrice: parseFloat(vector.basePrice),
+        vectorFileKey: `vectors/${nanoid(16)}.bin`,
+        vectorFileUrl: `https://awareness-storage.s3.amazonaws.com/vectors/${nanoid(16)}.bin`,
+        modelArchitecture: vector.sourceModel,
+        vectorDimension: 8192,
+        status: 'active',
+      },
+    });
     console.log(`  ✓ ${vector.title}`);
   }
 
   console.log(`  Total: ${SAMPLE_VECTORS.length} vectors`);
 }
 
-async function seedPackagesData(db: any, connection: any, creatorId: number) {
+async function seedPackagesData(creatorId: number) {
   console.log('\n📦 Seeding vector packages...');
   for (const pkg of SAMPLE_VECTOR_PACKAGES) {
     const packageId = `vpkg_${nanoid(12)}`;
-    await connection.execute(
-      `INSERT INTO vector_packages (
-        package_id, user_id, name, description, source_model, target_model,
-        category, price, dimension, epsilon, information_retention,
-        package_url, vector_url, w_matrix_url, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-      ON DUPLICATE KEY UPDATE name = VALUES(name)`,
-      [
-        packageId, creatorId, pkg.name, pkg.description, pkg.sourceModel, pkg.targetModel,
-        pkg.category, pkg.price, pkg.dimension, '0.05', '0.95',
-        `https://awareness-storage.s3.amazonaws.com/packages/${packageId}.vectorpkg`,
-        `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/vector.json`,
-        `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/w_matrix.json`,
-      ]
-    );
+
+    const existingPkg = await prisma.vectorPackage.findFirst({
+      where: { name: pkg.name },
+    });
+
+    if (existingPkg) {
+      console.log(`  ⏭️  ${pkg.name} (already exists)`);
+      continue;
+    }
+
+    await prisma.vectorPackage.create({
+      data: {
+        packageId,
+        userId: creatorId,
+        name: pkg.name,
+        description: pkg.description,
+        sourceModel: pkg.sourceModel,
+        targetModel: pkg.targetModel,
+        category: pkg.category,
+        price: parseFloat(pkg.price),
+        dimension: pkg.dimension,
+        epsilon: 0.05,
+        informationRetention: 0.95,
+        packageUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}.vectorpkg`,
+        vectorUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/vector.json`,
+        wMatrixUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/w_matrix.json`,
+        status: 'active',
+      },
+    });
     console.log(`  ✓ ${pkg.name}`);
   }
 
   console.log('\n📦 Seeding memory packages...');
   for (const pkg of SAMPLE_MEMORY_PACKAGES) {
     const packageId = `mpkg_${nanoid(12)}`;
-    await connection.execute(
-      `INSERT INTO memory_packages (
-        package_id, user_id, name, description, source_model, target_model,
-        token_count, compression_ratio, context_description, price,
-        epsilon, information_retention, package_url, kv_cache_url, w_matrix_url,
-        createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-      ON DUPLICATE KEY UPDATE name = VALUES(name)`,
-      [
-        packageId, creatorId, pkg.name, pkg.description, pkg.sourceModel, pkg.targetModel,
-        pkg.tokenCount, pkg.compressionRatio, pkg.contextDescription, pkg.price,
-        '0.05', '0.95',
-        `https://awareness-storage.s3.amazonaws.com/packages/${packageId}.memorypkg`,
-        `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/kv_cache.json`,
-        `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/w_matrix.json`,
-      ]
-    );
+
+    const existingPkg = await prisma.memoryPackage.findFirst({
+      where: { name: pkg.name },
+    });
+
+    if (existingPkg) {
+      console.log(`  ⏭️  ${pkg.name} (already exists)`);
+      continue;
+    }
+
+    await prisma.memoryPackage.create({
+      data: {
+        packageId,
+        userId: creatorId,
+        name: pkg.name,
+        description: pkg.description,
+        sourceModel: pkg.sourceModel,
+        targetModel: pkg.targetModel,
+        tokenCount: pkg.tokenCount,
+        compressionRatio: parseFloat(pkg.compressionRatio),
+        contextDescription: pkg.contextDescription,
+        price: parseFloat(pkg.price),
+        epsilon: 0.05,
+        informationRetention: 0.95,
+        packageUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}.memorypkg`,
+        kvCacheUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/kv_cache.json`,
+        wMatrixUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/w_matrix.json`,
+        status: 'active',
+      },
+    });
     console.log(`  ✓ ${pkg.name}`);
   }
 
   console.log('\n📦 Seeding chain packages...');
   for (const pkg of SAMPLE_CHAIN_PACKAGES) {
     const packageId = `cpkg_${nanoid(12)}`;
-    await connection.execute(
-      `INSERT INTO chain_packages (
-        package_id, user_id, name, description, source_model, target_model,
-        problem_type, solution_quality, step_count, price,
-        epsilon, information_retention, package_url, chain_url, w_matrix_url,
-        createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-      ON DUPLICATE KEY UPDATE name = VALUES(name)`,
-      [
-        packageId, creatorId, pkg.name, pkg.description, pkg.sourceModel, pkg.targetModel,
-        pkg.problemType, pkg.solutionQuality, pkg.stepCount, pkg.price,
-        '0.05', '0.95',
-        `https://awareness-storage.s3.amazonaws.com/packages/${packageId}.chainpkg`,
-        `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/chain.json`,
-        `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/w_matrix.json`,
-      ]
-    );
+
+    const existingPkg = await prisma.chainPackage.findFirst({
+      where: { name: pkg.name },
+    });
+
+    if (existingPkg) {
+      console.log(`  ⏭️  ${pkg.name} (already exists)`);
+      continue;
+    }
+
+    await prisma.chainPackage.create({
+      data: {
+        packageId,
+        userId: creatorId,
+        name: pkg.name,
+        description: pkg.description,
+        sourceModel: pkg.sourceModel,
+        targetModel: pkg.targetModel,
+        problemType: pkg.problemType,
+        solutionQuality: parseFloat(pkg.solutionQuality),
+        stepCount: pkg.stepCount,
+        price: parseFloat(pkg.price),
+        epsilon: 0.05,
+        informationRetention: 0.95,
+        packageUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}.chainpkg`,
+        chainUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/chain.json`,
+        wMatrixUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/w_matrix.json`,
+        status: 'active',
+      },
+    });
     console.log(`  ✓ ${pkg.name}`);
   }
 
@@ -280,7 +333,7 @@ async function seedPackagesData(db: any, connection: any, creatorId: number) {
   console.log(`  Total: ${total} packages`);
 }
 
-async function cleanDatabase(connection: any) {
+async function cleanDatabase() {
   // 🛡️ PRODUCTION SAFETY CHECK
   const nodeEnv = process.env.NODE_ENV || 'development';
   const dbUrl = process.env.DATABASE_URL || '';
@@ -307,13 +360,20 @@ async function cleanDatabase(connection: any) {
   // Warning message
   console.log('\n⚠️  WARNING: About to DELETE ALL DATA from the following tables:');
   const tables = [
-    'package_downloads', 'package_purchases',
-    'chain_packages', 'memory_packages', 'vector_packages',
-    'reviews', 'api_call_logs', 'access_permissions', 'transactions',
-    'latent_vectors', 'users'
+    'MemoryUsageLog',
+    'PackagePurchase',
+    'ChainPackage',
+    'MemoryPackage',
+    'VectorPackage',
+    'Review',
+    'ApiCallLog',
+    'AccessPermission',
+    'Transaction',
+    'LatentVector',
+    'User',
   ];
   tables.forEach(t => console.log(`   - ${t}`));
-  console.log(`\n   Database: ${dbUrl}`);
+  console.log(`\n   Database: ${dbUrl.replace(/:[^:@]+@/, ':****@')}`);
   console.log(`   Environment: ${nodeEnv}\n`);
 
   // Give user 3 seconds to cancel (Ctrl+C)
@@ -321,14 +381,100 @@ async function cleanDatabase(connection: any) {
   await new Promise(resolve => setTimeout(resolve, 3000));
 
   console.log('\n🧹 Cleaning database...');
-  for (const table of tables) {
-    try {
-      await connection.execute(`DELETE FROM ${table}`);
-      console.log(`  ✓ Cleared ${table}`);
-    } catch (e) {
-      // Table might not exist
-    }
-  }
+
+  // Delete in order to respect foreign key constraints
+  try {
+    // Use raw SQL since Prisma client may not have this model yet
+    await prisma.$executeRaw`DELETE FROM memory_usage_log`;
+    console.log('  ✓ Cleared MemoryUsageLog');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.packagePurchase.deleteMany();
+    console.log('  ✓ Cleared PackagePurchase');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.chainPackage.deleteMany();
+    console.log('  ✓ Cleared ChainPackage');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.memoryPackage.deleteMany();
+    console.log('  ✓ Cleared MemoryPackage');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.vectorPackage.deleteMany();
+    console.log('  ✓ Cleared VectorPackage');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.review.deleteMany();
+    console.log('  ✓ Cleared Review');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.apiCallLog.deleteMany();
+    console.log('  ✓ Cleared ApiCallLog');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.accessPermission.deleteMany();
+    console.log('  ✓ Cleared AccessPermission');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.transaction.deleteMany();
+    console.log('  ✓ Cleared Transaction');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.latentVector.deleteMany();
+    console.log('  ✓ Cleared LatentVector');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    // Delete workflow-related tables
+    await prisma.workflowStep.deleteMany();
+    console.log('  ✓ Cleared WorkflowStep');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.onChainInteraction.deleteMany();
+    console.log('  ✓ Cleared OnChainInteraction');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.workflow.deleteMany();
+    console.log('  ✓ Cleared Workflow');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    // Delete user-related tables
+    await prisma.notification.deleteMany();
+    console.log('  ✓ Cleared Notification');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.userSubscription.deleteMany();
+    console.log('  ✓ Cleared UserSubscription');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.apiKey.deleteMany();
+    console.log('  ✓ Cleared ApiKey');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.mcpToken.deleteMany();
+    console.log('  ✓ Cleared McpToken');
+  } catch (e) { /* Table might be empty or not exist */ }
+
+  try {
+    await prisma.user.deleteMany();
+    console.log('  ✓ Cleared User');
+  } catch (e) { /* Table might be empty or not exist */ }
 }
 
 // ============================================================================
@@ -336,8 +482,8 @@ async function cleanDatabase(connection: any) {
 // ============================================================================
 
 async function main() {
-  console.log('🌱 Awareness Network - Database Seeder');
-  console.log('=====================================');
+  console.log('🌱 Awareness Network - Database Seeder (Prisma/PostgreSQL)');
+  console.log('============================================================');
 
   if (!process.env.DATABASE_URL) {
     console.error('❌ DATABASE_URL environment variable is required');
@@ -346,8 +492,9 @@ async function main() {
 
   // 🛡️ ENVIRONMENT SAFETY CHECK
   const nodeEnv = process.env.NODE_ENV || 'development';
+  const dbUrl = process.env.DATABASE_URL || '';
   console.log(`\n📍 Environment: ${nodeEnv}`);
-  console.log(`📍 Database: ${process.env.DATABASE_URL}`);
+  console.log(`📍 Database: ${dbUrl.replace(/:[^:@]+@/, ':****@')}`);
 
   if (shouldClean) {
     console.log('\n⚠️  DESTRUCTIVE MODE ENABLED: --clean flag detected');
@@ -359,29 +506,36 @@ async function main() {
     }
   }
 
-  const connection = await mysql.createConnection({
-    uri: process.env.DATABASE_URL,
-  });
-  const db = drizzle(connection);
-
   try {
+    // Test database connection
+    await prisma.$connect();
+    console.log('\n✓ Database connection established');
+
     if (shouldClean) {
-      await cleanDatabase(connection);
+      await cleanDatabase();
     }
 
     let creatorId = 1;
 
     if (seedUsers) {
-      const userIds = await seedUsersData(db, connection);
+      const userIds = await seedUsersData();
       creatorId = userIds[0] || 1;
+    } else {
+      // Get an existing user to use as creator
+      const existingUser = await prisma.user.findFirst({
+        where: { role: UserRole.creator },
+      });
+      if (existingUser) {
+        creatorId = existingUser.id;
+      }
     }
 
     if (seedVectors) {
-      await seedVectorsData(db, connection, creatorId);
+      await seedVectorsData(creatorId);
     }
 
     if (seedPackages) {
-      await seedPackagesData(db, connection, creatorId);
+      await seedPackagesData(creatorId);
     }
 
     if (seedAgents) {
@@ -404,7 +558,7 @@ async function main() {
     console.error('\n❌ Error:', error);
     process.exit(1);
   } finally {
-    await connection.end();
+    await prisma.$disconnect();
   }
 }
 

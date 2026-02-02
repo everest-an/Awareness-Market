@@ -31,6 +31,12 @@ model User {
   updatedAt            DateTime  @updatedAt
   lastSignedIn         DateTime? @map("lastSignedIn")
 
+  // Wallet & Credits (for Phantom Auth and Hive Mind)
+  walletAddress        String?   @unique @map("wallet_address") @db.VarChar(42)
+  creditsBalance       Decimal   @default(0) @map("credits_balance") @db.Decimal(18, 4)
+  totalMemories        Int       @default(0) @map("total_memories")
+  totalResonances      Int       @default(0) @map("total_resonances")
+
   // Relations
   createdWorkflows      Workflow[]
   createdVectors        LatentVector[]
@@ -41,6 +47,8 @@ model User {
   notifications         Notification[]
   apiKeys               ApiKey[]
   mcpTokens             McpToken[]
+  memoryUsageAsConsumer MemoryUsageLog[] @relation("MemoryConsumer")
+  memoryUsageAsProvider MemoryUsageLog[] @relation("MemoryProvider")
 
   @@map("users")
 }
@@ -342,6 +350,17 @@ model LatentVector {
   createdAt           DateTime  @default(now()) @map("createdAt")
   updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
 
+  // Hive Mind / SDK Memory fields
+  vectorType          String?   @default("marketplace") @map("vector_type") @db.VarChar(50)
+  memoryType          String?   @default("latent_vector") @map("memory_type") @db.VarChar(50)
+  embeddingProvider   String?   @map("embedding_provider") @db.VarChar(50)
+  embeddingModel      String?   @map("embedding_model") @db.VarChar(100)
+  embeddingDimension  Int?      @map("embedding_dimension")
+  embeddingData       String?   @map("embedding_data") @db.Text  // JSON array stored as text
+  isPublic            Boolean   @default(false) @map("is_public")
+  resonanceCount      Int       @default(0) @map("resonance_count")
+  lastResonanceAt     DateTime? @map("last_resonance_at")
+
   // Relations
   creator             User              @relation(fields: [creatorId], references: [id])
   transactions        Transaction[]
@@ -352,6 +371,7 @@ model LatentVector {
   @@index([creatorId])
   @@index([category])
   @@index([status])
+  @@index([isPublic])
   @@map("latent_vectors")
 }
 
@@ -694,4 +714,29 @@ model PackagePurchase {
   @@index([sellerId])
   @@index([status])
   @@map("package_purchases")
+}
+
+// ============================================================================
+// Hive Mind Memory Usage Logging
+// ============================================================================
+
+model MemoryUsageLog {
+  id              Int       @id @default(autoincrement())
+  consumerId      Int       @map("consumer_id")
+  providerId      Int       @map("provider_id")
+  memoryId        Int       @map("memory_id")
+  similarity      Decimal   @db.Decimal(10, 8)
+  cost            Decimal   @default(0) @db.Decimal(18, 4)
+  contextQuery    String?   @map("context_query")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  consumer        User      @relation("MemoryConsumer", fields: [consumerId], references: [id])
+  provider        User      @relation("MemoryProvider", fields: [providerId], references: [id])
+
+  @@index([consumerId])
+  @@index([providerId])
+  @@index([memoryId])
+  @@index([createdAt])
+  @@map("memory_usage_log")
 }
