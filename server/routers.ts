@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -8,12 +7,9 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
-import { invokeLLM } from "./_core/llm";
 import * as recommendationEngine from "./recommendation-engine";
 import { createApiKey, listApiKeys, revokeApiKey, deleteApiKey } from "./api-key-manager.js";
 import * as blogDb from "./blog-db";
-import { getDb } from "./db";
-import { reviews, latentVectors, wMatrixVersions, alignmentCalculations } from "../drizzle/schema";
 import * as latentmas from "./latentmas";
 import * as goServiceAdapter from "./adapters/go-service-adapter";
 import * as semanticIndex from "./semantic-index";
@@ -49,6 +45,7 @@ import { phantomAuthRouter } from './auth-phantom.js';
 import { latentUploadRouter } from './latentmas-upload.js';
 import { resonanceRouter } from './latentmas-resonance.js';
 import { embeddingRouter } from './routers/embedding-api';
+import { prisma } from './db-prisma';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
   TrpcRequest,
@@ -753,24 +750,43 @@ export const appRouter = router({
 
     // Get user's reviews
     myReviews: protectedProcedure.query(async ({ ctx }) => {
-      const db_instance = await getDb();
-      if (!db_instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      
-      const userReviews = await db_instance
-        .select({
-          review: reviews,
-          vector: {
-            id: latentVectors.id,
-            title: latentVectors.title,
-            category: latentVectors.category,
-          }
-        })
-        .from(reviews)
-        .leftJoin(latentVectors, eq(reviews.vectorId, latentVectors.id))
-        .where(eq(reviews.userId, ctx.user.id))
-        .orderBy(desc(reviews.createdAt));
-      
-      return userReviews;
+      // Use Prisma with raw SQL for join query
+      const userReviews = await prisma.$queryRaw<Array<{
+        id: number;
+        vectorId: number;
+        userId: number;
+        rating: number;
+        comment: string | null;
+        isVerifiedPurchase: boolean;
+        createdAt: Date;
+        vector_id: number | null;
+        vector_title: string | null;
+        vector_category: string | null;
+      }>>`
+        SELECT r.*,
+               v.id as vector_id, v.title as vector_title, v.category as vector_category
+        FROM reviews r
+        LEFT JOIN latent_vectors v ON r.vector_id = v.id
+        WHERE r.user_id = ${ctx.user.id}
+        ORDER BY r.created_at DESC
+      `;
+
+      return userReviews.map(r => ({
+        review: {
+          id: r.id,
+          vectorId: r.vectorId,
+          userId: r.userId,
+          rating: r.rating,
+          comment: r.comment,
+          isVerifiedPurchase: r.isVerifiedPurchase,
+          createdAt: r.createdAt,
+        },
+        vector: r.vector_id ? {
+          id: r.vector_id,
+          title: r.vector_title,
+          category: r.vector_category,
+        } : null
+      }));
     }),
 
     // Update review
@@ -781,28 +797,24 @@ export const appRouter = router({
         comment: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const db_instance = await getDb();
-        if (!db_instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-        // Check ownership
-        const [review] = await db_instance
-          .select()
-          .from(reviews)
-          .where(eq(reviews.id, input.id))
-          .limit(1);
+        // Check ownership using Prisma
+        const review = await prisma.review.findUnique({
+          where: { id: input.id }
+        });
 
         if (!review || review.userId !== ctx.user.id) {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
 
-        const updates: ReviewUpdateData = {};
-        if (input.rating !== undefined) updates.rating = input.rating;
-        if (input.comment !== undefined) updates.comment = input.comment;
+        // Build update data
+        const updateData: { rating?: number; comment?: string } = {};
+        if (input.rating !== undefined) updateData.rating = input.rating;
+        if (input.comment !== undefined) updateData.comment = input.comment;
 
-        await db_instance
-          .update(reviews)
-          .set(updates)
-          .where(eq(reviews.id, input.id));
+        await prisma.review.update({
+          where: { id: input.id },
+          data: updateData
+        });
 
         return { success: true };
       }),
@@ -811,23 +823,18 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const db_instance = await getDb();
-        if (!db_instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-        // Check ownership
-        const [review] = await db_instance
-          .select()
-          .from(reviews)
-          .where(eq(reviews.id, input.id))
-          .limit(1);
+        // Check ownership using Prisma
+        const review = await prisma.review.findUnique({
+          where: { id: input.id }
+        });
 
         if (!review || review.userId !== ctx.user.id) {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
 
-        await db_instance
-          .delete(reviews)
-          .where(eq(reviews.id, input.id));
+        await prisma.review.delete({
+          where: { id: input.id }
+        });
 
         return { success: true };
       }),
@@ -836,25 +843,22 @@ export const appRouter = router({
     getStats: publicProcedure
       .input(z.object({ vectorId: z.number() }))
       .query(async ({ input }) => {
-        const db_instance = await getDb();
-        if (!db_instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-        const vectorReviews = await db_instance
-          .select()
-          .from(reviews)
-          .where(eq(reviews.vectorId, input.vectorId));
+        // Use Prisma to get reviews
+        const vectorReviews = await prisma.review.findMany({
+          where: { vectorId: input.vectorId }
+        });
 
         const totalReviews = vectorReviews.length;
         const averageRating = totalReviews > 0
-          ? vectorReviews.reduce((sum: number, r: ReviewRecord) => sum + r.rating, 0) / totalReviews
+          ? vectorReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
           : 0;
 
         const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-        vectorReviews.forEach((r: ReviewRecord) => {
+        vectorReviews.forEach((r) => {
           ratingDistribution[r.rating as keyof typeof ratingDistribution]++;
         });
 
-        const verifiedPurchases = vectorReviews.filter((r: ReviewRecord) => r.isVerifiedPurchase).length;
+        const verifiedPurchases = vectorReviews.filter((r) => r.isVerifiedPurchase).length;
 
         return {
           totalReviews,
@@ -1609,18 +1613,16 @@ export const appRouter = router({
           input.wMatrixVersion
         );
         
-        // Log to database
-        const database = await getDb();
-        if (database) {
-          await database.insert(alignmentCalculations).values({
-            vectorId: 0, // Placeholder when vector doesn't exist in DB yet
-            wMatrixVersion: input.wMatrixVersion,
-            epsilonValue: result.epsilon.toString(),
-            fidelityBoostEstimate: result.improvementPct.toString(),
-            computationTimeMs: result.computationTimeMs,
-          });
+        // Log to database using raw SQL (alignmentCalculations may not be in Prisma schema)
+        try {
+          await prisma.$executeRaw`
+            INSERT INTO alignment_calculations (vector_id, w_matrix_version, epsilon_value, fidelity_boost_estimate, computation_time_ms, computed_at)
+            VALUES (0, ${input.wMatrixVersion}, ${result.epsilon.toString()}, ${result.improvementPct.toString()}, ${result.computationTimeMs}, ${new Date()})
+          `;
+        } catch {
+          // Ignore if table doesn't exist
         }
-        
+
         return result;
       }),
 
@@ -1704,18 +1706,14 @@ export const appRouter = router({
             input: { version: input.version },
           });
           
-          const database = await getDb();
-          if (database) {
-            await database.insert(wMatrixVersions).values({
-              version: input.version,
-              standardDim: parseInt(input.standardDim),
-              matrixData: result.serializedMatrix,
-              matrixFormat: 'numpy',
-              sourceModels: JSON.stringify(input.sourceModels),
-              alignmentPairsCount: input.sourceVectors.length,
-              avgReconstructionError: result.metrics.epsilon.toString(),
-              isActive: true,
-            });
+          // Save to database using raw SQL (wMatrixVersions may not be in Prisma schema)
+          try {
+            await prisma.$executeRaw`
+              INSERT INTO w_matrix_versions (version, standard_dim, matrix_data, matrix_format, source_models, alignment_pairs_count, avg_reconstruction_error, is_active, created_at)
+              VALUES (${input.version}, ${parseInt(input.standardDim)}, ${result.serializedMatrix}, 'numpy', ${JSON.stringify(input.sourceModels)}, ${input.sourceVectors.length}, ${result.metrics.epsilon.toString()}, true, ${new Date()})
+            `;
+          } catch {
+            // Ignore if table doesn't exist
           }
           
           workflowManager.updateEvent(workflowId, saveEvent.id, {
@@ -1741,13 +1739,22 @@ export const appRouter = router({
 
     // Get W-matrix versions
     listVersions: publicProcedure.query(async () => {
-      const database = await getDb();
-      if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-      const versions = await database
-        .select()
-        .from(wMatrixVersions)
-        .where(eq(wMatrixVersions.isActive, true))
-        .orderBy(desc(wMatrixVersions.createdAt));
+      // Use raw SQL for wMatrixVersions (may not be in Prisma schema)
+      const versions = await prisma.$queryRaw<Array<{
+        id: number;
+        version: string;
+        standard_dim: number;
+        matrix_format: string;
+        source_models: string;
+        alignment_pairs_count: number;
+        avg_reconstruction_error: string;
+        is_active: boolean;
+        created_at: Date;
+      }>>`
+        SELECT * FROM w_matrix_versions
+        WHERE is_active = true
+        ORDER BY created_at DESC
+      `;
       return versions;
     }),
 
@@ -1755,19 +1762,29 @@ export const appRouter = router({
     getVersion: publicProcedure
       .input(z.object({ version: z.string() }))
       .query(async ({ input }) => {
-        const database = await getDb();
-        if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-        const [version] = await database
-          .select()
-          .from(wMatrixVersions)
-          .where(eq(wMatrixVersions.version, input.version))
-          .limit(1);
-        
-        if (!version) {
+        // Use raw SQL for wMatrixVersions
+        const versions = await prisma.$queryRaw<Array<{
+          id: number;
+          version: string;
+          standard_dim: number;
+          matrix_data: string;
+          matrix_format: string;
+          source_models: string;
+          alignment_pairs_count: number;
+          avg_reconstruction_error: string;
+          is_active: boolean;
+          created_at: Date;
+        }>>`
+          SELECT * FROM w_matrix_versions
+          WHERE version = ${input.version}
+          LIMIT 1
+        `;
+
+        if (versions.length === 0) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'W-matrix version not found' });
         }
-        
-        return version;
+
+        return versions[0];
       }),
 
     // Transform vector using W-matrix
@@ -1792,23 +1809,37 @@ export const appRouter = router({
         limit: z.number().min(1).max(100).default(50),
       }))
       .query(async ({ input }) => {
-        const database = await getDb();
-        if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-        
+        // Use raw SQL for alignmentCalculations
         if (input.vectorId) {
-          return await database
-            .select()
-            .from(alignmentCalculations)
-            .where(eq(alignmentCalculations.vectorId, input.vectorId))
-            .orderBy(desc(alignmentCalculations.computedAt))
-            .limit(input.limit);
+          return await prisma.$queryRaw<Array<{
+            id: number;
+            vector_id: number;
+            w_matrix_version: string;
+            epsilon_value: string;
+            fidelity_boost_estimate: string;
+            computation_time_ms: number;
+            computed_at: Date;
+          }>>`
+            SELECT * FROM alignment_calculations
+            WHERE vector_id = ${input.vectorId}
+            ORDER BY computed_at DESC
+            LIMIT ${input.limit}
+          `;
         }
-        
-        return await database
-          .select()
-          .from(alignmentCalculations)
-          .orderBy(desc(alignmentCalculations.computedAt))
-          .limit(input.limit);
+
+        return await prisma.$queryRaw<Array<{
+          id: number;
+          vector_id: number;
+          w_matrix_version: string;
+          epsilon_value: string;
+          fidelity_boost_estimate: string;
+          computation_time_ms: number;
+          computed_at: Date;
+        }>>`
+          SELECT * FROM alignment_calculations
+          ORDER BY computed_at DESC
+          LIMIT ${input.limit}
+        `;
       }),
   }),
 
