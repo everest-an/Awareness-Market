@@ -4,18 +4,7 @@
  */
 
 import crypto from 'crypto';
-import { getDb } from './db.js';
-import { apiKeys } from '../drizzle/schema.ts';
-import { eq, and } from 'drizzle-orm';
-
-// MySQL result types
-interface InsertResult {
-  insertId: number;
-}
-
-interface UpdateDeleteResult {
-  affectedRows: number;
-}
+import { prisma } from './db-prisma';
 
 /**
  * Generate a secure API key with prefix and checksum
@@ -51,26 +40,21 @@ export async function createApiKey(params: {
   permissions?: string[];
   expiresAt?: Date | null;
 }): Promise<{ id: number; key: string; keyPrefix: string }> {
-  const db = await getDb();
-  if (!db) {
-    throw new Error('Database connection failed');
-  }
-
   const { key, keyHash, keyPrefix } = generateApiKey();
-  
-  const [result] = await db.insert(apiKeys).values({
-    userId: params.userId,
-    keyHash,
-    keyPrefix,
-    name: params.name || 'Default API Key',
-    permissions: params.permissions ? JSON.stringify(params.permissions) : JSON.stringify(['*']), // '*' = all permissions
-    expiresAt: params.expiresAt || null,
-    isActive: true
+
+  const apiKey = await prisma.apiKey.create({
+    data: {
+      userId: params.userId,
+      keyHash,
+      keyPrefix,
+      name: params.name || 'Default API Key',
+      permissions: params.permissions ? JSON.stringify(params.permissions) : JSON.stringify(['*']), // '*' = all permissions
+      expiresAt: params.expiresAt || null,
+      isActive: true
+    }
   });
 
-  const id = (result as unknown as InsertResult).insertId;
-
-  return { id, key, keyPrefix };
+  return { id: apiKey.id, key, keyPrefix };
 }
 
 /**
@@ -87,23 +71,14 @@ export async function validateApiKey(key: string): Promise<{
     return { valid: false, error: 'Invalid API key format' };
   }
 
-  const db = await getDb();
-  if (!db) {
-    return { valid: false, error: 'Database connection failed' };
-  }
-
   const keyHash = hashApiKey(key);
 
-  const [apiKey] = await db
-    .select()
-    .from(apiKeys)
-    .where(
-      and(
-        eq(apiKeys.keyHash, keyHash),
-        eq(apiKeys.isActive, true)
-      )
-    )
-    .limit(1);
+  const apiKey = await prisma.apiKey.findFirst({
+    where: {
+      keyHash,
+      isActive: true
+    }
+  });
 
   if (!apiKey) {
     return { valid: false, error: 'API key not found or inactive' };
@@ -115,10 +90,10 @@ export async function validateApiKey(key: string): Promise<{
   }
 
   // Update last used timestamp
-  await db
-    .update(apiKeys)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(apiKeys.id, apiKey.id));
+  await prisma.apiKey.update({
+    where: { id: apiKey.id },
+    data: { lastUsedAt: new Date() }
+  });
 
   // Parse scopes
   const permissions = apiKey.permissions ? JSON.parse(apiKey.permissions) : ['*'];
@@ -170,16 +145,10 @@ export async function listApiKeys(userId: number): Promise<Array<{
   isActive: boolean;
   createdAt: Date;
 }>> {
-  const db = await getDb();
-  if (!db) {
-    throw new Error('Database connection failed');
-  }
-
-  const keys = await db
-    .select()
-    .from(apiKeys)
-    .where(eq(apiKeys.userId, userId))
-    .orderBy(apiKeys.createdAt);
+  const keys = await prisma.apiKey.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'asc' }
+  });
 
   return keys.map(key => ({
     id: key.id,
@@ -197,43 +166,29 @@ export async function listApiKeys(userId: number): Promise<Array<{
  * Revoke (deactivate) an API key
  */
 export async function revokeApiKey(keyId: number, userId: number): Promise<boolean> {
-  const db = await getDb();
-  if (!db) {
-    throw new Error('Database connection failed');
-  }
+  const result = await prisma.apiKey.updateMany({
+    where: {
+      id: keyId,
+      userId
+    },
+    data: { isActive: false }
+  });
 
-  const [result] = await db
-    .update(apiKeys)
-    .set({ isActive: false })
-    .where(
-      and(
-        eq(apiKeys.id, keyId),
-        eq(apiKeys.userId, userId)
-      )
-    );
-
-  return (result as unknown as UpdateDeleteResult).affectedRows > 0;
+  return result.count > 0;
 }
 
 /**
  * Delete an API key permanently
  */
 export async function deleteApiKey(keyId: number, userId: number): Promise<boolean> {
-  const db = await getDb();
-  if (!db) {
-    throw new Error('Database connection failed');
-  }
+  const result = await prisma.apiKey.deleteMany({
+    where: {
+      id: keyId,
+      userId
+    }
+  });
 
-  const [result] = await db
-    .delete(apiKeys)
-    .where(
-      and(
-        eq(apiKeys.id, keyId),
-        eq(apiKeys.userId, userId)
-      )
-    );
-
-  return (result as unknown as UpdateDeleteResult).affectedRows > 0;
+  return result.count > 0;
 }
 
 /**
@@ -245,22 +200,13 @@ export async function rotateApiKey(oldKeyId: number, userId: number): Promise<{
   newKeyPrefix?: string;
   error?: string;
 }> {
-  const db = await getDb();
-  if (!db) {
-    return { success: false, error: 'Database connection failed' };
-  }
-
   // Get old key details
-  const [oldKey] = await db
-    .select()
-    .from(apiKeys)
-    .where(
-      and(
-        eq(apiKeys.id, oldKeyId),
-        eq(apiKeys.userId, userId)
-      )
-    )
-    .limit(1);
+  const oldKey = await prisma.apiKey.findFirst({
+    where: {
+      id: oldKeyId,
+      userId
+    }
+  });
 
   if (!oldKey) {
     return { success: false, error: 'API key not found' };

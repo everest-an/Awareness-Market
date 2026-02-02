@@ -16,9 +16,7 @@
  * - Verification status tracking
  */
 
-import { getDb } from "./db";
-import { users } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 import { sendEmail } from "./email-service";
 import { createLogger } from './utils/logger';
 
@@ -135,14 +133,10 @@ export async function verifyEmail(
   }
 
   // Mark user as verified in database
-  const db = await getDb();
-  if (!db) {
-    return { success: false, error: "Database error" };
-  }
-
-  await db.update(users)
-    .set({ emailVerified: true })
-    .where(eq(users.id, entry.userId));
+  await prisma.user.update({
+    where: { id: entry.userId },
+    data: { emailVerified: true }
+  });
 
   // Clean up
   verificationCodes.delete(email.toLowerCase());
@@ -155,15 +149,12 @@ export async function verifyEmail(
  * Check if email is verified
  */
 export async function isEmailVerified(userId: number): Promise<boolean> {
-  const db = await getDb();
-  if (!db) return false;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { emailVerified: true }
+  });
 
-  const userList = await db.select({ emailVerified: users.emailVerified })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  return userList[0]?.emailVerified === true;
+  return user?.emailVerified === true;
 }
 
 /**

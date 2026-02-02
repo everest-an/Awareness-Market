@@ -1,14 +1,19 @@
 import { Router, Request, Response } from "express";
-import { getDb } from "./db";
+import { prisma } from "./db-prisma";
 import { runVector } from "./vector-runtime";
-import { trialUsage, latentVectors } from "../drizzle/schema";
-import { eq, and, count, sql } from "drizzle-orm";
-import type { InferSelectModel } from "drizzle-orm";
 import { createLogger } from "./utils/logger";
 
 const logger = createLogger('Trial');
 
-type LatentVector = InferSelectModel<typeof latentVectors>;
+type LatentVector = {
+  id: number;
+  title: string;
+  description: string | null;
+  category: string;
+  vectorFileUrl: string | null;
+  vectorFileKey: string | null;
+  freeTrialCalls: number;
+};
 
 // Type extension for authenticated request
 interface AuthenticatedRequest extends Request {
@@ -28,34 +33,24 @@ router.get("/remaining/:vectorId", async (req: Request, res: Response) => {
     }
 
     const vectorId = parseInt(req.params.vectorId);
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
 
     // Get vector's free trial limit
-    const [vector] = await db
-      .select({ freeTrialCalls: latentVectors.freeTrialCalls })
-      .from(latentVectors)
-      .where(eq(latentVectors.id, vectorId))
-      .limit(1);
+    const vector = await prisma.latentVector.findUnique({
+      where: { id: vectorId },
+      select: { freeTrialCalls: true }
+    });
 
     if (!vector) {
       return res.status(404).json({ error: "Vector not found" });
     }
 
     // Count user's trial usage
-    const [usage] = await db
-      .select({ count: count() })
-      .from(trialUsage)
-      .where(
-        and(
-          eq(trialUsage.userId, userId),
-          eq(trialUsage.vectorId, vectorId)
-        )
-      );
-
-    const usedCalls = usage?.count || 0;
+    const usedCalls = await prisma.trialUsage.count({
+      where: {
+        userId,
+        vectorId
+      }
+    });
     const remainingCalls = Math.max(0, vector.freeTrialCalls - usedCalls);
 
     res.json({
@@ -87,38 +82,27 @@ router.post("/execute", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Vector ID and input required" });
     }
 
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
-
     // Check remaining trials
-    const [vector] = await db
-      .select({ 
-        freeTrialCalls: latentVectors.freeTrialCalls,
-        title: latentVectors.title,
-        vectorFileUrl: latentVectors.vectorFileUrl,
-        vectorFileKey: latentVectors.vectorFileKey,
-      })
-      .from(latentVectors)
-      .where(eq(latentVectors.id, vectorId))
-      .limit(1);
+    const vector = await prisma.latentVector.findUnique({
+      where: { id: vectorId },
+      select: {
+        freeTrialCalls: true,
+        title: true,
+        vectorFileUrl: true,
+        vectorFileKey: true,
+      }
+    });
 
     if (!vector) {
       return res.status(404).json({ error: "Vector not found" });
     }
 
-    const [usage] = await db
-      .select({ count: count() })
-      .from(trialUsage)
-      .where(
-        and(
-          eq(trialUsage.userId, userId),
-          eq(trialUsage.vectorId, vectorId)
-        )
-      );
-
-    const usedCalls = usage?.count || 0;
+    const usedCalls = await prisma.trialUsage.count({
+      where: {
+        userId,
+        vectorId
+      }
+    });
     if (usedCalls >= vector.freeTrialCalls) {
       return res.status(403).json({ 
         error: "Trial limit exceeded",
@@ -137,18 +121,20 @@ router.post("/execute", async (req: Request, res: Response) => {
     });
 
     // Record trial usage
-    await db.insert(trialUsage).values({
-      userId,
-      vectorId,
-      usedCalls: 1,
-      inputData: JSON.stringify(input),
-      outputData: JSON.stringify({
-        output: runtimeResult.text,
-        model: runtimeResult.model,
-        usage: runtimeResult.usage,
-        processingTimeMs: runtimeResult.processingTimeMs,
-      }),
-      success: true,
+    await prisma.trialUsage.create({
+      data: {
+        userId,
+        vectorId,
+        usedCalls: 1,
+        inputData: JSON.stringify(input),
+        outputData: JSON.stringify({
+          output: runtimeResult.text,
+          model: runtimeResult.model,
+          usage: runtimeResult.usage,
+          processingTimeMs: runtimeResult.processingTimeMs,
+        }),
+        success: true,
+      }
     });
 
     res.json({
@@ -177,27 +163,31 @@ router.get("/history", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
-
-    const history = await db
-      .select({
-        id: trialUsage.id,
-        vectorId: trialUsage.vectorId,
-        vectorTitle: latentVectors.title,
-        inputData: trialUsage.inputData,
-        outputData: trialUsage.outputData,
-        success: trialUsage.success,
-        errorMessage: trialUsage.errorMessage,
-        createdAt: trialUsage.createdAt,
-      })
-      .from(trialUsage)
-      .leftJoin(latentVectors, eq(trialUsage.vectorId, latentVectors.id))
-      .where(eq(trialUsage.userId, userId))
-      .orderBy(sql`${trialUsage.createdAt} DESC`)
-      .limit(50);
+    const history = await prisma.$queryRaw<Array<{
+      id: number;
+      vectorId: number;
+      vectorTitle: string | null;
+      inputData: string | null;
+      outputData: string | null;
+      success: boolean;
+      errorMessage: string | null;
+      createdAt: Date;
+    }>>`
+      SELECT
+        tu.id,
+        tu.vector_id as "vectorId",
+        lv.title as "vectorTitle",
+        tu.input_data as "inputData",
+        tu.output_data as "outputData",
+        tu.success,
+        tu.error_message as "errorMessage",
+        tu.created_at as "createdAt"
+      FROM trial_usage tu
+      LEFT JOIN latent_vectors lv ON tu.vector_id = lv.id
+      WHERE tu.user_id = ${userId}
+      ORDER BY tu.created_at DESC
+      LIMIT 50
+    `;
 
     res.json(history);
   } catch (error) {

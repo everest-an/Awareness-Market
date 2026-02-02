@@ -4,9 +4,7 @@
  */
 
 import { Router, Request, Response } from "express";
-import { getDb } from "./db";
-import { latentVectors, transactions } from "../drizzle/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 import { validateApiKey } from "./api-key-manager";
 import { createLogger } from "./utils/logger";
 
@@ -45,23 +43,13 @@ router.get("/invoke/stream", async (req: Request, res: Response) => {
       return;
     }
 
-    const db = await getDb();
-    if (!db) {
-      res.status(500).json({ error: "Database connection failed" });
-      return;
-    }
-
     // Verify vector exists and is active
-    const [vector] = await db
-      .select()
-      .from(latentVectors)
-      .where(
-        and(
-          eq(latentVectors.id, parseInt(vectorId as string)),
-          eq(latentVectors.status, "active")
-        )
-      )
-      .limit(1);
+    const vector = await prisma.latentVector.findFirst({
+      where: {
+        id: parseInt(vectorId as string),
+        status: "active"
+      }
+    });
 
     if (!vector) {
       res.status(404).json({ error: "Vector not found or inactive" });
@@ -99,15 +87,17 @@ router.get("/invoke/stream", async (req: Request, res: Response) => {
         const amount = parseFloat(vector.basePrice);
         const platformFee = amount * platformFeeRate;
         const creatorEarnings = amount - platformFee;
-        
-        await db.insert(transactions).values({
-          buyerId: validation.userId,
-          vectorId: vector.id,
-          amount: vector.basePrice,
-          platformFee: platformFee.toFixed(2),
-          creatorEarnings: creatorEarnings.toFixed(2),
-          status: "completed",
-          transactionType: "one-time",
+
+        await prisma.transaction.create({
+          data: {
+            buyerId: validation.userId,
+            vectorId: vector.id,
+            amount: vector.basePrice,
+            platformFee: platformFee.toFixed(2),
+            creatorEarnings: creatorEarnings.toFixed(2),
+            status: "completed",
+            transactionType: "one-time",
+          }
         });
       }
     }
@@ -157,23 +147,14 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
       return;
     }
 
-    const db = await getDb();
-    if (!db) {
-      res.status(500).json({ error: "Database connection failed" });
-      return;
-    }
-
     // Fetch all requested vectors
     const vectorIds = requests.map((r: BatchVectorRequest) => r.vectorId);
-    const vectors = await db
-      .select()
-      .from(latentVectors)
-      .where(
-        and(
-          inArray(latentVectors.id, vectorIds),
-          eq(latentVectors.status, "active")
-        )
-      );
+    const vectors = await prisma.latentVector.findMany({
+      where: {
+        id: { in: vectorIds },
+        status: "active"
+      }
+    });
 
     const vectorMap = new Map(vectors.map(v => [v.id, v]));
 
@@ -207,15 +188,17 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
             const amount = parseFloat(vector.basePrice);
             const platformFee = amount * platformFeeRate;
             const creatorEarnings = amount - platformFee;
-            
-            await db.insert(transactions).values({
-              buyerId: validation.userId,
-              vectorId: vector.id,
-              amount: vector.basePrice,
-              platformFee: platformFee.toFixed(2),
-              creatorEarnings: creatorEarnings.toFixed(2),
-              status: "completed",
-              transactionType: "one-time",
+
+            await prisma.transaction.create({
+              data: {
+                buyerId: validation.userId,
+                vectorId: vector.id,
+                amount: vector.basePrice,
+                platformFee: platformFee.toFixed(2),
+                creatorEarnings: creatorEarnings.toFixed(2),
+                status: "completed",
+                transactionType: "one-time",
+              }
             });
           }
 
