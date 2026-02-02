@@ -14,7 +14,7 @@
 
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
-import { logger } from './logger.js';
+import { logger } from './utils/logger.js';
 
 export type ResonanceEvent = {
   consumerId: number;
@@ -198,41 +198,32 @@ export async function broadcastNetworkStats() {
   if (!io) return;
 
   try {
-    const { getDb } = await import('./db.js');
-    const { users, latentVectors, memoryUsageLog } = await import('../drizzle/schema-pg.js');
-    const { sql, gt } = await import('drizzle-orm');
+    const { prisma } = await import('./db-prisma.js');
 
-    const db = await getDb();
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Get total agents
-    const totalAgentsResult = await db.select({ count: sql<number>`count(*)::int` }).from(users);
-    const totalAgents = totalAgentsResult[0]?.count || 0;
+    const totalAgents = await prisma.user.count();
 
     // Get active agents (signed in within last 24h)
-    const activeAgentsResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(users)
-      .where(gt(users.lastSignedIn, new Date(Date.now() - 24 * 60 * 60 * 1000)));
-    const activeAgents = activeAgentsResult[0]?.count || 0;
+    const activeAgents = await prisma.user.count({
+      where: {
+        lastSignedIn: { gte: oneDayAgo }
+      }
+    });
 
     // Get total memories
-    const totalMemoriesResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(latentVectors);
-    const totalMemories = totalMemoriesResult[0]?.count || 0;
+    const totalMemories = await prisma.latentVector.count();
 
     // Get total resonances
-    const totalResonancesResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(memoryUsageLog);
-    const totalResonances = totalResonancesResult[0]?.count || 0;
+    const totalResonances = await prisma.memoryUsageLog.count();
 
     // Get recent resonances (last 24h)
-    const recentResonancesResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(memoryUsageLog)
-      .where(gt(memoryUsageLog.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)));
-    const recentResonances24h = recentResonancesResult[0]?.count || 0;
+    const recentResonances24h = await prisma.memoryUsageLog.count({
+      where: {
+        createdAt: { gte: oneDayAgo }
+      }
+    });
 
     const stats: NetworkStatsEvent = {
       totalAgents,
