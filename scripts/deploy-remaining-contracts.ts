@@ -39,11 +39,14 @@ const ERC6551_REGISTRY = '0x000000006551c19487814612e58FE06813775758';
 
 // Platform addresses
 const PLATFORM_TREASURY = process.env.PLATFORM_TREASURY_ADDRESS || '0x3d0ab53241A2913D7939ae02f7083169fE7b823B';
+const MAINTAINER_POOL = process.env.MAINTAINER_POOL_ADDRESS || PLATFORM_TREASURY; // Default to same address
 
 async function main() {
   console.log('🚀 Deploying Remaining Smart Contracts...\n');
   console.log(`Network: ${NETWORK} (Chain ID: ${CHAIN_IDS[NETWORK as keyof typeof CHAIN_IDS]})`);
-  console.log(`RPC: ${RPC_URLS[NETWORK as keyof typeof RPC_URLS]}\n`);
+  console.log(`RPC: ${RPC_URLS[NETWORK as keyof typeof RPC_URLS]}`);
+  console.log(`Platform Treasury: ${PLATFORM_TREASURY}`);
+  console.log(`Maintainer Pool: ${MAINTAINER_POOL}\n`);
 
   // Setup provider and wallet
   const rpcUrl = RPC_URLS[NETWORK as keyof typeof RPC_URLS];
@@ -126,9 +129,10 @@ async function main() {
       wallet
     );
 
-    // Constructor: (address platformTreasury_)
+    // Constructor: (address _feeCollector, address _maintainerPool)
     const amemToken = await AMEMTokenFactory.deploy(
-      PLATFORM_TREASURY,
+      PLATFORM_TREASURY,    // _feeCollector (平台收入地址)
+      MAINTAINER_POOL,      // _maintainerPool (W-Matrix 维护者奖励池)
       {
         maxFeePerGas: maxFee,
         maxPriorityFeePerGas: priorityFee,
@@ -161,12 +165,16 @@ async function main() {
       wallet
     );
 
-    // Constructor: no parameters
-    const agentCredit = await AgentCreditFactory.deploy({
-      maxFeePerGas: maxFee,
-      maxPriorityFeePerGas: priorityFee,
-      gasLimit: 3000000
-    });
+    // Constructor: (address _amemToken, address _platformTreasury)
+    const agentCredit = await AgentCreditFactory.deploy(
+      deployedAddresses.AMEM_TOKEN_CONTRACT_ADDRESS,  // _amemToken
+      PLATFORM_TREASURY,                              // _platformTreasury
+      {
+        maxFeePerGas: maxFee,
+        maxPriorityFeePerGas: priorityFee,
+        gasLimit: 3000000
+      }
+    );
 
     console.log(`   Transaction: ${agentCredit.deploymentTransaction()?.hash}`);
     await agentCredit.waitForDeployment();
