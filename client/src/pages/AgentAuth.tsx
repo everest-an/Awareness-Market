@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import { Loader2, Wallet, Shield, CheckCircle2, AlertCircle, Bot, Link2, Star } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 interface ERC8004Status {
   enabled: boolean;
@@ -40,15 +41,18 @@ interface AuthResult {
 export default function AgentAuth() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   const [status, setStatus] = useState<ERC8004Status | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  
+
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authResult, setAuthResult] = useState<AuthResult | null>(null);
+
+  // Add mutation for token conversion
+  const convertToken = trpc.authUnified.convertAgentToken.useMutation();
   
   // Fetch ERC-8004 status
   useEffect(() => {
@@ -140,18 +144,34 @@ export default function AgentAuth() {
       
       const result: AuthResult = await authRes.json();
       setAuthResult(result);
-      
-      if (result.success) {
+
+      if (result.success && result.token) {
         toast({
           title: "Authentication Successful",
           description: `Welcome, Agent ${result.agent?.agentId.slice(0, 8)}...`
         });
-        
-        // Store token
-        localStorage.setItem("erc8004_token", result.token!);
-        
-        // Redirect after delay
-        setTimeout(() => setLocation("/"), 2000);
+
+        // Convert ERC-8004 token to JWT session
+        try {
+          const conversionResult = await convertToken.mutateAsync({
+            erc8004Token: result.token
+          });
+
+          if (conversionResult.success) {
+            // JWT tokens are now set as HTTP-only cookies
+            // Redirect to home page
+            window.location.href = "/";
+          } else {
+            throw new Error("Token conversion failed");
+          }
+        } catch (conversionError: any) {
+          toast({
+            title: "Session Setup Failed",
+            description: conversionError.message || "Please try logging in again",
+            variant: "destructive"
+          });
+          setAuthResult(null); // Reset to allow retry
+        }
       } else {
         toast({
           title: "Authentication Failed",

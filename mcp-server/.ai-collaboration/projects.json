@@ -1,0 +1,109 @@
+{
+  "projects": [
+    {
+      "id": "proj_5459fd8507356a74",
+      "name": "Awareness Platform Development",
+      "clientId": "client_awareness",
+      "clientName": "Awareness Market Team",
+      "mcpToken": "mcp_collab_e1b7cdfff94abc6891da1168590b1f9a",
+      "memoryKey": "client:client_awareness:project:proj_5459fd8507356a74",
+      "agents": [
+        {
+          "id": "agent_66edf5f8",
+          "name": "Manus",
+          "role": "frontend",
+          "model": "manus",
+          "description": "Frontend development with React/Vue"
+        },
+        {
+          "id": "agent_a9d9da6e",
+          "name": "Claude",
+          "role": "backend",
+          "model": "claude-sonnet-4.5",
+          "description": "Backend development with Node.js/tRPC"
+        }
+      ],
+      "createdAt": "2026-02-03T19:12:21.970Z",
+      "status": "active"
+    },
+    {
+      "id": "proj_1e1cf84dbefb7e92",
+      "name": "E-commerce Platform",
+      "clientId": "client_acme",
+      "clientName": "Acme Corporation",
+      "mcpToken": "mcp_collab_04d1b3006553042d83615973d346e6c9",
+      "memoryKey": "client:client_acme:project:proj_1e1cf84dbefb7e92",
+      "agents": [
+        {
+          "id": "agent_7f09593c",
+          "name": "Manus",
+          "role": "frontend",
+          "model": "manus"
+        },
+        {
+          "id": "agent_3f546676",
+          "name": "Claude",
+          "role": "backend",
+          "model": "claude-sonnet-4.5"
+        },
+        {
+          "id": "agent_c7f976aa",
+          "name": "QA Bot",
+          "role": "testing",
+          "model": "gpt-4",
+          "description": "Automated testing"
+        }
+      ],
+      "createdAt": "2026-02-03T19:20:22.809Z",
+      "status": "active"
+    },
+    {
+      "id": "proj_5ccd40b7e25808c3",
+      "name": "Mobile App",
+      "clientId": "client_techcorp",
+      "clientName": "TechCorp Inc",
+      "mcpToken": "mcp_collab_cd7c93062523d182d71a5525423ba4fe",
+      "memoryKey": "client:client_techcorp:project:proj_5ccd40b7e25808c3",
+      "agents": [
+        {
+          "id": "agent_97ace563",
+          "name": "GPT-4",
+          "role": "frontend",
+          "model": "gpt-4"
+        },
+        {
+          "id": "agent_1535183d",
+          "name": "Claude",
+          "role": "backend",
+          "model": "claude-sonnet-4.5"
+        },
+        {
+          "id": "agent_c322b2a2",
+          "name": "Gemini",
+          "role": "devops",
+          "model": "gemini-pro"
+        }
+      ],
+      "createdAt": "2026-02-03T19:20:22.810Z",
+      "status": "active"
+    },
+    {
+      "id": "proj_0f1eaad38388b98d",
+      "name": "API Platform",
+      "clientId": "client_acme",
+      "clientName": "Acme Corporation",
+      "mcpToken": "mcp_collab_e22ebf8f34d31271822d09301d516c4b",
+      "memoryKey": "client:client_acme:project:proj_0f1eaad38388b98d",
+      "agents": [
+        {
+          "id": "agent_436ba83f",
+          "name": "Claude",
+          "role": "backend",
+          "model": "claude-sonnet-4.5"
+        }
+      ],
+      "createdAt": "2026-02-03T19:20:22.811Z",
+      "status": "active"
+    }
+  ]
+}
