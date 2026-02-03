@@ -14,9 +14,12 @@
   ],
   "scripts": {
     "build": "tsc",
+    "build:collab": "tsc index-collaboration.ts --outDir dist --module ESNext --moduleResolution node --esModuleInterop",
     "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
+    "start:collab": "node dist/index-collaboration.js",
     "dev": "tsx index.ts",
+    "dev:collab": "tsx index-collaboration.ts",
     "test": "tsx test-client.ts"
   },
   "keywords": [
