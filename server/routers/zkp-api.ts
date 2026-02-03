@@ -23,10 +23,7 @@ import {
   type VectorCommitment,
   type ZKPConfig,
 } from "../latentmas/zkp-verification";
-import { getDb } from "../db";
-import { assertDatabaseAvailable } from "../utils/error-handling";
-import { latentVectors, packagePurchases, vectorPackages } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { prisma } from "../db-prisma";
 
 // ============================================================================
 // Input Schemas
@@ -287,9 +284,6 @@ export const zkpRouter = router({
     .input(AnonymousPurchaseInputSchema)
     .mutation(async ({ input, ctx }) => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
         // Verify quality proof first
         const zkpEngine = getZKPEngine();
         await zkpEngine.initialize();
@@ -304,13 +298,11 @@ export const zkpRouter = router({
         }
 
         // Check if package exists
-        const packageData = await db
-          .select()
-          .from(vectorPackages)
-          .where(eq(vectorPackages.packageId, input.packageId))
-          .limit(1);
+        const packageData = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
 
-        if (!packageData[0]) {
+        if (!packageData) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Package not found',
@@ -319,7 +311,7 @@ export const zkpRouter = router({
 
         // Verify payment commitment
         // In production: verify blind signature, check ring signature
-        const price = parseFloat(packageData[0].price || '0');
+        const price = parseFloat(packageData.price || '0');
         const paymentValid = input.blindedPayment.amount >= price;
 
         if (!paymentValid) {
@@ -335,15 +327,17 @@ export const zkpRouter = router({
 
         // Create anonymous purchase record
         // Note: In production, this would be on-chain with ring signatures
-        await db.insert(packagePurchases).values({
-          packageType: 'vector',
-          packageId: input.packageId,
-          buyerId: ctx.user.id, // In true anonymity, this would be a nullifier
-          sellerId: packageData[0].userId,
-          price: price.toFixed(2),
-          platformFee: platformFee.toFixed(2),
-          sellerEarnings: sellerEarnings.toFixed(2),
-          status: 'completed',
+        await prisma.packagePurchase.create({
+          data: {
+            packageType: 'vector',
+            packageId: input.packageId,
+            buyerId: ctx.user.id, // In true anonymity, this would be a nullifier
+            sellerId: packageData.userId,
+            price: price.toFixed(2),
+            platformFee: platformFee.toFixed(2),
+            sellerEarnings: sellerEarnings.toFixed(2),
+            status: 'completed',
+          },
         });
 
         return {

@@ -9,6 +9,7 @@ import { getCache, cacheKeys } from './redis-cache';
 import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { createLogger } from '../utils/logger';
+import { prisma } from '../db-prisma';
 
 const logger = createLogger('CacheMiddleware');
 
@@ -182,41 +183,238 @@ export class CacheWarmer {
 
   /**
    * Warm up cache with popular packages
+   * Fetches package data from database and pre-loads into cache
    */
   async warmPackages(packageIds: string[]): Promise<void> {
-    logger.info('Warming cache for packages', { count: packageIds.length });
+    logger.info('[Cache Warmer] Starting package cache warming', { count: packageIds.length });
 
-    // This would typically fetch from database
-    // For now, just a placeholder
+    let successCount = 0;
+    let errorCount = 0;
 
-    for (const id of packageIds) {
-      const key = cacheKeys.package(id);
-      // await this.cache.set(key, packageData, { ttl: 3600 });
+    for (const packageId of packageIds) {
+      try {
+        // Try to fetch from all package types
+        let packageData: any = null;
+        let packageType: 'vector' | 'memory' | 'chain' | null = null;
+
+        // Check vector packages
+        packageData = await prisma.vectorPackage.findUnique({
+          where: { packageId },
+        });
+        if (packageData) packageType = 'vector';
+
+        // Check memory packages if not found
+        if (!packageData) {
+          packageData = await prisma.memoryPackage.findUnique({
+            where: { packageId },
+          });
+          if (packageData) packageType = 'memory';
+        }
+
+        // Check chain packages if still not found
+        if (!packageData) {
+          packageData = await prisma.chainPackage.findUnique({
+            where: { packageId },
+          });
+          if (packageData) packageType = 'chain';
+        }
+
+        // Cache the package data if found
+        if (packageData && packageType) {
+          const cacheKey = cacheKeys.package(packageId);
+          await this.cache.set(
+            cacheKey,
+            { ...packageData, packageType },
+            { ttl: 3600 } // 1 hour TTL
+          );
+          successCount++;
+          logger.debug('[Cache Warmer] Package cached', { packageId, packageType });
+        } else {
+          logger.warn('[Cache Warmer] Package not found', { packageId });
+        }
+      } catch (error) {
+        errorCount++;
+        logger.error('[Cache Warmer] Error warming package cache', {
+          packageId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
     }
 
-    logger.info('Cache warming complete');
+    logger.info('[Cache Warmer] Package cache warming complete', {
+      total: packageIds.length,
+      success: successCount,
+      errors: errorCount,
+    });
   }
 
   /**
    * Warm up cache with search results
+   * Pre-computes and caches results for popular search queries
    */
   async warmSearches(popularQueries: string[]): Promise<void> {
-    logger.info('Warming cache for search queries', { count: popularQueries.length });
+    logger.info('[Cache Warmer] Starting search cache warming', { count: popularQueries.length });
 
-    // Pre-compute and cache popular search results
+    let successCount = 0;
+    let errorCount = 0;
 
-    logger.info('Search cache warming complete');
+    for (const query of popularQueries) {
+      try {
+        // Search across all package types
+        const searchResults = {
+          vector: await prisma.vectorPackage.findMany({
+            where: {
+              OR: [
+                { name: { contains: query, mode: 'insensitive' } },
+                { description: { contains: query, mode: 'insensitive' } },
+              ],
+              status: 'active',
+            },
+            take: 10,
+            orderBy: { downloads: 'desc' },
+          }),
+          memory: await prisma.memoryPackage.findMany({
+            where: {
+              OR: [
+                { name: { contains: query, mode: 'insensitive' } },
+                { description: { contains: query, mode: 'insensitive' } },
+              ],
+              status: 'active',
+            },
+            take: 10,
+            orderBy: { downloads: 'desc' },
+          }),
+          chain: await prisma.chainPackage.findMany({
+            where: {
+              OR: [
+                { name: { contains: query, mode: 'insensitive' } },
+                { description: { contains: query, mode: 'insensitive' } },
+              ],
+              status: 'active',
+            },
+            take: 10,
+            orderBy: { downloads: 'desc' },
+          }),
+        };
+
+        // Cache search results
+        const cacheKey = `search:${query.toLowerCase().trim()}`;
+        await this.cache.set(
+          cacheKey,
+          searchResults,
+          { ttl: 1800 } // 30 minutes TTL for searches
+        );
+
+        successCount++;
+        logger.debug('[Cache Warmer] Search cached', {
+          query,
+          resultsCount:
+            searchResults.vector.length +
+            searchResults.memory.length +
+            searchResults.chain.length,
+        });
+      } catch (error) {
+        errorCount++;
+        logger.error('[Cache Warmer] Error warming search cache', {
+          query,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    logger.info('[Cache Warmer] Search cache warming complete', {
+      total: popularQueries.length,
+      success: successCount,
+      errors: errorCount,
+    });
   }
 
   /**
    * Schedule periodic cache warming
+   * Automatically warms cache for top packages and searches
    */
   startPeriodicWarming(intervalMs: number = 3600000): void {
-    // Every hour
+    logger.info('[Cache Warmer] Starting periodic cache warming', {
+      intervalMs,
+      intervalHours: intervalMs / 3600000,
+    });
+
+    // Run immediately on startup
+    this.runPeriodicWarming().catch((error) => {
+      logger.error('[Cache Warmer] Initial warming failed', { error });
+    });
+
+    // Then schedule periodic runs
     setInterval(async () => {
-      logger.info('Periodic cache warming started');
-      // Implement warming logic
+      await this.runPeriodicWarming();
     }, intervalMs);
+  }
+
+  /**
+   * Execute one cycle of cache warming
+   */
+  private async runPeriodicWarming(): Promise<void> {
+    logger.info('[Cache Warmer] Periodic cache warming cycle started');
+    const startTime = Date.now();
+
+    try {
+      // Get top 100 most downloaded packages
+      const topPackages = await Promise.all([
+        prisma.vectorPackage.findMany({
+          where: { status: 'active' },
+          select: { packageId: true },
+          orderBy: { downloads: 'desc' },
+          take: 50,
+        }),
+        prisma.memoryPackage.findMany({
+          where: { status: 'active' },
+          select: { packageId: true },
+          orderBy: { downloads: 'desc' },
+          take: 25,
+        }),
+        prisma.chainPackage.findMany({
+          where: { status: 'active' },
+          select: { packageId: true },
+          orderBy: { downloads: 'desc' },
+          take: 25,
+        }),
+      ]);
+
+      const packageIds = [
+        ...topPackages[0].map((p) => p.packageId),
+        ...topPackages[1].map((p) => p.packageId),
+        ...topPackages[2].map((p) => p.packageId),
+      ];
+
+      // Warm package cache
+      await this.warmPackages(packageIds);
+
+      // Warm search cache with popular queries
+      const popularQueries = [
+        'gpt',
+        'claude',
+        'llama',
+        'embedding',
+        'chat',
+        'translation',
+        'summarization',
+        'reasoning',
+        'vision',
+        'audio',
+      ];
+      await this.warmSearches(popularQueries);
+
+      const duration = Date.now() - startTime;
+      logger.info('[Cache Warmer] Periodic cache warming cycle completed', {
+        durationMs: duration,
+        packagesCached: packageIds.length,
+        queriesCached: popularQueries.length,
+      });
+    } catch (error) {
+      logger.error('[Cache Warmer] Periodic cache warming failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 }
 

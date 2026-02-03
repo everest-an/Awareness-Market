@@ -6,9 +6,7 @@
 import express from "express";
 import { z } from "zod";
 import crypto from "crypto";
-import { getDb } from "./db";
-import { apiKeys, users, aiMemory } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 import { createLogger } from "./utils/logger";
 
 const logger = createLogger('AI:AuthAPI');
@@ -19,35 +17,24 @@ export interface AuthenticatedRequest extends express.Request {
   apiKeyPermissions: string[];
 }
 
-interface InsertResult {
-  insertId: number;
-}
-
 const router = express.Router();
 
 // Middleware to validate API key from header
 async function validateApiKey(req: express.Request, res: express.Response, next: express.NextFunction) {
   const apiKey = req.headers["x-api-key"] as string;
-  
+
   if (!apiKey) {
     return res.status(401).json({ error: "API key required" });
   }
 
-  const db = await getDb();
-  if (!db) {
-    return res.status(500).json({ error: "Database unavailable" });
-  }
-
   try {
     const keyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
-    const [keyRecord] = await db
-      .select()
-      .from(apiKeys)
-      .where(and(
-        eq(apiKeys.keyHash, keyHash),
-        eq(apiKeys.isActive, true)
-      ))
-      .limit(1);
+    const keyRecord = await prisma.apiKey.findFirst({
+      where: {
+        keyHash,
+        isActive: true,
+      },
+    });
 
     if (!keyRecord) {
       return res.status(401).json({ error: "Invalid API key" });
@@ -59,10 +46,10 @@ async function validateApiKey(req: express.Request, res: express.Response, next:
     }
 
     // Update last used timestamp
-    await db
-      .update(apiKeys)
-      .set({ lastUsedAt: new Date() })
-      .where(eq(apiKeys.id, keyRecord.id));
+    await prisma.apiKey.update({
+      where: { id: keyRecord.id },
+      data: { lastUsedAt: new Date() },
+    });
 
     // Attach user info to request
     (req as AuthenticatedRequest).apiKeyUserId = keyRecord.userId;
@@ -89,51 +76,52 @@ router.post("/register", async (req, res) => {
     });
 
     const body = schema.parse(req.body);
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
 
     // Generate unique openId for AI agent
     const openId = `ai_${crypto.randomBytes(16).toString("hex")}`;
 
     // Create user account
-    const insertResult = await db.insert(users).values({     openId,
-      name: body.agentName,
-      email: body.email || null,
-      loginMethod: "api",
-      role: "consumer", // AI agents start as consumers
+    const user = await prisma.user.create({
+      data: {
+        openId,
+        name: body.agentName,
+        email: body.email || null,
+        loginMethod: "api",
+        role: "consumer", // AI agents start as consumers
+      },
     });
-
-    const userId = Number((insertResult as unknown as InsertResult).insertId);
 
     // Generate API key
     const rawApiKey = `ak_${crypto.randomBytes(32).toString("hex")}`;
     const keyHash = crypto.createHash("sha256").update(rawApiKey).digest("hex");
     const keyPrefix = rawApiKey.substring(0, 12);
 
-    await db.insert(apiKeys).values({
-      userId,
-      keyHash,
-      keyPrefix,
-      name: "Default Key",
-      permissions: JSON.stringify(["read", "write", "purchase"]),
-      isActive: true,
+    await prisma.apiKey.create({
+      data: {
+        userId: user.id,
+        keyHash,
+        keyPrefix,
+        name: "Default Key",
+        permissions: JSON.stringify(["read", "write", "purchase"]),
+        isActive: true,
+      },
     });
 
     // Store agent metadata in AI memory
     if (body.metadata) {
-      await db.insert(aiMemory).values({
-        userId,
-        memoryKey: "agent_metadata",
-        memoryData: JSON.stringify(body.metadata),
-        version: 1,
+      await prisma.aiMemory.create({
+        data: {
+          userId: user.id,
+          memoryKey: "agent_metadata",
+          memoryData: JSON.stringify(body.metadata),
+          version: 1,
+        },
       });
     }
 
     return res.status(201).json({
       success: true,
-      userId,
+      userId: user.id,
       openId,
       apiKey: rawApiKey, // Only returned once during registration
       message: "AI agent registered successfully. Store your API key securely - it won't be shown again.",
@@ -154,24 +142,20 @@ router.post("/register", async (req, res) => {
 router.get("/keys", validateApiKey, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).apiKeyUserId;
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
 
-    const keys = await db
-      .select({
-        id: apiKeys.id,
-        name: apiKeys.name,
-        keyPrefix: apiKeys.keyPrefix,
-        permissions: apiKeys.permissions,
-        lastUsedAt: apiKeys.lastUsedAt,
-        expiresAt: apiKeys.expiresAt,
-        isActive: apiKeys.isActive,
-        createdAt: apiKeys.createdAt,
-      })
-      .from(apiKeys)
-      .where(eq(apiKeys.userId, userId));
+    const keys = await prisma.apiKey.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        keyPrefix: true,
+        permissions: true,
+        lastUsedAt: true,
+        expiresAt: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
 
     return res.json({ keys });
   } catch (error) {
@@ -194,10 +178,6 @@ router.post("/keys", validateApiKey, async (req, res) => {
 
     const body = schema.parse(req.body);
     const userId = (req as AuthenticatedRequest).apiKeyUserId;
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
 
     // Generate new API key
     const rawApiKey = `ak_${crypto.randomBytes(32).toString("hex")}`;
@@ -208,14 +188,16 @@ router.post("/keys", validateApiKey, async (req, res) => {
       ? new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000)
       : null;
 
-    await db.insert(apiKeys).values({
-      userId,
-      keyHash,
-      keyPrefix,
-      name: body.name,
-      permissions: JSON.stringify(body.permissions || ["read"]),
-      expiresAt,
-      isActive: true,
+    await prisma.apiKey.create({
+      data: {
+        userId,
+        keyHash,
+        keyPrefix,
+        name: body.name,
+        permissions: JSON.stringify(body.permissions || ["read"]),
+        expiresAt,
+        isActive: true,
+      },
     });
 
     return res.status(201).json({
@@ -240,18 +222,14 @@ router.delete("/keys/:keyId", validateApiKey, async (req, res) => {
   try {
     const keyId = parseInt(req.params.keyId);
     const userId = (req as AuthenticatedRequest).apiKeyUserId;
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
 
-    await db
-      .update(apiKeys)
-      .set({ isActive: false })
-      .where(and(
-        eq(apiKeys.id, keyId),
-        eq(apiKeys.userId, userId)
-      ));
+    await prisma.apiKey.updateMany({
+      where: {
+        id: keyId,
+        userId,
+      },
+      data: { isActive: false },
+    });
 
     return res.json({ success: true, message: "API key revoked" });
   } catch (error) {

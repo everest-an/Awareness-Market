@@ -19,6 +19,7 @@ import { prisma } from './db-prisma.js';
 import { Decimal } from '@prisma/client/runtime/library';
 import { logger } from './utils/logger.js';
 import { broadcastResonanceEvent } from './socket-events.js';
+import { cosineSimilarity, parseVectorData } from './utils/vector-similarity.js';
 
 // ============================================================================
 // Types
@@ -92,8 +93,13 @@ export const resonanceRouter = router({
       // Calculate costs and prepare response
       const results = matches.map((m) => {
         const cost = calculateCost(m, ctx.user.id);
-        // Simplified: use a placeholder similarity score
-        const similarity = m.isPublic ? 0.9 : 0.85;
+
+        // Calculate real similarity if vector data is available
+        let similarity = 0.5; // Default fallback
+        const vectorData = parseVectorData(m.vectorData as string | null);
+        if (vectorData) {
+          similarity = cosineSimilarity(input.embedding, vectorData);
+        }
 
         return {
           id: m.id,
@@ -105,8 +111,14 @@ export const resonanceRouter = router({
         };
       });
 
+      // Filter by similarity threshold and sort
+      const filteredResults = results
+        .filter(r => r.similarity >= input.threshold)
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, input.limit);
+
       // Calculate total cost
-      const totalCost = results.reduce((sum, r) => sum + r.cost, 0);
+      const totalCost = filteredResults.reduce((sum, r) => sum + r.cost, 0);
 
       // Check if user has enough credits
       if (totalCost > 0) {
@@ -140,9 +152,12 @@ export const resonanceRouter = router({
         });
       }
 
-      // Log each memory usage
-      for (const match of matches) {
-        const cost = calculateCost(match, ctx.user.id);
+      // Log each memory usage with real similarity scores
+      for (const result of filteredResults) {
+        const match = matches.find(m => m.id === result.id);
+        if (!match) continue;
+
+        const cost = result.cost;
 
         if (cost > 0 || match.isPublic) {
           await prisma.memoryUsageLog.create({
@@ -150,7 +165,7 @@ export const resonanceRouter = router({
               consumerId: ctx.user.id,
               providerId: match.creatorId,
               memoryId: match.id,
-              similarity: 0.9, // Placeholder
+              similarity: result.similarity,
               cost,
               contextQuery: input.embedding.slice(0, 10).join(','),
               createdAt: new Date()
@@ -164,7 +179,7 @@ export const resonanceRouter = router({
             consumerName: ctx.user.name || `Agent-${ctx.user.id}`,
             providerName: match.creator.name || `Agent-${match.creatorId}`,
             memoryId: match.id,
-            similarity: 0.9, // Placeholder
+            similarity: result.similarity,
             cost,
             timestamp: new Date()
           });
@@ -181,7 +196,7 @@ export const resonanceRouter = router({
 
       logger.info('Hive Mind query completed', {
         userId: ctx.user.id,
-        matchCount: results.length,
+        matchCount: filteredResults.length,
         totalCost,
         threshold: input.threshold
       });
@@ -197,7 +212,7 @@ export const resonanceRouter = router({
       }
 
       return {
-        matches: results,
+        matches: filteredResults,
         totalCost,
         creditsRemaining
       };
@@ -311,17 +326,6 @@ export const resonanceRouter = router({
     .mutation(async ({ input, ctx }) => {
       const startTime = Date.now();
 
-      // Calculate cosine similarity between two vectors
-      const cosineSimilarity = (a: number[], b: number[]): number => {
-        const minLen = Math.min(a.length, b.length);
-        const v1 = a.slice(0, minLen);
-        const v2 = b.slice(0, minLen);
-        const dot = v1.reduce((sum, val, i) => sum + val * v2[i], 0);
-        const mag1 = Math.sqrt(v1.reduce((sum, val) => sum + val * val, 0));
-        const mag2 = Math.sqrt(v2.reduce((sum, val) => sum + val * val, 0));
-        return mag1 > 0 && mag2 > 0 ? dot / (mag1 * mag2) : 0;
-      };
-
       // Get candidate memories
       const whereClause = input.allowPrivate
         ? { status: 'active', creatorId: { not: ctx.user.id } }
@@ -338,19 +342,13 @@ export const resonanceRouter = router({
       // Calculate similarity for each candidate
       // In production, this would use pgvector for efficient similarity search
       const scored = candidates.map(m => {
-        // Use stored vector if available, otherwise estimate from description
-        let similarity = 0.7 + Math.random() * 0.2; // Placeholder
+        // Default similarity if no vector data available
+        let similarity = 0;
 
-        // If we have actual vector data, calculate real similarity
-        if (m.vectorData) {
-          try {
-            const storedVector = JSON.parse(m.vectorData as string);
-            if (Array.isArray(storedVector)) {
-              similarity = cosineSimilarity(input.contextEmbedding, storedVector);
-            }
-          } catch {
-            // Use placeholder if parsing fails
-          }
+        // Calculate real similarity if vector data is available
+        const vectorData = parseVectorData(m.vectorData as string | null);
+        if (vectorData) {
+          similarity = cosineSimilarity(input.contextEmbedding, vectorData);
         }
 
         return {

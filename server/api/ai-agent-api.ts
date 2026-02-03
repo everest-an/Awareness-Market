@@ -19,6 +19,7 @@
 
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { createLogger } from '../utils/logger';
+import { purchaseWithCredits, getCreditBalance, topUpCredits, refundCredits } from '../utils/credit-payment-system';
 
 const logger = createLogger('AI:AgentAPI');
 import { z } from 'zod';
@@ -27,17 +28,11 @@ import { VectorPackageBuilder } from '../latentmas/vector-package-builder';
 import { MemoryPackageBuilder } from '../latentmas/memory-package-builder';
 import { ChainPackageBuilder } from '../latentmas/chain-package-builder';
 import { storagePut } from '../storage';
-// TODO: Re-enable after fixing storage module TypeScript errors
-// import { storagePutSmart } from '../storage/unified-storage';
+import { storagePutSmart } from '../storage/unified-storage';
 import { uploadPackageTransaction, purchasePackageTransaction } from '../db-transactions';
-import { getDb } from '../db-connection';
-import { vectorPackages, memoryPackages, chainPackages, packagePurchases } from '../../drizzle/schema';
-import { eq, and, like, or, type InferSelectModel } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
+import type { VectorPackage, MemoryPackage, ChainPackage } from '@prisma/client';
 import { workflowManager } from '../workflow-manager';
-
-type VectorPackage = InferSelectModel<typeof vectorPackages>;
-type MemoryPackage = InferSelectModel<typeof memoryPackages>;
-type ChainPackage = InferSelectModel<typeof chainPackages>;
 
 type SearchResult =
   | (VectorPackage & { packageType: 'vector' })
@@ -213,53 +208,48 @@ export const aiAgentRouter = router({
       limit: z.number().min(1).max(50).default(10),
     }))
     .query(async ({ input }) => {
-      const db = await getDb();
       const { query, packageType, limit } = input;
 
       // Simple keyword search (can be enhanced with LLM-powered semantic search)
-      const searchPattern = `%${query}%`;
       const results: SearchResult[] = [];
 
       if (packageType === 'vector' || packageType === 'all') {
-        const vectors = await db
-          .select()
-          .from(vectorPackages)
-          .where(
-            or(
-              like(vectorPackages.name, searchPattern),
-              like(vectorPackages.description, searchPattern),
-              like(vectorPackages.category, searchPattern)
-            )
-          )
-          .limit(limit);
+        const vectors = await prisma.vectorPackage.findMany({
+          where: {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { description: { contains: query, mode: 'insensitive' } },
+              { category: { contains: query, mode: 'insensitive' } },
+            ],
+          },
+          take: limit,
+        });
         results.push(...vectors.map(v => ({ ...v, packageType: 'vector' as const })));
       }
 
       if (packageType === 'memory' || packageType === 'all') {
-        const memories = await db
-          .select()
-          .from(memoryPackages)
-          .where(
-            or(
-              like(memoryPackages.name, searchPattern),
-              like(memoryPackages.description, searchPattern)
-            )
-          )
-          .limit(limit);
+        const memories = await prisma.memoryPackage.findMany({
+          where: {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { description: { contains: query, mode: 'insensitive' } },
+            ],
+          },
+          take: limit,
+        });
         results.push(...memories.map(m => ({ ...m, packageType: 'memory' as const })));
       }
 
       if (packageType === 'chain' || packageType === 'all') {
-        const chains = await db
-          .select()
-          .from(chainPackages)
-          .where(
-            or(
-              like(chainPackages.name, searchPattern),
-              like(chainPackages.description, searchPattern)
-            )
-          )
-          .limit(limit);
+        const chains = await prisma.chainPackage.findMany({
+          where: {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { description: { contains: query, mode: 'insensitive' } },
+            ],
+          },
+          take: limit,
+        });
         results.push(...chains.map(c => ({ ...c, packageType: 'chain' as const })));
       }
 
@@ -315,7 +305,6 @@ export const aiAgentRouter = router({
         });
       }
 
-      const db = await getDb();
       const { packageType, packageId, paymentMethod } = input;
 
       logger.warn('[AI Agent API] Using MOCK payment - development/testing only', {
@@ -325,7 +314,7 @@ export const aiAgentRouter = router({
       });
 
       // Get package details by type
-      const pkg = await getPackageByTypeAndId(db, packageType, packageId);
+      const pkg = await getPackageByTypeAndId(packageType, packageId);
 
       if (!pkg) {
         throw new TRPCError({
@@ -340,7 +329,7 @@ export const aiAgentRouter = router({
         userId: ctx.user.id,
         packageType,
         packageId,
-        price: pkg.price,
+        price: Number(pkg.price),
         stripePaymentId: `pi_mock_${Date.now()}`, // Mock payment ID - NOT a real Stripe transaction
       });
 
@@ -364,21 +353,16 @@ export const aiAgentRouter = router({
       packageId: z.string(),
     }))
     .query(async ({ input, ctx }) => {
-      const db = await getDb();
       const { packageType, packageId } = input;
 
       // Verify purchase
-      const [purchase] = await db
-        .select()
-        .from(packagePurchases)
-        .where(
-          and(
-            eq(packagePurchases.buyerId, ctx.user.id),
-            eq(packagePurchases.packageType, packageType),
-            eq(packagePurchases.packageId, packageId)
-          )
-        )
-        .limit(1);
+      const purchase = await prisma.packagePurchase.findFirst({
+        where: {
+          buyerId: ctx.user.id,
+          packageType,
+          packageId,
+        },
+      });
 
       if (!purchase) {
         throw new TRPCError({
@@ -388,7 +372,7 @@ export const aiAgentRouter = router({
       }
 
       // Get package URL
-      const pkg = await getPackageByTypeAndId(db, packageType, packageId);
+      const pkg = await getPackageByTypeAndId(packageType, packageId);
 
       if (!pkg) {
         throw new TRPCError({
@@ -498,26 +482,50 @@ async function processUpload(uploadId: string, input: UploadPackageInput, userId
       metadata: { step: 'storage' },
     });
 
-    // Upload to S3
+    // Upload to S3 with smart routing
     const packageKey = `packages/${input.packageType}/${userId}/${Date.now()}.pkg`;
     const wMatrixKey = `w-matrices/${userId}/${Date.now()}.safetensors`;
 
-    // Use storage routing
-    const packageResult = await storagePut(packageKey, packageBuffer, 'application/octet-stream');
-    const wMatrixResult = await storagePut(wMatrixKey, wMatrixBuffer, 'application/octet-stream');
-    
+    // Use smart storage routing based on file size and upload source
+    const uploadContext = {
+      uploadSource: 'ai_agent' as const,
+      packageType: input.packageType,
+      userId,
+      isTest: process.env.NODE_ENV === 'development',
+    };
+
+    const packageResult = await storagePutSmart(
+      packageKey,
+      packageBuffer,
+      'application/octet-stream',
+      { ...uploadContext, fileSize: packageBuffer.length }
+    );
+
+    const wMatrixResult = await storagePutSmart(
+      wMatrixKey,
+      wMatrixBuffer,
+      'application/octet-stream',
+      { ...uploadContext, fileSize: wMatrixBuffer.length }
+    );
+
     const packageUrl = packageResult.url;
     const wMatrixUrl = wMatrixResult.url;
 
-    logger.info('Package files stored', { packageUrl, wMatrixUrl });
+    logger.info('Package files stored with smart routing', {
+      packageUrl,
+      wMatrixUrl,
+      packageBackend: packageResult.backend,
+      wMatrixBackend: wMatrixResult.backend,
+      totalEstimatedCost: (packageResult.estimatedCost + wMatrixResult.estimatedCost).toFixed(4),
+    });
 
     workflowManager.updateEvent(workflowId, storageEvent.id, {
       status: 'completed',
       output: {
         packageUrl,
         wMatrixUrl,
-        backend: 'default',
-        estimatedCost: '0.0000',
+        backend: packageResult.backend,
+        estimatedCost: (packageResult.estimatedCost + wMatrixResult.estimatedCost).toFixed(4),
       },
     });
 
@@ -644,7 +652,6 @@ async function sendWebhook(url: string, data: unknown) {
  * Helper: Get package by type and ID with proper typing
  */
 async function getPackageByTypeAndId(
-  db: Awaited<ReturnType<typeof getDb>>,
   packageType: 'vector' | 'memory' | 'chain',
   packageId: string
 ): Promise<PackageCommonFields | null> {
@@ -652,15 +659,19 @@ async function getPackageByTypeAndId(
 
   switch (packageType) {
     case 'vector': {
-      const [pkg] = await db
-        .select()
-        .from(vectorPackages)
-        .where(eq(vectorPackages.packageId, packageId))
-        .limit(1);
+      const pkg = await prisma.vectorPackage.findUnique({
+        where: { packageId },
+        select: {
+          packageId: true,
+          price: true,
+          packageUrl: true,
+          wMatrixUrl: true,
+        },
+      });
       if (pkg) {
         result = {
           packageId: pkg.packageId,
-          price: pkg.price,
+          price: pkg.price.toString(),
           packageUrl: pkg.packageUrl,
           wMatrixUrl: pkg.wMatrixUrl,
         };
@@ -668,15 +679,19 @@ async function getPackageByTypeAndId(
       break;
     }
     case 'memory': {
-      const [pkg] = await db
-        .select()
-        .from(memoryPackages)
-        .where(eq(memoryPackages.packageId, packageId))
-        .limit(1);
+      const pkg = await prisma.memoryPackage.findUnique({
+        where: { packageId },
+        select: {
+          packageId: true,
+          price: true,
+          packageUrl: true,
+          wMatrixUrl: true,
+        },
+      });
       if (pkg) {
         result = {
           packageId: pkg.packageId,
-          price: pkg.price,
+          price: pkg.price.toString(),
           packageUrl: pkg.packageUrl,
           wMatrixUrl: pkg.wMatrixUrl,
         };
@@ -684,15 +699,19 @@ async function getPackageByTypeAndId(
       break;
     }
     case 'chain': {
-      const [pkg] = await db
-        .select()
-        .from(chainPackages)
-        .where(eq(chainPackages.packageId, packageId))
-        .limit(1);
+      const pkg = await prisma.chainPackage.findUnique({
+        where: { packageId },
+        select: {
+          packageId: true,
+          price: true,
+          packageUrl: true,
+          wMatrixUrl: true,
+        },
+      });
       if (pkg) {
         result = {
           packageId: pkg.packageId,
-          price: pkg.price,
+          price: pkg.price.toString(),
           packageUrl: pkg.packageUrl,
           wMatrixUrl: pkg.wMatrixUrl,
         };
