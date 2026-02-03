@@ -28,10 +28,7 @@ import {
 } from "../latentmas/multimodal-vectors";
 import { storagePut } from "../storage";
 import { nanoid } from "nanoid";
-import { getDb } from "../db";
-import { assertDatabaseAvailable } from "../utils/error-handling";
-import { vectorPackages } from "../../drizzle/schema";
-import { eq, and, like } from "drizzle-orm";
+import { prisma } from "../db-prisma";
 
 // ============================================================================
 // Input Schemas
@@ -125,9 +122,8 @@ export const multimodalRouter = router({
         );
 
         // Store metadata in database
-        const db = await getDb();
-        if (db) {
-          await db.insert(vectorPackages).values({
+        await prisma.vectorPackage.create({
+          data: {
             packageId,
             userId: ctx.user.id,
             name: input.name,
@@ -144,8 +140,8 @@ export const multimodalRouter = router({
             category: input.category as 'nlp' | 'vision' | 'audio' | 'multimodal' | 'other',
             status: 'active',
             epsilon: '0.0', // Multi-modal doesn't use epsilon
-          });
-        }
+          },
+        });
 
         return {
           success: true,
@@ -177,14 +173,9 @@ export const multimodalRouter = router({
     }))
     .query(async ({ input }) => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
-        const [pkg] = await db
-          .select()
-          .from(vectorPackages)
-          .where(eq(vectorPackages.packageId, input.packageId))
-          .limit(1);
+        const pkg = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
 
         if (!pkg || pkg.targetModel !== 'multimodal') {
           throw new TRPCError({
@@ -290,15 +281,11 @@ export const multimodalRouter = router({
     .input(CrossModalSearchSchema)
     .query(async ({ input }) => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
         // Fetch multi-modal packages
-        const packages = await db
-          .select()
-          .from(vectorPackages)
-          .where(eq(vectorPackages.targetModel, 'multimodal'))
-          .limit(100);
+        const packages = await prisma.vectorPackage.findMany({
+          where: { targetModel: 'multimodal' },
+          take: 100,
+        });
 
         // In production, this would:
         // 1. Load full multi-modal vectors from S3
@@ -393,23 +380,17 @@ export const multimodalRouter = router({
     }))
     .query(async ({ input }) => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
         // Build query with conditional where clause
-        const whereClause = input.category
-          ? and(
-              eq(vectorPackages.targetModel, 'multimodal'),
-              eq(vectorPackages.category, input.category as 'nlp' | 'vision' | 'audio' | 'multimodal' | 'other')
-            )
-          : eq(vectorPackages.targetModel, 'multimodal');
-
-        const packages = await db
-          .select()
-          .from(vectorPackages)
-          .where(whereClause)
-          .limit(input.limit)
-          .offset(input.offset);
+        const packages = await prisma.vectorPackage.findMany({
+          where: input.category
+            ? {
+                targetModel: 'multimodal',
+                category: input.category as 'nlp' | 'vision' | 'audio' | 'multimodal' | 'other',
+              }
+            : { targetModel: 'multimodal' },
+          take: input.limit,
+          skip: input.offset,
+        });
 
         return {
           success: true,
@@ -543,13 +524,9 @@ export const multimodalRouter = router({
   getStatistics: publicProcedure
     .query(async () => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
-        const packages = await db
-          .select()
-          .from(vectorPackages)
-          .where(eq(vectorPackages.targetModel, 'multimodal'));
+        const packages = await prisma.vectorPackage.findMany({
+          where: { targetModel: 'multimodal' },
+        });
 
         return {
           success: true,

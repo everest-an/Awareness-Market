@@ -11,11 +11,9 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { getDb } from '../db';
-import { users } from '../../drizzle/schema';
-import { eq } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
 import { ethers } from 'ethers';
-import { getErrorMessage, assertDatabaseAvailable } from '../utils/error-handling';
+import { getErrorMessage } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
 import * as workflowDb from '../db-workflows';
 
@@ -132,17 +130,12 @@ async function executeStep(
     // 2. Pass shared memory context
     // 3. Collect output
 
-    const db = await getDb();
-    assertDatabaseAvailable(db);
-
     // Get agent info
-    const agentRecords = await db
-      .select()
-      .from(users)
-      .where(eq(users.openId, step.agentId))
-      .limit(1);
+    const agent = await prisma.user.findFirst({
+      where: { openId: step.agentId },
+    });
 
-    if (agentRecords.length === 0) {
+    if (!agent) {
       throw new Error(`Agent ${step.agentId} not found`);
     }
 
@@ -314,19 +307,14 @@ export const agentCollaborationRouter = router({
   collaborate: protectedProcedure
     .input(collaborateSchema)
     .mutation(async ({ input, ctx }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       // Validate agents exist
       const steps: Array<{ agentId: string; agentName: string }> = [];
       for (const agentId of input.agents) {
-        const agentRecords = await db
-          .select()
-          .from(users)
-          .where(eq(users.openId, agentId))
-          .limit(1);
+        const agent = await prisma.user.findFirst({
+          where: { openId: agentId },
+        });
 
-        if (agentRecords.length === 0) {
+        if (!agent) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: `Agent ${agentId} not found`,
@@ -335,7 +323,7 @@ export const agentCollaborationRouter = router({
 
         steps.push({
           agentId,
-          agentName: agentRecords[0].name || 'Unknown Agent',
+          agentName: agent.name || 'Unknown Agent',
         });
       }
 

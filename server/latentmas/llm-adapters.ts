@@ -7,6 +7,7 @@
 
 import { invokeLLM } from "../_core/llm";
 import { createLogger } from "../utils/logger";
+import { embeddingService } from "./embedding-service";
 
 const logger = createLogger('LatentMAS:LLMAdapters');
 
@@ -113,15 +114,32 @@ export class OpenAIAdapter implements LLMAdapter {
    * Get embedding vector (approximation of hidden state)
    */
   private async getEmbedding(text: string, model: string): Promise<number[]> {
-    // Use OpenAI embeddings API
+    // Use OpenAI embeddings API via embeddingService
     // Note: This returns the final embedding, not intermediate hidden states
     // For true hidden states, need access to model internals
-    
-    // Placeholder: Generate deterministic embedding for testing
-    // In production, call: openai.embeddings.create({ model: "text-embedding-3-large", input: text })
-    
-    const dimension = this.getModelDimension(model);
-    return this.generateDeterministicEmbedding(text, dimension);
+
+    try {
+      // Use real OpenAI embeddings API
+      const embeddingModel = model.includes("gpt-4") ? "text-embedding-3-large" : "text-embedding-3-small";
+      const result = await embeddingService.embed({
+        text,
+        model: embeddingModel,
+      });
+
+      logger.info('Successfully generated embedding via OpenAI API', {
+        model: embeddingModel,
+        dimensions: result.dimensions,
+        tokenCount: result.tokenCount,
+      });
+
+      return result.vector;
+    } catch (error) {
+      logger.warn('Failed to get real embedding, using deterministic fallback', { error });
+
+      // Fallback to deterministic embedding
+      const dimension = this.getModelDimension(model);
+      return this.generateDeterministicEmbedding(text, dimension);
+    }
   }
 
   private getModelDimension(model: string): number {

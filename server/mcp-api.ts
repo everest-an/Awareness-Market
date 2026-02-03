@@ -17,14 +17,10 @@ import * as db from "./db";
 import { runVector } from "./vector-runtime";
 import { invokeLLM } from "./_core/llm";
 import { validateApiKey, AuthenticatedRequest } from "./ai-auth-api";
-import type { InferSelectModel } from "drizzle-orm";
+import type { LatentVector, AccessPermission } from "@prisma/client";
 import { createLogger } from "./utils/logger";
 
 const logger = createLogger('MCP:API');
-import { latentVectors, accessPermissions } from "../drizzle/schema";
-
-type LatentVector = InferSelectModel<typeof latentVectors>;
-type AccessPermission = InferSelectModel<typeof accessPermissions>;
 
 interface Agent {
   messages?: Array<{ role: string; content: string }>;

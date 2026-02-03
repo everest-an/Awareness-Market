@@ -89,7 +89,7 @@ export class WasabiBackend implements StorageBackend {
    * Get presigned download URL
    * Wasabi has free egress, so no cost for downloads
    */
-  async get(key: string, expiresIn: number = 3600): Promise<{ url: string; key: string }> {
+  async get(key: string, expiresIn: number = 3600): Promise<{ url: string }> {
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
@@ -97,7 +97,7 @@ export class WasabiBackend implements StorageBackend {
       });
 
       const url = await getSignedUrl(this.client, command, { expiresIn });
-      return { url, key };
+      return { url };
     } catch (error) {
       logger.error('[WasabiBackend] Get URL failed:', { error });
       throw new Error(`Wasabi get failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

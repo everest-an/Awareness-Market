@@ -3,9 +3,7 @@
  * Revenue analysis, performance monitoring, and user feedback management
  */
 
-import { getDb } from "./db";
-import { latentVectors, vectorInvocations, transactions, reviews, users } from "../drizzle/schema";
-import { eq, and, gte, desc, sql } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 
 export interface RevenueAnalytics {
   totalRevenue: number;
@@ -56,9 +54,6 @@ export interface UserFeedback {
  * Get revenue analytics for creator
  */
 export async function getCreatorRevenueAnalytics(creatorId: number, days: number = 30): Promise<RevenueAnalytics> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   const now = new Date();
   const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -66,10 +61,9 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
   // Get creator's vectors
-  const creatorVectors = await db
-    .select()
-    .from(latentVectors)
-    .where(eq(latentVectors.creatorId, creatorId));
+  const creatorVectors = await prisma.latentVector.findMany({
+    where: { creatorId },
+  });
 
   const vectorIds = creatorVectors.map(v => v.id);
 
@@ -85,10 +79,11 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
   }
 
   // Get all invocations for creator's vectors
-  const allInvocations = await db
-    .select()
-    .from(vectorInvocations)
-    .where(sql`${vectorInvocations.vectorId} IN (${sql.join(vectorIds.map(id => sql`${id}`), sql`, `)})`);
+  const allInvocations = await prisma.vectorInvocation.findMany({
+    where: {
+      vectorId: { in: vectorIds },
+    },
+  });
 
   // Calculate total revenue
   const totalRevenue = allInvocations.reduce((sum, inv) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
@@ -158,19 +153,15 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
  * Get performance metrics for creator
  */
 export async function getCreatorPerformanceMetrics(creatorId: number): Promise<PerformanceMetrics> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
   // Get creator's vectors
-  const creatorVectors = await db
-    .select()
-    .from(latentVectors)
-    .where(eq(latentVectors.creatorId, creatorId));
+  const creatorVectors = await prisma.latentVector.findMany({
+    where: { creatorId },
+  });
 
   const vectorIds = creatorVectors.map(v => v.id);
 
@@ -187,10 +178,11 @@ export async function getCreatorPerformanceMetrics(creatorId: number): Promise<P
   }
 
   // Get all invocations
-  const allInvocations = await db
-    .select()
-    .from(vectorInvocations)
-    .where(sql`${vectorInvocations.vectorId} IN (${sql.join(vectorIds.map(id => sql`${id}`), sql`, `)})`);
+  const allInvocations = await prisma.vectorInvocation.findMany({
+    where: {
+      vectorId: { in: vectorIds },
+    },
+  });
 
   const totalInvocations = allInvocations.length;
   const successfulInvocations = allInvocations.filter(inv => inv.status === 'success').length;
@@ -241,14 +233,10 @@ export async function getCreatorPerformanceMetrics(creatorId: number): Promise<P
  * Get user feedback for creator
  */
 export async function getCreatorUserFeedback(creatorId: number, limit: number = 10): Promise<UserFeedback> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   // Get creator's vectors
-  const creatorVectors = await db
-    .select()
-    .from(latentVectors)
-    .where(eq(latentVectors.creatorId, creatorId));
+  const creatorVectors = await prisma.latentVector.findMany({
+    where: { creatorId },
+  });
 
   const vectorIds = creatorVectors.map(v => v.id);
 
@@ -261,44 +249,49 @@ export async function getCreatorUserFeedback(creatorId: number, limit: number = 
     };
   }
 
-  // Get all reviews for creator's vectors
-  const allReviews = await db
-    .select({
-      review: reviews,
+  // Get all reviews for creator's vectors with joins
+  const allReviews = await prisma.review.findMany({
+    where: {
+      vectorId: { in: vectorIds },
+    },
+    include: {
       vector: {
-        id: latentVectors.id,
-        title: latentVectors.title,
+        select: {
+          id: true,
+          title: true,
+        },
       },
       user: {
-        name: users.name,
-      }
-    })
-    .from(reviews)
-    .leftJoin(latentVectors, eq(reviews.vectorId, latentVectors.id))
-    .leftJoin(users, eq(reviews.userId, users.id))
-    .where(sql`${reviews.vectorId} IN (${sql.join(vectorIds.map(id => sql`${id}`), sql`, `)})`)
-    .orderBy(desc(reviews.createdAt))
-    .limit(limit);
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: limit,
+  });
 
   const totalReviews = allReviews.length;
   const averageRating = totalReviews > 0
-    ? allReviews.reduce((sum, r) => sum + r.review.rating, 0) / totalReviews
+    ? allReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
     : 0;
 
   // Rating distribution
   const ratingDistribution: { [key: number]: number } = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   allReviews.forEach(r => {
-    ratingDistribution[r.review.rating] = (ratingDistribution[r.review.rating] || 0) + 1;
+    ratingDistribution[r.rating] = (ratingDistribution[r.rating] || 0) + 1;
   });
 
   const recentReviews = allReviews.map(r => ({
-    id: r.review.id,
-    vectorId: r.review.vectorId,
+    id: r.id,
+    vectorId: r.vectorId,
     vectorTitle: r.vector?.title || 'Unknown',
-    rating: r.review.rating,
-    comment: r.review.comment,
+    rating: r.rating,
+    comment: r.comment,
     userName: r.user?.name || 'Anonymous',
-    createdAt: r.review.createdAt,
+    createdAt: r.createdAt,
   }));
 
   return {

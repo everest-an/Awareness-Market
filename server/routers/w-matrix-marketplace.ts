@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { getDb } from "../db";
-import { assertDatabaseAvailable, assertPackageExists } from "../utils/error-handling";
+import { prisma } from "../db-prisma";
+import { Prisma } from "@prisma/client";
+import { assertPackageExists } from "../utils/error-handling";
 import { createWMatrixPurchaseCheckout, stripe } from "../stripe-client";
 import { pricingEngine } from "../pricing-engine";
 import {
@@ -14,11 +15,7 @@ import {
 import { getGPUEngine } from "../latentmas/gpu-acceleration";
 import { createLogger } from "../utils/logger";
 
-// db is async, must await in each procedure
-import { wMatrixListings, wMatrixPurchases } from "../../drizzle/schema";
-import { eq, and, desc, sql, type InferInsertModel } from "drizzle-orm";
-
-type WMatrixListingUpdate = Partial<InferInsertModel<typeof wMatrixListings>>;
+type WMatrixListingUpdate = Partial<Prisma.WMatrixListingUpdateInput>;
 
 const logger = createLogger('WMatrixMarketplace');
 const gpuEngine = getGPUEngine({ enableFallback: true });
@@ -34,13 +31,9 @@ export const wMatrixMarketplaceRouter = router({
       cancelUrl: z.string().url(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
-      const [listing] = await db
-        .select()
-        .from(wMatrixListings)
-        .where(eq(wMatrixListings.id, input.listingId));
+      const listing = await prisma.wMatrixListing.findUnique({
+        where: { id: input.listingId },
+      });
 
       if (!listing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Listing not found" });
@@ -50,16 +43,13 @@ export const wMatrixMarketplaceRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "This listing is not available for purchase" });
       }
 
-      const [existingPurchase] = await db
-        .select()
-        .from(wMatrixPurchases)
-        .where(
-          and(
-            eq(wMatrixPurchases.listingId, input.listingId),
-            eq(wMatrixPurchases.buyerId, ctx.user.id),
-            eq(wMatrixPurchases.status, "completed")
-          )
-        );
+      const existingPurchase = await prisma.wMatrixPurchase.findFirst({
+        where: {
+          listingId: input.listingId,
+          buyerId: ctx.user.id,
+          status: "completed",
+        },
+      });
 
       if (existingPurchase) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "You have already purchased this W-Matrix" });
@@ -89,9 +79,6 @@ export const wMatrixMarketplaceRouter = router({
   finalizeCheckout: protectedProcedure
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       const session = await stripe.checkout.sessions.retrieve(input.sessionId);
 
       if (session.payment_status !== "paid") {
@@ -105,47 +92,45 @@ export const wMatrixMarketplaceRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid checkout session" });
       }
 
-      const [listing] = await db
-        .select()
-        .from(wMatrixListings)
-        .where(eq(wMatrixListings.id, listingId));
+      const listing = await prisma.wMatrixListing.findUnique({
+        where: { id: listingId },
+      });
 
       if (!listing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Listing not found" });
       }
 
-      const [existingPurchase] = await db
-        .select()
-        .from(wMatrixPurchases)
-        .where(
-          and(
-            eq(wMatrixPurchases.listingId, listingId),
-            eq(wMatrixPurchases.buyerId, ctx.user.id),
-            eq(wMatrixPurchases.status, "completed")
-          )
-        );
+      const existingPurchase = await prisma.wMatrixPurchase.findFirst({
+        where: {
+          listingId,
+          buyerId: ctx.user.id,
+          status: "completed",
+        },
+      });
 
       if (existingPurchase) {
         return { success: true, purchaseId: existingPurchase.id, matrixId: listing.matrixId };
       }
 
-      const [result] = await db.insert(wMatrixPurchases).values({
-        listingId,
-        buyerId: ctx.user.id,
-        price: listing.price,
-        stripePaymentIntentId: session.payment_intent as string,
-        status: "completed",
+      const purchase = await prisma.wMatrixPurchase.create({
+        data: {
+          listingId,
+          buyerId: ctx.user.id,
+          price: listing.price,
+          stripePaymentIntentId: session.payment_intent as string,
+          status: "completed",
+        },
       });
 
-      await db
-        .update(wMatrixListings)
-        .set({
-          totalSales: sql`${wMatrixListings.totalSales} + 1`,
-          totalRevenue: sql`${wMatrixListings.totalRevenue} + ${listing.price}`,
-        })
-        .where(eq(wMatrixListings.id, listingId));
+      await prisma.wMatrixListing.update({
+        where: { id: listingId },
+        data: {
+          totalSales: { increment: 1 },
+          totalRevenue: { increment: parseFloat(listing.price) },
+        },
+      });
 
-      return { success: true, purchaseId: result.insertId, matrixId: listing.matrixId };
+      return { success: true, purchaseId: purchase.id, matrixId: listing.matrixId };
     }),
 
   /**
@@ -163,47 +148,48 @@ export const wMatrixMarketplaceRouter = router({
       offset: z.number().min(0).default(0),
     }))
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
       const { sourceModel, targetModel, minPrice, maxPrice, search, sortBy, limit, offset } = input;
 
-      // Apply filters
-      const conditions = [eq(wMatrixListings.status, "active")];
-      if (sourceModel) conditions.push(eq(wMatrixListings.sourceModel, sourceModel));
-      if (targetModel) conditions.push(eq(wMatrixListings.targetModel, targetModel));
-      if (minPrice !== undefined) conditions.push(sql`${wMatrixListings.price} >= ${minPrice}`);
-      if (maxPrice !== undefined) conditions.push(sql`${wMatrixListings.price} <= ${maxPrice}`);
-      if (search) {
-        conditions.push(
-          sql`(${wMatrixListings.title} ILIKE ${'%' + search + '%'} OR ${wMatrixListings.description} ILIKE ${'%' + search + '%'})`
-        );
+      // Build where clause
+      const where: Prisma.WMatrixListingWhereInput = { status: "active" };
+      if (sourceModel) where.sourceModel = sourceModel;
+      if (targetModel) where.targetModel = targetModel;
+      if (minPrice !== undefined || maxPrice !== undefined) {
+        where.price = {};
+        if (minPrice !== undefined) where.price.gte = minPrice.toFixed(2);
+        if (maxPrice !== undefined) where.price.lte = maxPrice.toFixed(2);
       }
+      if (search) {
+        where.OR = [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
       // Determine sort order
-      let orderByClause;
+      let orderBy: Prisma.WMatrixListingOrderByWithRelationInput;
       switch (sortBy) {
         case "price":
-          orderByClause = wMatrixListings.price;
+          orderBy = { price: 'asc' };
           break;
         case "sales":
-          orderByClause = desc(wMatrixListings.totalSales);
+          orderBy = { totalSales: 'desc' };
           break;
         case "rating":
-          orderByClause = desc(wMatrixListings.averageRating);
+          orderBy = { averageRating: 'desc' };
           break;
         case "recent":
         default:
-          orderByClause = desc(wMatrixListings.createdAt);
+          orderBy = { createdAt: 'desc' };
           break;
       }
 
-      const listings = await db
-        .select()
-        .from(wMatrixListings)
-        .where(and(...conditions))
-        .orderBy(orderByClause)
-        .limit(limit)
-        .offset(offset);
+      const listings = await prisma.wMatrixListing.findMany({
+        where,
+        orderBy,
+        take: limit,
+        skip: offset,
+      });
 
       // Apply dynamic pricing and version info to each listing
       const listingsWithDynamicPricing = listings.map(listing => {
@@ -260,13 +246,9 @@ export const wMatrixMarketplaceRouter = router({
   getListing: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
-      const [listing] = await db
-        .select()
-        .from(wMatrixListings)
-        .where(eq(wMatrixListings.id, input.id));
+      const listing = await prisma.wMatrixListing.findUnique({
+        where: { id: input.id },
+      });
 
       if (!listing) {
         throw new TRPCError({
@@ -333,28 +315,27 @@ export const wMatrixMarketplaceRouter = router({
       performanceMetrics: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
-      const [result] = await db.insert(wMatrixListings).values({
-        sellerId: ctx.user.id,
-        title: input.title,
-        description: input.description,
-        sourceModel: input.sourceModel,
-        targetModel: input.targetModel,
-        sourceDim: input.sourceDim,
-        targetDim: input.targetDim,
-        matrixId: input.matrixId,
-        price: input.price.toFixed(2),
-        alignmentLoss: input.alignmentLoss.toFixed(8),
-        trainingDataSize: input.trainingDataSize,
-        performanceMetrics: input.performanceMetrics ? JSON.stringify(input.performanceMetrics) : null,
-        status: "active", // Auto-approve for now
+      const listing = await prisma.wMatrixListing.create({
+        data: {
+          sellerId: ctx.user.id,
+          title: input.title,
+          description: input.description,
+          sourceModel: input.sourceModel,
+          targetModel: input.targetModel,
+          sourceDim: input.sourceDim,
+          targetDim: input.targetDim,
+          matrixId: input.matrixId,
+          price: input.price.toFixed(2),
+          alignmentLoss: input.alignmentLoss.toFixed(8),
+          trainingDataSize: input.trainingDataSize,
+          performanceMetrics: input.performanceMetrics ? JSON.stringify(input.performanceMetrics) : null,
+          status: "active", // Auto-approve for now
+        },
       });
 
       return {
         success: true,
-        listingId: result.insertId,
+        listingId: listing.id,
       };
     }),
 
@@ -370,14 +351,10 @@ export const wMatrixMarketplaceRouter = router({
       status: z.enum(["draft", "active", "inactive", "suspended"]).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
       // Verify ownership
-      const [listing] = await db
-        .select()
-        .from(wMatrixListings)
-        .where(eq(wMatrixListings.id, input.id));
+      const listing = await prisma.wMatrixListing.findUnique({
+        where: { id: input.id },
+      });
 
       if (!listing) {
         throw new TRPCError({
@@ -399,10 +376,10 @@ export const wMatrixMarketplaceRouter = router({
       if (input.price) updates.price = input.price.toFixed(2);
       if (input.status) updates.status = input.status;
 
-      await db
-        .update(wMatrixListings)
-        .set(updates)
-        .where(eq(wMatrixListings.id, input.id));
+      await prisma.wMatrixListing.update({
+        where: { id: input.id },
+        data: updates,
+      });
 
       return { success: true };
     }),
@@ -416,14 +393,10 @@ export const wMatrixMarketplaceRouter = router({
       stripePaymentIntentId: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
       // Get listing details
-      const [listing] = await db
-        .select()
-        .from(wMatrixListings)
-        .where(eq(wMatrixListings.id, input.listingId));
+      const listing = await prisma.wMatrixListing.findUnique({
+        where: { id: input.listingId },
+      });
 
       if (!listing) {
         throw new TRPCError({
@@ -440,16 +413,13 @@ export const wMatrixMarketplaceRouter = router({
       }
 
       // Check if already purchased
-      const [existingPurchase] = await db
-        .select()
-        .from(wMatrixPurchases)
-        .where(
-          and(
-            eq(wMatrixPurchases.listingId, input.listingId),
-            eq(wMatrixPurchases.buyerId, ctx.user.id),
-            eq(wMatrixPurchases.status, "completed")
-          )
-        );
+      const existingPurchase = await prisma.wMatrixPurchase.findFirst({
+        where: {
+          listingId: input.listingId,
+          buyerId: ctx.user.id,
+          status: "completed",
+        },
+      });
 
       if (existingPurchase) {
         throw new TRPCError({
@@ -459,26 +429,28 @@ export const wMatrixMarketplaceRouter = router({
       }
 
       // Create purchase record
-      const [result] = await db.insert(wMatrixPurchases).values({
-        listingId: input.listingId,
-        buyerId: ctx.user.id,
-        price: listing.price,
-        stripePaymentIntentId: input.stripePaymentIntentId,
-        status: "completed", // Assume payment verified
+      const purchase = await prisma.wMatrixPurchase.create({
+        data: {
+          listingId: input.listingId,
+          buyerId: ctx.user.id,
+          price: listing.price,
+          stripePaymentIntentId: input.stripePaymentIntentId,
+          status: "completed", // Assume payment verified
+        },
       });
 
       // Update listing stats
-      await db
-        .update(wMatrixListings)
-        .set({
-          totalSales: sql`${wMatrixListings.totalSales} + 1`,
-          totalRevenue: sql`${wMatrixListings.totalRevenue} + ${listing.price}`,
-        })
-        .where(eq(wMatrixListings.id, input.listingId));
+      await prisma.wMatrixListing.update({
+        where: { id: input.listingId },
+        data: {
+          totalSales: { increment: 1 },
+          totalRevenue: { increment: parseFloat(listing.price) },
+        },
+      });
 
       return {
         success: true,
-        purchaseId: result.insertId,
+        purchaseId: purchase.id,
         matrixId: listing.matrixId,
       };
     }),
@@ -488,25 +460,29 @@ export const wMatrixMarketplaceRouter = router({
    */
   myPurchases: protectedProcedure
     .query(async ({ ctx }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
-      const purchases = await db
-        .select({
-          purchase: wMatrixPurchases,
-          listing: wMatrixListings,
-        })
-        .from(wMatrixPurchases)
-        .innerJoin(wMatrixListings, eq(wMatrixPurchases.listingId, wMatrixListings.id))
-        .where(
-          and(
-            eq(wMatrixPurchases.buyerId, ctx.user.id),
-            eq(wMatrixPurchases.status, "completed")
-          )
-        )
-        .orderBy(desc(wMatrixPurchases.purchasedAt));
+      const purchases = await prisma.wMatrixPurchase.findMany({
+        where: {
+          buyerId: ctx.user.id,
+          status: "completed",
+        },
+        include: {
+          listing: true,
+        },
+        orderBy: { purchasedAt: 'desc' },
+      });
 
-      return purchases;
+      return purchases.map(p => ({
+        purchase: {
+          id: p.id,
+          listingId: p.listingId,
+          buyerId: p.buyerId,
+          price: p.price,
+          stripePaymentIntentId: p.stripePaymentIntentId,
+          status: p.status,
+          purchasedAt: p.purchasedAt,
+        },
+        listing: p.listing,
+      }));
     }),
 
   /**
@@ -514,14 +490,10 @@ export const wMatrixMarketplaceRouter = router({
    */
   myListings: protectedProcedure
     .query(async ({ ctx }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
-      const listings = await db
-        .select()
-        .from(wMatrixListings)
-        .where(eq(wMatrixListings.sellerId, ctx.user.id))
-        .orderBy(desc(wMatrixListings.createdAt));
+      const listings = await prisma.wMatrixListing.findMany({
+        where: { sellerId: ctx.user.id },
+        orderBy: { createdAt: 'desc' },
+      });
 
       return listings;
     }),
@@ -531,22 +503,27 @@ export const wMatrixMarketplaceRouter = router({
    */
   getPopularModelPairs: publicProcedure
     .query(async () => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
-      const pairs = await db
-        .select({
-          sourceModel: wMatrixListings.sourceModel,
-          targetModel: wMatrixListings.targetModel,
-          count: sql<number>`count(*)`,
-        })
-        .from(wMatrixListings)
-        .where(eq(wMatrixListings.status, "active"))
-        .groupBy(wMatrixListings.sourceModel, wMatrixListings.targetModel)
-        .orderBy(desc(sql`count(*)`))
-        .limit(10);
+      const pairs = await prisma.$queryRaw<Array<{
+        sourceModel: string;
+        targetModel: string;
+        count: bigint;
+      }>>`
+        SELECT
+          sourceModel,
+          targetModel,
+          COUNT(*) as count
+        FROM WMatrixListing
+        WHERE status = 'active'
+        GROUP BY sourceModel, targetModel
+        ORDER BY count DESC
+        LIMIT 10
+      `;
 
-      return pairs;
+      return pairs.map(p => ({
+        sourceModel: p.sourceModel,
+        targetModel: p.targetModel,
+        count: Number(p.count),
+      }));
     }),
 
   // ============================================================================
@@ -563,21 +540,15 @@ export const wMatrixMarketplaceRouter = router({
       limit: z.number().min(1).max(50).default(10),
     }))
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
-      const listings = await db
-        .select()
-        .from(wMatrixListings)
-        .where(
-          and(
-            eq(wMatrixListings.sourceModel, input.sourceModel),
-            eq(wMatrixListings.targetModel, input.targetModel),
-            eq(wMatrixListings.status, "active")
-          )
-        )
-        .orderBy(desc(wMatrixListings.createdAt))
-        .limit(input.limit);
+      const listings = await prisma.wMatrixListing.findMany({
+        where: {
+          sourceModel: input.sourceModel,
+          targetModel: input.targetModel,
+          status: "active",
+        },
+        orderBy: { createdAt: 'desc' },
+        take: input.limit,
+      });
 
       // Parse and sort by version
       const versioned = listings.map(listing => {
@@ -667,13 +638,9 @@ export const wMatrixMarketplaceRouter = router({
    */
   getCertificationStats: publicProcedure
     .query(async () => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
-      const listings = await db
-        .select()
-        .from(wMatrixListings)
-        .where(eq(wMatrixListings.status, "active"));
+      const listings = await prisma.wMatrixListing.findMany({
+        where: { status: "active" },
+      });
 
       const certificationCounts: Record<CertificationLevel, number> = {
         bronze: 0,

@@ -12,11 +12,9 @@
 import { z } from 'zod';
 import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-// Drizzle imports removed - using Prisma now
-import { getDb } from '../db';
+import { prisma } from '../db-prisma';
 import { getErrorMessage, assertDatabaseAvailable, assertPackageExists, throwValidationFailed } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
-// Drizzle schema imports removed - using Prisma now
 import { AntiPoisoningVerifier } from '../latentmas/anti-poisoning';
 import { pricingEngine } from '../pricing-engine';
 import { SemanticAnchorDB } from '../latentmas/semantic-anchors';
@@ -354,27 +352,24 @@ export const packagesApiRouter = router({
         );
 
         // Save to database
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-        const insertResult = await db.insert(vectorPackages).values({
-          packageId: result.packageId,
-          userId: ctx.user.id,
-          name: input.name,
-          description: input.description,
-          sourceModel: input.wMatrix.sourceModel,
-          targetModel: input.wMatrix.targetModel,
-          category: input.vector.category,
-          price: String(input.price),
-          packageUrl: result.packageUrl,
-          vectorUrl: result.vectorUrl || '',
-          wMatrixUrl: result.wMatrixUrl || '',
-          epsilon: String(input.wMatrix.epsilon),
-          informationRetention: '0.9500',
-          dimension: input.vector.dimension,
-        }).$returningId();
-
-        const pkgId = insertResult[0]?.id;
-        const [pkg] = pkgId ? await db.select().from(vectorPackages).where(eq(vectorPackages.id, pkgId)).limit(1) : [];
+        const pkg = await prisma.vectorPackage.create({
+          data: {
+            packageId: result.packageId,
+            userId: ctx.user.id,
+            name: input.name,
+            description: input.description,
+            sourceModel: input.wMatrix.sourceModel,
+            targetModel: input.wMatrix.targetModel,
+            category: input.vector.category,
+            price: String(input.price),
+            packageUrl: result.packageUrl,
+            vectorUrl: result.vectorUrl || '',
+            wMatrixUrl: result.wMatrixUrl || '',
+            epsilon: String(input.wMatrix.epsilon),
+            informationRetention: '0.9500',
+            dimension: input.vector.dimension,
+          },
+        });
 
         return {
           success: true,
@@ -453,27 +448,25 @@ export const packagesApiRouter = router({
         );
 
         // Save to database
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-        const insertResult = await db.insert(memoryPackages).values({
-          packageId: result.packageId,
-          userId: ctx.user.id,
-          name: input.name,
-          description: input.description,
-          sourceModel: input.wMatrix.sourceModel,
-          targetModel: input.wMatrix.targetModel,
-          tokenCount: input.tokenCount,
-          compressionRatio: String(input.compressionRatio),
-          contextDescription: input.contextDescription,
-          price: String(input.price),
-          packageUrl: result.packageUrl,
-          kvCacheUrl: result.kvCacheUrl || '',
-          wMatrixUrl: result.wMatrixUrl || '',
-          epsilon: String(input.wMatrix.epsilon),
-          informationRetention: '0.9500',
-        }).$returningId();
-        const pkgId = insertResult[0]?.id;
-        const [pkg] = pkgId ? await db.select().from(memoryPackages).where(eq(memoryPackages.id, pkgId)).limit(1) : [];
+        const pkg = await prisma.memoryPackage.create({
+          data: {
+            packageId: result.packageId,
+            userId: ctx.user.id,
+            name: input.name,
+            description: input.description,
+            sourceModel: input.wMatrix.sourceModel,
+            targetModel: input.wMatrix.targetModel,
+            tokenCount: input.tokenCount,
+            compressionRatio: String(input.compressionRatio),
+            contextDescription: input.contextDescription,
+            price: String(input.price),
+            packageUrl: result.packageUrl,
+            kvCacheUrl: result.kvCacheUrl || '',
+            wMatrixUrl: result.wMatrixUrl || '',
+            epsilon: String(input.wMatrix.epsilon),
+            informationRetention: '0.9500',
+          },
+        });
 
         return {
           success: true,
@@ -565,27 +558,25 @@ export const packagesApiRouter = router({
         );
 
         // Save to database
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-        const insertResult = await db.insert(chainPackages).values({
-          packageId: result.packageId,
-          userId: ctx.user.id,
-          name: input.name,
-          description: input.description,
-          sourceModel: input.wMatrix.sourceModel,
-          targetModel: input.wMatrix.targetModel,
-          problemType: input.chain.problemType,
-          solutionQuality: String(input.chain.solutionQuality),
-          stepCount: input.chain.totalSteps,
-          price: String(input.price),
-          packageUrl: result.packageUrl,
-          chainUrl: result.chainUrl || '',
-          wMatrixUrl: result.wMatrixUrl || '',
-          epsilon: String(input.wMatrix.epsilon),
-          informationRetention: '0.9500',
-        }).$returningId();
-        const pkgId = insertResult[0]?.id;
-        const [pkg] = pkgId ? await db.select().from(chainPackages).where(eq(chainPackages.id, pkgId)).limit(1) : [];
+        const pkg = await prisma.chainPackage.create({
+          data: {
+            packageId: result.packageId,
+            userId: ctx.user.id,
+            name: input.name,
+            description: input.description,
+            sourceModel: input.wMatrix.sourceModel,
+            targetModel: input.wMatrix.targetModel,
+            problemType: input.chain.problemType,
+            solutionQuality: String(input.chain.solutionQuality),
+            stepCount: input.chain.totalSteps,
+            price: String(input.price),
+            packageUrl: result.packageUrl,
+            chainUrl: result.chainUrl || '',
+            wMatrixUrl: result.wMatrixUrl || '',
+            epsilon: String(input.wMatrix.epsilon),
+            informationRetention: '0.9500',
+          },
+        });
 
         return {
           success: true,
@@ -606,8 +597,6 @@ export const packagesApiRouter = router({
   browsePackages: publicProcedure
     .input(BrowsePackagesSchema)
     .query(async ({ input }) => {
-      const prisma = await getDb();
-      assertDatabaseAvailable(prisma);
 
       // Build Prisma where conditions
       const where: any = {
@@ -810,15 +799,21 @@ export const packagesApiRouter = router({
       packageId: z.string(),
     }))
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
+      let pkg: any = null;
 
-      const [pkg] = await db
-        .select()
-        .from(table)
-        .where(eq(table.packageId, input.packageId))
-        .limit(1);
+      if (input.packageType === 'vector') {
+        pkg = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'memory') {
+        pkg = await prisma.memoryPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'chain') {
+        pkg = await prisma.chainPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      }
 
       if (!pkg) {
         throw new TRPCError({
@@ -846,16 +841,21 @@ export const packagesApiRouter = router({
   purchasePackage: protectedProcedure
     .input(PurchasePackageSchema)
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
-
       // Get package
-      const [pkg] = await db
-        .select()
-        .from(table)
-        .where(eq(table.packageId, input.packageId))
-        .limit(1);
+      let pkg: any = null;
+      if (input.packageType === 'vector') {
+        pkg = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'memory') {
+        pkg = await prisma.memoryPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'chain') {
+        pkg = await prisma.chainPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      }
 
       if (!pkg) {
         throw new TRPCError({
@@ -865,17 +865,13 @@ export const packagesApiRouter = router({
       }
 
       // Check if already purchased
-      const [existingPurchase] = await db
-        .select()
-        .from(packagePurchases)
-        .where(
-          and(
-            eq(packagePurchases.buyerId, ctx.user.id),
-            eq(packagePurchases.packageId, input.packageId),
-            eq(packagePurchases.packageType, input.packageType)
-          )
-        )
-        .limit(1);
+      const existingPurchase = await prisma.packagePurchase.findFirst({
+        where: {
+          buyerId: ctx.user.id,
+          packageId: input.packageId,
+          packageType: input.packageType,
+        },
+      });
 
       if (existingPurchase) {
         return {
@@ -891,24 +887,28 @@ export const packagesApiRouter = router({
       const sellerEarnings = (priceNum * 0.9).toFixed(2);
 
       // Create purchase record
-      const insertResult = await db.insert(packagePurchases).values({
-        buyerId: ctx.user.id,
-        sellerId: pkg.userId,
-        packageId: input.packageId,
-        packageType: input.packageType,
-        price: pkg.price,
-        platformFee,
-        sellerEarnings,
-        status: 'completed',
-      }).$returningId();
-      const purchaseId = insertResult[0]?.id;
-      const [purchase] = purchaseId ? await db.select().from(packagePurchases).where(eq(packagePurchases.id, purchaseId)).limit(1) : [];
+      const purchase = await prisma.packagePurchase.create({
+        data: {
+          buyerId: ctx.user.id,
+          sellerId: pkg.userId,
+          packageId: input.packageId,
+          packageType: input.packageType,
+          price: pkg.price,
+          platformFee,
+          sellerEarnings,
+          status: 'completed',
+        },
+      });
 
       // Send email notifications (async, don't block response)
       try {
         // Get buyer and seller info
-        const [buyer] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
-        const [seller] = await db.select().from(users).where(eq(users.id, pkg.userId)).limit(1);
+        const buyer = await prisma.user.findUnique({
+          where: { id: ctx.user.id },
+        });
+        const seller = await prisma.user.findUnique({
+          where: { id: pkg.userId },
+        });
 
         // Send purchase confirmation to buyer
         if (buyer?.email) {
@@ -947,22 +947,14 @@ export const packagesApiRouter = router({
   downloadPackage: protectedProcedure
     .input(DownloadPackageSchema)
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
-
       // Check if purchased
-      const [purchase] = await db
-        .select()
-        .from(packagePurchases)
-        .where(
-          and(
-            eq(packagePurchases.buyerId, ctx.user.id),
-            eq(packagePurchases.packageId, input.packageId),
-            eq(packagePurchases.packageType, input.packageType)
-          )
-        )
-        .limit(1);
+      const purchase = await prisma.packagePurchase.findFirst({
+        where: {
+          buyerId: ctx.user.id,
+          packageId: input.packageId,
+          packageType: input.packageType,
+        },
+      });
 
       if (!purchase) {
         throw new TRPCError({
@@ -972,11 +964,20 @@ export const packagesApiRouter = router({
       }
 
       // Get package
-      const [pkg] = await db
-        .select()
-        .from(table)
-        .where(eq(table.packageId, input.packageId))
-        .limit(1);
+      let pkg: any = null;
+      if (input.packageType === 'vector') {
+        pkg = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'memory') {
+        pkg = await prisma.memoryPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'chain') {
+        pkg = await prisma.chainPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      }
 
       if (!pkg) {
         throw new TRPCError({
@@ -1004,19 +1005,33 @@ export const packagesApiRouter = router({
       const { url: signedUrl } = await storageGet(s3Key, expiresIn);
 
       // Record download
-      await db.insert(packageDownloads).values({
-        userId: ctx.user.id,
-        packageId: input.packageId,
-        packageType: input.packageType,
-        downloadUrl: signedUrl,
-        expiresAt,
+      await prisma.packageDownload.create({
+        data: {
+          userId: ctx.user.id,
+          packageId: input.packageId,
+          packageType: input.packageType,
+          downloadUrl: signedUrl,
+          expiresAt,
+        },
       });
 
       // Update download count
-      await db
-        .update(table)
-        .set({ downloads: sql`${table.downloads} + 1` })
-        .where(eq(table.packageId, input.packageId));
+      if (input.packageType === 'vector') {
+        await prisma.vectorPackage.update({
+          where: { packageId: input.packageId },
+          data: { downloads: { increment: 1 } },
+        });
+      } else if (input.packageType === 'memory') {
+        await prisma.memoryPackage.update({
+          where: { packageId: input.packageId },
+          data: { downloads: { increment: 1 } },
+        });
+      } else if (input.packageType === 'chain') {
+        await prisma.chainPackage.update({
+          where: { packageId: input.packageId },
+          data: { downloads: { increment: 1 } },
+        });
+      }
 
       return {
         success: true,
@@ -1032,15 +1047,24 @@ export const packagesApiRouter = router({
   myPackages: protectedProcedure
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
+      let packages: any[] = [];
 
-      const packages = await db
-        .select()
-        .from(table)
-        .where(eq(table.userId, ctx.user.id))
-        .orderBy(desc(table.createdAt));
+      if (input.packageType === 'vector') {
+        packages = await prisma.vectorPackage.findMany({
+          where: { userId: ctx.user.id },
+          orderBy: { createdAt: 'desc' },
+        });
+      } else if (input.packageType === 'memory') {
+        packages = await prisma.memoryPackage.findMany({
+          where: { userId: ctx.user.id },
+          orderBy: { createdAt: 'desc' },
+        });
+      } else if (input.packageType === 'chain') {
+        packages = await prisma.chainPackage.findMany({
+          where: { userId: ctx.user.id },
+          orderBy: { createdAt: 'desc' },
+        });
+      }
 
       return {
         success: true,
@@ -1054,19 +1078,13 @@ export const packagesApiRouter = router({
   myPurchases: protectedProcedure
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
-      const purchases = await db
-        .select()
-        .from(packagePurchases)
-        .where(
-          and(
-            eq(packagePurchases.buyerId, ctx.user.id),
-            eq(packagePurchases.packageType, input.packageType)
-          )
-        )
-        .orderBy(desc(packagePurchases.purchasedAt));
+      const purchases = await prisma.packagePurchase.findMany({
+        where: {
+          buyerId: ctx.user.id,
+          packageType: input.packageType,
+        },
+        orderBy: { purchasedAt: 'desc' },
+      });
 
       return {
         success: true,
@@ -1091,8 +1109,6 @@ export const packagesApiRouter = router({
       limit: z.number().min(1).max(50).default(20),
     }))
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
       const results: Array<{
         type: 'vector' | 'memory' | 'chain';
         package: VectorPackage | MemoryPackage | ChainPackage;
@@ -1100,66 +1116,88 @@ export const packagesApiRouter = router({
 
       // Determine which package types to search
       const typesToSearch = input.packageTypes || ['vector', 'memory', 'chain'];
+      const limitPerType = Math.ceil(input.limit / typesToSearch.length);
 
       // Search each package type
       for (const packageType of typesToSearch) {
-        const table = getPackageTable(packageType);
-        const conditions: SQL[] = [];
+        const where: any = {};
 
         // Text search (name or description)
         if (input.query) {
-          const searchCondition = or(
-            like(table.name, `%${input.query}%`),
-            like(table.description, `%${input.query}%`)
-          );
-          if (searchCondition) conditions.push(searchCondition);
+          where.OR = [
+            { name: { contains: input.query, mode: 'insensitive' } },
+            { description: { contains: input.query, mode: 'insensitive' } },
+          ];
         }
 
         // Model filters
         if (input.sourceModel) {
-          conditions.push(eq(table.sourceModel, input.sourceModel));
+          where.sourceModel = input.sourceModel;
         }
         if (input.targetModel) {
-          conditions.push(eq(table.targetModel, input.targetModel));
+          where.targetModel = input.targetModel;
         }
 
         // Category filter (only for vector packages)
         if (input.category && packageType === 'vector') {
-          // Use vectorPackages directly since we know it's a vector package
-          conditions.push(eq(vectorPackages.category, input.category));
+          where.category = input.category;
         }
 
         // Epsilon range filter
-        if (input.minEpsilon !== undefined) {
-          conditions.push(sql`${table.epsilon} >= ${input.minEpsilon}`);
-        }
-        if (input.maxEpsilon !== undefined) {
-          conditions.push(sql`${table.epsilon} <= ${input.maxEpsilon}`);
+        if (input.minEpsilon !== undefined || input.maxEpsilon !== undefined) {
+          where.epsilon = {};
+          if (input.minEpsilon !== undefined) {
+            where.epsilon.gte = String(input.minEpsilon);
+          }
+          if (input.maxEpsilon !== undefined) {
+            where.epsilon.lte = String(input.maxEpsilon);
+          }
         }
 
         // Price range filter
-        if (input.minPrice !== undefined) {
-          conditions.push(sql`${table.price} >= ${input.minPrice}`);
-        }
-        if (input.maxPrice !== undefined) {
-          conditions.push(sql`${table.price} <= ${input.maxPrice}`);
+        if (input.minPrice !== undefined || input.maxPrice !== undefined) {
+          where.price = {};
+          if (input.minPrice !== undefined) {
+            where.price.gte = String(input.minPrice);
+          }
+          if (input.maxPrice !== undefined) {
+            where.price.lte = String(input.maxPrice);
+          }
         }
 
         // Query packages
-        const packages = await db
-          .select()
-          .from(table)
-          .where(conditions.length > 0 ? and(...conditions) : undefined)
-          .orderBy(desc(table.createdAt))
-          .limit(Math.ceil(input.limit / typesToSearch.length)); // Distribute limit across types
+        let packages: any[] = [];
+        try {
+          if (packageType === 'vector') {
+            packages = await prisma.vectorPackage.findMany({
+              where,
+              orderBy: { createdAt: 'desc' },
+              take: limitPerType,
+            });
+          } else if (packageType === 'memory') {
+            packages = await prisma.memoryPackage.findMany({
+              where,
+              orderBy: { createdAt: 'desc' },
+              take: limitPerType,
+            });
+          } else if (packageType === 'chain') {
+            packages = await prisma.chainPackage.findMany({
+              where,
+              orderBy: { createdAt: 'desc' },
+              take: limitPerType,
+            });
+          }
 
-        // Add to results with type annotation
-        packages.forEach(pkg => {
-          results.push({
-            type: packageType,
-            package: pkg,
+          // Add to results with type annotation
+          packages.forEach(pkg => {
+            results.push({
+              type: packageType,
+              package: pkg,
+            });
           });
-        });
+        } catch (error) {
+          logger.error(`Failed to search ${packageType} packages`, { error });
+        }
       }
 
       // Sort all results by creation date and limit
