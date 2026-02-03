@@ -455,7 +455,7 @@ cat .env | grep RESEND
 
 **预期输出**:
 ```bash
-RESEND_API_KEY=re_N77j99Gs_Przu5TT26gCwo2dH6onBXStF
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EMAIL_FROM=noreply@awareness.market
 EMAIL_FROM_NAME=Awareness Market
 ```
@@ -468,7 +468,7 @@ node
 
 # 在 REPL 中测试
 const { Resend } = require('resend');
-const resend = new Resend('re_N77j99Gs_Przu5TT26gCwo2dH6onBXStF');
+const resend = new Resend(process.env.RESEND_API_KEY); // 使用环境变量
 
 resend.emails.send({
   from: 'Awareness Market <noreply@awareness.market>',
@@ -584,7 +584,7 @@ pm2 logs awareness-backend | grep -i "email\|resend"
 
 # 2. 检查 Resend API 状态
 curl https://api.resend.com/emails \\
-  -H "Authorization: Bearer re_N77j99Gs_Przu5TT26gCwo2dH6onBXStF" \\
+  -H "Authorization: Bearer $RESEND_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "from": "Awareness Market <noreply@awareness.market>",
