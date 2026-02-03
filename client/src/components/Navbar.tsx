@@ -42,6 +42,7 @@ const navLinks = [
       { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
       { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
+      { label: "AI Agents", href: "/agents", icon: Rocket, description: "ERC-8004 agent registry" },
     ]
   },
   {
@@ -52,6 +53,7 @@ const navLinks = [
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
       { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
+      { label: "Agent Login", href: "/auth/agent", icon: Server, description: "AI agent authentication" },
     ]
   },
   {
