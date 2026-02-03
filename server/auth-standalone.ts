@@ -98,7 +98,7 @@ export async function registerWithEmail(params: {
   email: string;
   password: string;
   name?: string;
-}): Promise<{ success: boolean; userId?: number; accessToken?: string; refreshToken?: string; error?: string }> {
+}): Promise<{ success: boolean; userId?: number; accessToken?: string; refreshToken?: string; error?: string; needsVerification?: boolean }> {
   // Check if email already exists
   const existing = await prisma.user.findFirst({
     where: { email: params.email }
@@ -124,11 +124,20 @@ export async function registerWithEmail(params: {
     }
   });
 
+  // Send verification email
+  await sendEmailVerificationCode(newUser.id, newUser.email!);
+
   // Generate tokens
   const accessToken = generateAccessToken(newUser);
   const refreshToken = generateRefreshToken(newUser);
 
-  return { success: true, userId: newUser.id, accessToken, refreshToken };
+  return {
+    success: true,
+    userId: newUser.id,
+    accessToken,
+    refreshToken,
+    needsVerification: true,
+  };
 }
 
 /**
@@ -269,6 +278,152 @@ export async function getUserFromToken(token: string): Promise<{ success: boolea
 
   const { password: _, ...userWithoutPassword } = user;
   return { success: true, user: userWithoutPassword };
+}
+
+/**
+ * Generate and send email verification code
+ */
+export async function sendEmailVerificationCode(
+  userId: number,
+  email: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Check rate limiting - only allow one code every 60 seconds
+    const recentCode = await prisma.verificationCode.findFirst({
+      where: {
+        email,
+        type: 'email_verification',
+        createdAt: {
+          gte: new Date(Date.now() - 60 * 1000), // Last 60 seconds
+        },
+      },
+    });
+
+    if (recentCode) {
+      const waitTime = Math.ceil((60000 - (Date.now() - recentCode.createdAt.getTime())) / 1000);
+      return {
+        success: false,
+        error: `Please wait ${waitTime} seconds before requesting another code`
+      };
+    }
+
+    const { generateVerificationCode, sendVerificationCodeEmail } = await import("./email-service");
+
+    // Generate 6-digit code
+    const code = generateVerificationCode();
+    const expiresInMinutes = 10;
+    const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+
+    // Save code to database
+    await prisma.verificationCode.create({
+      data: {
+        userId,
+        email,
+        code,
+        type: 'email_verification',
+        expiresAt,
+      },
+    });
+
+    // Send email
+    const emailSent = await sendVerificationCodeEmail(email, code, expiresInMinutes);
+
+    if (!emailSent) {
+      return { success: false, error: 'Failed to send verification email' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[sendEmailVerificationCode] Error:', error);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
+/**
+ * Verify email with code
+ */
+export async function verifyEmailWithCode(
+  email: string,
+  code: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Find valid code
+    const verificationCode = await prisma.verificationCode.findFirst({
+      where: {
+        email,
+        code,
+        type: 'email_verification',
+        used: false,
+        expiresAt: {
+          gt: new Date(), // Not expired
+        },
+      },
+    });
+
+    if (!verificationCode) {
+      return { success: false, error: 'Invalid or expired verification code' };
+    }
+
+    // Mark code as used
+    await prisma.verificationCode.update({
+      where: { id: verificationCode.id },
+      data: { used: true },
+    });
+
+    // Update user email verification status
+    await prisma.user.update({
+      where: { id: verificationCode.userId },
+      data: { emailVerified: true },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('[verifyEmailWithCode] Error:', error);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
+/**
+ * Get verification status
+ */
+export async function getVerificationStatus(
+  email: string
+): Promise<{
+  hasPendingCode: boolean;
+  expiresIn: number | null;
+  canResend: boolean;
+}> {
+  const latestCode = await prisma.verificationCode.findFirst({
+    where: {
+      email,
+      type: 'email_verification',
+      used: false,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  if (!latestCode) {
+    return {
+      hasPendingCode: false,
+      expiresIn: null,
+      canResend: true,
+    };
+  }
+
+  const now = Date.now();
+  const expiresAt = latestCode.expiresAt.getTime();
+  const createdAt = latestCode.createdAt.getTime();
+
+  const expiresIn = Math.max(0, Math.floor((expiresAt - now) / 1000)); // seconds
+  const canResend = (now - createdAt) >= 60 * 1000; // Can resend after 60 seconds
+
+  return {
+    hasPendingCode: expiresIn > 0,
+    expiresIn: expiresIn > 0 ? expiresIn : null,
+    canResend,
+  };
 }
 
 /**
