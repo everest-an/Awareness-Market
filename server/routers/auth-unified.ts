@@ -213,6 +213,69 @@ export const authUnifiedRouter = router({
     }),
 
   /**
+   * Send email verification code
+   */
+  sendVerificationEmail: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      if (!ctx.user.email) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'No email associated with this account',
+        });
+      }
+
+      const result = await authStandalone.sendEmailVerificationCode(
+        ctx.user.id,
+        ctx.user.email
+      );
+
+      if (!result.success) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: result.error || 'Failed to send verification email',
+        });
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Verify email with code
+   */
+  verifyEmail: publicProcedure
+    .input(z.object({
+      email: z.string().email(),
+      code: z.string().length(6),
+    }))
+    .mutation(async ({ input }) => {
+      const result = await authStandalone.verifyEmailWithCode(
+        input.email,
+        input.code
+      );
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Verification failed',
+        };
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Get verification status
+   */
+  verificationStatus: publicProcedure
+    .input(z.object({
+      email: z.string().email(),
+    }))
+    .query(async ({ input }) => {
+      const status = await authStandalone.getVerificationStatus(input.email);
+      return status;
+    }),
+
+  /**
    * Logout (for human users)
    */
   logout: publicProcedure.mutation(({ ctx }) => {

@@ -159,6 +159,77 @@ export function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+/**
+ * Send email verification code
+ */
+export async function sendVerificationCodeEmail(
+  email: string,
+  code: string,
+  expiresInMinutes: number = 10
+): Promise<boolean> {
+  const subject = "Verify Your Awareness Account";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .code-box { background: white; border: 2px solid #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
+        .code { font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 8px; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✉️ Verify Your Email</h1>
+        </div>
+        <div class="content">
+          <p>Welcome to Awareness Market!</p>
+          <p>Please use the verification code below to complete your registration:</p>
+
+          <div class="code-box">
+            <div class="code">${code}</div>
+          </div>
+
+          <p><strong>This code will expire in ${expiresInMinutes} minutes.</strong></p>
+
+          <p>If you didn't create an account, please ignore this email.</p>
+
+          <div class="footer">
+            <p>© 2026 Awareness Market. All rights reserved.</p>
+            <p>This is an automated message, please do not reply.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Welcome to Awareness Market!
+
+Your verification code is: ${code}
+
+This code will expire in ${expiresInMinutes} minutes.
+
+If you didn't create an account, please ignore this email.
+
+© 2026 Awareness Market. All rights reserved.
+  `;
+
+  return sendEmail({
+    to: email,
+    subject,
+    html,
+    text,
+  });
+}
+
 
 /**
  * Send purchase confirmation email to buyer

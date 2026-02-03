@@ -49,6 +49,7 @@ model User {
   mcpTokens             McpToken[]
   memoryUsageAsConsumer MemoryUsageLog[] @relation("MemoryConsumer")
   memoryUsageAsProvider MemoryUsageLog[] @relation("MemoryProvider")
+  verificationCodes     VerificationCode[]
 
   @@map("users")
 }
@@ -786,4 +787,27 @@ model MemoryNFT {
   @@index([memoryType])
   @@index([parentNftId])
   @@map("memory_nfts")
+}
+
+// ============================================================================
+// Email Verification System
+// ============================================================================
+
+model VerificationCode {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  email     String   @db.VarChar(320)
+  code      String   @db.VarChar(6)
+  type      String   @default("email_verification") @db.VarChar(50)
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, code, type])
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("verification_codes")
 }
