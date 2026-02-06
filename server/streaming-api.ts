@@ -7,6 +7,8 @@ import { Router, Request, Response } from "express";
 import { prisma } from "./db-prisma";
 import { validateApiKey } from "./api-key-manager";
 import { createLogger } from "./utils/logger";
+import { workflowManager } from "./workflow-manager";
+import { runVector } from "./vector-runtime";
 
 const logger = createLogger('Streaming');
 
@@ -158,6 +160,14 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
 
     const vectorMap = new Map(vectors.map(v => [v.id, v]));
 
+    const session = workflowManager.createSession({
+      userId: validation.userId,
+      type: "vector_invocation",
+      title: "Batch vector invocation",
+      description: `Batch size: ${requests.length}`,
+      tags: ["batch", "vector"],
+    });
+
     // Process each request
     const results = await Promise.all(
       requests.map(async (request: BatchVectorRequest) => {
@@ -165,6 +175,16 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
         const vector = vectorMap.get(vectorId);
 
         if (!vector) {
+          const event = workflowManager.addEvent(session.id, {
+            type: "tool_result",
+            title: `Vector ${vectorId} not found`,
+            input: { vectorId },
+            output: { error: "Vector not found or inactive" },
+          });
+          workflowManager.updateEvent(session.id, event.id, {
+            status: "failed",
+            output: { error: "Vector not found or inactive" },
+          });
           return {
             vectorId,
             success: false,
@@ -173,14 +193,35 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
         }
 
         try {
-          // Simulate vector invocation (replace with actual logic)
+          const event = workflowManager.addEvent(session.id, {
+            type: "tool_call",
+            title: `Invoke vector ${vectorId}`,
+            input: { vectorId, input },
+          });
+
+          const runtimeResult = await runVector({
+            vector,
+            context: input,
+          });
+
           const output = {
             vectorId,
             input,
-            output: `Batch processed: ${input}`,
-            confidence: 0.92,
-            latency_ms: Math.floor(Math.random() * 100) + 50
+            output: runtimeResult.text,
+            model: runtimeResult.model,
+            usage: runtimeResult.usage,
+            latency_ms: runtimeResult.processingTimeMs,
           };
+
+          workflowManager.updateEvent(session.id, event.id, {
+            status: "completed",
+            output,
+            duration: runtimeResult.processingTimeMs,
+            metadata: {
+              model: runtimeResult.model,
+              latency: runtimeResult.processingTimeMs,
+            },
+          });
 
           // Record transaction
           if (validation.userId) {
@@ -208,6 +249,16 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
             result: output
           };
         } catch (error) {
+          const event = workflowManager.addEvent(session.id, {
+            type: "error",
+            title: `Vector ${vectorId} failed`,
+            input: { vectorId, input },
+            output: { error: "Processing failed" },
+          });
+          workflowManager.updateEvent(session.id, event.id, {
+            status: "failed",
+            output: { error: "Processing failed" },
+          });
           return {
             vectorId,
             success: false,
@@ -221,7 +272,10 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
     const successful = results.filter(r => r.success).length;
     const failed = results.length - successful;
 
+    workflowManager.completeSession(session.id, failed > 0 ? "failed" : "completed");
+
     res.json({
+      batchId: session.id,
       summary: {
         total: results.length,
         successful,
@@ -243,20 +297,36 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
 router.get("/batch-invoke/:batchId", async (req: Request, res: Response) => {
   try {
     const { batchId } = req.params;
-    
-    // In production, store batch status in database
-    // For now, return mock status
+
+    const session = await prisma.workflowSession.findUnique({
+      where: { id: batchId },
+    });
+
+    if (!session) {
+      res.status(404).json({ error: "Batch not found" });
+      return;
+    }
+
+    const events = await prisma.workflowEvent.findMany({
+      where: { workflowId: batchId },
+    });
+
+    const total = events.length;
+    const successful = events.filter(e => e.status === "completed").length;
+    const failed = events.filter(e => e.status === "failed").length;
+    const progress = total === 0 ? 0 : (successful + failed) / total;
+
     res.json({
       batchId,
-      status: "completed",
-      progress: 1.0,
+      status: session.status,
+      progress,
       results: {
-        total: 10,
-        successful: 9,
-        failed: 1
+        total,
+        successful,
+        failed
       },
-      createdAt: new Date().toISOString(),
-      completedAt: new Date().toISOString()
+      createdAt: session.startedAt,
+      completedAt: session.completedAt || null,
     });
   } catch (error) {
     logger.error("[Batch Status] Error:", { error });

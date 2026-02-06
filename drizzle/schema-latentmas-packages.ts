@@ -247,6 +247,59 @@ export type UserLatentSpace = typeof userLatentSpaces.$inferSelect;
 export type InsertUserLatentSpace = typeof userLatentSpaces.$inferInsert;
 
 // ============================================================================
+// Package Access Grants Table
+// ============================================================================
+
+/**
+ * Package Type Enum for access grants
+ * Defines which type of package the access grant applies to
+ */
+export const packageTypeEnum = mysqlEnum('package_type', ['vector', 'memory', 'chain']);
+
+/**
+ * Package Access Grants Table
+ * 
+ * Manages access permissions for purchased packages.
+ * When a user purchases a package, an access grant is created allowing them
+ * to use the package's latent working memory.
+ * 
+ * Requirements implemented:
+ * - 9.3: Create a copy of the latent space in the buyer's isolated namespace
+ * - 9.4: Prevent cross-user latent space access without explicit purchase
+ */
+export const packageAccessGrants = mysqlTable('package_access_grants', {
+  // Primary key
+  id: int('id').autoincrement().primaryKey(),
+  
+  // Package reference
+  packageType: mysqlEnum('package_type', ['vector', 'memory', 'chain']).notNull(),
+  packageId: varchar('package_id', { length: 64 }).notNull(),
+  
+  // Owner and grantee
+  ownerId: int('owner_id').notNull(), // Package creator
+  granteeId: int('grantee_id').notNull(), // Package buyer
+  
+  // Grant metadata
+  grantedAt: timestamp('granted_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at'), // Optional expiration
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  // Composite index for package lookup
+  packageIdx: index('idx_package').on(table.packageType, table.packageId),
+  // Index for grantee lookup (find all packages a user has access to)
+  granteeIdx: index('idx_grantee').on(table.granteeId),
+  // Index for owner lookup (find all grants for packages owned by a user)
+  ownerIdx: index('idx_owner').on(table.ownerId),
+}));
+
+// Type exports for Package Access Grants
+export type PackageAccessGrant = typeof packageAccessGrants.$inferSelect;
+export type InsertPackageAccessGrant = typeof packageAccessGrants.$inferInsert;
+
+// ============================================================================
 // Shared Types for LatentMAS Protocol
 // ============================================================================
 

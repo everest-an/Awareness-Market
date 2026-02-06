@@ -10,10 +10,10 @@ The seed script (`scripts/seed.ts`) contains **DESTRUCTIVE operations** that can
 
 ```bash
 # ❌ DANGEROUS - Will delete all data:
-npm run seed:clean
+pnpm run seed:clean
 
 # ❌ DANGEROUS - May delete data if --clean flag is used:
-npm run seed -- --clean
+pnpm run seed -- --clean
 ```
 
 **These commands will DELETE:**
@@ -52,14 +52,14 @@ The seed script is **ONLY for development and testing**. Production safety check
 
 3. **Use non-destructive seeding (recommended):**
    ```bash
-   npm run seed              # Add sample data WITHOUT cleaning
-   npm run seed:vectors      # Add only vector samples
-   npm run seed:packages     # Add only package samples
+   pnpm run seed              # Add sample data WITHOUT cleaning
+   pnpm run seed:vectors      # Add only vector samples
+   pnpm run seed:packages     # Add only package samples
    ```
 
 4. **Only use cleanup when necessary:**
    ```bash
-   npm run seed:clean        # ⚠️ DESTRUCTIVE - Cleans then seeds
+   pnpm run seed:clean        # ⚠️ DESTRUCTIVE - Cleans then seeds
    ```
 
 ---
@@ -80,9 +80,9 @@ Blocks cleanup if database URL contains:
 - `live` or `main`
 
 Example blocked URLs:
-- `mysql://root@localhost:3306/awareness_market_prod` ❌
-- `mysql://root@localhost:3306/production_db` ❌
-- `mysql://root@live-server:3306/awareness` ❌
+- `postgresql://user@localhost:5432/awareness_market_prod` ❌
+- `postgresql://user@localhost:5432/production_db` ❌
+- `postgresql://user@live-server:5432/awareness` ❌
 
 ### 3. Countdown Warning
 When `--clean` is used, you get:
@@ -141,22 +141,22 @@ export NODE_ENV=development
 **Cause:** Your database URL appears to be a production database
 **Fix:** Use a development database URL in `.env`:
 ```
-DATABASE_URL=mysql://root@localhost:3306/awareness_market_dev
+DATABASE_URL=postgresql://user@localhost:5432/awareness_market_dev
 ```
 
 ### "Database not available"
-**Cause:** MySQL server is not running or credentials are incorrect
+**Cause:** PostgreSQL server is not running or credentials are incorrect
 **Fix:**
-1. Start MySQL: `brew services start mysql` (macOS) or `sudo service mysql start` (Linux)
+1. Start PostgreSQL: `brew services start postgresql` (macOS) or `sudo service postgresql start` (Linux)
 2. Verify credentials in `.env` file
-3. Test connection: `mysql -u root -p`
+3. Test connection: `psql "$DATABASE_URL" -c "SELECT 1;"`
 
 ---
 
 ## 📖 Related Documentation
 
-- **Database Schema:** `drizzle/schema.ts`
-- **Migration Files:** `drizzle/migrations/`
+- **Database Schema:** `prisma/schema.prisma`
+- **Migration Files:** `prisma/migrations/`
 - **Environment Config:** `.env.example`
 - **Main Seed Script:** `scripts/seed.ts`
 
@@ -167,21 +167,21 @@ DATABASE_URL=mysql://root@localhost:3306/awareness_market_dev
 If data was accidentally deleted:
 
 ### 1. Database Backups
-Restore from your latest MySQL backup:
+Restore from your latest PostgreSQL backup:
 ```bash
-mysql -u root -p awareness_market < backup.sql
+psql "$DATABASE_URL" < backup.sql
 ```
 
 ### 2. Re-seed Development Data
 ```bash
-npm run seed
+pnpm run seed
 ```
 
 ### 3. Production Data
 If this happened in production (should be impossible due to safeguards):
 1. Immediately stop the application
 2. Contact your database administrator
-3. Restore from automated backups (RDS, managed MySQL, etc.)
+3. Restore from automated backups (RDS, managed PostgreSQL, etc.)
 4. Review incident logs
 5. Update access controls
 
@@ -208,7 +208,7 @@ If this happened in production (should be impossible due to safeguards):
 
 ### CI/CD Pipelines
 - **Never run seed scripts** in CI/CD for staging/production
-- Use proper migration tools (`drizzle-kit migrate`) instead
+- Use proper migration tools (`pnpm prisma migrate deploy`) instead
 
 ### Production Deployments
 - Remove or restrict execution permissions on `scripts/seed.ts`

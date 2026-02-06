@@ -22,7 +22,7 @@ VITE_APP_ID=awareness-market
 JWT_SECRET=your-secure-random-secret
 
 # Database
-DATABASE_URL=mysql://user:pass@host:port/dbname
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
 
 # Authentication
 OAUTH_SERVER_URL=https://auth.example.com
@@ -69,7 +69,7 @@ BUILT_IN_FORGE_API_KEY=your_forge_key
 3. **Run Database Migrations**:
 
     ```bash
-    npm run db:push
+    pnpm prisma migrate deploy
     ```
 
 4. **Start the Server**:

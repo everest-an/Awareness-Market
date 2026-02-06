@@ -20,6 +20,7 @@ import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { createLogger } from "../utils/logger";
 import { ProductionKVCacheCompressor } from "../latentmas/kv-cache-compressor-production";
 import { SemanticAnchorDB } from "../latentmas/semantic-anchors";
+import { embeddingService } from "../latentmas/embedding-service";
 import { inferenceTracker } from "../inference-tracker";
 import { getGPUEngine, benchmarkBackends, getRecommendedBatchSize, type ComputeBackend } from "../latentmas/gpu-acceleration";
 
@@ -27,6 +28,33 @@ const logger = createLogger('NeuralBridge:API');
 
 // Initialize semantic anchor database
 const semanticAnchors = new SemanticAnchorDB();
+
+async function ensureSemanticAnchorsLoaded(): Promise<void> {
+  const stats = semanticAnchors.getStatistics();
+  if (stats.vectorsCached > 0) return;
+
+  const sampleSize = Math.max(
+    32,
+    Math.min(parseInt(process.env.SEMANTIC_ANCHOR_SAMPLE_SIZE || "128", 10), 1024)
+  );
+
+  const anchors = semanticAnchors.getAllAnchors().slice(0, sampleSize);
+  const prompts = anchors.map(anchor => anchor.prompt);
+
+  const batch = await embeddingService.embedBatch({
+    texts: prompts,
+    model: "text-embedding-3-small",
+  });
+
+  batch.embeddings.forEach((embedding, index) => {
+    const anchor = anchors[index];
+    if (anchor) {
+      semanticAnchors.storeAnchorVector(anchor.id, embedding.vector);
+    }
+  });
+}
+
+void ensureSemanticAnchorsLoaded();
 
 // Initialize GPU engine (lazy initialization on first use)
 const gpuEngine = getGPUEngine({ enableFallback: true });
@@ -259,6 +287,14 @@ class NeuralBridgeBackend {
    * TODO: Replace with real semantic anchor comparison when anchors are precomputed
    */
   private fastValidation(vector: number[]): number {
+    const stats = semanticAnchors.getStatistics();
+    if (stats.vectorsCached > 0) {
+      const calibration = semanticAnchors.calibrateAlignment(vector);
+      if (Number.isFinite(calibration.calibrationScore)) {
+        return calibration.calibrationScore;
+      }
+    }
+
     // Check for numerical issues
     if (vector.some(v => !isFinite(v))) {
       return 0.0; // Invalid vector
@@ -655,6 +691,8 @@ export const neuralBridgeRouter = router({
       try {
         logger.info(`Validating vector with semantic anchors (dim: ${input.vector.length})`);
 
+        await ensureSemanticAnchorsLoaded();
+
         // Initialize or get inference session if provided
         let sessionId = input.sessionId;
         if (sessionId) {
@@ -836,11 +874,12 @@ export const neuralBridgeRouter = router({
    */
   getAnchorStats: publicProcedure
     .query(async () => {
-      // TODO: Query from database
+      await ensureSemanticAnchorsLoaded();
+      const stats = semanticAnchors.getStatistics();
       return {
-        totalAnchors: 1024,
-        categories: 16,
-        vectorsCached: 0, // Will be updated after precomputation
+        totalAnchors: stats.totalAnchors,
+        categories: Object.keys(stats.categoryCounts).length,
+        vectorsCached: stats.vectorsCached,
         averageWeight: 0.5,
         lastUpdated: new Date().toISOString(),
       };

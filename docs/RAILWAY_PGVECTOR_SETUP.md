@@ -97,18 +97,18 @@ CREATE EXTENSION vector;
 cd Awareness-Network
 
 # 生成迁移文件（不自动应用）
-pnpm run db:generate
+pnpm prisma migrate dev --name add_pgvector_support --create-only
 ```
 
 **预期输出**:
 ```
 📦 Generating migrations...
-✓ Generated migration: drizzle/migrations-pg/0001_add_pgvector_support.sql
+✓ Generated migration: prisma/migrations/20260207_add_pgvector_support/migration.sql
 ```
 
 ### 审查迁移文件
 
-打开生成的迁移文件：`drizzle/migrations-pg/0001_*.sql`
+打开生成的迁移文件：`prisma/migrations/20260207_add_pgvector_support/migration.sql`
 
 **应该包含的安全操作**:
 ```sql
@@ -175,7 +175,7 @@ pg_dump $DATABASE_URL --data-only > data_backup.sql
 
 ### 推荐方式: 分步执行
 
-不要直接运行 `pnpm run db:push`，而是手动逐步执行：
+不要直接运行 `pnpm prisma migrate deploy`，而是手动逐步执行：
 
 #### 5.1 测试连接
 

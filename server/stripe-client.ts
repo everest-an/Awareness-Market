@@ -189,6 +189,55 @@ export async function createSubscriptionCheckout(params: {
 }
 
 /**
+ * Create a checkout session for credit top-up
+ */
+export async function createCreditTopUpCheckout(params: {
+  userId: number;
+  userEmail: string;
+  userName?: string;
+  amount: number; // in dollars
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<string> {
+  const customerId = await getOrCreateStripeCustomer({
+    userId: params.userId,
+    email: params.userEmail,
+    name: params.userName,
+  });
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: "payment",
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: "Credits Top-up",
+            description: "Pre-purchase credits for automated AI purchases",
+          },
+          unit_amount: Math.round(params.amount * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    client_reference_id: params.userId.toString(),
+    metadata: {
+      user_id: params.userId.toString(),
+      topup_amount: params.amount.toFixed(2),
+      purchase_type: "credit_topup",
+      customer_email: params.userEmail,
+      customer_name: params.userName || "",
+    },
+    allow_promotion_codes: true,
+  });
+
+  return session.url!;
+}
+
+/**
  * Cancel a subscription
  */
 export async function cancelSubscription(subscriptionId: string): Promise<void> {

@@ -85,7 +85,7 @@ Create `.env` file with the following variables:
 
 ```bash
 # Database
-DATABASE_URL=mysql://user:password@host:3306/database
+DATABASE_URL=postgresql://user:password@host:5432/database
 
 # Authentication
 JWT_SECRET=your_jwt_secret_here
@@ -118,7 +118,7 @@ VITE_APP_LOGO=/logo.svg
 
 ```bash
 cd /home/ubuntu/latentmind-marketplace
-pnpm db:push
+pnpm prisma migrate deploy
 ```
 
 Verify tables:

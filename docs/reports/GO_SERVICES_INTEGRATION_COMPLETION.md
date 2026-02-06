@@ -71,7 +71,7 @@ API Gateway (Node.js + Express)
     ├─→ Vector Operations (Port 8083)
     ├─→ Memory Exchange (Port 8080)  
     ├─→ W-Matrix Marketplace (Port 8081)
-    └─→ MySQL Database
+    └─→ PostgreSQL Database
 ```
 
 **优势**:

@@ -134,15 +134,53 @@ export const userRouter = router({
    */
   getPrivacyBudgetHistory: protectedProcedure
     .query(async ({ ctx }) => {
-      // In production, fetch from database
-      // Return mock history showing privacy budget usage over time
+      // Aggregate privacy budget usage from package records
+      const totalBudget = 10.0;
+
+      const [vectorPackages, memoryPackages, chainPackages] = await Promise.all([
+        prisma.vectorPackage.findMany({
+          where: { userId: ctx.user.id },
+          select: { packageId: true, epsilon: true, createdAt: true },
+        }),
+        prisma.memoryPackage.findMany({
+          where: { userId: ctx.user.id },
+          select: { packageId: true, epsilon: true, createdAt: true },
+        }),
+        prisma.chainPackage.findMany({
+          where: { userId: ctx.user.id },
+          select: { packageId: true, epsilon: true, createdAt: true },
+        }),
+      ]);
+
+      const history = [
+        ...vectorPackages.map((pkg) => ({
+          timestamp: pkg.createdAt.toISOString(),
+          operation: 'vector_upload',
+          epsilon: Number(pkg.epsilon || 0),
+          packageId: pkg.packageId,
+        })),
+        ...memoryPackages.map((pkg) => ({
+          timestamp: pkg.createdAt.toISOString(),
+          operation: 'memory_upload',
+          epsilon: Number(pkg.epsilon || 0),
+          packageId: pkg.packageId,
+        })),
+        ...chainPackages.map((pkg) => ({
+          timestamp: pkg.createdAt.toISOString(),
+          operation: 'chain_upload',
+          epsilon: Number(pkg.epsilon || 0),
+          packageId: pkg.packageId,
+        })),
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      const usedBudget = history.reduce((sum, item) => sum + item.epsilon, 0);
+      const remainingPrivacyBudget = Math.max(totalBudget - usedBudget, 0);
+
       return {
-        totalBudget: 10.0,
-        usedBudget: 0.0,
-        remainingBudget: 10.0,
-        history: [
-          // Example: { timestamp: '2026-01-15', operation: 'vector_upload', epsilon: 1.0, packageId: 'vpkg_xxx' }
-        ],
+        totalBudget,
+        usedBudget,
+        remainingPrivacyBudget,
+        history,
       };
     }),
 
@@ -152,16 +190,23 @@ export const userRouter = router({
   simulatePrivacy: protectedProcedure
     .input(z.object({
       vectorDimension: z.number().int().min(1).max(10000),
+      vector: z.array(z.number()).optional(),
       privacyLevel: z.enum(['low', 'medium', 'high', 'custom']),
       customEpsilon: z.number().positive().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const dpEngine = getDPEngine();
 
-      // Create a mock normalized vector
-      const mockVector = Array.from({ length: input.vectorDimension }, () => Math.random() - 0.5);
-      const norm = Math.sqrt(mockVector.reduce((sum, v) => sum + v * v, 0));
-      const normalizedVector = mockVector.map(v => v / norm);
+      let normalizedVector: number[];
+      if (input.vector && input.vector.length > 0) {
+        const norm = Math.sqrt(input.vector.reduce((sum, v) => sum + v * v, 0));
+        normalizedVector = norm === 0 ? input.vector : input.vector.map(v => v / norm);
+      } else {
+        // Create a mock normalized vector
+        const mockVector = Array.from({ length: input.vectorDimension }, () => Math.random() - 0.5);
+        const norm = Math.sqrt(mockVector.reduce((sum, v) => sum + v * v, 0));
+        normalizedVector = mockVector.map(v => v / norm);
+      }
 
       // Apply privacy noise
       const config: PrivacyConfig | PrivacyLevel = input.privacyLevel === 'custom' && input.customEpsilon

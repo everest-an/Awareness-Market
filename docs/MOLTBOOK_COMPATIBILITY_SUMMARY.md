@@ -58,7 +58,7 @@
 #### 2.1 数据库层 (高优先级)
 
 **修改文件**:
-- [drizzle/schema-pg.ts](../drizzle/schema-pg.ts)
+- [prisma/schema.prisma](../prisma/schema.prisma)
 
 **新增内容**:
 ```typescript
@@ -378,7 +378,7 @@ assert len(matches) > 0
 | `server/auth-*.ts` | 5 个不同的认证文件 | 统一为 `auth-unified.ts` | P2 |
 | `client/src/api` | 混合使用 fetch 和 tRPC | 全部迁移到 tRPC | P2 |
 | `python-sdk/awareness/api.py` | 硬编码 API 端点 | 使用配置文件 | P1 |
-| `drizzle/schema*.ts` | 7 个 schema 文件 | 合并为 `schema-pg.ts` | P2 |
+| `prisma/schema.prisma` | 统一 Prisma schema | 已完成迁移 | ✅ |
 
 ### 性能优化机会
 
@@ -419,8 +419,8 @@ assert len(matches) > 0
    - 更新依赖: `pnpm install`
 
 3. **实现 Phase 1 第一个任务** (1 天)
-   - 更新 `drizzle/schema-pg.ts`
-   - 运行迁移: `pnpm run db:push`
+   - 更新 `prisma/schema.prisma`
+   - 运行迁移: `pnpm prisma migrate deploy`
    - 验证: `psql` 中查看 `latent_vectors` 表
 
 ### 本周末前完成

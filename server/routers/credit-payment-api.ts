@@ -18,6 +18,9 @@ import { z } from 'zod';
 import { router, protectedProcedure, publicProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { createLogger } from '../utils/logger';
+import { createCreditTopUpCheckout } from '../stripe-client';
+import { createStablecoinPaymentClient } from '../blockchain/token-system';
+import { ethers } from 'ethers';
 import {
   purchaseWithCredits,
   getCreditBalance,
@@ -203,20 +206,144 @@ export const creditPaymentRouter = router({
         amount: input.amount,
       });
 
-      // Note: Stripe integration would go here
-      // This is a placeholder showing the structure
-      const mockCheckoutUrl = `https://checkout.stripe.com/pay/cs_mock_${Date.now()}`;
-
-      logger.warn('[Checkout] Using mock checkout URL - Stripe not configured', {
+      const checkoutUrl = await createCreditTopUpCheckout({
         userId: ctx.user.id,
+        userEmail: ctx.user.email || `user-${ctx.user.id}@placeholder.local`,
+        userName: ctx.user.name || undefined,
         amount: input.amount,
+        successUrl: input.successUrl || `${process.env.CLIENT_URL || 'http://localhost:5173'}/credits/success`,
+        cancelUrl: input.cancelUrl || `${process.env.CLIENT_URL || 'http://localhost:5173'}/credits/cancelled`,
       });
 
       return {
         success: true,
-        checkoutUrl: mockCheckoutUrl,
-        sessionId: `cs_mock_${Date.now()}`,
+        checkoutUrl,
         message: 'Redirect user to this URL to complete payment',
+      };
+    }),
+
+  /**
+   * Get stablecoin top-up quote (USDC/USDT)
+   */
+  getStablecoinQuote: protectedProcedure
+    .input(
+      z.object({
+        amount: z.number().positive().max(10000),
+        tokenSymbol: z.enum(['USDC', 'USDT']),
+      })
+    )
+    .query(async ({ input }) => {
+      const client = createStablecoinPaymentClient();
+      const tokenAddress = input.tokenSymbol === 'USDC'
+        ? client.getUSDCAddress()
+        : client.getUSDTAddress();
+
+      const tokenAmount = await client.getTokenAmount(input.amount, tokenAddress);
+      const paymentAddress = process.env.STABLECOIN_PAYMENT_ADDRESS || '';
+
+      return {
+        success: true,
+        amountUSD: input.amount,
+        tokenSymbol: input.tokenSymbol,
+        tokenAddress,
+        tokenAmount,
+        paymentAddress,
+        network: process.env.BLOCKCHAIN_NETWORK || 'amoy',
+        decimals: 6,
+      };
+    }),
+
+  /**
+   * Confirm stablecoin top-up via transaction hash
+   */
+  confirmStablecoinTopUp: protectedProcedure
+    .input(
+      z.object({
+        amount: z.number().positive().max(10000),
+        tokenSymbol: z.enum(['USDC', 'USDT']),
+        txHash: z.string().min(10),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.POLYGON_RPC_URL || '';
+      const paymentAddress = (process.env.STABLECOIN_PAYMENT_ADDRESS || '').toLowerCase();
+
+      if (!rpcUrl || !paymentAddress) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'Stablecoin payment system is not configured',
+        });
+      }
+
+      const client = createStablecoinPaymentClient();
+      const tokenAddress = (input.tokenSymbol === 'USDC'
+        ? client.getUSDCAddress()
+        : client.getUSDTAddress()).toLowerCase();
+
+      const expectedTokenAmount = await client.getTokenAmount(input.amount, tokenAddress);
+      const expectedWei = ethers.parseUnits(expectedTokenAmount, 6);
+
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const receipt = await provider.getTransactionReceipt(input.txHash);
+
+      if (!receipt || receipt.status !== 1) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Transaction not confirmed or failed',
+        });
+      }
+
+      const iface = new ethers.Interface([
+        'event Transfer(address indexed from, address indexed to, uint256 value)',
+      ]);
+
+      let totalReceived = 0n;
+      let fromAddress: string | null = null;
+
+      for (const log of receipt.logs) {
+        if (log.address.toLowerCase() !== tokenAddress) continue;
+        try {
+          const parsed = iface.parseLog({ topics: log.topics, data: log.data });
+          if (parsed?.name !== 'Transfer') continue;
+          const to = String(parsed.args.to).toLowerCase();
+          if (to !== paymentAddress) continue;
+          const value = BigInt(parsed.args.value.toString());
+          totalReceived += value;
+          if (!fromAddress) fromAddress = String(parsed.args.from);
+        } catch {
+          // Ignore non-Transfer logs
+        }
+      }
+
+      if (totalReceived < expectedWei) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Insufficient stablecoin transfer amount',
+        });
+      }
+
+      await topUpCredits({
+        userId: ctx.user.id,
+        amount: input.amount,
+        paymentMethod: 'crypto',
+        paymentId: input.txHash,
+        metadata: {
+          tokenSymbol: input.tokenSymbol,
+          tokenAddress,
+          expectedTokenAmount,
+          receivedTokenAmount: ethers.formatUnits(totalReceived, 6),
+          fromAddress,
+          paymentAddress,
+          network: process.env.BLOCKCHAIN_NETWORK || 'amoy',
+        },
+      });
+
+      return {
+        success: true,
+        creditsAdded: input.amount,
+        tokenSymbol: input.tokenSymbol,
+        receivedTokenAmount: ethers.formatUnits(totalReceived, 6),
+        txHash: input.txHash,
       };
     }),
 

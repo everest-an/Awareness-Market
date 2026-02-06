@@ -3,13 +3,14 @@
  * 
  * Implements genuine latent space alignment algorithms for cross-model communication
  * 
- * NOTE: This file contains the LEGACY implementation using random orthogonal matrices.
+ * Uses W-Matrix service for deterministic alignment.
  * For TRUE LatentMAS paper implementation with ridge regression Wa operator,
  * see: ./latentmas/wa-alignment-operator.ts and ./latentmas/latent-rollout-engine.ts
  */
 
-import { create, all, Matrix, MathJsInstance } from 'mathjs';
-import { createLogger } from './utils/logger';
+import { WMatrixService } from './latentmas/w-matrix-service';
+import { getModelSpec } from './latentmas/w-matrix-generator';
+import type { WMatrixMethod } from './latentmas/types';
 
 // Import TRUE LatentMAS implementation for integration
 import {
@@ -19,81 +20,36 @@ import {
   type LatentRolloutResult,
 } from './latentmas/wa-alignment-operator';
 
-const logger = createLogger('LatentMAS:Core');
-const math: MathJsInstance = create(all);
 
-/**
- * Model compatibility matrix
- * Stores learned transformation matrices between different model architectures
- */
-interface ModelPair {
-  source: string;
-  target: string;
-  transformMatrix: number[][];
-  quality: {
-    avgCosineSimilarity: number;
-    avgEuclideanDistance: number;
-    confidence: number;
-  };
+// Legacy random alignment matrices removed in favor of W-Matrix service
+
+function padOrTruncate(vector: number[], targetDim: number): number[] {
+  if (vector.length === targetDim) return [...vector];
+  if (vector.length > targetDim) return vector.slice(0, targetDim);
+  return [...vector, ...new Array(targetDim - vector.length).fill(0)];
 }
 
-// Pre-computed alignment matrices (in production, these would be learned from data)
-const ALIGNMENT_MATRICES: Record<string, ModelPair> = {
-  "gpt-3.5_to_bert": {
-    source: "gpt-3.5",
-    target: "bert",
-    transformMatrix: generateOrthogonalMatrix(768, 768),
-    quality: {
-      avgCosineSimilarity: 0.89,
-      avgEuclideanDistance: 0.23,
-      confidence: 0.85
-    }
-  },
-  "gpt-4_to_claude": {
-    source: "gpt-4",
-    target: "claude",
-    transformMatrix: generateOrthogonalMatrix(1024, 1024),
-    quality: {
-      avgCosineSimilarity: 0.92,
-      avgEuclideanDistance: 0.18,
-      confidence: 0.91
-    }
-  },
-  "llama_to_gpt": {
-    source: "llama",
-    target: "gpt",
-    transformMatrix: generateOrthogonalMatrix(4096, 1024),
-    quality: {
-      avgCosineSimilarity: 0.87,
-      avgEuclideanDistance: 0.28,
-      confidence: 0.82
-    }
-  }
-};
-
-/**
- * Generate a random orthogonal matrix for testing
- * In production, this would be replaced with learned matrices
- */
-function generateOrthogonalMatrix(rows: number, cols: number): number[][] {
-  const size = Math.min(rows, cols);
-  const matrix: number[][] = [];
-  
-  // Create identity-like matrix with small perturbations
+function multiplyMatrixVector(matrix: number[][], vector: number[]): number[] {
+  const rows = matrix.length;
+  const cols = matrix[0]?.length || 0;
+  const result = new Array(rows).fill(0);
   for (let i = 0; i < rows; i++) {
-    matrix[i] = [];
+    let sum = 0;
     for (let j = 0; j < cols; j++) {
-      if (i === j && i < size) {
-        matrix[i][j] = 1.0 + (Math.random() - 0.5) * 0.1;
-      } else if (Math.abs(i - j) <= 2 && i < size && j < size) {
-        matrix[i][j] = (Math.random() - 0.5) * 0.05;
-      } else {
-        matrix[i][j] = 0;
-      }
+      sum += (matrix[i][j] || 0) * (vector[j] || 0);
     }
+    result[i] = sum;
   }
-  
-  return matrix;
+  return result;
+}
+
+function getTargetDimension(targetModel: string, fallback: number): number {
+  try {
+    const spec = getModelSpec(targetModel as any);
+    return spec.keyDimension;
+  } catch {
+    return fallback;
+  }
 }
 
 /**
@@ -160,71 +116,52 @@ export function alignVector(
   };
 } {
   const startTime = Date.now();
-  
-  // Normalize input vector
   const normalizedSource = normalizeVector(sourceVector);
-  
-  // Find alignment matrix
-  const matrixKey = `${sourceModel}_to_${targetModel}`;
-  let alignmentData = ALIGNMENT_MATRICES[matrixKey];
-  
-  // If no pre-computed matrix, use identity or generate one
-  if (!alignmentData) {
-    logger.warn(`[LatentMAS] No alignment matrix for ${matrixKey}, using identity`);
-    alignmentData = {
-      source: sourceModel,
-      target: targetModel,
-      transformMatrix: generateOrthogonalMatrix(sourceVector.length, sourceVector.length),
-      quality: {
-        avgCosineSimilarity: 0.75,
-        avgEuclideanDistance: 0.35,
-        confidence: 0.65
-      }
-    };
+
+  const wMatrixMethod: WMatrixMethod =
+    method === "learned" ? "learned" : method === "nonlinear" ? "hybrid" : "orthogonal";
+
+  const wMatrix = WMatrixService.getWMatrix(sourceModel, targetModel, "1.0.0", wMatrixMethod);
+  const unifiedDim = wMatrix.unifiedDimension;
+  const targetDim = getTargetDimension(targetModel, unifiedDim);
+
+  let vector = padOrTruncate(normalizedSource, unifiedDim);
+
+  if ((wMatrixMethod === "orthogonal" || wMatrixMethod === "hybrid") && wMatrix.transformationRules.orthogonalMatrix) {
+    vector = multiplyMatrixVector(wMatrix.transformationRules.orthogonalMatrix, vector);
   }
-  
-  let alignedVector: number[];
-  
-  if (method === "linear" || method === "learned") {
-    // Matrix multiplication: aligned = M * source
-    const matrix = math.matrix(alignmentData.transformMatrix);
-    const sourceVec = math.matrix(normalizedSource);
-    const result = math.multiply(matrix, sourceVec) as Matrix;
-    alignedVector = (result.toArray() as number[]).flat();
-  } else {
-    // Nonlinear transformation (simple tanh activation)
-    const matrix = math.matrix(alignmentData.transformMatrix);
-    const sourceVec = math.matrix(normalizedSource);
-    const linear = math.multiply(matrix, sourceVec) as Matrix;
-    alignedVector = (linear.toArray() as number[]).flat().map(x => Math.tanh(x));
+
+  if ((wMatrixMethod === "learned" || wMatrixMethod === "hybrid") && wMatrix.transformationRules.sharedParameters) {
+    const params = wMatrix.transformationRules.sharedParameters;
+    vector = vector.map((val, i) => val * (params[i] ?? 1));
   }
-  
-  // Normalize output
+
+  if (method === "nonlinear") {
+    vector = vector.map((val) => Math.tanh(val));
+  }
+
+  let alignedVector = padOrTruncate(vector, targetDim);
   alignedVector = normalizeVector(alignedVector);
-  
-  // Calculate quality metrics (comparing to expected output)
-  const similarity = Math.max(0.7, Math.min(0.98, 
-    alignmentData.quality.avgCosineSimilarity + (Math.random() - 0.5) * 0.1
-  ));
-  const distance = Math.max(0.05, Math.min(0.5,
-    alignmentData.quality.avgEuclideanDistance + (Math.random() - 0.5) * 0.1
-  ));
-  
+
+  const comparableSource = normalizeVector(padOrTruncate(sourceVector, alignedVector.length));
+  const similarity = cosineSimilarity(comparableSource, alignedVector);
+  const distance = euclideanDistance(comparableSource, alignedVector);
+
   const processingTime = Date.now() - startTime;
-  
+
   return {
     alignedVector,
     quality: {
       cosineSimilarity: similarity,
       euclideanDistance: distance,
-      confidence: alignmentData.quality.confidence
+      confidence: Math.max(0.5, Math.min(0.98, wMatrix.qualityMetrics.expectedQuality)),
     },
     metadata: {
       method,
       sourceDim: sourceVector.length,
       targetDim: alignedVector.length,
-      processingTimeMs: processingTime
-    }
+      processingTimeMs: processingTime,
+    },
   };
 }
 

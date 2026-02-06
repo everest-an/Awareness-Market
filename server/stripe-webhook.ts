@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { stripe } from "./stripe-client";
 import * as db from "./db";
 import { sendEmail } from "./_core/email";
+import { topUpCredits } from "./utils/credit-payment-system";
 import crypto from "crypto";
 import { getErrorMessage } from "./utils/error-handling";
 import type Stripe from "stripe";
@@ -15,6 +16,13 @@ interface StripeSubscriptionWithPeriod extends Stripe.Subscription {
 }
 
 const logger = createLogger('Stripe:Webhook');
+
+function parseTransactionId(metadata?: Stripe.Metadata): number | null {
+  const raw = metadata?.transaction_id;
+  if (!raw) return null;
+  const id = parseInt(raw, 10);
+  return Number.isNaN(id) ? null : id;
+}
 
 export async function handleStripeWebhook(req: Request, res: Response) {
   const sig = req.headers["stripe-signature"];
@@ -47,6 +55,42 @@ export async function handleStripeWebhook(req: Request, res: Response) {
 
   try {
     switch (event.type) {
+            case "payment_intent.payment_failed": {
+              const intent = event.data.object as Stripe.PaymentIntent;
+              const transactionId = parseTransactionId(intent.metadata);
+
+              if (transactionId) {
+                await db.updateTransactionPaymentInfo({
+                  id: transactionId,
+                  status: "failed",
+                  stripePaymentIntentId: intent.id,
+                });
+              }
+
+              logger.warn("Payment intent failed", {
+                paymentIntentId: intent.id,
+                transactionId,
+              });
+              break;
+            }
+
+            case "charge.refunded": {
+              const charge = event.data.object as Stripe.Charge;
+              const transactionId = parseTransactionId(charge.metadata);
+
+              if (transactionId) {
+                await db.updateTransactionPaymentInfo({
+                  id: transactionId,
+                  status: "refunded",
+                });
+              }
+
+              logger.info("Charge refunded", {
+                chargeId: charge.id,
+                transactionId,
+              });
+              break;
+            }
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         await handleCheckoutCompleted(session);
@@ -442,6 +486,42 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
     // Subscription will be handled by subscription.created event
+  } else if (purchaseType === "credit_topup") {
+    const amountStr = session.metadata?.topup_amount || "0";
+    const amount = parseFloat(amountStr);
+    const paymentIntentId = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id || session.id;
+
+    if (!amount || Number.isNaN(amount)) {
+      logger.error("Invalid top-up amount in session metadata", {
+        sessionId: session.id,
+        userId,
+        amountStr,
+      });
+      return;
+    }
+
+    await topUpCredits({
+      userId,
+      amount,
+      paymentMethod: "stripe",
+      paymentId: paymentIntentId,
+      metadata: {
+        sessionId: session.id,
+        customerEmail: session.customer_details?.email,
+      },
+    });
+
+    logger.info("Credit top-up completed", { userId, amount, paymentIntentId });
+
+    await db.createNotification({
+      userId,
+      type: "transaction",
+      title: "Credits Top-up Successful",
+      message: `Your account has been credited with ${amount} credits.`,
+      relatedEntityId: null,
+    });
   }
 }
 

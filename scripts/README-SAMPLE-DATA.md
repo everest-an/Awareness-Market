@@ -13,8 +13,8 @@
 
 ```bash
 # 1. 配置.env文件中的DATABASE_URL
-# 例如本地MySQL:
-DATABASE_URL="mysql://root:password@localhost:3306/awareness_market"
+# 例如本地PostgreSQL:
+DATABASE_URL="postgresql://user:password@localhost:5432/awareness_market"
 
 # 2. 运行数据生成脚本
 pnpm tsx scripts/generate-sample-packages-prisma.ts
@@ -78,21 +78,21 @@ pnpm tsx scripts/generate-sample-packages-prisma.ts
 
 ## 🔧 数据库配置
 
-### 选项1：本地MySQL
+### 选项1：本地PostgreSQL
 
 ```bash
-# 安装MySQL (Windows)
-# 从 https://dev.mysql.com/downloads/installer/ 下载安装
+# 安装PostgreSQL (Windows)
+# 从 https://www.postgresql.org/download/windows/ 下载安装
 
 # 创建数据库
-mysql -u root -p
+psql -U postgres
 CREATE DATABASE awareness_market;
 
 # 更新.env
-DATABASE_URL="mysql://root:your_password@localhost:3306/awareness_market"
+DATABASE_URL="postgresql://postgres:your_password@localhost:5432/awareness_market"
 
 # 运行Prisma迁移
-pnpm prisma db push
+pnpm prisma migrate deploy
 ```
 
 ### 选项2：免费Supabase PostgreSQL
@@ -107,7 +107,7 @@ pnpm prisma db push
 DATABASE_URL="postgresql://postgres:your_password@db.your-project-ref.supabase.co:5432/postgres"
 
 # 4. 运行Prisma迁移
-pnpm prisma db push
+pnpm prisma migrate deploy
 ```
 
 ## 🚀 验证数据

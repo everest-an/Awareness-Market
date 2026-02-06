@@ -170,6 +170,14 @@ export class ZKPVerificationEngine {
    * In production, these come from a trusted setup ceremony
    */
   private async loadKeys(): Promise<void> {
+    const remoteBackend = this.getRemoteBackend();
+    if (remoteBackend) {
+      // Remote backend handles proof generation/verification
+      this.provingKey = this.generateMockProvingKey();
+      this.verifyingKey = this.generateMockVerifyingKey();
+      return;
+    }
+
     if (this.config.system === 'mock') {
       // Generate mock keys for testing
       this.provingKey = this.generateMockProvingKey();
@@ -300,6 +308,11 @@ export class ZKPVerificationEngine {
     threshold: number;
     commitment: VectorCommitment;
   }): Promise<Proof> {
+    const remoteBackend = this.getRemoteBackend();
+    if (remoteBackend) {
+      return this.generateRemoteProof(remoteBackend, witness);
+    }
+
     if (this.config.system === 'mock') {
       return this.generateMockProof(witness);
     }
@@ -402,6 +415,11 @@ export class ZKPVerificationEngine {
     proof: Proof,
     publicSignals: PublicSignals
   ): Promise<boolean> {
+    const remoteBackend = this.getRemoteBackend();
+    if (remoteBackend) {
+      return this.verifyRemoteProof(remoteBackend, proof, publicSignals);
+    }
+
     if (!this.verifyingKey) {
       throw new Error('Verifying key not loaded');
     }
@@ -430,6 +448,65 @@ export class ZKPVerificationEngine {
     // );
 
     throw new Error('Real proof verification requires snarkjs');
+  }
+
+  private getRemoteBackend(): string | null {
+    return process.env.ZKP_BACKEND_URL || null;
+  }
+
+  private async generateRemoteProof(
+    endpoint: string,
+    witness: {
+      vector: number[];
+      qualityScore: number;
+      threshold: number;
+      commitment: VectorCommitment;
+    }
+  ): Promise<Proof> {
+    const response = await fetch(`${endpoint.replace(/\/$/, '')}/prove-quality`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        witness,
+        system: this.config.system,
+        curveType: this.config.curveType,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Remote proof generation failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.proof as Proof;
+  }
+
+  private async verifyRemoteProof(
+    endpoint: string,
+    proof: Proof,
+    publicSignals: PublicSignals
+  ): Promise<boolean> {
+    const response = await fetch(`${endpoint.replace(/\/$/, '')}/verify-quality`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        proof,
+        publicSignals,
+        system: this.config.system,
+        curveType: this.config.curveType,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Remote proof verification failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    return Boolean(data.valid);
+  }
+
+  getProofSystem(): ProofSystem {
+    return this.config.system;
   }
 
   /**

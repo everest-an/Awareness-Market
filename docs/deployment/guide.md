@@ -20,7 +20,7 @@
 
 ```bash
 # 数据库配置（AWS RDS）
-DATABASE_URL=mysql://username:password@awareness-db.cluster-cezeeou48sif.us-east-1.rds.amazonaws.com:3306/awareness
+DATABASE_URL=postgresql://username:password@awareness-db.cluster-cezeeou48sif.us-east-1.rds.amazonaws.com:5432/awareness
 
 # JWT密钥（重要：生产环境必须更改！）
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
@@ -108,7 +108,7 @@ pnpm install --prod
 
 ```bash
 # 运行数据库迁移（如果有schema变更）
-pnpm db:push
+pnpm prisma migrate deploy
 ```
 
 ### 步骤5：启动应用

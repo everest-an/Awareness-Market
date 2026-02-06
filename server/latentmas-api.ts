@@ -23,6 +23,7 @@ import {
   euclideanDistance
 } from "./latentmas-core";
 import { getErrorMessage } from "./utils/error-handling";
+import { convertVectorFormat } from "./latentmas-converter";
 
 const logger = createLogger('LatentMAS:API');
 const latentmasRouter = Router();
@@ -152,8 +153,13 @@ latentmasRouter.post("/convert", async (req, res) => {
 
     const data = schema.parse(req.body);
 
-    // Mock conversion
-    const convertedData = data.vector_data; // In reality, would perform actual conversion
+    const startTime = Date.now();
+    const result = await convertVectorFormat({
+      vectorData: data.vector_data,
+      sourceFormat: data.source_format,
+      targetFormat: data.target_format,
+    });
+    const convertedData = result.converted_data;
 
     res.json({
       protocol: "LatentMAS/1.0",
@@ -163,7 +169,7 @@ latentmasRouter.post("/convert", async (req, res) => {
       metadata: {
         original_size_bytes: Buffer.from(data.vector_data, 'base64').length,
         converted_size_bytes: Buffer.from(convertedData, 'base64').length,
-        processing_time_ms: 28,
+        processing_time_ms: Date.now() - startTime,
       },
     });
   } catch (error: unknown) {

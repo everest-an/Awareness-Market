@@ -7,7 +7,7 @@ High-performance Memory Exchange service written in Go for handling KV-Cache tra
 - ✅ **High Concurrency** - Go goroutines for handling thousands of concurrent requests
 - ✅ **RESTful API** - Standard REST endpoints for easy integration
 - ✅ **API Key Authentication** - Secure access control
-- ✅ **MySQL/TiDB Support** - Compatible with existing database
+- ✅ **PostgreSQL Support** - Compatible with existing database
 - ✅ **Docker Ready** - Easy deployment with Docker
 
 ## API Endpoints
@@ -108,7 +108,7 @@ Authorization: Bearer <api_key>
 
 ### Prerequisites
 - Go 1.22+
-- MySQL/TiDB database
+- PostgreSQL database
 
 ### Setup
 

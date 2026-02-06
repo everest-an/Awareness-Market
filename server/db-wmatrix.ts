@@ -343,6 +343,40 @@ export async function createWMatrixListing(data: {
 }
 
 /**
+ * Get W-Matrix listing by ID
+ */
+export async function getWMatrixListingById(listingId: string): Promise<{
+  id: string;
+  title: string;
+  storageUrl: string | null;
+  checksumSHA256: string | null;
+  sizeBytes: number | null;
+} | null> {
+  const db = getPrisma();
+
+  const result = await db.wMatrixListing.findUnique({
+    where: { id: listingId },
+    select: {
+      id: true,
+      title: true,
+      storageUrl: true,
+      checksumSHA256: true,
+      sizeBytes: true,
+    },
+  });
+
+  if (!result) return null;
+
+  return {
+    id: result.id,
+    title: result.title,
+    storageUrl: result.storageUrl,
+    checksumSHA256: result.checksumSHA256,
+    sizeBytes: result.sizeBytes,
+  };
+}
+
+/**
  * Store integrity verification result
  */
 export async function storeIntegrityVerification(data: {

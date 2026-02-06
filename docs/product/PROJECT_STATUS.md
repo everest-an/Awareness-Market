@@ -56,7 +56,7 @@ Last Updated: January 17, 2026
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Database Migration | ⏳ | Run `pnpm db:push` |
+| Database Migration | ⏳ | Run `pnpm prisma migrate deploy` |
 | Smart Contracts | ⏳ | Deploy to Polygon Amoy |
 | Stripe Integration | ⏳ | Currently using mock payment |
 | Sample Data | ⏳ | Run `pnpm seed:products` |
@@ -79,7 +79,7 @@ cd Awareness-Market-main
 pnpm install
 
 # Create database tables
-pnpm db:push
+pnpm prisma migrate deploy
 
 # Seed sample data (optional)
 pnpm seed:products
@@ -117,7 +117,7 @@ pnpm mcp:build
 - `mcp-server/mcp-config.example.json` - Example configuration
 
 ### Database
-- `drizzle/schema.ts` - Database schema definitions
+- `prisma/schema.prisma` - Database schema definitions
 
 ---
 
@@ -146,7 +146,7 @@ Copy `mcp-server/mcp-config.example.json` to your MCP settings:
 Create `.env` file with:
 
 ```env
-DATABASE_URL=mysql://user:pass@localhost:3306/awareness
+DATABASE_URL=postgresql://user:pass@localhost:5432/awareness
 VITE_APP_URL=http://localhost:3000
 ```
 

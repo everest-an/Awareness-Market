@@ -25,6 +25,16 @@ import { storagePut, storageGet } from '../storage';
 import { nanoid } from 'nanoid';
 import * as wMatrixDb from '../db-wmatrix';
 
+function extractStorageKey(storageUrl: string): string | null {
+  try {
+    const url = new URL(storageUrl);
+    const key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+    return key || null;
+  } catch {
+    return null;
+  }
+}
+
 // ============================================================================
 // Input Schemas
 // ============================================================================
@@ -337,12 +347,33 @@ export const wMatrixMarketplaceV2Router = router({
           };
         }
 
-        // Fetch W-Matrix data from storage
-        // In production, get the actual storage URL from database
-        // For now, generate a mock verification report
-        const mockData = JSON.stringify({ listingId, timestamp: Date.now() });
+        const listing = await wMatrixDb.getWMatrixListingById(listingId);
+        if (!listing || !listing.storageUrl) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Listing not found or missing storage URL: ${listingId}`,
+          });
+        }
 
-        const report = IntegrityVerifier.generateIntegrityReport(mockData, expectedChecksum);
+        const storageKey = extractStorageKey(listing.storageUrl);
+        if (!storageKey) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Invalid storage URL for listing',
+          });
+        }
+
+        const { url: signedUrl } = await storageGet(storageKey, 300);
+        const response = await fetch(signedUrl);
+        if (!response.ok) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Failed to fetch W-Matrix data: ${response.status}`,
+          });
+        }
+
+        const dataBuffer = Buffer.from(await response.arrayBuffer());
+        const report = IntegrityVerifier.generateIntegrityReport(dataBuffer, expectedChecksum);
 
         // Store verification result in database
         await wMatrixDb.storeIntegrityVerification({

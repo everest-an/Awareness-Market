@@ -153,17 +153,68 @@ async function executeStep(
       ...(typeof step.input === 'object' && step.input !== null ? step.input : {}),
     };
 
-    // Simulated execution (replace with actual API call)
+    // Execute agent via MCP/HTTP endpoint if provided
     logger.info(`[Collaboration] Executing step: ${step.agentName} for task: ${task}`);
 
-    // Mock output
-    const output = {
-      agent: step.agentName,
-      status: 'success',
-      result: `Completed ${task} analysis`,
-      timestamp: new Date().toISOString(),
-      confidence: 0.85 + Math.random() * 0.15,
-    };
+    const endpoints = typeof sharedMemory.agentEndpoints === 'object' && sharedMemory.agentEndpoints !== null
+      ? (sharedMemory.agentEndpoints as Record<string, string>)
+      : {};
+    const endpoint = endpoints[step.agentId];
+
+    let output: Record<string, unknown>;
+
+    if (endpoint) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+
+      try {
+        const authTokens = typeof sharedMemory.agentAuthTokens === 'object' && sharedMemory.agentAuthTokens !== null
+          ? (sharedMemory.agentAuthTokens as Record<string, string>)
+          : {};
+        const authToken = authTokens[step.agentId];
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          },
+          body: JSON.stringify({
+            task,
+            context: sharedMemory,
+            previousSteps: workflow.steps
+              .filter(s => s.status === 'completed')
+              .map(s => ({ agent: s.agentName, output: s.output })),
+            input: typeof step.input === 'object' && step.input !== null ? step.input : undefined,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Agent endpoint returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        output = {
+          agent: step.agentName,
+          status: 'success',
+          result: data,
+          timestamp: new Date().toISOString(),
+        };
+      } finally {
+        clearTimeout(timeout);
+      }
+    } else {
+      // Fallback simulation when no endpoint is configured
+      output = {
+        agent: step.agentName,
+        status: 'success',
+        result: `Completed ${task} analysis`,
+        timestamp: new Date().toISOString(),
+        confidence: 0.85,
+        note: 'No agent endpoint configured; used fallback output',
+      };
+    }
 
     // Store output in shared memory
     const memoryKeys: string[] = [];
