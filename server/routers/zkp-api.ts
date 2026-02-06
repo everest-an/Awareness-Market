@@ -340,7 +340,6 @@ export const zkpRouter = router({
           },
         });
 
-        const zkpEngine = getZKPEngine();
 
         return {
           success: true,
