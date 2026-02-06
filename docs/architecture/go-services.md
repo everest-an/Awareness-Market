@@ -325,7 +325,7 @@ MEMORY_EXCHANGE_PORT=8080
 WMATRIX_PORT=8081
 
 # 共享配置
-DATABASE_URL=mysql://user:pass@host/awareness
+DATABASE_URL=postgresql://user:pass@host:5432/awareness
 API_KEY_SECRET=your_secret_key
 
 # Go 服务 URL

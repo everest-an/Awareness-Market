@@ -162,36 +162,40 @@ ALTER TABLE latent_vectors ADD COLUMN w_matrix_version VARCHAR(20);
 ```
 
 #### 2.2 新增数据结构
-```typescript
-// drizzle/schema.ts
-export const memoryExchanges = mysqlTable("memory_exchanges", {
-  id: int("id").primaryKey().autoincrement(),
-  sellerId: int("seller_id").notNull(),
-  buyerId: int("buyer_id").notNull(),
-  memoryType: mysqlEnum("memory_type", ["kv_cache", "reasoning_chain", "long_term_memory"]).notNull(),
-  kvCacheData: json("kv_cache_data"),
-  wMatrixVersion: varchar("w_matrix_version", { length: 20 }),
-  contextLength: int("context_length"),
-  tokenCount: int("token_count"),
-  price: decimal("price", { precision: 10, scale: 2 }),
-  qualityScore: decimal("quality_score", { precision: 3, scale: 2 }),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+```prisma
+// prisma/schema.prisma
+model MemoryExchange {
+  id             Int       @id @default(autoincrement())
+  sellerId       Int       @map("seller_id")
+  buyerId        Int       @map("buyer_id")
+  memoryType     String    @map("memory_type") // kv_cache, reasoning_chain, long_term_memory
+  kvCacheData    Json?     @map("kv_cache_data")
+  wMatrixVersion String?   @map("w_matrix_version") @db.VarChar(20)
+  contextLength  Int?      @map("context_length")
+  tokenCount     Int?      @map("token_count")
+  price          Decimal?  @db.Decimal(10, 2)
+  qualityScore   Decimal?  @map("quality_score") @db.Decimal(3, 2)
+  createdAt      DateTime  @default(now()) @map("created_at")
 
-export const reasoningChains = mysqlTable("reasoning_chains", {
-  id: int("id").primaryKey().autoincrement(),
-  creatorId: int("creator_id").notNull(),
-  chainName: varchar("chain_name", { length: 255 }).notNull(),
-  description: text("description"),
-  inputExample: json("input_example"),
-  outputExample: json("output_example"),
-  kvCacheSnapshot: json("kv_cache_snapshot"),
-  stepCount: int("step_count"),
-  avgQuality: decimal("avg_quality", { precision: 3, scale: 2 }),
-  pricePerUse: decimal("price_per_use", { precision: 10, scale: 2 }),
-  usageCount: int("usage_count").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+  @@map("memory_exchanges")
+}
+
+model ReasoningChain {
+  id             Int       @id @default(autoincrement())
+  creatorId      Int       @map("creator_id")
+  chainName      String    @map("chain_name") @db.VarChar(255)
+  description    String?   @db.Text
+  inputExample   Json?     @map("input_example")
+  outputExample  Json?     @map("output_example")
+  kvCacheSnapshot Json?    @map("kv_cache_snapshot")
+  stepCount      Int?      @map("step_count")
+  avgQuality     Decimal?  @map("avg_quality") @db.Decimal(3, 2)
+  pricePerUse    Decimal?  @map("price_per_use") @db.Decimal(10, 2)
+  usageCount     Int       @default(0) @map("usage_count")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@map("reasoning_chains")
+}
 ```
 
 ### Phase 3: API层升级

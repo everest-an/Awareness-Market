@@ -19,7 +19,7 @@ Awareness Market provides three distinct product lines for AI consciousness trad
 ```bash
 cd Awareness-Market-main
 pnpm install
-pnpm db:push    # Create database tables
+pnpm prisma migrate deploy    # Create database tables
 pnpm dev        # Start development server
 ```
 

@@ -15,7 +15,7 @@ import { TRPCError } from '@trpc/server';
 import { prisma } from '../db-prisma';
 import { getErrorMessage, assertDatabaseAvailable, assertPackageExists, throwValidationFailed } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
-import { AntiPoisoningVerifier } from '../latentmas/anti-poisoning';
+import { AntiPoisoningVerifier, type ChallengeResponse } from '../latentmas/anti-poisoning';
 import { pricingEngine } from '../pricing-engine';
 import { SemanticAnchorDB } from '../latentmas/semantic-anchors';
 import { generateRecommendations, trackBrowsingAction } from '../recommendation-engine';
@@ -44,6 +44,7 @@ import type { KVCache } from '../latentmas/types';
 import type { ReasoningChainData } from '../latentmas/package-builders';
 import { storageGet } from '../storage';
 import { sendPurchaseConfirmationEmail, sendSaleNotificationEmail } from '../email-service';
+import { stripe } from '../stripe-client';
 
 // ============================================================================
 // Input Schemas
@@ -78,6 +79,12 @@ const CreateVectorPackageSchema = z.object({
   price: z.number().positive(),
   trainingDataset: z.string(),
   tags: z.array(z.string()).optional(),
+  polfResponse: z.object({
+    challengeId: z.string(),
+    vectorOutputs: z.array(z.array(z.number())),
+    signature: z.string(),
+    timestamp: z.number(),
+  }).optional(),
 });
 
 // Memory Package
@@ -97,6 +104,12 @@ const CreateMemoryPackageSchema = z.object({
   price: z.number().positive(),
   trainingDataset: z.string(),
   tags: z.array(z.string()).optional(),
+  polfResponse: z.object({
+    challengeId: z.string(),
+    vectorOutputs: z.array(z.array(z.number())),
+    signature: z.string(),
+    timestamp: z.number(),
+  }).optional(),
 });
 
 // Chain Package
@@ -126,6 +139,12 @@ const CreateChainPackageSchema = z.object({
   price: z.number().positive(),
   trainingDataset: z.string(),
   tags: z.array(z.string()).optional(),
+  polfResponse: z.object({
+    challengeId: z.string(),
+    vectorOutputs: z.array(z.array(z.number())),
+    signature: z.string(),
+    timestamp: z.number(),
+  }).optional(),
 });
 
 // Browse Packages
@@ -147,6 +166,8 @@ const BrowsePackagesSchema = z.object({
 const PurchasePackageSchema = z.object({
   packageType: PackageTypeSchema,
   packageId: z.string(),
+  paymentMethod: z.enum(['credits', 'stripe', 'crypto']).default('credits'),
+  paymentMethodId: z.string().optional(),
 });
 
 // Download Package
@@ -222,6 +243,12 @@ function calculateDynamicPrice(
   };
 }
 
+function computeInformationRetention(epsilon: number): string {
+  if (!Number.isFinite(epsilon)) return '0.0000';
+  const retention = Math.max(0, Math.min(1, 1 - epsilon));
+  return retention.toFixed(4);
+}
+
 /**
  * Extract representative vector from KV-Cache for validation
  * Uses mean pooling across all keys
@@ -261,6 +288,18 @@ function extractRepresentativeVector(kvCache: KVCacheStructure): number[] {
 
 export const packagesApiRouter = router({
   /**
+   * Generate anti-poisoning challenge (PoLF)
+   */
+  getPoisoningChallenge: protectedProcedure
+    .query(async () => {
+      const challenge = poisonValidator.generateChallenge();
+      return {
+        success: true,
+        challenge,
+        expiresAt: challenge.expiresAt,
+      };
+    }),
+  /**
    * Create Vector Package
    */
   createVectorPackage: protectedProcedure
@@ -270,21 +309,36 @@ export const packagesApiRouter = router({
         // ============================================================
         // Step 1 - Anti-Poisoning Verification (PoLF)
         // ============================================================
-        // STATUS: Mock implementation - awaiting production deployment
-        //
-        // Full implementation requires:
-        // 1. Challenge generation: poisonValidator.generateChallenge(vector)
-        // 2. Response verification: poisonValidator.verify(challenge, response)
-        // 3. Semantic anchor validation against known good vectors
-        //
-        // See: server/latentmas/anti-poisoning.ts for full implementation
-        // ============================================================
-        logger.info(`[PoLF] Using mock validation (user: ${ctx.user.id})`);
+        const polfEnabled = process.env.ENABLE_POLF_VERIFICATION === 'true';
+        let polfResult = { isPassed: true, reason: 'Not enforced', score: 1.0, anomalies: [] as string[] };
 
-        // Mock validation - always passes in development
-        const polfResult = { isPassed: true, reason: 'Mock validation', score: 1.0, anomalies: [] as string[] };
+        if (polfEnabled) {
+          if (!input.polfResponse) {
+            throw new TRPCError({
+              code: 'PRECONDITION_FAILED',
+              message: 'PoLF verification required. Please request a challenge and provide a response.',
+            });
+          }
 
-        if (process.env.ENABLE_POLF_VERIFICATION === 'true' && !polfResult.isPassed) {
+          const verification = poisonValidator.verify(input.polfResponse as ChallengeResponse);
+          polfResult = {
+            isPassed: verification.passed,
+            reason: verification.passed ? 'PoLF verification passed' : 'PoLF verification failed',
+            score: Number(verification.fidelityScore.toFixed(3)),
+            anomalies: verification.anomalies,
+          };
+
+          logger.info(`[PoLF] Verification result`, {
+            userId: ctx.user.id,
+            passed: polfResult.isPassed,
+            score: polfResult.score,
+            anomalies: polfResult.anomalies,
+          });
+        } else {
+          logger.info(`[PoLF] Verification not enforced (user: ${ctx.user.id})`);
+        }
+
+        if (polfEnabled && !polfResult.isPassed) {
           logger.warn(`Poisoning detected in vector package upload`, {
             userId: ctx.user.id,
             packageName: input.name,
@@ -366,7 +420,7 @@ export const packagesApiRouter = router({
             vectorUrl: result.vectorUrl || '',
             wMatrixUrl: result.wMatrixUrl || '',
             epsilon: String(input.wMatrix.epsilon),
-            informationRetention: '0.9500',
+            informationRetention: computeInformationRetention(input.wMatrix.epsilon),
             dimension: input.vector.dimension,
           },
         });
@@ -393,19 +447,37 @@ export const packagesApiRouter = router({
       try {
         // ============================================================
         // Step 1 - Anti-Poisoning Verification (PoLF)
-        // STATUS: Mock implementation - see createVectorPackage for details
         // ============================================================
-        logger.info(`[PoLF] Verifying KV-Cache (user: ${ctx.user.id})`);
+        const polfEnabled = process.env.ENABLE_POLF_VERIFICATION === 'true';
+        let polfResult = { isPassed: true, reason: 'Not enforced', score: 1.0, anomalies: [] as string[] };
 
-        // Extract representative vector from KV-Cache using mean pooling
-        // Used for PoLF verification when enabled
-        const _representativeVector = extractRepresentativeVector(input.kvCache);
+        if (polfEnabled) {
+          if (!input.polfResponse) {
+            throw new TRPCError({
+              code: 'PRECONDITION_FAILED',
+              message: 'PoLF verification required. Please request a challenge and provide a response.',
+            });
+          }
 
-        // Mock validation - enable with ENABLE_POLF_VERIFICATION=true
-        // Real implementation: await poisonValidator.proofOfLatentFidelity(_representativeVector)
-        const polfResult = { isPassed: true, reason: 'Mock validation', score: 1.0, anomalies: [] as string[] };
+          const verification = poisonValidator.verify(input.polfResponse as ChallengeResponse);
+          polfResult = {
+            isPassed: verification.passed,
+            reason: verification.passed ? 'PoLF verification passed' : 'PoLF verification failed',
+            score: Number(verification.fidelityScore.toFixed(3)),
+            anomalies: verification.anomalies,
+          };
 
-        if (process.env.ENABLE_POLF_VERIFICATION === 'true' && !polfResult.isPassed) {
+          logger.info(`[PoLF] Verification result`, {
+            userId: ctx.user.id,
+            passed: polfResult.isPassed,
+            score: polfResult.score,
+            anomalies: polfResult.anomalies,
+          });
+        } else {
+          logger.info(`[PoLF] Verification not enforced (user: ${ctx.user.id})`);
+        }
+
+        if (polfEnabled && !polfResult.isPassed) {
           logger.warn(`Poisoning detected in memory package upload`, {
             userId: ctx.user.id,
             packageName: input.name,
@@ -464,7 +536,7 @@ export const packagesApiRouter = router({
             kvCacheUrl: result.kvCacheUrl || '',
             wMatrixUrl: result.wMatrixUrl || '',
             epsilon: String(input.wMatrix.epsilon),
-            informationRetention: '0.9500',
+            informationRetention: computeInformationRetention(input.wMatrix.epsilon),
           },
         });
 
@@ -490,59 +562,61 @@ export const packagesApiRouter = router({
       try {
         // ============================================================
         // Step 1 - Anti-Poisoning Verification (PoLF)
-        // STATUS: Mock implementation - see createVectorPackage for details
         // ============================================================
-        logger.info(`[PoLF] Verifying reasoning chain (user: ${ctx.user.id})`);
+        const polfEnabled = process.env.ENABLE_POLF_VERIFICATION === 'true';
+        let polfResult = { isPassed: true, reason: 'Not enforced', score: 1.0, anomalies: [] as string[] };
 
-        // Validate critical steps: first and last (to balance security and performance)
-        const stepsToValidate = [
-          { index: 0, step: input.chain.steps[0] },
-          { index: input.chain.steps.length - 1, step: input.chain.steps[input.chain.steps.length - 1] },
-        ];
-
-        for (const { index, step } of stepsToValidate) {
-          if (!step) continue; // Skip if step doesn't exist
-
-          logger.info(`[PoLF] Validating step ${index + 1}/${input.chain.steps.length}`);
-
-          // Extract representative vector from step's KV snapshot
-          // Used for PoLF verification when enabled
-          const _representativeVector = extractRepresentativeVector(step.kvSnapshot);
-
-          // Mock validation - enable with ENABLE_POLF_VERIFICATION=true
-          // Real implementation: await poisonValidator.proofOfLatentFidelity(_representativeVector)
-          const polfResult = { isPassed: true, reason: 'Mock validation', score: 1.0, anomalies: [] as string[] };
-
-          if (process.env.ENABLE_POLF_VERIFICATION === 'true' && !polfResult.isPassed) {
-            logger.warn(`Poisoning detected in chain package step ${index + 1}`, {
-              userId: ctx.user.id,
-              packageName: input.name,
-              stepIndex: index,
-              reason: polfResult.reason,
-              anomalies: polfResult.anomalies,
-            });
-
+        if (polfEnabled) {
+          if (!input.polfResponse) {
             throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: `Security check failed at step ${index + 1}: ${polfResult.reason}. Your reasoning chain shows signs of a poisoning attack.`,
-              cause: {
-                type: 'POISONING_DETECTED',
-                score: polfResult.score,
-                stepIndex: index,
-                details: polfResult.anomalies,
-                recommendations: [
-                  'Verify your reasoning steps are from trusted sources',
-                  'Check for adversarial perturbations in the chain',
-                  'Regenerate the reasoning chain from clean data',
-                ],
-              },
+              code: 'PRECONDITION_FAILED',
+              message: 'PoLF verification required. Please request a challenge and provide a response.',
             });
           }
 
-          logger.info(`Step ${index + 1} passed anti-poisoning check (score: ${polfResult.score.toFixed(3)})`);
+          const verification = poisonValidator.verify(input.polfResponse as ChallengeResponse);
+          polfResult = {
+            isPassed: verification.passed,
+            reason: verification.passed ? 'PoLF verification passed' : 'PoLF verification failed',
+            score: Number(verification.fidelityScore.toFixed(3)),
+            anomalies: verification.anomalies,
+          };
+
+          logger.info(`[PoLF] Verification result`, {
+            userId: ctx.user.id,
+            passed: polfResult.isPassed,
+            score: polfResult.score,
+            anomalies: polfResult.anomalies,
+          });
+        } else {
+          logger.info(`[PoLF] Verification not enforced (user: ${ctx.user.id})`);
         }
 
-        logger.info(`All critical steps passed anti-poisoning validation`);
+        if (polfEnabled && !polfResult.isPassed) {
+          logger.warn(`Poisoning detected in chain package upload`, {
+            userId: ctx.user.id,
+            packageName: input.name,
+            reason: polfResult.reason,
+            anomalies: polfResult.anomalies,
+          });
+
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Security check failed: ${polfResult.reason}. Your reasoning chain shows signs of a poisoning attack.`,
+            cause: {
+              type: 'POISONING_DETECTED',
+              score: polfResult.score,
+              details: polfResult.anomalies,
+              recommendations: [
+                'Verify your reasoning steps are from trusted sources',
+                'Check for adversarial perturbations in the chain',
+                'Regenerate the reasoning chain from clean data',
+              ],
+            },
+          });
+        }
+
+        logger.info(`Reasoning chain passed anti-poisoning check (score: ${polfResult.score.toFixed(3)})`);
 
         // Existing: Step 2 - Create Package
         const result = await createChainPackage(
@@ -574,7 +648,7 @@ export const packagesApiRouter = router({
             chainUrl: result.chainUrl || '',
             wMatrixUrl: result.wMatrixUrl || '',
             epsilon: String(input.wMatrix.epsilon),
-            informationRetention: '0.9500',
+            informationRetention: computeInformationRetention(input.wMatrix.epsilon),
           },
         });
 
@@ -713,19 +787,44 @@ export const packagesApiRouter = router({
       try {
         logger.info(`[Recommendations] Generating for user ${ctx.user.id}`);
 
-        // Generate recommendations using AI engine
+        if (input.packageType && input.packageType !== 'vector') {
+          const packages = input.packageType === 'memory'
+            ? await prisma.memoryPackage.findMany({
+                where: { status: 'active' },
+                orderBy: { downloads: 'desc' },
+                take: input.limit,
+              })
+            : await prisma.chainPackage.findMany({
+                where: { status: 'active' },
+                orderBy: { downloads: 'desc' },
+                take: input.limit,
+              });
+
+          const recommendations = packages.map((pkg) => {
+            const downloads = Number((pkg as { downloads?: number | string }).downloads || 0);
+            const score = Math.min(100, downloads * 2);
+            return {
+              packageId: pkg.packageId,
+              score,
+              reason: `Popular ${input.packageType} package based on download activity.`,
+              package: pkg,
+            };
+          });
+
+          return {
+            success: true,
+            recommendations,
+            total: recommendations.length,
+          };
+        }
+
+        // Generate recommendations using AI engine (vector packages)
         const recommendations = await generateRecommendations({
           userId: ctx.user.id,
           limit: input.limit,
         });
 
-        // Filter by package type if specified
-        let filtered = recommendations;
-        if (input.packageType) {
-          // Map vector recommendations to package types
-          // (In production, you'd have type metadata in the vectors)
-          filtered = recommendations; // Placeholder
-        }
+        const filtered = recommendations;
 
         return {
           success: true,
@@ -881,62 +980,128 @@ export const packagesApiRouter = router({
         };
       }
 
-      // Calculate fees (10% platform fee)
       const priceNum = parseFloat(pkg.price.toString());
-      const platformFee = (priceNum * 0.1).toFixed(2);
-      const sellerEarnings = (priceNum * 0.9).toFixed(2);
+      if (!Number.isFinite(priceNum) || priceNum <= 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Invalid package price',
+        });
+      }
 
-      // Create purchase record
-      const purchase = await prisma.packagePurchase.create({
-        data: {
-          buyerId: ctx.user.id,
-          sellerId: pkg.userId,
-          packageId: input.packageId,
+      let purchase = null as any;
+      let alreadyPurchased = false;
+
+      if (input.paymentMethod === 'credits') {
+        const { purchaseWithCredits } = await import('../utils/credit-payment-system');
+        const result = await purchaseWithCredits({
+          userId: ctx.user.id,
+          amount: priceNum,
           packageType: input.packageType,
-          price: pkg.price,
-          platformFee,
-          sellerEarnings,
-          status: 'completed',
-        },
-      });
+          packageId: input.packageId,
+          metadata: {
+            source: 'packages-api',
+          },
+        });
+
+        alreadyPurchased = result.transactionId === 0;
+        purchase = await prisma.packagePurchase.findUnique({
+          where: { id: result.purchaseId },
+        });
+      } else if (input.paymentMethod === 'stripe') {
+        if (!input.paymentMethodId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'paymentMethodId is required for Stripe purchases',
+          });
+        }
+
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(priceNum * 100),
+          currency: 'usd',
+          payment_method: input.paymentMethodId,
+          confirm: true,
+          automatic_payment_methods: {
+            enabled: true,
+            allow_redirects: 'never',
+          },
+          metadata: {
+            userId: ctx.user.id.toString(),
+            packageType: input.packageType,
+            packageId: input.packageId,
+          },
+        });
+
+        if (paymentIntent.status !== 'succeeded') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Payment failed',
+          });
+        }
+
+        const platformFee = (priceNum * 0.1).toFixed(2);
+        const sellerEarnings = (priceNum * 0.9).toFixed(2);
+
+        purchase = await prisma.packagePurchase.create({
+          data: {
+            buyerId: ctx.user.id,
+            sellerId: pkg.userId,
+            packageId: input.packageId,
+            packageType: input.packageType,
+            price: pkg.price,
+            platformFee,
+            sellerEarnings,
+            status: 'completed',
+            stripePaymentIntentId: paymentIntent.id,
+            paymentMethod: 'stripe',
+          },
+        });
+      } else {
+        throw new TRPCError({
+          code: 'NOT_IMPLEMENTED',
+          message: 'Crypto purchase is not available here. Please top up credits and use paymentMethod=credits.',
+        });
+      }
 
       // Send email notifications (async, don't block response)
-      try {
-        // Get buyer and seller info
-        const buyer = await prisma.user.findUnique({
-          where: { id: ctx.user.id },
-        });
-        const seller = await prisma.user.findUnique({
-          where: { id: pkg.userId },
-        });
+      if (!alreadyPurchased && purchase) {
+        try {
+          // Get buyer and seller info
+          const buyer = await prisma.user.findUnique({
+            where: { id: ctx.user.id },
+          });
+          const seller = await prisma.user.findUnique({
+            where: { id: pkg.userId },
+          });
 
-        // Send purchase confirmation to buyer
-        if (buyer?.email) {
-          sendPurchaseConfirmationEmail(
-            buyer.email,
-            pkg.name,
-            input.packageType,
-            priceNum.toFixed(2)
-          ).catch(err => logger.error('[Email] Failed to send purchase confirmation:', err));
-        }
+          // Send purchase confirmation to buyer
+          if (buyer?.email) {
+            sendPurchaseConfirmationEmail(
+              buyer.email,
+              pkg.name,
+              input.packageType,
+              priceNum.toFixed(2)
+            ).catch(err => logger.error('[Email] Failed to send purchase confirmation:', err));
+          }
 
-        // Send sale notification to seller
-        if (seller?.email) {
-          sendSaleNotificationEmail(
-            seller.email,
-            pkg.name,
-            buyer?.name || 'Anonymous',
-            priceNum.toFixed(2),
-            sellerEarnings
-          ).catch(err => logger.error('[Email] Failed to send sale notification:', err));
+          // Send sale notification to seller
+          if (seller?.email) {
+            const sellerEarnings = (priceNum * 0.9).toFixed(2);
+            sendSaleNotificationEmail(
+              seller.email,
+              pkg.name,
+              buyer?.name || 'Anonymous',
+              priceNum.toFixed(2),
+              sellerEarnings
+            ).catch(err => logger.error('[Email] Failed to send sale notification:', err));
+          }
+        } catch (emailError) {
+          logger.error('[Email] Error sending notifications:', { error: emailError });
         }
-      } catch (emailError) {
-        logger.error('[Email] Error sending notifications:', { error: emailError });
       }
 
       return {
         success: true,
-        alreadyPurchased: false,
+        alreadyPurchased,
         purchase,
       };
     }),

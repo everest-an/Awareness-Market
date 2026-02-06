@@ -29,7 +29,7 @@
          │                │                    │
          └────────────────┴────────────────────┘
                          ↓
-           AWS RDS MySQL Database
+           AWS RDS PostgreSQL Database
 ```
 
 ---
@@ -184,7 +184,7 @@ WMATRIX_SERVICE_URL=http://localhost:8081
 API_KEY_SECRET=your_secret_key_here
 
 # 数据库 (已配置在 Docker)
-DATABASE_URL=mysql://user:password@localhost/awareness
+DATABASE_URL=postgresql://user:password@localhost:5432/awareness
 
 # Node.js
 NODE_ENV=development

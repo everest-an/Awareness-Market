@@ -40,7 +40,7 @@
 - [x] 设计 `chainPackages` 表
 - [x] 设计 `packageDownloads` 表（统一下载跟踪）
 - [x] 设计 `packagePurchases` 表（统一购买跟踪）
-- [x] 添加到 `drizzle/schema.ts`
+- [x] 添加到 `prisma/schema.prisma`
 
 ### 4. 首页文案更新
 - [x] 更新 Hero 标题：从 "AI Memory Marketplace" 改为 "Share AI Thoughts Across Models"
@@ -52,9 +52,9 @@
 ## 🟡 进行中任务
 
 ### 数据库迁移
-- [ ] 执行 `pnpm db:push` 推送 schema 更新
-  - **问题**: drizzle-kit 交互式提示需要手动选择
-  - **解决方案**: 需要手动运行或使用自动化脚本
+- [ ] 执行 `pnpm prisma migrate deploy` 推送 schema 更新
+  - **工具**: Prisma Migrate
+  - **解决方案**: 运行 `pnpm prisma migrate dev` 生成并应用迁移
 
 ---
 
@@ -63,9 +63,9 @@
 ### P0 - 立即开始（本次会话）
 
 #### 1. 完成数据库迁移
-- [ ] 手动运行 `pnpm drizzle-kit generate`
-- [ ] 选择 "create column" 选项
-- [ ] 执行 `pnpm drizzle-kit migrate`
+- [ ] 运行 `pnpm prisma migrate dev`
+- [ ] 验证迁移文件生成
+- [ ] 执行 `pnpm prisma migrate deploy`
 - [ ] 验证所有表创建成功
 
 #### 2. 创建 Package 构建器
@@ -227,15 +227,13 @@ CREATE TABLE chain_packages (
 1. **手动运行数据库迁移**
    ```bash
    cd /home/ubuntu/latentmind-marketplace
-   pnpm drizzle-kit generate
-   # 选择 "create column" 选项
-   pnpm drizzle-kit migrate
+   pnpm prisma migrate deploy
    ```
 
 2. **验证数据库更新**
    ```bash
    # 检查新表是否创建成功
-   mysql -u root -p -e "SHOW TABLES LIKE '%package%';"
+   psql "$DATABASE_URL" -c "\dt *package*;"
    ```
 
 ### 自动执行（AI Agent）
@@ -282,10 +280,10 @@ s3://awareness-storage/
 
 ## 🐛 已知问题
 
-1. **数据库迁移交互式提示**
-   - **问题**: drizzle-kit 需要手动选择列操作
-   - **影响**: 无法自动化数据库迁移
-   - **解决方案**: 手动运行或创建自动化脚本
+1. **数据库迁移**
+   - **工具**: Prisma Migrate
+   - **影响**: 需要手动审查迁移文件
+   - **解决方案**: `pnpm prisma migrate dev` 生成迁移，然后 `pnpm prisma migrate deploy` 应用
 
 2. **TypeScript 编译错误（89个错误）**
    - **问题**: 旧代码中的类型错误

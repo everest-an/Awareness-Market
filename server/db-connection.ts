@@ -1,89 +1,42 @@
 /**
- * Database Connection Manager with Connection Pooling and Retry Logic
+ * Database Connection Manager using Prisma Client
  * 
  * Features:
- * - Connection pooling (min: 5, max: 20)
  * - Automatic retry on connection errors
  * - Query timeout (30 seconds)
  * - Connection health monitoring
  * - Graceful shutdown
  */
 
-import mysql from 'mysql2/promise';
-import { drizzle } from 'drizzle-orm/mysql2';
-import type { MySql2Database } from 'drizzle-orm/mysql2';
 import { createLogger } from './utils/logger';
+import { prisma } from './db-prisma';
 
 const logger = createLogger('Database');
 
 interface ConnectionPoolConfig {
-  min: number;
-  max: number;
-  idleTimeoutMillis: number;
-  connectionTimeoutMillis: number;
   maxRetries: number;
   retryDelay: number;
 }
 
 const DEFAULT_CONFIG: ConnectionPoolConfig = {
-  min: 5,
-  max: 20,
-  idleTimeoutMillis: 30000, // 30 seconds
-  connectionTimeoutMillis: 5000, // 5 seconds
   maxRetries: 3,
   retryDelay: 1000, // 1 second
 };
 
-let _pool: mysql.Pool | null = null;
-let _db: MySql2Database<Record<string, never>> | null = null;
 let _connectionAttempts = 0;
 let _lastConnectionError: Error | null = null;
+let _lastSuccessfulPing: number | null = null;
 
-/**
- * Create MySQL connection pool with optimized settings
- */
-function createPool(config: ConnectionPoolConfig = DEFAULT_CONFIG): mysql.Pool {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL environment variable is not set');
-  }
-
-  const pool = mysql.createPool({
-    uri: process.env.DATABASE_URL,
-    waitForConnections: true,
-    connectionLimit: config.max,
-    maxIdle: config.min,
-    idleTimeout: config.idleTimeoutMillis,
-    queueLimit: 0,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 10000,
-  });
-
-  // Monitor pool events
-  pool.on('acquire', () => {
-    logger.debug('Connection acquired from pool');
-  });
-
-  pool.on('release', () => {
-    logger.debug('Connection released to pool');
-  });
-
-  pool.on('connection', () => {
-    logger.debug('New connection created in pool');
-  });
-
-  pool.on('enqueue', () => {
-    logger.debug('Request queued, waiting for available connection');
-  });
-
-  return pool;
+async function pingDatabase(): Promise<void> {
+  await prisma.$queryRaw`SELECT 1`;
 }
 
 /**
  * Get database connection with retry logic
  */
-export async function getDb(): Promise<MySql2Database<Record<string, never>>> {
-  if (_db && _pool) {
-    return _db;
+export async function getDb() {
+  if (_lastSuccessfulPing && Date.now() - _lastSuccessfulPing < 30000) {
+    return prisma;
   }
 
   const config = DEFAULT_CONFIG;
@@ -98,24 +51,15 @@ export async function getDb(): Promise<MySql2Database<Record<string, never>>> {
         totalAttempts: _connectionAttempts
       });
 
-      if (!_pool) {
-        _pool = createPool(config);
-      }
-
-      // Test connection
-      const connection = await _pool.getConnection();
-      await connection.ping();
-      connection.release();
-
-      // Create Drizzle instance
-      _db = drizzle(_pool);
+      await pingDatabase();
       _lastConnectionError = null;
+      _lastSuccessfulPing = Date.now();
 
       logger.info('Database connection established successfully', {
         attempt,
         totalAttempts: _connectionAttempts
       });
-      return _db;
+      return prisma;
     } catch (error) {
       lastError = error as Error;
       _lastConnectionError = lastError;
@@ -124,12 +68,6 @@ export async function getDb(): Promise<MySql2Database<Record<string, never>>> {
         maxRetries: config.maxRetries,
         error: lastError
       });
-
-      // Close failed pool
-      if (_pool) {
-        await _pool.end().catch(() => {});
-        _pool = null;
-      }
 
       // Wait before retry
       if (attempt < config.maxRetries) {
@@ -167,16 +105,10 @@ export async function executeWithTimeout<T>(
  * Get connection pool statistics
  */
 export function getPoolStats() {
-  if (!_pool) {
-    return null;
-  }
-
   return {
-    totalConnections: (_pool as any)._allConnections?.length || 0,
-    freeConnections: (_pool as any)._freeConnections?.length || 0,
-    queueLength: (_pool as any)._connectionQueue?.length || 0,
     connectionAttempts: _connectionAttempts,
     lastError: _lastConnectionError?.message || null,
+    lastSuccessfulPing: _lastSuccessfulPing,
   };
 }
 
@@ -191,14 +123,8 @@ export async function healthCheck(): Promise<{
   const start = Date.now();
 
   try {
-    const db = await getDb();
-    if (!_pool) {
-      throw new Error('Connection pool not initialized');
-    }
-
-    const connection = await _pool.getConnection();
-    await connection.ping();
-    connection.release();
+    await getDb();
+    await pingDatabase();
 
     const latency = Date.now() - start;
 
@@ -220,17 +146,11 @@ export async function healthCheck(): Promise<{
  */
 export async function closeConnections(): Promise<void> {
   logger.info('Closing all database connections');
-
-  if (_pool) {
-    try {
-      await _pool.end();
-      logger.info('All database connections closed successfully');
-    } catch (error) {
-      logger.error('Error closing database connections', { error });
-    } finally {
-      _pool = null;
-      _db = null;
-    }
+  try {
+    await prisma.$disconnect();
+    logger.info('All database connections closed successfully');
+  } catch (error) {
+    logger.error('Error closing database connections', { error });
   }
 }
 

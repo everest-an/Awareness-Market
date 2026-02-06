@@ -10,6 +10,7 @@ import crypto from 'crypto';
 import { validateApiKey as validateKey } from './api-key-manager.js';
 import { getErrorMessage } from './utils/error-handling';
 import { createLogger } from './utils/logger';
+import { runVector } from './vector-runtime';
 
 const logger = createLogger('Purchase:API');
 const router = express.Router();
@@ -271,21 +272,26 @@ router.post('/invoke', authenticateApiKey, async (req, res) => {
       return res.status(404).json({ error: 'Vector not found' });
     }
 
-    // Simulate vector invocation (in production, load vector and run inference)
-    const mockResult = {
+    const runtimeResult = await runVector({
+      vector,
+      context: inputData,
+    });
+
+    const executionResult = {
       vectorId: vector.id,
       vectorName: vector.title,
       inputData,
       output: {
-        result: 'Simulated vector output',
-        confidence: 0.95,
-        processingTime: 45
+        result: runtimeResult.text,
+        model: runtimeResult.model,
+        usage: runtimeResult.usage,
+        processingTimeMs: runtimeResult.processingTimeMs,
       },
       metadata: {
         modelArchitecture: vector.modelArchitecture,
         vectorDimension: vector.vectorDimension,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
 
     // Update calls remaining
@@ -304,7 +310,7 @@ router.post('/invoke', authenticateApiKey, async (req, res) => {
 
     res.json({
       success: true,
-      ...mockResult,
+      ...executionResult,
       callsRemaining: permission.callsRemaining !== null 
         ? permission.callsRemaining - 1 
         : null

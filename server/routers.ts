@@ -1689,13 +1689,37 @@ export const appRouter = router({
             parseInt(input.standardDim) as 4096 | 8192,
             { useLora: input.useLora, loraRank: input.loraRank }
           );
-          
+
+          let serializedMatrix = result.serializedMatrix;
+          let orthogonalityScore: number | null = null;
+
+          try {
+            const parsed = JSON.parse(result.serializedMatrix);
+            if (parsed?.w_matrix && Array.isArray(parsed.w_matrix)) {
+              const { procrustesOrthogonalize, computeOrthogonalityScore } = await import('./latentmas/svd-orthogonalization');
+              const orthogonalized = procrustesOrthogonalize(parsed.w_matrix);
+              orthogonalityScore = computeOrthogonalityScore(orthogonalized);
+
+              parsed.w_matrix = orthogonalized;
+              parsed.metadata = {
+                ...(parsed.metadata || {}),
+                orthogonality_score: orthogonalityScore,
+                orthogonalized_at: new Date().toISOString(),
+              };
+
+              serializedMatrix = JSON.stringify(parsed);
+            }
+          } catch (error) {
+            logger.warn('Failed to apply Procrustes orthogonalization to trained W-Matrix', { error });
+          }
+
           workflowManager.updateEvent(workflowId, trainEvent.id, {
             status: 'completed',
             output: {
               epsilon: result.metrics.epsilon,
               fidelityScore: result.metrics.fidelityScore,
               trainingTimeMs: result.metrics.computationTimeMs,
+              orthogonalityScore: orthogonalityScore ?? undefined,
             },
           });
           
@@ -1710,7 +1734,7 @@ export const appRouter = router({
           try {
             await prisma.$executeRaw`
               INSERT INTO w_matrix_versions (version, standard_dim, matrix_data, matrix_format, source_models, alignment_pairs_count, avg_reconstruction_error, is_active, created_at)
-              VALUES (${input.version}, ${parseInt(input.standardDim)}, ${result.serializedMatrix}, 'numpy', ${JSON.stringify(input.sourceModels)}, ${input.sourceVectors.length}, ${result.metrics.epsilon.toString()}, true, ${new Date()})
+              VALUES (${input.version}, ${parseInt(input.standardDim)}, ${serializedMatrix}, 'numpy', ${JSON.stringify(input.sourceModels)}, ${input.sourceVectors.length}, ${result.metrics.epsilon.toString()}, true, ${new Date()})
             `;
           } catch {
             // Ignore if table doesn't exist

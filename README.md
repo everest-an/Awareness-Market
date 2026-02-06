@@ -53,7 +53,7 @@ graph TB
     end
     
     subgraph "Storage Layer"
-        L[(PostgreSQL<br/>Drizzle ORM)]
+      L[(PostgreSQL<br/>Prisma ORM)]
         M[AWS S3<br/>Vector Storage]
         N[Redis Cache<br/>KV-Cache]
     end
@@ -279,7 +279,7 @@ See [ERC-8004 Integration Guide](docs/ERC8004_INTEGRATION.md) for full documenta
 |:------|:-------------|
 | **Frontend** | React 19, Vite, TailwindCSS, Radix UI, Framer Motion |
 | **Backend** | Node.js 18+, Express, tRPC 11, Socket.IO |
-| **Database** | MySQL/PostgreSQL (Drizzle ORM), Redis (KV-Cache) |
+| **Database** | PostgreSQL (Prisma ORM), Redis (KV-Cache) |
 | **AI/ML** | LatentMAS v2, Model Context Protocol, OpenAI API |
 | **Blockchain** | Solidity, Hardhat, Polygon Amoy (ERC-8004) |
 | **Storage** | AWS S3 (Vectors), Cloudflare R2 |
@@ -350,7 +350,7 @@ const result = await client.tools.call('mcp/sync', {
 ### Prerequisites
 ```bash
 Node.js >= 18.0.0
-MySQL or PostgreSQL
+PostgreSQL (Prisma)
 Redis (optional, for caching)
 ```
 
@@ -362,20 +362,21 @@ git clone https://github.com/everest-an/Awareness-Market.git
 cd Awareness-Market
 
 # 2. Install dependencies
-npm install
+pnpm install
 
 # 3. Configure environment
 cp .env.example .env
 # Edit .env with your credentials
 
 # 4. Setup database
-npm run db:push
+pnpm prisma generate
+pnpm prisma migrate deploy
 
 # 5. Seed initial data (optional)
-npm run seed
+pnpm run seed
 
 # 6. Start development server
-npm run dev
+pnpm run dev
 ```
 
 Server will start at `http://localhost:3000`
@@ -436,14 +437,36 @@ console.log(`Saved ${data.stats.compressionRatio * 100}% bandwidth`);
 
 ## Documentation
 
+📚 **[Complete Documentation Index](docs/INDEX.md)** - Central hub for all documentation
+
+### Quick Links
+
+**Getting Started:**
 - [Whitepaper](WHITEPAPER.md) - Full technical specification
-- [Quick Start Guide](docs/guides/quickstart.md)
-- [LatentMAS v2 Features](docs/api/latentmas-v2.md)
-- [API Documentation](docs/api/overview.md)
-- [Deployment Guide](docs/deployment/guide.md)
-- [User Guide](docs/guides/user-guide.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
-- [ERC-8004 Integration](docs/ERC8004_INTEGRATION.md)
+- [Quick Access Guide](QUICK_ACCESS_GUIDE.md) - Common tasks and features
+- [Environment Setup](docs/development/setup/ENV_SETUP_GUIDE.md) - Development environment configuration
+- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
+
+**Development:**
+- [Technical Documentation](docs/technical/) - LatentMAS implementation, Neural Cortex specs
+- [API Documentation](docs/api/) - REST API and tRPC interfaces
+- [Database Setup](docs/development/database/) - Database configuration and migrations
+- [AI Collaboration](docs/development/ai-collaboration/) - AI-assisted development setup
+
+**Deployment:**
+- [AWS Deployment](docs/deployment/aws/) - AWS RDS and infrastructure setup
+- [Vercel Deployment](docs/deployment/vercel/) - Frontend deployment
+- [General Deployment](docs/deployment/general/) - Deployment guides and checklists
+
+**SDK & Examples:**
+- [Python SDK Comparison](docs/guides/sdk-comparison.md) - Choose the right SDK
+- [Full Python SDK](python-sdk/README.md) - Production-grade SDK
+- [Lightweight SDK](sdk/python/README.md) - Quick integration SDK
+- [Code Examples](examples/) - JavaScript, Python, and TypeScript examples
+
+**Troubleshooting:**
+- [Troubleshooting Guide](docs/guides/troubleshooting/) - Common issues and fixes
+- [Installation Guides](docs/guides/installation/) - GPU, vector DB, privacy modules
 
 ---
 

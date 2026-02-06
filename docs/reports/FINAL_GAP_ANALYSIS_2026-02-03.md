@@ -411,7 +411,7 @@ pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
 ### 5. Provenance 数据库迁移 ❌ 未执行
 
 - ✅ Schema已更新（`parent_nft_id`, `derivation_type`, `royalty_percent`）
-- ❌ **未执行 `pnpm db:push`**
+- ❌ **未执行 `pnpm prisma migrate deploy`**
 - ❌ **数据库列不存在**
 
 ### 6. 购买历史页面 ❌ 0%
@@ -526,7 +526,7 @@ pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
    - 时间: 1小时
 
 4. **执行Provenance数据库迁移** ❌
-   - 执行: `pnpm db:push`
+   - 执行: `pnpm prisma migrate deploy`
    - 应用schema更新
    - 时间: 10分钟
 
@@ -729,7 +729,7 @@ pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
 pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
 
 # 2. 执行数据库迁移
-pnpm db:push
+pnpm prisma migrate deploy
 
 # 3. 验证Memory Marketplace
 # 检查 client/src/pages/MemoryMarketplace.tsx 是否使用 packages.browsePackages
@@ -785,7 +785,7 @@ echo "[1/4] 生成市场数据..."
 pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
 
 echo "[2/4] 执行数据库迁移..."
-pnpm db:push
+pnpm prisma migrate deploy
 
 echo "[3/4] 验证API集成..."
 # 手动检查 Memory Marketplace
