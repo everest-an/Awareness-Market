@@ -17,6 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { trpc } from "../lib/trpc";
+import { Circle, Users, Star, Zap, AlertTriangle } from "lucide-react";
 
 export type AgentNode = {
   id: number;
@@ -436,52 +437,64 @@ export function NetworkBrain({
       <div ref={containerRef} className="w-full h-full" />
 
       {showStats && (
-        <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white space-y-2">
-          <div className="text-sm font-mono">
+        <div className="absolute top-4 left-4 glass-panel p-4 space-y-3 min-w-[200px]">
+          <div className="text-sm font-mono space-y-1 text-foreground">
             <div>Agents: {networkData.nodes.length} / {maxNodes} max</div>
             <div>Connections: {networkData.edges.length}</div>
             <div>FPS: {fps}</div>
             <div>Mode: {useSimulated ? 'Simulated' : 'Real-time'}</div>
           </div>
 
-          <div className="text-xs text-gray-400 space-y-1">
-            <div>💙 Active Agent</div>
-            <div>⚪ Inactive Agent</div>
-            <div>🌟 Hub Agent</div>
-            <div>💜 Resonance Connection</div>
+          <div className="border-t border-border pt-2 text-xs text-muted-foreground space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Circle className="w-3 h-3 fill-primary text-primary" />
+              <span>Active Agent</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Circle className="w-3 h-3 fill-muted text-muted" />
+              <span>Inactive Agent</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Star className="w-3 h-3 fill-accent text-accent" />
+              <span>Hub Agent</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-3 h-3 text-primary" />
+              <span>Resonance Link</span>
+            </div>
           </div>
         </div>
       )}
 
       {showAnalysis && (
-        <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white space-y-2 min-w-[200px]">
-          <div className="text-sm font-semibold border-b border-gray-600 pb-1 mb-2">
+        <div className="absolute top-4 right-4 glass-panel p-4 space-y-3 min-w-[220px]">
+          <div className="text-sm font-semibold border-b border-border pb-2 text-foreground">
             Network Analysis
           </div>
-          <div className="text-xs font-mono space-y-1">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Hub Agents:</span>
-              <span className="text-yellow-400">
+          <div className="text-xs font-mono space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Hub Agents:</span>
+              <span className="text-accent font-semibold">
                 {networkData.nodes.filter(n => n.isHub).length}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Avg Degree:</span>
-              <span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Avg Degree:</span>
+              <span className="text-foreground">
                 {networkData.nodes.length > 0
                   ? (networkData.nodes.reduce((sum, n) => sum + (n.degree || 0), 0) / networkData.nodes.length).toFixed(1)
                   : '0'}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Max Degree:</span>
-              <span className="text-yellow-400">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Max Degree:</span>
+              <span className="text-primary font-semibold">
                 {Math.max(...networkData.nodes.map(n => n.degree || 0), 0)}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Density:</span>
-              <span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Density:</span>
+              <span className="text-foreground">
                 {networkData.nodes.length > 1
                   ? ((networkData.edges.length / (networkData.nodes.length * (networkData.nodes.length - 1) / 2)) * 100).toFixed(1) + '%'
                   : '0%'}
@@ -492,8 +505,11 @@ export function NetworkBrain({
       )}
 
       {fps < 30 && (
-        <div className="absolute bottom-4 right-4 bg-yellow-500/20 border border-yellow-500 rounded-lg p-3 text-yellow-200 text-sm">
-          ⚠️ Low FPS detected. Reducing render quality...
+        <div className="absolute bottom-4 right-4 glass-panel border-l-4 border-l-destructive p-3 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+          <span className="text-sm text-destructive-foreground">
+            Low FPS detected. Reducing render quality...
+          </span>
         </div>
       )}
     </div>

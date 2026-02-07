@@ -3,7 +3,7 @@ import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Copy, Terminal, Key, Code, Rocket } from "lucide-react";
+import { Check, Copy, Terminal, Key, Code, Rocket, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const steps = [
@@ -22,9 +22,10 @@ const steps = [
           <li>Give it a name (e.g., "Development Key")</li>
           <li>Copy and save your key securely</li>
         </ol>
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ‚ö†Ô∏è <strong>Important:</strong> API keys are shown only once. Make sure to copy and store them securely.
+            <strong>Important:</strong> API keys are shown only once. Make sure to copy and store them securely.
           </p>
         </div>
       </div>
@@ -244,13 +245,13 @@ export default function DeveloperOnboarding() {
                 href="/api-keys"
                 className="block text-sm text-primary hover:underline"
               >
-                ‚Ü?API Keys
+                ÔøΩ?API Keys
               </a>
               <a
                 href="/service-health"
                 className="block text-sm text-primary hover:underline"
               >
-                ‚Ü?Service Status
+                ÔøΩ?Service Status
               </a>
               <a
                 href="https://pypi.org/project/awareness-sdk/"
@@ -258,7 +259,7 @@ export default function DeveloperOnboarding() {
                 rel="noopener noreferrer"
                 className="block text-sm text-primary hover:underline"
               >
-                ‚Ü?Python SDK on PyPI ‚Ü?
+                ÔøΩ?Python SDK on PyPI ÔøΩ?
               </a>
             </CardContent>
           </Card>

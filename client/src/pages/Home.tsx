@@ -207,8 +207,9 @@ export default function Home() {
                         <Brain className="w-8 h-8 text-purple-400" />
                         <MessageSquare className="w-6 h-6 text-cyan-400 -ml-2" />
                       </div>
-                      <Badge className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-white border-purple-500/30">
-                        ✨ NEW
+                      <Badge className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-white border-purple-500/30 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        NEW
                       </Badge>
                     </div>
                     <h3 className="text-2xl md:text-3xl font-bold mb-3 text-white">

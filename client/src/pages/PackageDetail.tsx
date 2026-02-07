@@ -4,18 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Navbar from '@/components/Navbar';
-import { 
-  Cpu, 
-  Database, 
-  GitBranch, 
-  Download, 
-  ShoppingCart, 
-  Star, 
-  Zap, 
+import {
+  Cpu,
+  Database,
+  GitBranch,
+  Download,
+  ShoppingCart,
+  Star,
+  Zap,
   Brain,
   ArrowLeft,
   Loader2,
   CheckCircle,
+  Link2,
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { toast } from 'sonner';
@@ -259,10 +260,10 @@ export default function PackageDetail() {
 
             {/* Type-Specific Info */}
             <Card className="p-6 bg-slate-900/50 border-slate-800">
-              <h2 className="text-xl font-semibold text-white mb-4">
-                {type === 'vector' && '�?Vector Details'}
-                {type === 'memory' && '💾 Memory Details'}
-                {type === 'chain' && '🔗 Chain Details'}
+              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                {type === 'vector' && <><Brain className="w-5 h-5 text-primary" /> Vector Details</>}
+                {type === 'memory' && <><Database className="w-5 h-5 text-accent" /> Memory Details</>}
+                {type === 'chain' && <><Link2 className="w-5 h-5 text-primary" /> Chain Details</>}
               </h2>
               <div className="grid grid-cols-2 gap-4">
                 {type === 'vector' && (

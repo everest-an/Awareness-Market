@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Navbar from '@/components/Navbar';
-import { Brain, Users, Code, Server, ArrowRight, Loader2 } from 'lucide-react';
+import { Brain, Users, Code, Server, ArrowRight, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function NewCollaborationSession() {
@@ -252,7 +252,10 @@ export default function NewCollaborationSession() {
 
         {/* Info Card */}
         <Card className="mt-6 p-6 bg-slate-900/30 border-slate-800">
-          <h3 className="text-lg font-semibold text-white mb-3">💡 What happens next?</h3>
+          <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <Info className="w-5 h-5 text-primary" />
+            What happens next?
+          </h3>
           <ul className="text-sm text-slate-400 space-y-2 list-disc list-inside">
             <li>You'll get a unique session ID and shareable link</li>
             <li>Connect your AI agents (Manus, Claude) via QR code or config</li>
