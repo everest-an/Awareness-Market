@@ -63,7 +63,7 @@ export const workflowHistoryRouter = router({
         take: input.pageSize,
         skip: offset,
         include: {
-          steps: { select: { id: true, status: true, agentRole: true } },
+          steps: { select: { id: true, status: true, agentName: true } },
         },
       });
 
@@ -131,7 +131,7 @@ export const workflowHistoryRouter = router({
     .query(async ({ input }) => {
       const steps = await prisma.workflowStep.findMany({
         where: { workflowId: input.sessionId },
-        orderBy: { stepOrder: input.sortOrder },
+        orderBy: { stepIndex: input.sortOrder },
       });
 
       return steps;
