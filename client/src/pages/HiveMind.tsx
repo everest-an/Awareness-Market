@@ -263,7 +263,7 @@ export default function HiveMind() {
             </CardHeader>
             <CardContent>
               <div className="relative w-full h-[600px] rounded-lg overflow-hidden bg-black/20 border border-border/50">
-                <NetworkBrain />
+                <NetworkBrain maxNodes={maxNodes} />
 
                 {/* Overlay Controls */}
                 <div className="absolute top-4 left-4 space-y-2">
