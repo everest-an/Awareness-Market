@@ -193,6 +193,22 @@ export default function AuthPage() {
     }
   }, [getGithubUrl, getGoogleUrl, toast]);
 
+  // Wallet login mutation
+  const walletLoginMutation = trpc.auth.walletLogin.useMutation({
+    onSuccess: async (data) => {
+      if (data.success) {
+        toast({ title: "Wallet connected!", description: `Welcome, ${data.user?.name || 'User'}` });
+        await utils.auth.me.invalidate();
+        setTimeout(() => setLocation("/"), 200);
+      } else {
+        toast({ title: "Wallet login failed", description: data.error || "Authentication failed", variant: "destructive" });
+      }
+    },
+    onError: (error) => {
+      toast({ title: "Wallet login failed", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Wallet connect handler
   const handleWalletConnect = useCallback(async () => {
     setIsConnectingWallet(true);
@@ -215,13 +231,8 @@ export default function AuthPage() {
           method: "personal_sign",
           params: [message, address],
         });
-        toast({ 
-          title: "Wallet connected!", 
-          description: `Connected as ${address.slice(0, 6)}...${address.slice(-4)}` 
-        });
-        // TODO: Send signature to backend for verification
-        // For now, redirect to dashboard
-        setTimeout(() => setLocation("/"), 500);
+        // Send signature to backend for verification and JWT session creation
+        await walletLoginMutation.mutateAsync({ address, signature, message });
       }
     } catch (error: any) {
       if (error.code === 4001) {
@@ -232,7 +243,7 @@ export default function AuthPage() {
     } finally {
       setIsConnectingWallet(false);
     }
-  }, [toast, setLocation]);
+  }, [toast, setLocation, walletLoginMutation]);
 
   // Form handlers
   const handleLoginSubmit = useCallback((e: React.FormEvent) => {

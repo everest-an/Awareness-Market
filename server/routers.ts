@@ -338,6 +338,78 @@ export const appRouter = router({
       
       return result;
     }),
+
+    // Wallet Login - MetaMask signature verification with JWT cookie session
+    walletLogin: publicProcedure
+      .input(z.object({
+        address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
+        signature: z.string(),
+        message: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          // 1. Verify signature using viem
+          const { verifyMessage } = await import('viem');
+          const isValid = await verifyMessage({
+            address: input.address as `0x${string}`,
+            message: input.message,
+            signature: input.signature as `0x${string}`,
+          });
+
+          if (!isValid) {
+            return { success: false, error: 'Signature verification failed' };
+          }
+
+          // 2. Find or create user by wallet address
+          let user = await prisma.user.findUnique({
+            where: { walletAddress: input.address.toLowerCase() }
+          });
+
+          if (!user) {
+            const agentName = `Wallet-${input.address.slice(2, 8)}`;
+            user = await prisma.user.create({
+              data: {
+                walletAddress: input.address.toLowerCase(),
+                name: agentName,
+                email: `${input.address.toLowerCase()}@wallet.awareness.market`,
+                role: 'consumer',
+                userType: 'consumer',
+                onboardingCompleted: false,
+                loginMethod: 'metamask-wallet',
+                creditsBalance: 1000.0,
+                totalMemories: 0,
+                totalResonances: 0,
+              }
+            });
+          } else {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { lastSignedIn: new Date() }
+            });
+          }
+
+          // 3. Generate JWT tokens using auth-standalone system
+          const accessToken = authStandalone.generateAccessToken(user);
+          const refreshToken = authStandalone.generateRefreshToken(user);
+
+          // 4. Set HTTP-only cookies (same as email login)
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie('jwt_token', accessToken, cookieOptions);
+          ctx.res.cookie('jwt_refresh', refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
+
+          return {
+            success: true,
+            user: {
+              id: user.id,
+              name: user.name,
+              address: input.address,
+              role: user.role,
+            },
+          };
+        } catch (error: any) {
+          return { success: false, error: error.message || 'Wallet authentication failed' };
+        }
+      }),
   }),
 
   // API Key Management
