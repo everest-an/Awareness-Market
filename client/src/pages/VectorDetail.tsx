@@ -488,6 +488,7 @@ export default function VectorDetail() {
             open={purchaseDialogOpen}
             onOpenChange={setPurchaseDialogOpen}
             onSuccess={handlePurchaseSuccess}
+            onSwitchToCrypto={() => setStablecoinDialogOpen(true)}
           />
           <StablecoinPaymentDialog
             vector={vector}

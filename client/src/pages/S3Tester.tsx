@@ -72,7 +72,8 @@ export default function S3Tester() {
       }, 200);
 
       // Upload to W-Matrix Marketplace API
-      const response = await fetch("http://localhost:8081/api/v1/listings", {
+      const wMatrixBase = import.meta.env.VITE_GO_SERVICE_BASE?.replace(/:\d+$/, ':8081') || 'http://localhost:8081';
+      const response = await fetch(`${wMatrixBase}/api/v1/listings`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
@@ -130,8 +131,9 @@ export default function S3Tester() {
 
     try {
       // Generate presigned download URL
+      const wMatrixBase = import.meta.env.VITE_GO_SERVICE_BASE?.replace(/:\d+$/, ':8081') || 'http://localhost:8081';
       const response = await fetch(
-        `http://localhost:8081/api/v1/listings/${uploadedFileKey}/download`,
+        `${wMatrixBase}/api/v1/listings/${uploadedFileKey}/download`,
         {
           headers: {
             "Authorization": `Bearer ${apiKey}`,

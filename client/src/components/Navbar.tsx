@@ -33,7 +33,8 @@ import {
   Code,
   Github,
   Search,
-  History
+  History,
+  Wallet,
 } from "lucide-react";
 
 const navLinks = [
@@ -316,6 +317,12 @@ export default function Navbar() {
                     <Link href="/usage-analytics" className="flex items-center gap-2 cursor-pointer">
                       <BarChart3 className="w-4 h-4" />
                       Usage Analytics
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/wallet" className="flex items-center gap-2 cursor-pointer">
+                      <Wallet className="w-4 h-4" />
+                      Agent Wallet
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-white/10" />

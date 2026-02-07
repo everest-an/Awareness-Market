@@ -66,6 +66,7 @@ import NewCollaborationSession from "./pages/AiCollaboration/NewSession";
 import SessionConnect from "./pages/AiCollaboration/SessionConnect";
 import SessionsList from "./pages/AiCollaboration/SessionsList";
 import HiveMind from "./pages/HiveMind";
+import WalletDashboard from "./pages/WalletDashboard";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -137,6 +138,7 @@ function Router() {
       <Route path="/sdk" component={SDKPage} />
       <Route path="/docs" component={SDKPage} />
       <Route path="/api-keys" component={ApiKeys} />
+      <Route path="/wallet" component={WalletDashboard} />
 
       <Route path="/admin" component={AdminPanel} />
       <Route path="/service-health" component={ServiceHealth} />

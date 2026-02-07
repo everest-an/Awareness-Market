@@ -202,7 +202,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
         },
         JWT_SECRET,
         {
-          expiresIn: '30d', // Long-lived for AI agents
+          expiresIn: '7d', // Wallet sessions use refresh token standard
           issuer: 'awareness-network',
           subject: user.id.toString()
         }
