@@ -64,6 +64,7 @@ import AiCollaborationDocs from "./pages/AiCollaborationDocs";
 import AiCollaborationHub from "./pages/AiCollaboration";
 import NewCollaborationSession from "./pages/AiCollaboration/NewSession";
 import SessionConnect from "./pages/AiCollaboration/SessionConnect";
+import SessionsList from "./pages/AiCollaboration/SessionsList";
 import HiveMind from "./pages/HiveMind";
 import { Redirect } from "wouter";
 
@@ -80,6 +81,7 @@ function Router() {
       <Route path="/docs/collaboration" component={AiCollaborationDocs} />
       <Route path="/ai-collaboration" component={AiCollaborationHub} />
       <Route path="/ai-collaboration/new" component={NewCollaborationSession} />
+      <Route path="/ai-collaboration/sessions" component={SessionsList} />
       <Route path="/ai-collaboration/connect/:sessionId" component={SessionConnect} />
 
       <Route path={"/marketplace"} component={Marketplace} />
