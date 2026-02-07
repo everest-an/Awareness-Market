@@ -6,20 +6,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import Navbar from '@/components/Navbar';
-import { Brain, Users, Code, Server, ArrowRight, Loader2, Info } from 'lucide-react';
+import { Brain, Users, Code, Server, ArrowRight, Loader2, Info, ChevronDown, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 
 export default function NewCollaborationSession() {
   const [, setLocation] = useLocation();
   const [isCreating, setIsCreating] = useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     type: 'frontend-backend',
     privacy: 'shared',
   });
+  const [agentEndpoints, setAgentEndpoints] = useState<Record<string, string>>({});
+  const [agentAuthTokens, setAgentAuthTokens] = useState<Record<string, string>>({});
 
   // tRPC mutation for creating collaboration
   const createCollaboration = trpc.agentCollaboration.collaborate.useMutation({
@@ -103,6 +107,10 @@ export default function NewCollaborationSession() {
         memoryTTL: formData.privacy === 'private' ? 3600 : 86400, // 1 hour for private, 1 day for shared
         maxExecutionTime: 1800, // 30 minutes
         recordOnChain: true,
+        inputData: {
+          agentEndpoints: Object.keys(agentEndpoints).length > 0 ? agentEndpoints : undefined,
+          agentAuthTokens: Object.keys(agentAuthTokens).length > 0 ? agentAuthTokens : undefined,
+        },
       };
 
       // Call real API
@@ -269,6 +277,117 @@ export default function NewCollaborationSession() {
                 </div>
               </RadioGroup>
             </div>
+
+            {/* Advanced Configuration */}
+            <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full flex items-center justify-between text-white hover:bg-slate-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    <span className="font-medium">Advanced Configuration</span>
+                    <span className="text-xs text-slate-400">(Optional)</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${
+                      isAdvancedOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                <div className="glass-subtle p-4 rounded-lg space-y-4">
+                  <div className="flex items-start gap-2 text-sm text-slate-400">
+                    <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <p>
+                      Configure custom API endpoints for your agents. Leave blank to use
+                      default fallback simulation.
+                    </p>
+                  </div>
+
+                  {/* Manus Frontend Endpoint */}
+                  <div className="space-y-2">
+                    <Label htmlFor="manus-endpoint" className="text-white">
+                      Manus Frontend Endpoint
+                    </Label>
+                    <Input
+                      id="manus-endpoint"
+                      value={agentEndpoints['manus-frontend'] || ''}
+                      onChange={(e) =>
+                        setAgentEndpoints({
+                          ...agentEndpoints,
+                          'manus-frontend': e.target.value,
+                        })
+                      }
+                      placeholder="https://manus-api.example.com/execute"
+                      className="bg-slate-800 border-slate-700 text-white"
+                    />
+                  </div>
+
+                  {/* Manus Auth Token */}
+                  <div className="space-y-2">
+                    <Label htmlFor="manus-token" className="text-white">
+                      Manus Auth Token
+                    </Label>
+                    <Input
+                      id="manus-token"
+                      type="password"
+                      value={agentAuthTokens['manus-frontend'] || ''}
+                      onChange={(e) =>
+                        setAgentAuthTokens({
+                          ...agentAuthTokens,
+                          'manus-frontend': e.target.value,
+                        })
+                      }
+                      placeholder="Bearer token or API key"
+                      className="bg-slate-800 border-slate-700 text-white"
+                    />
+                  </div>
+
+                  {/* Claude Backend Endpoint */}
+                  <div className="space-y-2">
+                    <Label htmlFor="claude-endpoint" className="text-white">
+                      Claude Backend Endpoint
+                    </Label>
+                    <Input
+                      id="claude-endpoint"
+                      value={agentEndpoints['claude-backend'] || ''}
+                      onChange={(e) =>
+                        setAgentEndpoints({
+                          ...agentEndpoints,
+                          'claude-backend': e.target.value,
+                        })
+                      }
+                      placeholder="https://claude-api.example.com/execute"
+                      className="bg-slate-800 border-slate-700 text-white"
+                    />
+                  </div>
+
+                  {/* Claude Auth Token */}
+                  <div className="space-y-2">
+                    <Label htmlFor="claude-token" className="text-white">
+                      Claude Auth Token
+                    </Label>
+                    <Input
+                      id="claude-token"
+                      type="password"
+                      value={agentAuthTokens['claude-backend'] || ''}
+                      onChange={(e) =>
+                        setAgentAuthTokens({
+                          ...agentAuthTokens,
+                          'claude-backend': e.target.value,
+                        })
+                      }
+                      placeholder="Bearer token or API key"
+                      className="bg-slate-800 border-slate-700 text-white"
+                    />
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* Submit */}
             <div className="flex justify-end gap-4 pt-6 border-t border-slate-800">

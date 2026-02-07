@@ -32,6 +32,7 @@ import {
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { io, Socket } from 'socket.io-client';
+import WorkflowResultsDialog from '@/components/WorkflowResultsDialog';
 
 type WorkflowStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
@@ -39,6 +40,7 @@ export default function SessionConnect() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [copiedToken, setCopiedToken] = useState(false);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const utils = trpc.useUtils();
 
@@ -340,12 +342,37 @@ export default function SessionConnect() {
           </Link>
 
           {workflow.status === 'completed' && (
-            <Button variant="default">
+            <Button
+              variant="default"
+              onClick={() => setIsResultsDialogOpen(true)}
+            >
               <ExternalLink className="w-4 h-4 mr-2" />
               View Results
             </Button>
           )}
         </div>
+
+        {/* Results Dialog */}
+        <WorkflowResultsDialog
+          open={isResultsDialogOpen}
+          onOpenChange={setIsResultsDialogOpen}
+          workflowId={sessionId || ''}
+          task={workflow.task}
+          status={workflow.status}
+          orchestration={workflow.orchestration}
+          steps={workflow.steps?.map((step: any) => ({
+            agent: step.agent || step.agentName,
+            agentId: step.agentId,
+            status: step.status,
+            output: step.output,
+            error: step.error,
+            startedAt: step.startedAt,
+            completedAt: step.completedAt,
+            executionTime: step.executionTime,
+          })) || []}
+          sharedMemory={workflow.sharedMemory || {}}
+          executionTime={workflow.executionTime}
+        />
       </div>
     </div>
   );
