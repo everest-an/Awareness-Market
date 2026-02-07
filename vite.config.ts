@@ -209,7 +209,7 @@ export default defineConfig({
     // ==========================================
     reportCompressedSize: true,
     chunkSizeWarningLimit: 1000,
-    sourcemap: 'hidden', // 生成 sourcemap 但不引用（便于调试但不影响性能）
+    sourcemap: false, // Do NOT ship sourcemaps to production (exposes source code)
 
     // ==========================================
     // 模块预加载策略

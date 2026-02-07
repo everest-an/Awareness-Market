@@ -31,8 +31,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("CRITICAL: JWT_SECRET environment variable is not set. Server cannot start without it.");
 }
-const JWT_EXPIRES_IN = "7d"; // Token expires in 7 days
-const JWT_REFRESH_EXPIRES_IN = "30d"; // Refresh token expires in 30 days
+const JWT_EXPIRES_IN = "1h"; // Access token expires in 1 hour
+const JWT_REFRESH_EXPIRES_IN = "7d"; // Refresh token expires in 7 days
 
 export interface JWTPayload {
   userId: number;
@@ -51,7 +51,7 @@ export function generateAccessToken(user: { id: number; email: string | null; ro
     role: user.role,
     type: "access",
   };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN, algorithm: 'HS256' });
 }
 
 /**
@@ -64,7 +64,7 @@ export function generateRefreshToken(user: { id: number; email: string | null; r
     role: user.role,
     type: "refresh",
   };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN, algorithm: 'HS256' });
 }
 
 /**
@@ -74,7 +74,7 @@ export function generateRefreshToken(user: { id: number; email: string | null; r
  */
 export function verifyToken(token: string, expectedType?: "access" | "refresh"): JWTPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
     if (expectedType && decoded.type !== expectedType) {
       return null;
     }

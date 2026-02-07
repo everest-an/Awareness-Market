@@ -261,7 +261,7 @@ This signature will not trigger any blockchain transaction.`;
         type: "erc8004"
       },
       JWT_SECRET,
-      { expiresIn: JWT_EXPIRY }
+      { expiresIn: JWT_EXPIRY, algorithm: 'HS256' }
     );
     
     return {
@@ -405,7 +405,7 @@ export function verifyERC8004Token(token: string): {
   error?: string;
 } {
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
     
     if (payload.type !== "erc8004") {
       return { valid: false, error: "Invalid token type" };

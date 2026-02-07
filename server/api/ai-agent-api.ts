@@ -121,7 +121,7 @@ export const aiAgentRouter = router({
   /**
    * Get upload status
    */
-  getPackageStatus: publicProcedure
+  getPackageStatus: protectedProcedure
     .input(z.object({
       uploadId: z.string(),
     }))

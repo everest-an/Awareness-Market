@@ -61,7 +61,7 @@ export const embeddingRouter = router({
    * const result = await trpc.embedding.embed.mutate({ text: "Hello world" });
    * console.log(result.vector); // [0.123, -0.456, ...]
    */
-  embed: publicProcedure
+  embed: protectedProcedure
     .input(EmbedTextInput)
     .mutation(async ({ input }) => {
       logger.info('Embedding request', {
@@ -90,7 +90,7 @@ export const embeddingRouter = router({
    * Generate embeddings for multiple texts in batch
    * More efficient than calling embed() multiple times
    */
-  embedBatch: publicProcedure
+  embedBatch: protectedProcedure
     .input(BatchEmbedInput)
     .mutation(async ({ input }) => {
       logger.info('Batch embedding request', {
@@ -231,7 +231,7 @@ export const embeddingRouter = router({
   /**
    * Calculate cosine similarity between two vectors
    */
-  similarity: publicProcedure
+  similarity: protectedProcedure
     .input(z.object({
       vector1: z.array(z.number()),
       vector2: z.array(z.number()),

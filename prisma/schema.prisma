@@ -52,6 +52,8 @@ model User {
   verificationCodes     VerificationCode[]
   blogPosts             BlogPost[]
 
+  // Ensure no duplicate emails (allows multiple NULLs for wallet-only users)
+  @@unique([email], map: "unique_email_non_null")
   @@map("users")
 }
 
