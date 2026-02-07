@@ -29,6 +29,10 @@ export type AgentNode = {
   totalResonances: number;
   creditsBalance: number;
   isActive: boolean;
+  // Network analysis metrics
+  degree?: number;
+  betweenness?: number;
+  isHub?: boolean;
 };
 
 export type ResonanceEdge = {
@@ -43,9 +47,36 @@ type NetworkBrainProps = {
   className?: string;
   autoRotate?: boolean;
   showStats?: boolean;
+  showAnalysis?: boolean;
   maxNodes?: number;
   onNodeClick?: (agent: AgentNode) => void;
 };
+
+// Calculate network topology metrics
+function calculateNetworkMetrics(nodes: AgentNode[], edges: ResonanceEdge[]): AgentNode[] {
+  // Calculate degree centrality (number of connections per node)
+  const degreeMap = new Map<number, number>();
+
+  edges.forEach(edge => {
+    degreeMap.set(edge.consumerId, (degreeMap.get(edge.consumerId) || 0) + 1);
+    degreeMap.set(edge.providerId, (degreeMap.get(edge.providerId) || 0) + 1);
+  });
+
+  // Determine hub threshold (nodes with degree > average + std deviation)
+  const degrees = Array.from(degreeMap.values());
+  const avgDegree = degrees.reduce((sum, d) => sum + d, 0) / degrees.length || 0;
+  const stdDev = Math.sqrt(
+    degrees.reduce((sum, d) => sum + Math.pow(d - avgDegree, 2), 0) / degrees.length || 0
+  );
+  const hubThreshold = avgDegree + stdDev;
+
+  // Enrich nodes with metrics
+  return nodes.map(node => ({
+    ...node,
+    degree: degreeMap.get(node.id) || 0,
+    isHub: (degreeMap.get(node.id) || 0) > hubThreshold,
+  }));
+}
 
 // Generate simulated network for < 100 agents
 function generateSimulatedNetwork(agentCount: number): { nodes: AgentNode[]; edges: ResonanceEdge[] } {
@@ -93,13 +124,17 @@ function generateSimulatedNetwork(agentCount: number): { nodes: AgentNode[]; edg
     }
   }
 
-  return { nodes, edges };
+  // Calculate and add network metrics
+  const enrichedNodes = calculateNetworkMetrics(nodes, edges);
+
+  return { nodes: enrichedNodes, edges };
 }
 
 export function NetworkBrain({
   className = "",
   autoRotate = true,
   showStats = true,
+  showAnalysis = false,
   maxNodes = 100,
   onNodeClick,
 }: NetworkBrainProps) {
@@ -327,12 +362,25 @@ export function NetworkBrain({
 
     // Create agent nodes
     networkData.nodes.forEach(agent => {
-      const geometry = new THREE.SphereGeometry(2, 16, 16);
-      const color = agent.isActive ? 0x3b82f6 : 0x6b7280;
+      // Determine node size and color based on metrics
+      const isHub = agent.isHub || false;
+      const baseSize = isHub ? 3 : 2;
+      const geometry = new THREE.SphereGeometry(baseSize, 16, 16);
+
+      // Color coding: hubs are gold, active are blue, inactive are gray
+      let color: number;
+      if (isHub) {
+        color = 0xffd700; // Gold for hubs
+      } else if (agent.isActive) {
+        color = 0x3b82f6; // Blue for active
+      } else {
+        color = 0x6b7280; // Gray for inactive
+      }
+
       const material = new THREE.MeshPhongMaterial({
         color,
         emissive: color,
-        emissiveIntensity: 0.5,
+        emissiveIntensity: isHub ? 0.8 : 0.5,
         shininess: 100,
       });
 
@@ -343,12 +391,12 @@ export function NetworkBrain({
       scene.add(mesh);
       agentMeshesRef.current.set(agent.id, mesh);
 
-      // Add glow effect
-      const glowGeometry = new THREE.SphereGeometry(2.5, 16, 16);
+      // Add glow effect (stronger for hubs)
+      const glowGeometry = new THREE.SphereGeometry(baseSize + 0.5, 16, 16);
       const glowMaterial = new THREE.MeshBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.2,
+        opacity: isHub ? 0.4 : 0.2,
       });
       const glow = new THREE.Mesh(glowGeometry, glowMaterial);
       mesh.add(glow);
@@ -399,7 +447,46 @@ export function NetworkBrain({
           <div className="text-xs text-gray-400 space-y-1">
             <div>💙 Active Agent</div>
             <div>⚪ Inactive Agent</div>
+            <div>🌟 Hub Agent</div>
             <div>💜 Resonance Connection</div>
+          </div>
+        </div>
+      )}
+
+      {showAnalysis && (
+        <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white space-y-2 min-w-[200px]">
+          <div className="text-sm font-semibold border-b border-gray-600 pb-1 mb-2">
+            Network Analysis
+          </div>
+          <div className="text-xs font-mono space-y-1">
+            <div className="flex justify-between">
+              <span className="text-gray-400">Hub Agents:</span>
+              <span className="text-yellow-400">
+                {networkData.nodes.filter(n => n.isHub).length}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Avg Degree:</span>
+              <span>
+                {networkData.nodes.length > 0
+                  ? (networkData.nodes.reduce((sum, n) => sum + (n.degree || 0), 0) / networkData.nodes.length).toFixed(1)
+                  : '0'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Max Degree:</span>
+              <span className="text-yellow-400">
+                {Math.max(...networkData.nodes.map(n => n.degree || 0), 0)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Density:</span>
+              <span>
+                {networkData.nodes.length > 1
+                  ? ((networkData.edges.length / (networkData.nodes.length * (networkData.nodes.length - 1) / 2)) * 100).toFixed(1) + '%'
+                  : '0%'}
+              </span>
+            </div>
           </div>
         </div>
       )}

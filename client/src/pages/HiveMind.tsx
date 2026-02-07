@@ -43,6 +43,7 @@ import {
 export default function HiveMind() {
   const [showTicker, setShowTicker] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [agentTypeFilter, setAgentTypeFilter] = useState<string>("all");
   const [minResonance, setMinResonance] = useState([0]);
@@ -385,24 +386,18 @@ export default function HiveMind() {
                 ref={networkVisualizationRef}
                 className="relative w-full h-[600px] rounded-lg overflow-hidden bg-black/20 border border-border/50"
               >
-                <NetworkBrain maxNodes={maxNodes} />
+                <NetworkBrain maxNodes={maxNodes} showAnalysis={showAnalysis} />
 
                 {/* Overlay Controls */}
-                <div className="absolute top-4 left-4 space-y-2">
-                  <div className="glass-card p-3 space-y-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-500" />
-                      <span>Active Agents</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-purple-500" />
-                      <span>High Resonance</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-0.5 h-3 bg-cyan-400/50" />
-                      <span>Connections</span>
-                    </div>
-                  </div>
+                <div className="absolute bottom-4 right-4 space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAnalysis(!showAnalysis)}
+                    className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
+                  >
+                    {showAnalysis ? 'Hide Analysis' : 'Show Analysis'}
+                  </Button>
                 </div>
 
                 {/* Camera Instructions */}
