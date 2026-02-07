@@ -61,6 +61,8 @@ import UploadMultimodalPackage from "./pages/UploadMultimodalPackage";
 import CrossModalSearch from "./pages/CrossModalSearch";
 import AudioToText from "./pages/AudioToText"; // Assuming this might be used later or needed import
 import AiCollaborationDocs from "./pages/AiCollaborationDocs";
+import AiCollaborationHub from "./pages/AiCollaboration";
+import NewCollaborationSession from "./pages/AiCollaboration/NewSession";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -74,6 +76,8 @@ function Router() {
       <Route path={"/api/auth/callback/:provider"} component={OAuthCallback} />
       
       <Route path="/docs/collaboration" component={AiCollaborationDocs} />
+      <Route path="/ai-collaboration" component={AiCollaborationHub} />
+      <Route path="/ai-collaboration/new" component={NewCollaborationSession} />
 
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />

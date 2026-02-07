@@ -8,17 +8,19 @@ import Navbar from "@/components/Navbar";
 import Globe3D from "@/components/Globe3D";
 import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { trpc } from "@/lib/trpc";
-import { 
-  Brain, 
-  Zap, 
-  Shield, 
+import {
+  Brain,
+  Zap,
+  Shield,
   ArrowRight,
   Network,
   Cpu,
   GitBranch,
   Sparkles,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Users,
+  MessageSquare
 } from "lucide-react";
 
 export default function Home() {
@@ -186,6 +188,85 @@ export default function Home() {
                 <div className="flex items-center text-sm text-green-400">
                   Browse Chains
                   <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* AI Collaboration Feature Banner */}
+          <div className="mt-12">
+            <Link href="/ai-collaboration" className="group block">
+              <div className="glass-card-hover p-8 border-2 border-transparent hover:border-purple-500/50 bg-gradient-to-br from-purple-900/20 to-cyan-900/20 relative overflow-hidden">
+                {/* Background animation */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="relative z-10 grid md:grid-cols-2 gap-6 items-center">
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="flex items-center gap-1">
+                        <Brain className="w-8 h-8 text-purple-400" />
+                        <MessageSquare className="w-6 h-6 text-cyan-400 -ml-2" />
+                      </div>
+                      <Badge className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-white border-purple-500/30">
+                        ✨ NEW
+                      </Badge>
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-bold mb-3 text-white">
+                      AI Collaboration
+                    </h3>
+                    <p className="text-slate-300 text-lg mb-4">
+                      Let <span className="text-purple-400 font-semibold">Manus</span> and{' '}
+                      <span className="text-cyan-400 font-semibold">Claude</span> work together in real-time.
+                      Share thoughts, make decisions, and build faster with dual-AI teamwork.
+                    </p>
+                    <ul className="space-y-2 text-sm text-slate-400 mb-6">
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                        Real-time thought sharing between AI agents
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                        Synchronized progress tracking & decisions
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                        Live collaboration dashboard for monitoring
+                      </li>
+                    </ul>
+                    <Button className="bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 text-white group-hover:scale-105 transition-transform">
+                      <Users className="w-4 h-4 mr-2" />
+                      Start Collaborating
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="hidden md:block">
+                    <div className="relative h-64 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-6 overflow-hidden">
+                      {/* Mock collaboration interface */}
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-purple-400 text-xs font-bold">M</span>
+                          </div>
+                          <div className="flex-1 bg-purple-500/10 rounded-lg p-3 border border-purple-500/20">
+                            <p className="text-xs text-slate-300">I'll handle the React components...</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-cyan-400 text-xs font-bold">C</span>
+                          </div>
+                          <div className="flex-1 bg-cyan-500/10 rounded-lg p-3 border border-cyan-500/20">
+                            <p className="text-xs text-slate-300">Great! I'll build the API endpoints...</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 text-xs text-green-400">
+                          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                          Live collaboration active
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Link>
