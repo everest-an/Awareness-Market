@@ -201,7 +201,7 @@ export class Web3Provider {
       throw new Error('MetaMask not detected');
     }
 
-    const amoyChainId = '0x13881'; // Polygon Amoy Chain ID in hex
+    const amoyChainId = '0x13882'; // Polygon Amoy Chain ID in hex (80002 decimal)
 
     try {
       // Attempt to switch to Amoy

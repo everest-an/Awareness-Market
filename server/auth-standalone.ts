@@ -26,8 +26,11 @@ interface SafeUser {
   updatedAt: Date;
 }
 
-// JWT secret from environment or fallback
-const JWT_SECRET = process.env.JWT_SECRET || "awareness-market-secret-change-in-production";
+// JWT secret - MUST be set via environment variable
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("CRITICAL: JWT_SECRET environment variable is not set. Server cannot start without it.");
+}
 const JWT_EXPIRES_IN = "7d"; // Token expires in 7 days
 const JWT_REFRESH_EXPIRES_IN = "30d"; // Refresh token expires in 30 days
 
@@ -66,10 +69,15 @@ export function generateRefreshToken(user: { id: number; email: string | null; r
 
 /**
  * Verify JWT token
+ * @param token - JWT token string
+ * @param expectedType - Expected token type ('access' or 'refresh'). If provided, rejects mismatched types.
  */
-export function verifyToken(token: string): JWTPayload | null {
+export function verifyToken(token: string, expectedType?: "access" | "refresh"): JWTPayload | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    if (expectedType && decoded.type !== expectedType) {
+      return null;
+    }
     return decoded;
   } catch {
     return null;
@@ -80,7 +88,7 @@ export function verifyToken(token: string): JWTPayload | null {
  * Hash password using bcrypt
  */
 export async function hashPassword(password: string): Promise<string> {
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12);
   return bcrypt.hash(password, salt);
 }
 
@@ -185,9 +193,9 @@ export async function loginWithEmail(params: {
  * Refresh access token using refresh token
  */
 export async function refreshAccessToken(refreshToken: string): Promise<{ success: boolean; accessToken?: string; error?: string }> {
-  const payload = verifyToken(refreshToken);
+  const payload = verifyToken(refreshToken, "refresh");
 
-  if (!payload || payload.type !== "refresh") {
+  if (!payload) {
     return { success: false, error: "Invalid refresh token" };
   }
 
@@ -262,9 +270,9 @@ export async function findOrCreateOAuthUser(params: {
  * Get user from JWT token
  */
 export async function getUserFromToken(token: string): Promise<{ success: boolean; user?: SafeUser; error?: string }> {
-  const payload = verifyToken(token);
+  const payload = verifyToken(token, "access");
 
-  if (!payload || payload.type !== "access") {
+  if (!payload) {
     return { success: false, error: "Invalid token" };
   }
 

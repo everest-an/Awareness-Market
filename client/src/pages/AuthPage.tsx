@@ -209,7 +209,10 @@ export default function AuthPage() {
     },
   });
 
-  // Wallet connect handler
+  // Wallet nonce request mutation
+  const getWalletNonceMutation = trpc.auth.getWalletNonce.useMutation();
+
+  // Wallet connect handler (with nonce-based challenge-response)
   const handleWalletConnect = useCallback(async () => {
     setIsConnectingWallet(true);
     try {
@@ -225,14 +228,18 @@ export default function AuthPage() {
       const accounts = await ethereum.request({ method: "eth_requestAccounts" });
       if (accounts && accounts.length > 0) {
         const address = accounts[0];
-        // Sign a message for authentication
-        const message = `Sign in to Awareness Market\nAddress: ${address}\nTimestamp: ${Date.now()}`;
+        
+        // Step 1: Request a nonce from the server
+        const { message, nonce } = await getWalletNonceMutation.mutateAsync({ address });
+        
+        // Step 2: Sign the server-provided message (contains nonce)
         const signature = await ethereum.request({
           method: "personal_sign",
           params: [message, address],
         });
-        // Send signature to backend for verification and JWT session creation
-        await walletLoginMutation.mutateAsync({ address, signature, message });
+        
+        // Step 3: Send signature + nonce to backend for verification
+        await walletLoginMutation.mutateAsync({ address, signature, message, nonce });
       }
     } catch (error: any) {
       if (error.code === 4001) {
@@ -243,7 +250,7 @@ export default function AuthPage() {
     } finally {
       setIsConnectingWallet(false);
     }
-  }, [toast, setLocation, walletLoginMutation]);
+  }, [toast, setLocation, walletLoginMutation, getWalletNonceMutation]);
 
   // Form handlers
   const handleLoginSubmit = useCallback((e: React.FormEvent) => {

@@ -57,8 +57,11 @@ const ERC8004_ABI = [
   "event AgentRegistered(bytes32 indexed agentId, address indexed owner, string agentType, string metadataUri)"
 ];
 
-// Configuration
-const JWT_SECRET = process.env.JWT_SECRET || "insecure-jwt-secret";
+// Configuration - JWT_SECRET MUST be set via environment variable
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("CRITICAL: JWT_SECRET environment variable is not set. Server cannot start without it.");
+}
 const JWT_EXPIRY = "7d";
 const NONCE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 

@@ -48,7 +48,7 @@ export async function createApiKey(params: {
       keyHash,
       keyPrefix,
       name: params.name || 'Default API Key',
-      permissions: params.permissions ? JSON.stringify(params.permissions) : JSON.stringify(['*']), // '*' = all permissions
+      permissions: params.permissions ? JSON.stringify(params.permissions) : JSON.stringify(['read']), // Default: read-only (least privilege)
       expiresAt: params.expiresAt || null,
       isActive: true
     }
@@ -96,7 +96,7 @@ export async function validateApiKey(key: string): Promise<{
   });
 
   // Parse scopes
-  const permissions = apiKey.permissions ? JSON.parse(apiKey.permissions) : ['*'];
+  const permissions = apiKey.permissions ? JSON.parse(apiKey.permissions) : ['read'];
 
   return {
     valid: true,
@@ -154,7 +154,7 @@ export async function listApiKeys(userId: number): Promise<Array<{
     id: key.id,
     name: key.name || 'Unnamed Key',
     keyPrefix: key.keyPrefix,
-    permissions: key.permissions ? JSON.parse(key.permissions) : ['*'],
+    permissions: key.permissions ? JSON.parse(key.permissions) : ['read'],
     lastUsedAt: key.lastUsedAt,
     expiresAt: key.expiresAt,
     isActive: key.isActive,

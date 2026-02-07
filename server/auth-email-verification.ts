@@ -19,6 +19,7 @@
 import { prisma } from "./db-prisma";
 import { sendEmail } from "./email-service";
 import { createLogger } from './utils/logger';
+import crypto from 'crypto';
 
 const logger = createLogger('Auth:Email');
 
@@ -41,10 +42,10 @@ const RESEND_COOLDOWN_MS = 60 * 1000; // 1 minute between resends
 const MAX_VERIFY_ATTEMPTS = 5;
 
 /**
- * Generate a 6-digit verification code
+ * Generate a cryptographically secure 6-digit verification code
  */
 function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 999999).toString();
 }
 
 /**
@@ -122,8 +123,10 @@ export async function verifyEmail(
     return { success: false, error: "Too many failed attempts. Please request a new code." };
   }
 
-  // Verify code
-  if (entry.code !== code) {
+  // Verify code using timing-safe comparison
+  const codeBuffer = Buffer.from(entry.code.padEnd(6, '0'));
+  const inputBuffer = Buffer.from(code.padEnd(6, '0'));
+  if (!crypto.timingSafeEqual(codeBuffer, inputBuffer)) {
     entry.attempts++;
     const remaining = MAX_VERIFY_ATTEMPTS - entry.attempts;
     return { 
