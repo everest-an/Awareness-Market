@@ -65,108 +65,62 @@ export function WorkflowPerformance() {
 
   const { startDate, endDate } = getDateRange();
 
-  // Query statistics for the time range (only for authenticated users)
-  const { data: realStats, isLoading } = trpc.workflowHistory.getStatistics.useQuery({
+  // Query performance metrics (only for authenticated users)
+  const { data: realMetrics, isLoading } = trpc.workflowPerformance.getPerformanceMetrics.useQuery({
     startDate,
     endDate,
   }, {
     enabled: isAuthenticated,
   });
-  
+
+  // Query overall statistics
+  const { data: realStats } = trpc.workflowPerformance.getStatistics.useQuery({
+    startDate,
+    endDate,
+  }, {
+    enabled: isAuthenticated,
+  });
+
+  // Query bottlenecks
+  const { data: bottlenecksData } = trpc.workflowPerformance.getBottlenecks.useQuery({
+    startDate,
+    endDate,
+    limit: 5,
+  }, {
+    enabled: isAuthenticated,
+  });
+
+  // Query type comparison
+  const { data: typeComparisonData } = trpc.workflowPerformance.getTypeComparison.useQuery({
+    startDate,
+    endDate,
+  }, {
+    enabled: isAuthenticated,
+  });
+
   // Use real stats if authenticated, demo stats otherwise
   const stats = isAuthenticated ? realStats : demoData.stats;
 
-  // Query all sessions for detailed analysis (only for authenticated users)
-  const { data: realSessionsData } = trpc.workflowHistory.getHistory.useQuery({
-    page: 1,
-    pageSize: 1000, // Get more data for analysis
-    startDate,
-    endDate,
-    sortBy: "createdAt",
-    sortOrder: "desc",
-  }, {
-    enabled: isAuthenticated,
-  });
-  
-  // Use real sessions if authenticated, demo sessions otherwise
-  const sessionsData = isAuthenticated 
-    ? realSessionsData 
-    : { sessions: demoData.sessions, totalCount: demoData.sessions.length };
-
-  // Calculate performance metrics
-  const calculateMetrics = () => {
-    if (!sessionsData?.sessions) {
-      return {
-        avgResponseTime: 0,
-        p95ResponseTime: 0,
-        p99ResponseTime: 0,
-        successRate: 0,
-        bottlenecks: [],
-        typeComparison: [],
-      };
-    }
-
-    const sessions = sessionsData.sessions;
-    const durations = sessions
-      .filter((s) => (s as any).duration !== null && (s as any).duration !== undefined)
-      .map((s) => (s as any).duration!)
-      .sort((a: number, b: number) => a - b);
-
-    const avgResponseTime = durations.length > 0
-      ? durations.reduce((sum: number, d: number) => sum + d, 0) / durations.length
-      : 0;
-
-    const p95Index = Math.floor(durations.length * 0.95);
-    const p99Index = Math.floor(durations.length * 0.99);
-    const p95ResponseTime = durations[p95Index] || 0;
-    const p99ResponseTime = durations[p99Index] || 0;
-
-    const completedCount = sessions.filter((s) => s.status === "completed").length;
-    const successRate = sessions.length > 0 ? (completedCount / sessions.length) * 100 : 0;
-
-    // Find bottlenecks (sessions with duration > p95)
-    const bottlenecks = sessions
-      .filter((s) => (s as any).duration && (s as any).duration > p95ResponseTime)
-      .slice(0, 5)
-      .map((s: any) => ({
-        sessionId: s.id,
-        duration: s.duration!,
-        type: s.type,
-        eventCount: s.eventCount,
-      }));
-
-    // Type comparison
-    const typeStats = new Map<string, { total: number; avgDuration: number; completed: number }>();
-    sessions.forEach((s: any) => {
-      const existing = typeStats.get(s.type) || { total: 0, avgDuration: 0, completed: 0 };
-      existing.total++;
-      if (s.duration) {
-        existing.avgDuration += s.duration;
-      }
-      if (s.status === "completed") {
-        existing.completed++;
-      }
-      typeStats.set(s.type, existing);
-    });
-
-    const typeComparison = Array.from(typeStats.entries()).map(([type, stats]) => ({
-      type,
-      total: stats.total,
-      avgDuration: stats.avgDuration / stats.total,
-      successRate: (stats.completed / stats.total) * 100,
-    }));
-
-    return {
-      avgResponseTime,
-      p95ResponseTime,
-      p99ResponseTime,
-      successRate,
-      bottlenecks,
-      typeComparison,
-    };
+  // Use backend-calculated metrics (much more efficient!)
+  const metrics = {
+    avgResponseTime: isAuthenticated ? (realMetrics?.avgResponseTime || 0) : 2800,
+    p95ResponseTime: isAuthenticated ? (realMetrics?.p95ResponseTime || 0) : 4500,
+    p99ResponseTime: isAuthenticated ? (realMetrics?.p99ResponseTime || 0) : 5200,
+    successRate: isAuthenticated ? (realMetrics?.successRate || 0) : 80,
+    bottlenecks: isAuthenticated ? (bottlenecksData?.bottlenecks || []) : [],
+    typeComparison: isAuthenticated ? (typeComparisonData?.comparison || []) : generateDemoTypeComparison(),
   };
 
-  const metrics = calculateMetrics();
+  // Generate demo type comparison for unauthenticated users
+  function generateDemoTypeComparison() {
+    return [
+      { type: 'ai_reasoning', total: 20, avgDuration: 2500, successRate: 85, p95Duration: 4000 },
+      { type: 'memory_transfer', total: 15, avgDuration: 1800, successRate: 90, p95Duration: 3200 },
+      { type: 'package_processing', total: 10, avgDuration: 3200, successRate: 75, p95Duration: 5000 },
+      { type: 'w_matrix_training', total: 3, avgDuration: 4500, successRate: 100, p95Duration: 5500 },
+      { type: 'vector_invocation', total: 2, avgDuration: 1200, successRate: 100, p95Duration: 2000 },
+    ];
+  }
 
   // Format duration
   const formatDuration = (ms: number) => {
@@ -367,7 +321,7 @@ export function WorkflowPerformance() {
                           <div>
                             <p className="font-mono text-sm text-gray-400">{bottleneck.sessionId}</p>
                             <p className="text-sm text-gray-500 mt-1">
-                              {getSessionTypeLabel(bottleneck.type)} â€?{bottleneck.eventCount} events
+                              {getSessionTypeLabel(bottleneck.type)} ï¿½?{bottleneck.eventCount} events
                             </p>
                           </div>
                           <div className="text-right">
