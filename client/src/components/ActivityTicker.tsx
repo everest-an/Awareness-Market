@@ -14,6 +14,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "../lib/trpc";
+import { io } from "socket.io-client";
 
 export type NetworkEvent = {
   id: string;
@@ -66,24 +67,24 @@ export function ActivityTicker({
     setEvents(newEvents.slice(0, maxEvents));
   }, [networkActivity, maxEvents]);
 
-  // TODO: Add Socket.IO listener for real-time events
-  // useEffect(() => {
-  //   const socket = io(process.env.VITE_API_BASE || 'http://localhost:3001');
-  //
-  //   socket.on('resonance:detected', (data) => {
-  //     const newEvent: NetworkEvent = {
-  //       id: `evt-${eventIdCounter.current++}`,
-  //       ...data,
-  //       type: 'resonance',
-  //     };
-  //
-  //     setEvents(prev => [newEvent, ...prev].slice(0, maxEvents));
-  //   });
-  //
-  //   return () => {
-  //     socket.disconnect();
-  //   };
-  // }, [maxEvents]);
+  // Socket.IO listener for real-time events
+  useEffect(() => {
+    const socket = io(import.meta.env.VITE_API_BASE || 'http://localhost:3001');
+
+    socket.on('resonance:detected', (data) => {
+      const newEvent: NetworkEvent = {
+        id: `evt-${eventIdCounter.current++}`,
+        ...data,
+        type: 'resonance',
+      };
+
+      setEvents(prev => [newEvent, ...prev].slice(0, maxEvents));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [maxEvents]);
 
   const formatTimestamp = (date: Date) => {
     const now = new Date();
