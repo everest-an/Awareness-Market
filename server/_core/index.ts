@@ -24,7 +24,7 @@ import communityRouter from "../community-assistant";
 import { erc8004Router } from "../erc8004-api";
 import inferenceRouter from "../inference-api";
 import { createLogger } from "../utils/logger";
-import { initializeSocketIO } from "../socket-events.js";
+import { initializeSocketIO } from "../socket-events";
 
 const logger = createLogger('Server');
 

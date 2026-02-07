@@ -14,12 +14,12 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from './_core/trpc.js';
-import { prisma } from './db-prisma.js';
+import { protectedProcedure, router } from './_core/trpc';
+import { prisma } from './db-prisma';
 import { Decimal } from '@prisma/client/runtime/library';
-import { logger } from './utils/logger.js';
-import { broadcastResonanceEvent } from './socket-events.js';
-import { cosineSimilarity, parseVectorData } from './utils/vector-similarity.js';
+import { logger } from './utils/logger';
+import { broadcastResonanceEvent } from './socket-events';
+import { cosineSimilarity, parseVectorData } from './utils/vector-similarity';
 
 // ============================================================================
 // Types

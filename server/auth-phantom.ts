@@ -14,9 +14,9 @@
 import { z } from 'zod';
 import { publicProcedure, router } from './_core/trpc';
 import { verifyMessage } from 'viem';
-import { prisma } from './db-prisma.js';
+import { prisma } from './db-prisma';
 import jwt from 'jsonwebtoken';
-import { logger } from './utils/logger.js';
+import { logger } from './utils/logger';
 
 // Redis for nonce storage (5 minute TTL)
 import { createClient } from 'redis';

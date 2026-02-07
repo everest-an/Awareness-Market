@@ -14,7 +14,7 @@
 
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
-import { logger } from './utils/logger.js';
+import { logger } from './utils/logger';
 
 export type ResonanceEvent = {
   consumerId: number;

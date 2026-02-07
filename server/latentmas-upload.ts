@@ -12,10 +12,10 @@
  */
 
 import { z } from 'zod';
-import { protectedProcedure, router } from './_core/trpc.js';
-import { prisma } from './db-prisma.js';
-import { logger } from './utils/logger.js';
-import { broadcastMemoryUpload } from './socket-events.js';
+import { protectedProcedure, router } from './_core/trpc';
+import { prisma } from './db-prisma';
+import { logger } from './utils/logger';
+import { broadcastMemoryUpload } from './socket-events';
 
 /**
  * Trigger async resonance detection for a new vector

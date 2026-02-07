@@ -5,8 +5,8 @@
  * Uses Prisma Client for PostgreSQL
  */
 
-import { prisma } from './db-prisma.js';
-import { logger } from './utils/logger.js';
+import { prisma } from './db-prisma';
+import { logger } from './utils/logger';
 
 // ============================================================================
 // Types

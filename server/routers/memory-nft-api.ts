@@ -8,8 +8,8 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { prisma } from '../db-prisma.js';
-import { logger } from '../utils/logger.js';
+import { prisma } from '../db-prisma';
+import { logger } from '../utils/logger';
 import type { Prisma } from '@prisma/client';
 
 // ============================================================================
