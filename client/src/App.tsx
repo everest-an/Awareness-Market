@@ -63,6 +63,7 @@ import AudioToText from "./pages/AudioToText"; // Assuming this might be used la
 import AiCollaborationDocs from "./pages/AiCollaborationDocs";
 import AiCollaborationHub from "./pages/AiCollaboration";
 import NewCollaborationSession from "./pages/AiCollaboration/NewSession";
+import HiveMind from "./pages/HiveMind";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -125,6 +126,8 @@ function Router() {
       <Route path="/package/:type/:id" component={PackageDetail} />
       <Route path="/memory/:id" component={MemoryNFTDetail} />
 
+      <Route path="/hive-mind" component={HiveMind} />
+      <Route path="/network" component={HiveMind} />
       <Route path="/agents" component={AgentRegistry} />
       <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/sdk" component={SDKPage} />

@@ -10,7 +10,7 @@ import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 // LatentMASPackageInput type is inferred from Zod schema below
 import { storagePut } from '../storage';
-import * as db from '../db';
+import { prisma } from '../db-prisma';
 import { nanoid } from 'nanoid';
 import { applySoftProcrustesConstraint, computeOrthogonalityScore } from '../latentmas/svd-orthogonalization';
 import { getDPEngine, createPrivacyDisclosure, type PrivacyLevel, type PrivacyMetadata } from '../latentmas/differential-privacy';
@@ -263,22 +263,24 @@ export const latentmasMarketplaceRouter = router({
       // Save to database
       const packageId = `vpkg_${nanoid(16)}`;
 
-      await db.createVectorPackage({
-        packageId,
-        userId: ctx.user.id,
-        name: input.name,
-        description: input.description,
-        vectorUrl: url, // For now, use same URL for all files
-        wMatrixUrl: url,
-        packageUrl: url,
-        sourceModel: input.sourceModel,
-        targetModel: input.targetModel,
-        dimension: input.wMatrix.weights[0]?.length || 0,
-        epsilon: input.wMatrix.epsilon.toString(),
-        informationRetention: input.metrics.qualityScore.toString(),
-        category: 'nlp', // Default category
-        price: input.price.toString(),
-        status: 'active',
+      await prisma.vectorPackage.create({
+        data: {
+          packageId,
+          userId: ctx.user.id,
+          name: input.name,
+          description: input.description,
+          vectorUrl: url, // For now, use same URL for all files
+          wMatrixUrl: url,
+          packageUrl: url,
+          sourceModel: input.sourceModel,
+          targetModel: input.targetModel,
+          dimension: input.wMatrix.weights[0]?.length || 0,
+          epsilon: input.wMatrix.epsilon.toString(),
+          informationRetention: input.metrics.qualityScore.toString(),
+          category: 'nlp', // Default category
+          price: input.price.toString(),
+          status: 'active',
+        },
       });
 
       return {
@@ -320,14 +322,31 @@ export const latentmasMarketplaceRouter = router({
       offset: z.number().int().min(0).default(0),
     }))
     .query(async ({ input }) => {
-      // Query from database
-      const packages = await db.browseVectorPackages({
-        sourceModel: input.sourceModel,
-        targetModel: input.targetModel,
-        maxEpsilon: input.maxEpsilon,
+      // Build where clause
+      const where: any = {
         status: 'active',
-        limit: input.limit,
-        offset: input.offset,
+      };
+
+      if (input.sourceModel) {
+        where.sourceModel = input.sourceModel;
+      }
+
+      if (input.targetModel) {
+        where.targetModel = input.targetModel;
+      }
+
+      if (input.maxEpsilon !== undefined) {
+        where.epsilon = {
+          lte: input.maxEpsilon.toString(),
+        };
+      }
+
+      // Query from database
+      const packages = await prisma.vectorPackage.findMany({
+        where,
+        take: input.limit,
+        skip: input.offset,
+        orderBy: { createdAt: 'desc' },
       });
 
       // Transform to match expected format
@@ -337,13 +356,13 @@ export const latentmasMarketplaceRouter = router({
         description: pkg.description,
         sourceModel: pkg.sourceModel,
         targetModel: pkg.targetModel,
-        epsilon: parseFloat(pkg.epsilon),
-        qualityScore: parseFloat(pkg.informationRetention),
+        epsilon: parseFloat(pkg.epsilon.toString()),
+        qualityScore: parseFloat(pkg.informationRetention.toString()),
         certificationLevel: 'gold' as const, // Default certification
-        price: parseFloat(pkg.price),
+        price: parseFloat(pkg.price.toString()),
         hasKVCache: false, // Can be extended later
         downloads: pkg.downloads,
-        rating: parseFloat(pkg.rating || '0'),
+        rating: pkg.rating ? parseFloat(pkg.rating.toString()) : 0,
         createdAt: pkg.createdAt,
       }));
 
@@ -363,7 +382,9 @@ export const latentmasMarketplaceRouter = router({
     }))
     .query(async ({ input }) => {
       // Fetch from database
-      const pkg = await db.getVectorPackageByPackageId(input.packageId);
+      const pkg = await prisma.vectorPackage.findUnique({
+        where: { packageId: input.packageId },
+      });
 
       if (!pkg) {
         throw new TRPCError({
@@ -379,12 +400,12 @@ export const latentmasMarketplaceRouter = router({
         sourceModel: pkg.sourceModel,
         targetModel: pkg.targetModel,
         dimension: pkg.dimension,
-        epsilon: parseFloat(pkg.epsilon),
-        informationRetention: parseFloat(pkg.informationRetention),
+        epsilon: parseFloat(pkg.epsilon.toString()),
+        informationRetention: parseFloat(pkg.informationRetention.toString()),
         category: pkg.category,
-        price: parseFloat(pkg.price),
+        price: parseFloat(pkg.price.toString()),
         downloads: pkg.downloads,
-        rating: parseFloat(pkg.rating || '0'),
+        rating: pkg.rating ? parseFloat(pkg.rating.toString()) : 0,
         reviewCount: pkg.reviewCount,
         packageUrl: pkg.packageUrl,
         vectorUrl: pkg.vectorUrl,
@@ -404,7 +425,9 @@ export const latentmasMarketplaceRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       // Get package details
-      const pkg = await db.getVectorPackageByPackageId(input.packageId);
+      const pkg = await prisma.vectorPackage.findUnique({
+        where: { packageId: input.packageId },
+      });
 
       if (!pkg) {
         throw new TRPCError({
@@ -421,7 +444,12 @@ export const latentmasMarketplaceRouter = router({
       }
 
       // Check if user already owns this package
-      const existingPurchase = await db.getUserPackagePurchaseByPackageId(ctx.user.id, input.packageId);
+      const existingPurchase = await prisma.packagePurchase.findFirst({
+        where: {
+          buyerId: ctx.user.id,
+          packageId: input.packageId,
+        },
+      });
       if (existingPurchase && existingPurchase.status === 'completed') {
         // User already owns it, return download URL
         return {
@@ -435,7 +463,7 @@ export const latentmasMarketplaceRouter = router({
       }
 
       // Calculate fees
-      const amount = parseFloat(pkg.price);
+      const amount = parseFloat(pkg.price.toString());
       const platformFeeRate = 0.15; // 15%
       const platformFee = amount * platformFeeRate;
       const creatorEarnings = amount - platformFee;
@@ -451,7 +479,7 @@ export const latentmasMarketplaceRouter = router({
               currency: 'usd',
               product_data: {
                 name: pkg.name,
-                description: `${pkg.sourceModel} → ${pkg.targetModel} | ε: ${pkg.epsilon}`,
+                description: `${pkg.sourceModel} → ${pkg.targetModel} | ε: ${pkg.epsilon.toString()}`,
                 metadata: {
                   packageId: input.packageId,
                   category: pkg.category,
@@ -477,12 +505,20 @@ export const latentmasMarketplaceRouter = router({
       });
 
       // Record pending purchase in database
-      const purchaseId = await db.createPackagePurchase({
-        userId: ctx.user.id,
-        packageId: pkg.id,
-        amount: amount.toFixed(2),
-        status: 'pending',
+      const purchase = await prisma.packagePurchase.create({
+        data: {
+          buyerId: ctx.user.id,
+          sellerId: pkg.userId,
+          packageId: pkg.packageId, // Use public packageId string, not internal id
+          packageType: 'vector',
+          price: amount.toFixed(2),
+          platformFee: platformFee.toFixed(2),
+          sellerEarnings: creatorEarnings.toFixed(2),
+          status: 'pending',
+          stripePaymentIntentId: null, // Session ID will be updated on payment completion
+        },
       });
+      const purchaseId = purchase.id;
 
       return {
         success: true,
@@ -515,16 +551,44 @@ export const latentmasMarketplaceRouter = router({
   getStatistics: publicProcedure
     .query(async () => {
       // Calculate from database
-      const stats = await db.getVectorPackagesStatistics();
+      const [totalPackages, totalDownloadsSum, allPackages] = await Promise.all([
+        prisma.vectorPackage.count(),
+        prisma.vectorPackage.aggregate({
+          _sum: {
+            downloads: true,
+          },
+        }),
+        prisma.vectorPackage.findMany({
+          select: {
+            epsilon: true,
+            rating: true,
+          },
+        }),
+      ]);
+
+      // Calculate averages from Decimal fields
+      const epsilonValues = allPackages
+        .map(p => parseFloat(p.epsilon.toString()))
+        .filter(e => !isNaN(e));
+      const averageEpsilon = epsilonValues.length > 0
+        ? epsilonValues.reduce((sum, e) => sum + e, 0) / epsilonValues.length
+        : 0;
+
+      const ratingValues = allPackages
+        .map(p => p.rating ? parseFloat(p.rating.toString()) : 0)
+        .filter(r => r > 0);
+      const averageRating = ratingValues.length > 0
+        ? ratingValues.reduce((sum, r) => sum + r, 0) / ratingValues.length
+        : 0;
 
       return {
-        totalPackages: stats.totalPackages,
-        totalDownloads: stats.totalDownloads,
-        averageEpsilon: stats.averageEpsilon,
-        averageRating: stats.averageRating,
+        totalPackages,
+        totalDownloads: totalDownloadsSum._sum.downloads || 0,
+        averageEpsilon,
+        averageRating,
         certificationDistribution: {
           platinum: 0,
-          gold: stats.totalPackages, // Assume all are gold for now
+          gold: totalPackages, // Assume all are gold for now
           silver: 0,
           bronze: 0,
         },
@@ -542,7 +606,9 @@ export const latentmasMarketplaceRouter = router({
     }))
     .query(async ({ input }) => {
       // Fetch package
-      const pkg = await db.getVectorPackageByPackageId(input.packageId);
+      const pkg = await prisma.vectorPackage.findUnique({
+        where: { packageId: input.packageId },
+      });
 
       if (!pkg) {
         throw new TRPCError({
@@ -553,7 +619,7 @@ export const latentmasMarketplaceRouter = router({
 
       // In production, privacy metadata would be stored in DB
       // For now, return default privacy info if epsilon is very high (suggesting privacy was applied)
-      const hasPrivacy = parseFloat(pkg.epsilon) > 0.1;
+      const hasPrivacy = parseFloat(pkg.epsilon.toString()) > 0.1;
 
       if (!hasPrivacy) {
         return {
@@ -563,7 +629,7 @@ export const latentmasMarketplaceRouter = router({
       }
 
       const dpEngine = getDPEngine();
-      const epsilon = parseFloat(pkg.epsilon);
+      const epsilon = parseFloat(pkg.epsilon.toString());
       const dimension = Math.max(pkg.dimension, 1);
       const syntheticVector = Array.from({ length: dimension }, (_, i) => (i % 2 === 0 ? 0.5 : -0.5));
       const { metadata } = dpEngine.addNoise(syntheticVector, { epsilon, delta: 1e-5 }, false);
