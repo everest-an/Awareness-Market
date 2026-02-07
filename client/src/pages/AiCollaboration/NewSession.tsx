@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Navbar from '@/components/Navbar';
 import { Brain, Users, Code, Server, ArrowRight, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { trpc } from '@/lib/trpc';
 
 export default function NewCollaborationSession() {
   const [, setLocation] = useLocation();
@@ -18,6 +19,18 @@ export default function NewCollaborationSession() {
     description: '',
     type: 'frontend-backend',
     privacy: 'shared',
+  });
+
+  // tRPC mutation for creating collaboration
+  const createCollaboration = trpc.agentCollaboration.collaborate.useMutation({
+    onSuccess: (data) => {
+      toast.success('Collaboration session created successfully!');
+      setLocation(`/ai-collaboration/connect/${data.workflowId}`);
+    },
+    onError: (error) => {
+      toast.error(`Failed to create session: ${error.message}`);
+      console.error('[NewSession] Collaboration creation failed:', error);
+    },
   });
 
   const collaborationTypes = [
@@ -77,23 +90,61 @@ export default function NewCollaborationSession() {
     setIsCreating(true);
 
     try {
-      // TODO: API call to create session
-      // const response = await trpc.collaboration.createSession.mutate(formData);
+      // Map collaboration type to agent configuration
+      const agentConfig = getAgentConfigForType(formData.type);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Prepare API payload
+      const payload = {
+        task: formData.name,
+        description: formData.description || `${formData.type} collaboration session`,
+        agents: agentConfig.agents,
+        orchestration: agentConfig.orchestration as 'sequential' | 'parallel',
+        memorySharing: formData.privacy === 'shared',
+        memoryTTL: formData.privacy === 'private' ? 3600 : 86400, // 1 hour for private, 1 day for shared
+        maxExecutionTime: 1800, // 30 minutes
+        recordOnChain: true,
+      };
 
-      const sessionId = 'demo_' + Math.random().toString(36).substring(7);
-
-      toast.success('Collaboration session created!');
-      setLocation(`/ai-collaboration/connect/${sessionId}`);
-    } catch (error) {
-      toast.error('Failed to create session');
-      console.error(error);
+      // Call real API
+      await createCollaboration.mutateAsync(payload);
+    } catch (error: any) {
+      // Error already handled by mutation onError
+      console.error('[NewSession] Failed to create collaboration:', error);
     } finally {
       setIsCreating(false);
     }
   };
+
+  // Helper function to map collaboration type to agent configuration
+  function getAgentConfigForType(type: string) {
+    switch (type) {
+      case 'frontend-backend':
+        return {
+          agents: ['manus-frontend', 'claude-backend'],
+          orchestration: 'sequential',
+        };
+      case 'dual-frontend':
+        return {
+          agents: ['manus-frontend-1', 'manus-frontend-2'],
+          orchestration: 'parallel',
+        };
+      case 'dual-backend':
+        return {
+          agents: ['claude-backend-1', 'claude-backend-2'],
+          orchestration: 'sequential',
+        };
+      case 'full-stack':
+        return {
+          agents: ['manus-frontend', 'claude-backend', 'visualizer-ui'],
+          orchestration: 'sequential',
+        };
+      default:
+        return {
+          agents: ['manus-agent', 'claude-agent'],
+          orchestration: 'sequential',
+        };
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">

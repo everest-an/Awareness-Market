@@ -167,6 +167,23 @@ model OnChainInteraction {
   @@map("on_chain_interactions")
 }
 
+model CollaborationRecord {
+  id               Int      @id @default(autoincrement())
+  sessionId        String   @map("session_id") @db.VarChar(64)
+  agentType        String   @map("agent_type") @db.VarChar(50)
+  agentId          String   @map("agent_id") @db.VarChar(255)
+  taskHash         String   @map("task_hash") @db.VarChar(66)
+  qualityScore     Decimal  @map("quality_score") @db.Decimal(5, 2)
+  timestamp        DateTime @db.Timestamp(6)
+  contributionType String   @map("contribution_type") @db.VarChar(50)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@index([agentId])
+  @@index([taskHash])
+  @@map("collaboration_records")
+}
+
 // ============================================================================
 // NEW: W-Matrix Marketplace
 // ============================================================================
