@@ -7,7 +7,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { prisma } from './db-prisma';
 import crypto from 'crypto';
-import { validateApiKey as validateKey } from './api-key-manager.js';
+import { validateApiKey as validateKey } from './api-key-manager';
 import { getErrorMessage } from './utils/error-handling';
 import { createLogger } from './utils/logger';
 import { runVector } from './vector-runtime';
