@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from "react";
 import { PurchaseDialog } from "@/components/PurchaseDialog";
+import { StablecoinPaymentDialog } from "@/components/StablecoinPaymentDialog";
 import { TrialDialog } from "@/components/TrialDialog";
 import { VectorTestPanel } from "@/components/VectorTestPanel";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export default function VectorDetail() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, user } = useAuth();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const [stablecoinDialogOpen, setStablecoinDialogOpen] = useState(false);
   const [trialDialogOpen, setTrialDialogOpen] = useState(false);
   
   const vectorId = parseInt(id || "0");
@@ -76,6 +78,14 @@ export default function VectorDetail() {
       return;
     }
     setTrialDialogOpen(true);
+  };
+
+  const handleCryptoClick = () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to pay with crypto");
+      return;
+    }
+    setStablecoinDialogOpen(true);
   };
 
   if (isLoading) {
@@ -392,6 +402,16 @@ export default function VectorDetail() {
                       <ShoppingCart className="mr-2 h-5 w-5" />
                       Purchase Access
                     </Button>
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      variant="outline"
+                      onClick={handleCryptoClick}
+                      disabled={vector.status !== "active"}
+                    >
+                      <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3H9m0 0h5a1.5 1.5 0 0 1 0 3H9"/></svg>
+                      Pay with USDC/USDT
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -467,6 +487,12 @@ export default function VectorDetail() {
             vector={vector}
             open={purchaseDialogOpen}
             onOpenChange={setPurchaseDialogOpen}
+            onSuccess={handlePurchaseSuccess}
+          />
+          <StablecoinPaymentDialog
+            vector={vector}
+            open={stablecoinDialogOpen}
+            onOpenChange={setStablecoinDialogOpen}
             onSuccess={handlePurchaseSuccess}
           />
           <TrialDialog

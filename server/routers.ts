@@ -46,6 +46,7 @@ import { phantomAuthRouter } from './auth-phantom';
 import { latentUploadRouter } from './latentmas-upload';
 import { resonanceRouter } from './latentmas-resonance';
 import { embeddingRouter } from './routers/embedding-api';
+import { stablecoinPaymentRouter } from './routers/stablecoin-payment';
 import { prisma } from './db-prisma';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
@@ -2041,6 +2042,9 @@ export const appRouter = router({
 
   // Embedding API (P2 - Auto-Vectorization Engine)
   embedding: embeddingRouter,
+
+  // Stablecoin Payment (USDC/USDT on Polygon - AI Agent autonomous payments)
+  stablecoinPayment: stablecoinPaymentRouter,
 
   // memoryExchange: Go microservice at :8080
 

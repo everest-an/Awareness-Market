@@ -51,6 +51,8 @@ model User {
   memoryUsageAsProvider MemoryUsageLog[] @relation("MemoryProvider")
   verificationCodes     VerificationCode[]
   blogPosts             BlogPost[]
+  agentWallet           AgentWallet?
+  agentWalletTxs        AgentWalletTransaction[]
 
   // Ensure no duplicate emails (allows multiple NULLs for wallet-only users)
   @@unique([email], map: "unique_email_non_null")
@@ -862,4 +864,51 @@ model BlogPost {
   @@index([authorId])
   @@index([publishedAt])
   @@map("blog_posts")
+}
+
+// ============================================================================
+// Agent Custody Wallet (for autonomous AI stablecoin transactions)
+// ============================================================================
+
+model AgentWallet {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique @map("user_id")
+  walletAddress   String    @unique @map("wallet_address") @db.VarChar(42)
+  encryptedKey    String    @map("encrypted_key") @db.Text
+  chainId         Int       @default(137) @map("chain_id")
+  dailySpendLimit Decimal   @default(500) @map("daily_spend_limit") @db.Decimal(18, 2)
+  perTxSpendLimit Decimal   @default(100) @map("per_tx_spend_limit") @db.Decimal(18, 2)
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+  transactions    AgentWalletTransaction[]
+
+  @@index([walletAddress])
+  @@map("agent_wallets")
+}
+
+model AgentWalletTransaction {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  walletId    Int?      @map("wallet_id")
+  txHash      String    @map("tx_hash") @db.VarChar(66)
+  action      String    @db.VarChar(20) // deposit, purchase, withdraw, approve
+  token       String    @db.VarChar(42) // token contract address
+  amountUSD   Decimal   @map("amount_usd") @db.Decimal(18, 4)
+  packageId   String?   @map("package_id")
+  details     String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id])
+  wallet      AgentWallet?  @relation(fields: [walletId], references: [id])
+
+  @@index([userId])
+  @@index([txHash])
+  @@index([createdAt])
+  @@index([userId, action, createdAt])
+  @@map("agent_wallet_transactions")
 }

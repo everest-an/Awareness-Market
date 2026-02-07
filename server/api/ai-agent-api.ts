@@ -273,10 +273,11 @@ export const aiAgentRouter = router({
     .input(z.object({
       packageType: z.enum(['vector', 'memory', 'chain']),
       packageId: z.string(),
-      paymentMethod: z.enum(['credits', 'stripe', 'crypto']).default('credits'),
+      paymentMethod: z.enum(['credits', 'stripe', 'crypto', 'stablecoin']).default('credits'),
+      token: z.enum(['USDC', 'USDT']).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const { packageType, packageId, paymentMethod } = input;
+      const { packageType, packageId, paymentMethod, token } = input;
 
       // Get package details by type
       const pkg = await getPackageByTypeAndId(packageType, packageId);
@@ -296,6 +297,103 @@ export const aiAgentRouter = router({
         });
       }
 
+      // Route to appropriate payment method
+      if (paymentMethod === 'stablecoin' || paymentMethod === 'crypto') {
+        // On-chain stablecoin purchase via agent custody wallet
+        const { stablecoinPaymentRouter } = await import('../routers/stablecoin-payment');
+        // Delegate to stablecoinPayment.agentPurchase
+        // For simplicity, we call the agent wallet functions directly here
+        const { getAgentSigner, checkSpendingLimits, recordAgentTransaction } = await import('../blockchain/agent-wallet');
+        const { STABLECOIN_ADDRESSES } = await import('../blockchain/token-system');
+        const { ethers } = await import('ethers');
+
+        const selectedToken = token || 'USDC';
+        const tokenAddress = selectedToken === 'USDT'
+          ? STABLECOIN_ADDRESSES.mainnet.USDT
+          : STABLECOIN_ADDRESSES.mainnet.USDC;
+
+        const limitCheck = await checkSpendingLimits(ctx.user.id, amount);
+        if (!limitCheck.allowed) {
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: limitCheck.reason || 'Spending limit exceeded',
+          });
+        }
+
+        const signer = await getAgentSigner(ctx.user.id);
+        const rpcUrl = process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com';
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const contractAddress = process.env.STABLECOIN_PAYMENT_ADDRESS || '0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8';
+
+        const ERC20_ABI = ['function approve(address,uint256) returns (bool)', 'function allowance(address,address) view returns (uint256)', 'function balanceOf(address) view returns (uint256)'];
+        const PAYMENT_ABI = ['function directPurchase(string,string,address,uint256,address) returns (uint256)', 'function getTokenAmount(uint256,address) view returns (uint256)'];
+
+        const paymentContract = new ethers.Contract(contractAddress, PAYMENT_ABI, provider);
+        const priceCents = Math.round(amount * 100);
+        const tokenAmount = await paymentContract.getTokenAmount(priceCents, tokenAddress);
+
+        // Check balance
+        const erc20 = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+        const balance = await erc20.balanceOf(signer.address);
+        if (balance < tokenAmount) {
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: `Insufficient ${selectedToken}. Need ${ethers.formatUnits(tokenAmount, 6)}, have ${ethers.formatUnits(balance, 6)}`,
+          });
+        }
+
+        // Approve + Purchase
+        const erc20Signer = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
+        const allowance = await erc20.allowance(signer.address, contractAddress);
+        if (allowance < tokenAmount) {
+          const approveTx = await erc20Signer.approve(contractAddress, tokenAmount);
+          await approveTx.wait();
+        }
+
+        const treasuryAddress = process.env.PLATFORM_TREASURY_ADDRESS || '0x3d0ab53241A2913D7939ae02f7083169fE7b823B';
+        const paymentSigner = new ethers.Contract(contractAddress, PAYMENT_ABI, signer);
+        const purchaseTx = await paymentSigner.directPurchase(packageId, packageType, tokenAddress, priceCents, treasuryAddress);
+        const receipt = await purchaseTx.wait();
+
+        await recordAgentTransaction({
+          userId: ctx.user.id,
+          txHash: receipt.hash,
+          action: 'purchase',
+          token: tokenAddress,
+          amountUSD: amount,
+          packageId,
+          details: `${selectedToken} directPurchase via AI Agent API`,
+        });
+
+        await prisma.packagePurchase.create({
+          data: {
+            buyerId: ctx.user.id,
+            packageType,
+            packageId,
+            amount,
+            paymentMethod: 'stablecoin',
+            paymentId: receipt.hash,
+            status: 'completed',
+          },
+        });
+
+        const downloadUrl = `/api/ai/download-package?packageType=${packageType}&packageId=${packageId}`;
+        return {
+          success: true,
+          data: {
+            purchaseId: 0,
+            txHash: receipt.hash,
+            token: selectedToken,
+            amountPaid: ethers.formatUnits(tokenAmount, 6),
+            explorerUrl: `https://polygonscan.com/tx/${receipt.hash}`,
+            downloadUrl,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            message: `Package purchased with ${selectedToken} on Polygon.`,
+          },
+        };
+      }
+
+      // Default: Credit-based purchase
       const { purchaseWithCredits } = await import('../utils/credit-payment-system');
 
       const result = await purchaseWithCredits({
