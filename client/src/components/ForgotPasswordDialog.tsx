@@ -33,13 +33,13 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     onSuccess: () => {
       setStep("code");
       toast({
-        title: "验证码已发送",
-        description: "请检查您的邮箱，验证码将在10分钟后过期",
+        title: "Verification code sent",
+        description: "Please check your email. The code will expire in 10 minutes.",
       });
     },
     onError: (error) => {
       toast({
-        title: "发送失败",
+        title: "Failed to send",
         description: error.message,
         variant: "destructive",
       });
@@ -50,13 +50,13 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     onSuccess: () => {
       setStep("password");
       toast({
-        title: "验证成功",
-        description: "请输入新密码",
+        title: "Verification successful",
+        description: "Please enter your new password",
       });
     },
     onError: (error) => {
       toast({
-        title: "验证失败",
+        title: "Verification failed",
         description: error.message,
         variant: "destructive",
       });
@@ -67,13 +67,13 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     onSuccess: () => {
       setStep("success");
       toast({
-        title: "密码重置成功",
-        description: "您现在可以使用新密码登录了",
+        title: "Password reset successful",
+        description: "You can now login with your new password",
       });
     },
     onError: (error) => {
       toast({
-        title: "重置失败",
+        title: "Reset failed",
         description: error.message,
         variant: "destructive",
       });
@@ -84,7 +84,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     e.preventDefault();
     if (!email) {
       toast({
-        title: "请输入邮箱",
+        title: "Please enter your email",
         variant: "destructive",
       });
       return;
@@ -96,7 +96,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     e.preventDefault();
     if (!code || code.length !== 6) {
       toast({
-        title: "请输入6位验证码",
+        title: "Please enter the 6-digit code",
         variant: "destructive",
       });
       return;
@@ -108,16 +108,16 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     e.preventDefault();
     if (newPassword.length < 8) {
       toast({
-        title: "密码太短",
-        description: "密码至少需要8个字符",
+        title: "Password too short",
+        description: "Password must be at least 8 characters",
         variant: "destructive",
       });
       return;
     }
     if (newPassword !== confirmPassword) {
       toast({
-        title: "密码不匹配",
-        description: "两次输入的密码不一致",
+        title: "Passwords do not match",
+        description: "The two passwords do not match",
         variant: "destructive",
       });
       return;
@@ -139,23 +139,23 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {step === "email" && "忘记密码"}
-            {step === "code" && "输入验证码"}
-            {step === "password" && "设置新密码"}
-            {step === "success" && "重置成功"}
+            {step === "email" && "Forgot Password"}
+            {step === "code" && "Enter Verification Code"}
+            {step === "password" && "Set New Password"}
+            {step === "success" && "Reset Successful"}
           </DialogTitle>
           <DialogDescription>
-            {step === "email" && "输入您的邮箱地址，我们将发送验证码给您"}
-            {step === "code" && "请输入发送到您邮箱的6位验证码"}
-            {step === "password" && "请输入您的新密码"}
-            {step === "success" && "您的密码已成功重置"}
+            {step === "email" && "Enter your email address to receive a verification code"}
+            {step === "code" && "Enter the 6-digit code sent to your email"}
+            {step === "password" && "Enter your new password"}
+            {step === "success" && "Your password has been successfully reset"}
           </DialogDescription>
         </DialogHeader>
 
         {step === "email" && (
           <form onSubmit={handleRequestReset} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reset-email">邮箱地址</Label>
+              <Label htmlFor="reset-email">Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -178,7 +178,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
                 {requestReset.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                发送验证码
+                Send Code
               </Button>
             </DialogFooter>
           </form>
@@ -187,7 +187,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
         {step === "code" && (
           <form onSubmit={handleVerifyCode} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reset-code">验证码</Label>
+              <Label htmlFor="reset-code">Verification Code</Label>
               <Input
                 id="reset-code"
                 type="text"
@@ -199,7 +199,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
                 required
               />
               <p className="text-sm text-muted-foreground">
-                验证码已发送到 {email}
+                Code sent to {email}
               </p>
             </div>
             <DialogFooter className="flex-col gap-2">
@@ -211,7 +211,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
                 {verifyCode.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                验证
+                Verify
               </Button>
               <Button
                 type="button"
@@ -219,7 +219,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
                 onClick={() => setStep("email")}
                 className="w-full"
               >
-                重新发送验证码
+                Resend Code
               </Button>
             </DialogFooter>
           </form>
@@ -228,13 +228,13 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
         {step === "password" && (
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-password">新密码</Label>
+              <Label htmlFor="new-password">New Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="new-password"
                   type="password"
-                  placeholder="至少8个字符"
+                  placeholder="At least 8 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="pl-9"
@@ -244,13 +244,13 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">确认密码</Label>
+              <Label htmlFor="confirm-password">Confirm Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirm-password"
                   type="password"
-                  placeholder="再次输入密码"
+                  placeholder="Re-enter password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="pl-9"
@@ -268,7 +268,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
                 {resetPassword.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                重置密码
+                Reset Password
               </Button>
             </DialogFooter>
           </form>
@@ -280,11 +280,11 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
               <CheckCircle2 className="h-16 w-16 text-green-500" />
             </div>
             <p className="text-center text-muted-foreground">
-              您的密码已成功重置。请使用新密码登录。
+              Your password has been successfully reset. Please login with your new password.
             </p>
             <DialogFooter>
               <Button onClick={handleClose} className="w-full">
-                关闭
+                Close
               </Button>
             </DialogFooter>
           </div>
