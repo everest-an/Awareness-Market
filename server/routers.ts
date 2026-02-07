@@ -65,7 +65,22 @@ import type {
   MemoryPackage,
   MemoryPackagesResponse
 } from './types/router-types';
+import crypto from 'crypto';
 // Memory Exchange moved to Go microservice
+
+// Wallet login nonce store for replay protection
+const walletNonces = new Map<string, { nonce: string; expiresAt: number }>();
+const WALLET_NONCE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
+// Clean up expired nonces periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of walletNonces) {
+    if (now > entry.expiresAt) {
+      walletNonces.delete(key);
+    }
+  }
+}, 60 * 1000); // Every minute
 
 // Helper to get client IP from request
 function getClientIp(req: TrpcRequest): string {
@@ -339,15 +354,48 @@ export const appRouter = router({
       return result;
     }),
 
+    // Get wallet login nonce (challenge-response for replay protection)
+    getWalletNonce: publicProcedure
+      .input(z.object({
+        address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
+      }))
+      .mutation(async ({ input }) => {
+        const nonce = crypto.randomBytes(32).toString('hex');
+        const expiresAt = Date.now() + WALLET_NONCE_EXPIRY_MS;
+        const message = `Sign this message to authenticate with Awareness Market.\n\nNonce: ${nonce}\nAddress: ${input.address}\nTimestamp: ${new Date().toISOString()}`;
+        
+        walletNonces.set(input.address.toLowerCase(), { nonce, expiresAt });
+        
+        return { message, nonce, expiresAt };
+      }),
+
     // Wallet Login - MetaMask signature verification with JWT cookie session
     walletLogin: publicProcedure
       .input(z.object({
         address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
         signature: z.string(),
         message: z.string(),
+        nonce: z.string(),
       }))
       .mutation(async ({ input, ctx }) => {
         try {
+          // 0. Verify nonce to prevent replay attacks
+          const storedNonce = walletNonces.get(input.address.toLowerCase());
+          if (!storedNonce || storedNonce.nonce !== input.nonce) {
+            return { success: false, error: 'Invalid or expired nonce. Please request a new one.' };
+          }
+          if (Date.now() > storedNonce.expiresAt) {
+            walletNonces.delete(input.address.toLowerCase());
+            return { success: false, error: 'Nonce has expired. Please request a new one.' };
+          }
+          // Consume nonce (one-time use)
+          walletNonces.delete(input.address.toLowerCase());
+
+          // Verify the message contains the expected nonce
+          if (!input.message.includes(input.nonce)) {
+            return { success: false, error: 'Message does not contain the expected nonce.' };
+          }
+
           // 1. Verify signature using viem
           const { verifyMessage } = await import('viem');
           const isValid = await verifyMessage({
@@ -735,18 +783,23 @@ export const appRouter = router({
         };
       }),
 
-    // Log API call
-    logCall: publicProcedure
+    // Log API call (authenticated - only owner can log calls against their access tokens)
+    logCall: protectedProcedure
       .input(z.object({
         accessToken: z.string(),
         responseTime: z.number(),
         success: z.boolean(),
         errorMessage: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const permission = await db.getAccessPermissionByToken(input.accessToken);
         if (!permission) {
           throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+
+        // Verify the permission belongs to the authenticated user
+        if (permission.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Cannot log calls for another user's access token" });
         }
 
         await db.logApiCall({
@@ -955,10 +1008,18 @@ export const appRouter = router({
         return await db.getUserNotifications(ctx.user.id, input.unreadOnly);
       }),
 
-    // Mark as read
+    // Mark as read (with ownership check)
     markRead: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Verify the notification belongs to the authenticated user
+        const notification = await prisma.notification.findUnique({
+          where: { id: input.id },
+          select: { userId: true },
+        });
+        if (!notification || notification.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Notification not found" });
+        }
         await db.markNotificationAsRead(input.id);
         return { success: true };
       }),
