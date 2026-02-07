@@ -5,7 +5,7 @@
  * for agents to join the workflow.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'wouter';
 import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,32 +25,88 @@ import {
   ArrowLeft,
   Play,
   Pause,
-  AlertTriangle
+  AlertTriangle,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+import { io, Socket } from 'socket.io-client';
 
 type WorkflowStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export default function SessionConnect() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [copiedToken, setCopiedToken] = useState(false);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
+  const utils = trpc.useUtils();
 
-  // Fetch workflow status
+  // Fetch workflow status (initial load only, no polling)
   const { data: workflow, isLoading, error, refetch } = trpc.agentCollaboration.getWorkflowStatus.useQuery(
     { workflowId: sessionId! },
     {
       enabled: !!sessionId,
-      refetchInterval: (queryData) => {
-        // Poll every 3 seconds if workflow is still running
-        const status = queryData?.status;
-        if (status === 'running' || status === 'pending') {
-          return 3000;
-        }
-        return false;
-      },
+      refetchOnWindowFocus: false,
     }
   );
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    if (!sessionId) return;
+
+    // Initialize Socket.IO connection
+    const socket = io('/', {
+      path: '/api/workflow/stream',
+      transports: ['websocket', 'polling'],
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('[SessionConnect] WebSocket connected:', socket.id);
+      setIsSocketConnected(true);
+      toast.success('Real-time updates connected');
+
+      // Subscribe to workflow updates
+      socket.emit('subscribe', sessionId);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('[SessionConnect] WebSocket disconnected');
+      setIsSocketConnected(false);
+      toast.info('Real-time updates disconnected');
+    });
+
+    socket.on('message', (message: any) => {
+      console.log('[SessionConnect] Workflow update:', message);
+
+      // Refetch workflow status on any update
+      refetch();
+
+      // Show toast for important events
+      if (message.type === 'workflow:completed') {
+        toast.success('Workflow completed!');
+      } else if (message.type === 'workflow:failed') {
+        toast.error('Workflow failed');
+      } else if (message.type === 'step:completed') {
+        toast.info(`Step completed: ${message.data?.agentName || 'Agent'}`);
+      }
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('[SessionConnect] Connection error:', err);
+      toast.error('Failed to connect to real-time updates');
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (socket) {
+        socket.emit('unsubscribe', sessionId);
+        socket.disconnect();
+      }
+    };
+  }, [sessionId, refetch]);
 
   // Stop workflow mutation
   const stopWorkflow = trpc.agentCollaboration.stopWorkflow.useMutation({
@@ -153,7 +209,14 @@ export default function SessionConnect() {
                 {workflow.task}
               </h1>
             </div>
-            {getStatusBadge(workflow.status as WorkflowStatus)}
+            <div className="flex items-center gap-3">
+              {getStatusBadge(workflow.status as WorkflowStatus)}
+              {/* WebSocket Status Indicator */}
+              <Badge variant="outline" className={isSocketConnected ? 'border-green-500/50 text-green-400' : 'border-gray-500/50 text-gray-400'}>
+                {isSocketConnected ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
+                {isSocketConnected ? 'Live' : 'Offline'}
+              </Badge>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 text-sm text-slate-400">

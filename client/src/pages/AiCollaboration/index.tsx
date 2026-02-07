@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -13,14 +13,56 @@ import {
   ArrowRight,
   CheckCircle2,
 } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 export default function AiCollaborationHub() {
-  const [stats] = useState({
-    activeSessions: 247,
-    totalCollaborations: 1893,
-    avgDuration: '42 min',
-    successRate: 94,
+  // Fetch real collaboration workflows
+  const { data: workflowData } = trpc.agentCollaboration.listWorkflows.useQuery(undefined, {
+    refetchInterval: 10000, // Refresh every 10 seconds
   });
+
+  // Calculate real statistics from API data
+  const stats = useMemo(() => {
+    if (!workflowData?.workflows) {
+      return {
+        activeSessions: 0,
+        totalCollaborations: 0,
+        avgDuration: '0 min',
+        successRate: 0,
+      };
+    }
+
+    const workflows = workflowData.workflows;
+    const activeSessions = workflows.filter(
+      w => w.status === 'running' || w.status === 'pending'
+    ).length;
+
+    const completedWorkflows = workflows.filter(w => w.status === 'completed');
+    const totalCollaborations = workflows.length;
+    const successRate = totalCollaborations > 0
+      ? Math.round((completedWorkflows.length / totalCollaborations) * 100)
+      : 0;
+
+    // Calculate average duration for completed workflows
+    const durations = completedWorkflows
+      .map(w => w.executionTime)
+      .filter((d): d is number => d !== null && d !== undefined);
+
+    const avgDurationMs = durations.length > 0
+      ? durations.reduce((sum, d) => sum + d, 0) / durations.length
+      : 0;
+
+    const avgDuration = avgDurationMs > 0
+      ? `${Math.round(avgDurationMs / 60000)} min`
+      : '0 min';
+
+    return {
+      activeSessions,
+      totalCollaborations,
+      avgDuration,
+      successRate,
+    };
+  }, [workflowData]);
 
   const useCases = [
     {
