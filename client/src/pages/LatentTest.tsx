@@ -33,7 +33,7 @@ export default function LatentTest() {
         targetDim: 128,
       });
       setResult(res);
-      toast.success("测试完成");
+      toast.success("Test completed");
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -41,7 +41,7 @@ export default function LatentTest() {
   };
 
   const runWorkflow = async () => {
-    if (!inputText.trim()) { toast.error("请输入文本"); return; }
+    if (!inputText.trim()) { toast.error("Please enter text"); return; }
     setIsProcessing(true);
     try {
       const res = await buildPackageMutation.mutateAsync({
@@ -53,7 +53,7 @@ export default function LatentTest() {
         compressionRatio: 0.65,
       });
       setResult(res);
-      toast.success("Package 生成完成");
+      toast.success("Package generation completed");
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -72,28 +72,28 @@ export default function LatentTest() {
             <h1 className="text-4xl font-bold">Latent Test</h1>
             <Badge variant="secondary">LatentMAS v2.0</Badge>
           </div>
-          <p className="text-muted-foreground">LatentMAS 工作流测试工具</p>
+          <p className="text-muted-foreground">LatentMAS Workflow Testing Tool</p>
         </div>
       </div>
       <div className="container py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="test"><Zap className="w-4 h-4 mr-2" />对齐测试</TabsTrigger>
-            <TabsTrigger value="workflow"><Play className="w-4 h-4 mr-2" />完整工作流</TabsTrigger>
-            <TabsTrigger value="models"><Cpu className="w-4 h-4 mr-2" />模型库</TabsTrigger>
-            <TabsTrigger value="docs"><BookOpen className="w-4 h-4 mr-2" />文档</TabsTrigger>
+            <TabsTrigger value="test"><Zap className="w-4 h-4 mr-2" />Alignment Test</TabsTrigger>
+            <TabsTrigger value="workflow"><Play className="w-4 h-4 mr-2" />Full Workflow</TabsTrigger>
+            <TabsTrigger value="models"><Cpu className="w-4 h-4 mr-2" />Model Library</TabsTrigger>
+            <TabsTrigger value="docs"><BookOpen className="w-4 h-4 mr-2" />Documentation</TabsTrigger>
           </TabsList>
           <TabsContent value="test" className="mt-6">
             <Card>
-              <CardHeader><CardTitle>W-Matrix 对齐测试</CardTitle></CardHeader>
+              <CardHeader><CardTitle>W-Matrix Alignment Test</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label>源模型</Label><input className="w-full p-2 border rounded mt-1" value={sourceModel} onChange={e => setSourceModel(e.target.value)} /></div>
-                  <div><Label>目标模型</Label><input className="w-full p-2 border rounded mt-1" value={targetModel} onChange={e => setTargetModel(e.target.value)} /></div>
+                  <div><Label>Source Model</Label><input className="w-full p-2 border rounded mt-1" value={sourceModel} onChange={e => setSourceModel(e.target.value)} /></div>
+                  <div><Label>Target Model</Label><input className="w-full p-2 border rounded mt-1" value={targetModel} onChange={e => setTargetModel(e.target.value)} /></div>
                 </div>
                 <Button onClick={runTest} disabled={isProcessing} className="w-full">
                   {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
-                  运行对齐测试
+                  Run Alignment Test
                 </Button>
                 {result && <pre className="p-4 bg-muted rounded text-xs overflow-auto max-h-60">{JSON.stringify(result, null, 2)}</pre>}
               </CardContent>
@@ -101,12 +101,12 @@ export default function LatentTest() {
           </TabsContent>
           <TabsContent value="workflow" className="mt-6">
             <Card>
-              <CardHeader><CardTitle>完整工作流</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Full Workflow</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div><Label>输入文本</Label><Textarea placeholder="输入文本内容..." value={inputText} onChange={e => setInputText(e.target.value)} className="mt-1" /></div>
+                <div><Label>Input Text</Label><Textarea placeholder="Enter text content..." value={inputText} onChange={e => setInputText(e.target.value)} className="mt-1" /></div>
                 <Button onClick={runWorkflow} disabled={isProcessing} className="w-full">
                   {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
-                  生成 LatentMAS Package
+                  Generate LatentMAS Package
                 </Button>
                 {result && <pre className="p-4 bg-muted rounded text-xs overflow-auto max-h-60">{JSON.stringify(result, null, 2)}</pre>}
               </CardContent>
@@ -114,7 +114,7 @@ export default function LatentTest() {
           </TabsContent>
           <TabsContent value="models" className="mt-6">
             <Card>
-              <CardHeader><CardTitle>支持的模型</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Supported Models</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {["GPT-4", "GPT-4o", "Claude 3 Opus", "Claude 3.5 Sonnet", "LLaMA 3 70B", "DeepSeek V3", "Gemini 1.5 Pro", "Mixtral 8x22B"].map(m => (
@@ -126,19 +126,19 @@ export default function LatentTest() {
           </TabsContent>
           <TabsContent value="docs" className="mt-6">
             <Card>
-              <CardHeader><CardTitle>LatentMAS 协议文档</CardTitle></CardHeader>
+              <CardHeader><CardTitle>LatentMAS Protocol Documentation</CardTitle></CardHeader>
               <CardContent className="prose dark:prose-invert">
-                <p>W-Matrix 协议实现了不同 AI 模型之间的 KV-Cache 直接交换，使 AI 代理能够共享推理过程。</p>
-                <h4>工作原理</h4>
+                <p>The W-Matrix protocol enables direct KV-Cache exchange between different AI models, allowing AI agents to share reasoning processes.</p>
+                <h4>How it works</h4>
                 <ol>
-                  <li>标准化 W-Matrix：预定义的转换矩阵</li>
-                  <li>KV-Cache 提取：从源模型提取注意力键值</li>
-                  <li>对齐：W-Matrix 转换到目标模型空间</li>
-                  <li>注入：对齐后的 KV-Cache 注入目标模型</li>
+                  <li>Standardized W-Matrix: Pre-defined transformation matrices</li>
+                  <li>KV-Cache Extraction: Extract attention key-values from source model</li>
+                  <li>Alignment: W-Matrix transformation to target model space</li>
+                  <li>Injection: Inject aligned KV-Cache into target model</li>
                 </ol>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>>
         </Tabs>
       </div>
     </div>

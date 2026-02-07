@@ -48,6 +48,7 @@ const navLinks = [
   {
     label: "Tools",
     children: [
+      { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork", featured: true },
       { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
@@ -261,6 +262,17 @@ export default function Navbar() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
+            {/* AI Collaboration CTA Button */}
+            <Link href="/ai-collaboration/new">
+              <Button
+                size="sm"
+                className="hidden md:flex bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 text-white border-0"
+              >
+                <Users className="w-4 h-4 mr-1.5" />
+                AI Collab
+              </Button>
+            </Link>
+
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
