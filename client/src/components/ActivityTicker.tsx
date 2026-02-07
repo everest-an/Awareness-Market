@@ -12,7 +12,8 @@
  */
 
 import { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { List } from "react-window";
 import { trpc } from "../lib/trpc";
 import { io } from "socket.io-client";
 
@@ -119,6 +120,65 @@ export function ActivityTicker({
     return 'border-gray-500 bg-gray-500/10';
   };
 
+  // Row renderer for virtual list
+  const EventRow = ({ index }: { index: number }) => {
+    const event = events[index];
+
+    return (
+      <div className="px-2 mb-2">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          onClick={() => onEventClick?.(event)}
+          className={`
+            border rounded-lg p-3 cursor-pointer
+            hover:scale-[1.02] transition-transform
+            ${getEventColor(event.similarity)}
+          `}
+        >
+          <div className="flex items-start space-x-3">
+            <div className="text-2xl">{getEventIcon(event.type)}</div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="text-sm font-medium text-white truncate">
+                  {event.consumerName}
+                </span>
+                <span className="text-gray-400">→</span>
+                <span className="text-sm font-medium text-blue-400 truncate">
+                  {event.providerName}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <div className="flex items-center space-x-3">
+                  <span className="flex items-center space-x-1">
+                    <span>Similarity:</span>
+                    <span className="font-mono text-white">
+                      {(event.similarity * 100).toFixed(1)}%
+                    </span>
+                  </span>
+
+                  {event.cost > 0 && (
+                    <span className="flex items-center space-x-1">
+                      <span>Cost:</span>
+                      <span className="font-mono text-yellow-400">
+                        {event.cost.toFixed(4)} $AMEM
+                      </span>
+                    </span>
+                  )}
+                </div>
+
+                <span>{formatTimestamp(event.timestamp)}</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
   return (
     <div className={`flex flex-col space-y-2 ${className}`}>
       <div className="flex items-center justify-between mb-2">
@@ -129,71 +189,22 @@ export function ActivityTicker({
         </div>
       </div>
 
-      <div className="space-y-2 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        <AnimatePresence initial={false}>
-          {events.map((event) => (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, x: -20, height: 0 }}
-              animate={{ opacity: 1, x: 0, height: 'auto' }}
-              exit={{ opacity: 0, x: 20, height: 0 }}
-              transition={{ duration: 0.3 }}
-              onClick={() => onEventClick?.(event)}
-              className={`
-                border rounded-lg p-3 cursor-pointer
-                hover:scale-[1.02] transition-transform
-                ${getEventColor(event.similarity)}
-              `}
-            >
-              <div className="flex items-start space-x-3">
-                <div className="text-2xl">{getEventIcon(event.type)}</div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-sm font-medium text-white truncate">
-                      {event.consumerName}
-                    </span>
-                    <span className="text-gray-400">→</span>
-                    <span className="text-sm font-medium text-blue-400 truncate">
-                      {event.providerName}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <div className="flex items-center space-x-3">
-                      <span className="flex items-center space-x-1">
-                        <span>Similarity:</span>
-                        <span className="font-mono text-white">
-                          {(event.similarity * 100).toFixed(1)}%
-                        </span>
-                      </span>
-
-                      {event.cost > 0 && (
-                        <span className="flex items-center space-x-1">
-                          <span>Cost:</span>
-                          <span className="font-mono text-yellow-400">
-                            {event.cost.toFixed(4)} $AMEM
-                          </span>
-                        </span>
-                      )}
-                    </div>
-
-                    <span>{formatTimestamp(event.timestamp)}</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {events.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <div className="text-4xl mb-2">🌌</div>
-            <div className="text-sm">No recent activity</div>
-            <div className="text-xs mt-1">Waiting for resonances...</div>
-          </div>
-        )}
-      </div>
+      {events.length > 0 ? (
+        <List
+          defaultHeight={600}
+          rowCount={events.length}
+          rowHeight={120}
+          rowComponent={EventRow}
+          rowProps={{}}
+          className="scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
+        />
+      ) : (
+        <div className="text-center py-8 text-gray-500 h-[600px] flex flex-col items-center justify-center">
+          <div className="text-4xl mb-2">🌌</div>
+          <div className="text-sm">No recent activity</div>
+          <div className="text-xs mt-1">Waiting for resonances...</div>
+        </div>
+      )}
 
       {/* Event Statistics */}
       <div className="border-t border-gray-700 pt-3 grid grid-cols-3 gap-2">

@@ -43,6 +43,7 @@ type NetworkBrainProps = {
   className?: string;
   autoRotate?: boolean;
   showStats?: boolean;
+  maxNodes?: number;
   onNodeClick?: (agent: AgentNode) => void;
 };
 
@@ -99,6 +100,7 @@ export function NetworkBrain({
   className = "",
   autoRotate = true,
   showStats = true,
+  maxNodes = 100,
   onNodeClick,
 }: NetworkBrainProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -126,14 +128,16 @@ export function NetworkBrain({
 
   // Generate or fetch network data
   const networkData = useMemo(() => {
+    const count = Math.min(agentCount || 50, maxNodes);
+
     if (useSimulated) {
-      return generateSimulatedNetwork(Math.min(agentCount, 100));
+      return generateSimulatedNetwork(count);
     }
 
     // TODO: Transform networkActivity into nodes and edges
-    // For now, use simulated data
-    return generateSimulatedNetwork(50);
-  }, [agentCount, useSimulated, networkActivity]);
+    // For now, use simulated data with node limit enforced
+    return generateSimulatedNetwork(count);
+  }, [agentCount, useSimulated, networkActivity, maxNodes]);
 
   // Initialize Three.js scene
   useEffect(() => {
@@ -386,7 +390,7 @@ export function NetworkBrain({
       {showStats && (
         <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white space-y-2">
           <div className="text-sm font-mono">
-            <div>Agents: {agentCount}</div>
+            <div>Agents: {networkData.nodes.length} / {maxNodes} max</div>
             <div>Connections: {networkData.edges.length}</div>
             <div>FPS: {fps}</div>
             <div>Mode: {useSimulated ? 'Simulated' : 'Real-time'}</div>
