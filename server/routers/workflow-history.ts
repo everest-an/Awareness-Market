@@ -26,7 +26,7 @@ export const workflowHistoryRouter = router({
           "w_matrix_training",
           "vector_invocation",
         ]).optional(),
-        status: z.enum(["pending", "active", "completed", "failed"]).optional(),
+        status: z.enum(["pending", "running", "completed", "failed", "cancelled"]).optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         sortBy: z.enum(["createdAt", "updatedAt"]).default("createdAt"),
@@ -170,7 +170,7 @@ export const workflowHistoryRouter = router({
         prisma.workflow.count({ where }),
         prisma.workflow.count({ where: { ...where, status: "completed" } }),
         prisma.workflow.count({ where: { ...where, status: "failed" } }),
-        prisma.workflow.count({ where: { ...where, status: "active" } }),
+        prisma.workflow.count({ where: { ...where, status: "running" } }),
       ]);
 
       const avgDuration = await prisma.workflow.aggregate({
