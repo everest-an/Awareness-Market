@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { Loader2, Sparkles, AlertCircle, Info } from "lucide-react";
 import axios from "axios";
 
 interface TrialDialogProps {
@@ -126,8 +126,9 @@ export function TrialDialog({ open, onOpenChange, vectorId, vectorTitle }: Trial
                 </pre>
               </div>
               <Alert className="mt-2">
+                <Info className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                  💡 This is a trial response. Purchase the vector for full functionality and production use.
+                  This is a trial response. Purchase the vector for full functionality and production use.
                 </AlertDescription>
               </Alert>
             </div>

@@ -37,7 +37,10 @@ import {
   Filter,
   Download,
   AlertTriangle,
-  Info
+  Info,
+  MousePointer2,
+  Move,
+  ZoomIn
 } from "lucide-react";
 
 export default function HiveMind() {
@@ -401,11 +404,20 @@ export default function HiveMind() {
                 </div>
 
                 {/* Camera Instructions */}
-                <div className="absolute bottom-4 left-4 glass-card p-2 text-xs text-muted-foreground">
-                  <div className="space-y-1">
-                    <div>🖱️ Left drag: Rotate</div>
-                    <div>🖱️ Right drag: Pan</div>
-                    <div>🖱️ Scroll: Zoom</div>
+                <div className="absolute bottom-4 left-4 glass-subtle p-3">
+                  <div className="text-xs text-muted-foreground space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <MousePointer2 className="w-3.5 h-3.5" />
+                      <span>Left drag: Rotate</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Move className="w-3.5 h-3.5" />
+                      <span>Right drag: Pan</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ZoomIn className="w-3.5 h-3.5" />
+                      <span>Scroll: Zoom</span>
+                    </div>
                   </div>
                 </div>
               </div>

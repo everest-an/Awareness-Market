@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { List } from "react-window";
 import { trpc } from "../lib/trpc";
 import { io } from "socket.io-client";
+import { Brain, Database, UserPlus, Activity } from "lucide-react";
 
 export type NetworkEvent = {
   id: string;
@@ -101,15 +102,16 @@ export function ActivityTicker({
   };
 
   const getEventIcon = (type: NetworkEvent['type']) => {
+    const iconClass = "w-5 h-5";
     switch (type) {
       case 'resonance':
-        return '🧠';
+        return <Brain className={`${iconClass} text-primary`} />;
       case 'memory_upload':
-        return '💾';
+        return <Database className={`${iconClass} text-accent`} />;
       case 'agent_join':
-        return '👋';
+        return <UserPlus className={`${iconClass} text-blue-400`} />;
       default:
-        return '•';
+        return <Activity className={`${iconClass} text-muted-foreground`} />;
     }
   };
 
@@ -132,30 +134,32 @@ export function ActivityTicker({
           transition={{ duration: 0.3 }}
           onClick={() => onEventClick?.(event)}
           className={`
-            border rounded-lg p-3 cursor-pointer
-            hover:scale-[1.02] transition-transform
+            glass-card-hover cursor-pointer
             ${getEventColor(event.similarity)}
+            p-3
           `}
         >
           <div className="flex items-start space-x-3">
-            <div className="text-2xl">{getEventIcon(event.type)}</div>
+            <div className="flex-shrink-0 mt-0.5">
+              {getEventIcon(event.type)}
+            </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2 mb-1">
-                <span className="text-sm font-medium text-white truncate">
+                <span className="text-sm font-medium text-foreground truncate">
                   {event.consumerName}
                 </span>
-                <span className="text-gray-400">→</span>
-                <span className="text-sm font-medium text-blue-400 truncate">
+                <span className="text-muted-foreground">→</span>
+                <span className="text-sm font-medium text-primary truncate">
                   {event.providerName}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-gray-400">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center space-x-3">
                   <span className="flex items-center space-x-1">
                     <span>Similarity:</span>
-                    <span className="font-mono text-white">
+                    <span className="font-mono text-foreground">
                       {(event.similarity * 100).toFixed(1)}%
                     </span>
                   </span>
@@ -163,7 +167,7 @@ export function ActivityTicker({
                   {event.cost > 0 && (
                     <span className="flex items-center space-x-1">
                       <span>Cost:</span>
-                      <span className="font-mono text-yellow-400">
+                      <span className="font-mono text-accent">
                         {event.cost.toFixed(4)} $AMEM
                       </span>
                     </span>
@@ -180,12 +184,12 @@ export function ActivityTicker({
   };
 
   return (
-    <div className={`flex flex-col space-y-2 ${className}`}>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-white">Live Activity</h3>
+    <div className={`flex flex-col space-y-3 ${className}`}>
+      <div className="glass-subtle flex items-center justify-between p-3">
+        <h3 className="text-sm font-semibold text-foreground">Live Activity</h3>
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-xs text-gray-400">Real-time</span>
+          <span className="text-xs text-muted-foreground">Real-time</span>
         </div>
       </div>
 
@@ -199,32 +203,32 @@ export function ActivityTicker({
           className="scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
         />
       ) : (
-        <div className="text-center py-8 text-gray-500 h-[600px] flex flex-col items-center justify-center">
-          <div className="text-4xl mb-2">🌌</div>
-          <div className="text-sm">No recent activity</div>
-          <div className="text-xs mt-1">Waiting for resonances...</div>
+        <div className="glass-card text-center py-8 h-[600px] flex flex-col items-center justify-center">
+          <Activity className="w-12 h-12 mb-3 text-muted-foreground opacity-50" />
+          <div className="text-sm text-muted-foreground">No recent activity</div>
+          <div className="text-xs text-muted-foreground/70 mt-1">Waiting for resonances...</div>
         </div>
       )}
 
       {/* Event Statistics */}
-      <div className="border-t border-gray-700 pt-3 grid grid-cols-3 gap-2">
+      <div className="glass-subtle grid grid-cols-3 gap-3 p-3">
         <div className="text-center">
-          <div className="text-lg font-bold text-white">{events.length}</div>
-          <div className="text-xs text-gray-400">Events</div>
+          <div className="text-lg font-bold text-foreground">{events.length}</div>
+          <div className="text-xs text-muted-foreground">Events</div>
         </div>
 
         <div className="text-center">
-          <div className="text-lg font-bold text-purple-400">
+          <div className="text-lg font-bold text-primary">
             {events.filter(e => e.similarity >= 0.95).length}
           </div>
-          <div className="text-xs text-gray-400">High Match</div>
+          <div className="text-xs text-muted-foreground">High Match</div>
         </div>
 
         <div className="text-center">
-          <div className="text-lg font-bold text-yellow-400">
+          <div className="text-lg font-bold text-accent">
             {events.reduce((sum, e) => sum + e.cost, 0).toFixed(3)}
           </div>
-          <div className="text-xs text-gray-400">$AMEM Spent</div>
+          <div className="text-xs text-muted-foreground">$AMEM Spent</div>
         </div>
       </div>
     </div>
