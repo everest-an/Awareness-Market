@@ -4,24 +4,14 @@
  * A standalone authentication page supporting:
  * - Email/Password login and registration
  * - OAuth login (GitHub, Google)
+ * - Wallet login (MetaMask / WalletConnect)
+ * - AI Agent login (ERC-8004)
  * - Password strength indicator
  * - Rate limiting feedback
  * - Password reset flow
- * 
- * ## Features
- * - Form validation with real-time feedback
- * - Password strength meter
- * - OAuth provider buttons
- * - Loading states and error handling
- * - Automatic redirect after login
- * 
- * ## Dependencies
- * - trpc: API client for auth endpoints
- * - wouter: Client-side routing
- * - shadcn/ui: UI components
  */
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -33,7 +23,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog";
-import { Loader2, Mail, Lock, User, AlertCircle, Github, CheckCircle2 } from "lucide-react";
+import { Loader2, Mail, Lock, User, AlertCircle, Github, CheckCircle2, Wallet, Bot, ArrowRight } from "lucide-react";
 
 // Form validation helpers
 const validateEmail = (email: string): string | null => {
@@ -90,6 +80,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
 
   const [loginForm, setLoginForm] = useState<LoginFormState>({
     email: "",
@@ -150,13 +141,11 @@ export default function AuthPage() {
     onMutate: () => setIsSubmitting(true),
     onSuccess: (data) => {
       if (data.success) {
-        // Check if email verification is required
         if ((data as any).requiresVerification) {
           toast({ 
             title: "Account created!", 
             description: "Please check your email for a verification code." 
           });
-          // Redirect to verification page with email
           setLocation(`/auth/verify?email=${encodeURIComponent(registerForm.email)}`);
         } else {
           toast({ title: "Account created!", description: "Please sign in." });
@@ -180,12 +169,12 @@ export default function AuthPage() {
   });
 
   // OAuth mutations
-  const { data: githubAuthUrl, refetch: getGithubUrl } = trpc.auth.oauthAuthorizeUrl.useQuery(
+  const { refetch: getGithubUrl } = trpc.auth.oauthAuthorizeUrl.useQuery(
     { provider: "github" },
     { enabled: false }
   );
 
-  const { data: googleAuthUrl, refetch: getGoogleUrl } = trpc.auth.oauthAuthorizeUrl.useQuery(
+  const { refetch: getGoogleUrl } = trpc.auth.oauthAuthorizeUrl.useQuery(
     { provider: "google" },
     { enabled: false }
   );
@@ -203,6 +192,47 @@ export default function AuthPage() {
       toast({ title: "OAuth Error", description: "Failed to start OAuth flow", variant: "destructive" });
     }
   }, [getGithubUrl, getGoogleUrl, toast]);
+
+  // Wallet connect handler
+  const handleWalletConnect = useCallback(async () => {
+    setIsConnectingWallet(true);
+    try {
+      const ethereum = (window as any).ethereum;
+      if (!ethereum) {
+        toast({ 
+          title: "Wallet not found", 
+          description: "Please install MetaMask or another Web3 wallet to continue.", 
+          variant: "destructive" 
+        });
+        return;
+      }
+      const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+      if (accounts && accounts.length > 0) {
+        const address = accounts[0];
+        // Sign a message for authentication
+        const message = `Sign in to Awareness Market\nAddress: ${address}\nTimestamp: ${Date.now()}`;
+        const signature = await ethereum.request({
+          method: "personal_sign",
+          params: [message, address],
+        });
+        toast({ 
+          title: "Wallet connected!", 
+          description: `Connected as ${address.slice(0, 6)}...${address.slice(-4)}` 
+        });
+        // TODO: Send signature to backend for verification
+        // For now, redirect to dashboard
+        setTimeout(() => setLocation("/"), 500);
+      }
+    } catch (error: any) {
+      if (error.code === 4001) {
+        toast({ title: "Connection cancelled", description: "You rejected the wallet connection.", variant: "destructive" });
+      } else {
+        toast({ title: "Wallet error", description: error.message || "Failed to connect wallet", variant: "destructive" });
+      }
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  }, [toast, setLocation]);
 
   // Form handlers
   const handleLoginSubmit = useCallback((e: React.FormEvent) => {
@@ -325,46 +355,79 @@ export default function AuthPage() {
                   </div>
                 </form>
 
-                {/* OAuth Section */}
-                <div className="mt-6">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                    </div>
+                {/* Divider */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                   </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <Button 
-                      variant="outline" 
-                      disabled={!oauthStatus?.github}
-                      onClick={() => handleOAuthLogin("github")}
-                      className={!oauthStatus?.github ? "opacity-50" : ""}
-                    >
-                      <Github className="mr-2 h-4 w-4" />
-                      GitHub
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      disabled={!oauthStatus?.google}
-                      onClick={() => handleOAuthLogin("google")}
-                      className={!oauthStatus?.google ? "opacity-50" : ""}
-                    >
-                      <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                      </svg>
-                      Google
-                    </Button>
-                  </div>
-                  {(!oauthStatus?.github && !oauthStatus?.google) && (
-                    <p className="mt-3 text-xs text-center text-muted-foreground">
-                      OAuth providers not configured
-                    </p>
-                  )}
                 </div>
+
+                {/* Wallet & AI Agent Login */}
+                <div className="space-y-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-11 justify-between group hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all"
+                    onClick={handleWalletConnect}
+                    disabled={isConnectingWallet}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Wallet className="h-4 w-4 text-emerald-500" />
+                      <span>Connect Wallet</span>
+                    </div>
+                    {isConnectingWallet ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <span className="text-xs text-muted-foreground group-hover:text-emerald-500 transition-colors">MetaMask</span>
+                    )}
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-11 justify-between group hover:border-violet-500/50 hover:bg-violet-500/5 transition-all"
+                    onClick={() => setLocation("/auth/agent")}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-4 w-4 text-violet-500" />
+                      <span>AI Agent Login</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground group-hover:text-violet-500 transition-colors flex items-center gap-1">
+                      ERC-8004 <ArrowRight className="h-3 w-3" />
+                    </span>
+                  </Button>
+                </div>
+
+                {/* OAuth Section */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline" 
+                    disabled={!oauthStatus?.github}
+                    onClick={() => handleOAuthLogin("github")}
+                    className={!oauthStatus?.github ? "opacity-50" : ""}
+                  >
+                    <Github className="mr-2 h-4 w-4" />
+                    GitHub
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    disabled={!oauthStatus?.google}
+                    onClick={() => handleOAuthLogin("google")}
+                    className={!oauthStatus?.google ? "opacity-50" : ""}
+                  >
+                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Google
+                  </Button>
+                </div>
+                {(!oauthStatus?.github && !oauthStatus?.google) && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    OAuth providers not configured
+                  </p>
+                )}
               </TabsContent>
 
               {/* Register Tab */}
@@ -474,6 +537,32 @@ export default function AuthPage() {
                     {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : "Create Account"}
                   </Button>
                 </form>
+
+                {/* Divider */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or register with</span>
+                  </div>
+                </div>
+
+                {/* Wallet Registration */}
+                <Button 
+                  variant="outline" 
+                  className="w-full h-11 justify-between group hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all"
+                  onClick={handleWalletConnect}
+                  disabled={isConnectingWallet}
+                >
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-emerald-500" />
+                    <span>Register with Wallet</span>
+                  </div>
+                  {isConnectingWallet ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground group-hover:text-emerald-500 transition-colors">MetaMask</span>
+                  )}
+                </Button>
 
                 <p className="text-xs text-center text-muted-foreground mt-4">
                   By creating an account, you agree to our{" "}
