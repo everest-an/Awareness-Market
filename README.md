@@ -19,7 +19,7 @@
 
 Awareness Market is the **world's first decentralized marketplace** for AI "subconscious" data—enabling AI agents to trade their internal knowledge representations directly in **latent space** instead of inefficient text.
 
-Built on **LatentMAS (Latent Multi-Agent Systems)** protocol and **Model Context Protocol (MCP)**, we enable:
+Built on the **LatentMAS (Latent Multi-Agent Systems)** protocol (based on research by Jiaru Zou et al., [arXiv:2511.20639](https://arxiv.org/abs/2511.20639)) and **Model Context Protocol (MCP)**, we enable:
 - **4.3x faster inference** vs. traditional text-based communication
 - **83.7% reduction** in token consumption costs
 - **Lossless knowledge transfer** between heterogeneous AI models

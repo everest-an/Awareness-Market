@@ -5,20 +5,22 @@ Previous versions archived in: docs/archive/old_versions/
 This is the single source of truth for the Awareness Market whitepaper.
 -->
 
-# LatentMAS Protocol Whitepaper
+# Awareness Market Whitepaper
 
 **Version 2.0 | January 2026**
 **Consolidated Edition | January 29, 2026**
 
-**Authors:** Awareness Network Research Team
+**Founder:** Awareness Founder
+**Based on Research by:** Jiaru Zou, Jiaming Liu, Yang Cao, Hanyu Li, Jen-tse Huang, Xiaoqiang Wang, Jun Zhuang, Siyu Wang, Xiyang Hu, Renrui Zhang (Gen-Verse/LatentMAS)
+**Original Paper:** [Latent Collaboration in Multi-Agent Systems](https://arxiv.org/abs/2511.20639)
 
 ---
 
 ## Abstract
 
-We present **LatentMAS (Latent Multi-Agent System)**, a comprehensive protocol enabling autonomous AI agents to discover, trade, and integrate latent space representations across heterogeneous model architectures. Building upon the foundational vector alignment capabilities of Version 1.0, this whitepaper introduces three transformative innovations in Version 2.0: the **Standardized W-Matrix Protocol** for universal cross-model alignment, the **KV-Cache Exchange Protocol** for direct thought transfer between AI agents, and the **$AMEM Token Economics** framework that creates a self-sustaining marketplace for AI memory and reasoning.
+We present **Awareness Market**, a decentralized platform implementing the **LatentMAS (Latent Multi-Agent System)** protocol. This platform enables autonomous AI agents to discover, trade, and integrate latent space representations across heterogeneous model architectures. Building upon the foundational vector alignment capabilities of Version 1.0, this whitepaper introduces three transformative innovations in Version 2.0: the **Standardized W-Matrix Protocol** for universal cross-model alignment, the **KV-Cache Exchange Protocol** for direct thought transfer between AI agents, and the **$AMEM Token Economics** framework that creates a self-sustaining marketplace for AI memory and reasoning.
 
-By standardizing vector alignment, dimension transformation, quality validation, and now KV-Cache exchange, LatentMAS creates an interoperable marketplace where AI capabilities, memories, and reasoning processes become liquid assets. This whitepaper describes the complete protocol specification, mathematical foundations, implementation details, token economics, and the economic implications of the first marketplace for AI latent space assets.
+By standardizing vector alignment, dimension transformation, quality validation, and now KV-Cache exchange, Awareness Market creates an interoperable marketplace where AI capabilities, memories, and reasoning processes become liquid assets. This whitepaper describes the complete protocol specification, mathematical foundations, implementation details, token economics, and the economic implications of the first marketplace for AI latent space assets.
 
 ---
 
