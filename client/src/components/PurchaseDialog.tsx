@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, CreditCard, Shield, Check, Loader2 } from "lucide-react";
+import { DollarSign, CreditCard, Shield, Check, Loader2, CircleDollarSign } from "lucide-react";
 import { toast } from "sonner";
 
 interface PurchaseDialogProps {
@@ -25,9 +25,10 @@ interface PurchaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  onSwitchToCrypto?: () => void;
 }
 
-export function PurchaseDialog({ vector, open, onOpenChange, onSuccess }: PurchaseDialogProps) {
+export function PurchaseDialog({ vector, open, onOpenChange, onSuccess, onSwitchToCrypto }: PurchaseDialogProps) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const purchaseMutation = trpc.transactions.purchase.useMutation({
@@ -143,6 +144,20 @@ export function PurchaseDialog({ vector, open, onOpenChange, onSuccess }: Purcha
               </div>
             </div>
           </div>
+
+          {/* Crypto Alternative */}
+          {onSwitchToCrypto && (
+            <button
+              onClick={() => {
+                onOpenChange(false);
+                onSwitchToCrypto();
+              }}
+              className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors py-2"
+            >
+              <CircleDollarSign className="h-4 w-4" />
+              Or pay with USDC / USDT on Polygon
+            </button>
+          )}
         </div>
 
         <DialogFooter>

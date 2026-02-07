@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { randomUUID } from 'crypto';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { prisma } from '../db-prisma';
@@ -379,7 +380,7 @@ export const agentCollaborationRouter = router({
       }
 
       // Create workflow in database
-      const workflowId = `wf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const workflowId = `wf_${Date.now()}_${randomUUID().replace(/-/g, '').substring(0, 9)}`;
 
       await workflowDb.createWorkflow({
         id: workflowId,
