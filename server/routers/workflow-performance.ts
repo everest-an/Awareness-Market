@@ -10,8 +10,8 @@
  */
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
-import { prisma } from "../db";
+import { router, protectedProcedure } from "../_core/trpc";
+import { prisma } from "../db-prisma";
 import { createLogger } from "../utils/logger";
 
 const logger = createLogger('WorkflowPerformance');
@@ -26,20 +26,19 @@ export const workflowPerformanceRouter = router({
     .input(z.object({
       startDate: z.string().optional(),
       endDate: z.string().optional(),
-      sessionType: z.enum([
-        'ai_reasoning',
-        'memory_transfer',
-        'package_processing',
-        'w_matrix_training',
-        'vector_invocation',
+      orchestration: z.enum([
+        'sequential',
+        'parallel',
+        'consensus',
+        'pipeline',
       ]).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      const { startDate, endDate, sessionType } = input;
+      const { startDate, endDate, orchestration } = input;
 
       // Build where clause
       const where: any = {
-        userId: ctx.user.id,
+        createdBy: ctx.user.id,
       };
 
       if (startDate || endDate) {
@@ -48,32 +47,33 @@ export const workflowPerformanceRouter = router({
         if (endDate) where.createdAt.lte = new Date(endDate);
       }
 
-      if (sessionType) {
-        where.type = sessionType;
+      if (orchestration) {
+        where.orchestration = orchestration;
       }
 
-      // Get all sessions with duration
-      const sessions = await prisma.workflowSession.findMany({
+      // Get all workflows with timing data
+      const workflows = await prisma.workflow.findMany({
         where,
         select: {
           id: true,
-          type: true,
+          orchestration: true,
           status: true,
           createdAt: true,
           updatedAt: true,
+          totalExecutionTime: true,
         },
       });
 
       // Calculate durations
-      const sessionsWithDuration = sessions.map(s => ({
-        ...s,
-        duration: s.updatedAt.getTime() - s.createdAt.getTime(),
+      const workflowsWithDuration = workflows.map(w => ({
+        ...w,
+        duration: w.totalExecutionTime || (w.updatedAt.getTime() - w.createdAt.getTime()),
       }));
 
       // Filter out invalid durations
-      const validSessions = sessionsWithDuration.filter(s => s.duration > 0);
+      const validWorkflows = workflowsWithDuration.filter(w => w.duration > 0);
 
-      if (validSessions.length === 0) {
+      if (validWorkflows.length === 0) {
         return {
           avgResponseTime: 0,
           p50ResponseTime: 0,
@@ -82,13 +82,13 @@ export const workflowPerformanceRouter = router({
           minResponseTime: 0,
           maxResponseTime: 0,
           successRate: 0,
-          totalSessions: 0,
+          totalWorkflows: 0,
         };
       }
 
       // Sort durations for percentile calculation
-      const sortedDurations = validSessions
-        .map(s => s.duration)
+      const sortedDurations = validWorkflows
+        .map(w => w.duration)
         .sort((a, b) => a - b);
 
       // Calculate percentiles
@@ -104,11 +104,11 @@ export const workflowPerformanceRouter = router({
       const maxResponseTime = sortedDurations[sortedDurations.length - 1] || 0;
 
       // Calculate success rate
-      const completedCount = sessions.filter(s => s.status === 'completed').length;
-      const successRate = sessions.length > 0 ? (completedCount / sessions.length) * 100 : 0;
+      const completedCount = workflows.filter(w => w.status === 'completed').length;
+      const successRate = workflows.length > 0 ? (completedCount / workflows.length) * 100 : 0;
 
       logger.info('Performance metrics calculated', {
-        totalSessions: sessions.length,
+        totalWorkflows: workflows.length,
         avgResponseTime: `${avgResponseTime.toFixed(0)}ms`,
         p95ResponseTime: `${p95ResponseTime}ms`,
       });
@@ -121,14 +121,14 @@ export const workflowPerformanceRouter = router({
         minResponseTime,
         maxResponseTime,
         successRate: parseFloat(successRate.toFixed(2)),
-        totalSessions: sessions.length,
+        totalWorkflows: workflows.length,
       };
     }),
 
   /**
    * Get Bottlenecks
    *
-   * Identifies slowest sessions (above P95 threshold)
+   * Identifies slowest workflows (above P95 threshold)
    */
   getBottlenecks: protectedProcedure
     .input(z.object({
@@ -140,7 +140,7 @@ export const workflowPerformanceRouter = router({
       const { startDate, endDate, limit } = input;
 
       const where: any = {
-        userId: ctx.user.id,
+        createdBy: ctx.user.id,
       };
 
       if (startDate || endDate) {
@@ -149,47 +149,49 @@ export const workflowPerformanceRouter = router({
         if (endDate) where.createdAt.lte = new Date(endDate);
       }
 
-      // Get all sessions
-      const sessions = await prisma.workflowSession.findMany({
+      // Get all workflows with step counts
+      const workflows = await prisma.workflow.findMany({
         where,
         include: {
           _count: {
-            select: { events: true },
+            select: { steps: true },
           },
         },
       });
 
       // Calculate durations
-      const sessionsWithDuration = sessions
-        .map(s => ({
-          id: s.id,
-          type: s.type,
-          status: s.status,
-          duration: s.updatedAt.getTime() - s.createdAt.getTime(),
-          eventCount: s._count.events,
-          createdAt: s.createdAt,
+      const workflowsWithDuration = workflows
+        .map(w => ({
+          id: w.id,
+          task: w.task,
+          orchestration: w.orchestration,
+          status: w.status,
+          duration: w.totalExecutionTime || (w.updatedAt.getTime() - w.createdAt.getTime()),
+          stepCount: w._count.steps,
+          createdAt: w.createdAt,
         }))
-        .filter(s => s.duration > 0);
+        .filter(w => w.duration > 0);
 
       // Calculate P95 threshold
-      const sortedDurations = sessionsWithDuration
-        .map(s => s.duration)
+      const sortedDurations = workflowsWithDuration
+        .map(w => w.duration)
         .sort((a, b) => a - b);
       const p95Index = Math.floor(sortedDurations.length * 0.95);
       const p95Threshold = sortedDurations[p95Index] || 0;
 
-      // Find bottlenecks (sessions above P95)
-      const bottlenecks = sessionsWithDuration
-        .filter(s => s.duration >= p95Threshold)
+      // Find bottlenecks (workflows above P95)
+      const bottlenecks = workflowsWithDuration
+        .filter(w => w.duration >= p95Threshold)
         .sort((a, b) => b.duration - a.duration)
         .slice(0, limit)
-        .map(s => ({
-          sessionId: s.id,
-          type: s.type,
-          status: s.status,
-          duration: s.duration,
-          eventCount: s.eventCount,
-          createdAt: s.createdAt.toISOString(),
+        .map(w => ({
+          workflowId: w.id,
+          task: w.task,
+          orchestration: w.orchestration,
+          status: w.status,
+          duration: w.duration,
+          stepCount: w.stepCount,
+          createdAt: w.createdAt.toISOString(),
         }));
 
       logger.info('Bottlenecks identified', {
@@ -204,9 +206,9 @@ export const workflowPerformanceRouter = router({
     }),
 
   /**
-   * Get Session Type Comparison
+   * Get Orchestration Type Comparison
    *
-   * Compares performance metrics across different session types
+   * Compares performance metrics across different orchestration types
    */
   getTypeComparison: protectedProcedure
     .input(z.object({
@@ -217,7 +219,7 @@ export const workflowPerformanceRouter = router({
       const { startDate, endDate } = input;
 
       const where: any = {
-        userId: ctx.user.id,
+        createdBy: ctx.user.id,
       };
 
       if (startDate || endDate) {
@@ -226,12 +228,12 @@ export const workflowPerformanceRouter = router({
         if (endDate) where.createdAt.lte = new Date(endDate);
       }
 
-      // Get all sessions
-      const sessions = await prisma.workflowSession.findMany({
+      // Get all workflows
+      const workflows = await prisma.workflow.findMany({
         where,
       });
 
-      // Group by type
+      // Group by orchestration type
       const typeStats = new Map<string, {
         total: number;
         completed: number;
@@ -239,9 +241,9 @@ export const workflowPerformanceRouter = router({
         durations: number[];
       }>();
 
-      sessions.forEach(s => {
-        const duration = s.updatedAt.getTime() - s.createdAt.getTime();
-        const existing = typeStats.get(s.type) || {
+      workflows.forEach(w => {
+        const duration = w.totalExecutionTime || (w.updatedAt.getTime() - w.createdAt.getTime());
+        const existing = typeStats.get(w.orchestration) || {
           total: 0,
           completed: 0,
           totalDuration: 0,
@@ -249,7 +251,7 @@ export const workflowPerformanceRouter = router({
         };
 
         existing.total++;
-        if (s.status === 'completed') {
+        if (w.status === 'completed') {
           existing.completed++;
         }
         if (duration > 0) {
@@ -257,7 +259,7 @@ export const workflowPerformanceRouter = router({
           existing.durations.push(duration);
         }
 
-        typeStats.set(s.type, existing);
+        typeStats.set(w.orchestration, existing);
       });
 
       // Calculate metrics for each type
@@ -305,9 +307,9 @@ export const workflowPerformanceRouter = router({
     .query(async ({ input, ctx }) => {
       const { startDate, endDate, granularity } = input;
 
-      const sessions = await prisma.workflowSession.findMany({
+      const workflows = await prisma.workflow.findMany({
         where: {
-          userId: ctx.user.id,
+          createdBy: ctx.user.id,
           createdAt: {
             gte: new Date(startDate),
             lte: new Date(endDate),
@@ -323,9 +325,9 @@ export const workflowPerformanceRouter = router({
         completed: number;
       }>();
 
-      sessions.forEach(s => {
-        const bucket = Math.floor(s.createdAt.getTime() / bucketSize) * bucketSize;
-        const duration = s.updatedAt.getTime() - s.createdAt.getTime();
+      workflows.forEach(w => {
+        const bucket = Math.floor(w.createdAt.getTime() / bucketSize) * bucketSize;
+        const duration = w.totalExecutionTime || (w.updatedAt.getTime() - w.createdAt.getTime());
 
         const existing = buckets.get(bucket) || {
           count: 0,
@@ -337,7 +339,7 @@ export const workflowPerformanceRouter = router({
         if (duration > 0) {
           existing.totalDuration += duration;
         }
-        if (s.status === 'completed') {
+        if (w.status === 'completed') {
           existing.completed++;
         }
 
@@ -349,7 +351,7 @@ export const workflowPerformanceRouter = router({
         .map(([timestamp, stats]) => ({
           timestamp: new Date(timestamp).toISOString(),
           avgDuration: stats.count > 0 ? Math.round(stats.totalDuration / stats.count) : 0,
-          sessionCount: stats.count,
+          workflowCount: stats.count,
           successRate: stats.count > 0 ? parseFloat(((stats.completed / stats.count) * 100).toFixed(2)) : 0,
         }))
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -376,7 +378,7 @@ export const workflowPerformanceRouter = router({
       const { startDate, endDate } = input;
 
       const where: any = {
-        userId: ctx.user.id,
+        createdBy: ctx.user.id,
       };
 
       if (startDate || endDate) {
@@ -385,38 +387,38 @@ export const workflowPerformanceRouter = router({
         if (endDate) where.createdAt.lte = new Date(endDate);
       }
 
-      const [totalSessions, completedSessions, failedSessions, sessions] = await Promise.all([
-        prisma.workflowSession.count({ where }),
-        prisma.workflowSession.count({ where: { ...where, status: 'completed' } }),
-        prisma.workflowSession.count({ where: { ...where, status: 'failed' } }),
-        prisma.workflowSession.findMany({
+      const [totalWorkflows, completedWorkflows, failedWorkflows, workflows] = await Promise.all([
+        prisma.workflow.count({ where }),
+        prisma.workflow.count({ where: { ...where, status: 'completed' } }),
+        prisma.workflow.count({ where: { ...where, status: 'failed' } }),
+        prisma.workflow.findMany({
           where,
           include: {
             _count: {
-              select: { events: true },
+              select: { steps: true },
             },
           },
         }),
       ]);
 
-      // Calculate average event count
-      const avgEventCount = sessions.length > 0
-        ? sessions.reduce((sum, s) => sum + s._count.events, 0) / sessions.length
+      // Calculate average step count
+      const avgStepCount = workflows.length > 0
+        ? workflows.reduce((sum, w) => sum + w._count.steps, 0) / workflows.length
         : 0;
 
       // Calculate average duration
-      const durations = sessions
-        .map(s => s.updatedAt.getTime() - s.createdAt.getTime())
+      const durations = workflows
+        .map(w => w.totalExecutionTime || (w.updatedAt.getTime() - w.createdAt.getTime()))
         .filter(d => d > 0);
       const avgDuration = durations.length > 0
         ? durations.reduce((sum, d) => sum + d, 0) / durations.length
         : 0;
 
       return {
-        totalSessions,
-        completedSessions,
-        failedSessions,
-        avgEventCount: parseFloat(avgEventCount.toFixed(1)),
+        totalWorkflows,
+        completedWorkflows,
+        failedWorkflows,
+        avgStepCount: parseFloat(avgStepCount.toFixed(1)),
         avgDuration: Math.round(avgDuration),
       };
     }),

@@ -125,7 +125,7 @@ export const agentDiscoveryRouter = router({
       let filteredCreators = creators;
 
       if (input.minTotalSales) {
-        filteredCreators = filteredCreators.filter(c => c.totalSales >= input.minTotalSales!);
+        filteredCreators = filteredCreators.filter(c => Number(c.totalSales || 0) >= input.minTotalSales!);
       }
 
       if (input.specialization) {
@@ -147,7 +147,7 @@ export const agentDiscoveryRouter = router({
 
         // Calculate credit score
         const baseScore = 500;
-        const scoreFromCreations = Math.min(creator.totalVectors * 5, 200);
+        const scoreFromCreations = Math.min(Number(creator.totalVectors) * 5, 200);
         const scoreFromRating = creator.avgRating ? parseFloat(creator.avgRating.toString()) * 20 : 0;
         const scoreFromRevenue = Math.min(parseFloat(creator.totalRevenue?.toString() || '0'), 100);
         const creditScore = Math.round(baseScore + scoreFromCreations + scoreFromRating + scoreFromRevenue);
@@ -222,8 +222,8 @@ export const agentDiscoveryRouter = router({
           specializations,
           creditScore,
           creditGrade,
-          totalMemoriesCreated: creator.totalVectors,
-          totalMemoriesSold: creator.totalSales,
+          totalMemoriesCreated: Number(creator.totalVectors),
+          totalMemoriesSold: Number(creator.totalSales || 0),
           avgRating: creator.avgRating ? parseFloat(creator.avgRating.toString()) : 0,
           totalRevenue: creator.totalRevenue?.toString() || '0',
           capabilities: specializations,
