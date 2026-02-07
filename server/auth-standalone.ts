@@ -446,11 +446,16 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
   const code = generateVerificationCode();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  // Store code in database using raw SQL (passwordResetCodes may not be in Prisma schema yet)
-  await prisma.$executeRaw`
-    INSERT INTO password_reset_codes (email, code, expires_at, created_at)
-    VALUES (${email}, ${code}, ${expiresAt}, ${new Date()})
-  `;
+  // Store code using VerificationCode model (type=password_reset)
+  await prisma.verificationCode.create({
+    data: {
+      userId: user.id,
+      email,
+      code,
+      type: "password_reset",
+      expiresAt,
+    },
+  });
 
   // Send email
   const emailSent = await sendPasswordResetEmail(email, code, 10);
@@ -466,21 +471,23 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
  * Verify reset code
  */
 export async function verifyResetCode(email: string, code: string): Promise<{ success: boolean; error?: string }> {
-  // Find unused code for this email using raw SQL
-  const codeList = await prisma.$queryRaw<{ id: number; expires_at: Date }[]>`
-    SELECT id, expires_at FROM password_reset_codes
-    WHERE email = ${email} AND code = ${code} AND used IS NULL
-    LIMIT 1
-  `;
+  // Find unused code for this email using VerificationCode model
+  const resetCode = await prisma.verificationCode.findFirst({
+    where: {
+      email,
+      code,
+      type: "password_reset",
+      used: false,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
-  if (codeList.length === 0) {
+  if (!resetCode) {
     return { success: false, error: "Invalid or expired code" };
   }
 
-  const resetCode = codeList[0];
-
   // Check if expired
-  if (new Date() > new Date(resetCode.expires_at)) {
+  if (new Date() > new Date(resetCode.expiresAt)) {
     return { success: false, error: "Code has expired" };
   }
 
@@ -511,11 +518,15 @@ export async function resetPassword(
   });
 
   // Mark code as used
-  await prisma.$executeRaw`
-    UPDATE password_reset_codes
-    SET used = ${new Date()}
-    WHERE email = ${email} AND code = ${code} AND used IS NULL
-  `;
+  await prisma.verificationCode.updateMany({
+    where: {
+      email,
+      code,
+      type: "password_reset",
+      used: false,
+    },
+    data: { used: true },
+  });
 
   return { success: true };
 }
