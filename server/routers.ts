@@ -32,6 +32,7 @@ import { packagesApiRouter } from './routers/packages-api';
 import { aiAgentRouter } from './api/ai-agent-api';
 import { workflowRouter } from './routers/workflow';
 import { workflowHistoryRouter } from './routers/workflow-history';
+import { workflowPerformanceRouter } from './routers/workflow-performance';
 import { userRouter } from './routers/user';
 import { authUnifiedRouter } from './routers/auth-unified';
 import { apiAnalyticsRouter } from './routers/api-analytics';
@@ -1879,6 +1880,7 @@ export const appRouter = router({
   packages: packagesApiRouter,
   workflow: workflowRouter,
   workflowHistory: workflowHistoryRouter,
+  workflowPerformance: workflowPerformanceRouter,
   user: userRouter,
   authUnified: authUnifiedRouter,
 
