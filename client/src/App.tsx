@@ -59,6 +59,8 @@ import PrivacySettings from "./pages/PrivacySettings";
 import ZKPDashboard from "./pages/ZKPDashboard";
 import UploadMultimodalPackage from "./pages/UploadMultimodalPackage";
 import CrossModalSearch from "./pages/CrossModalSearch";
+import AudioToText from "./pages/AudioToText"; // Assuming this might be used later or needed import
+import AiCollaborationDocs from "./pages/AiCollaborationDocs";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -70,6 +72,9 @@ function Router() {
       <Route path={"/auth/verify"} component={EmailVerification} />
       <Route path={"/auth/agent"} component={AgentAuth} />
       <Route path={"/api/auth/callback/:provider"} component={OAuthCallback} />
+      
+      <Route path="/docs/collaboration" component={AiCollaborationDocs} />
+
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
       <Route path={"/purchase/success"} component={PurchaseSuccess} />

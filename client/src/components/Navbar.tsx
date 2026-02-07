@@ -60,6 +60,7 @@ const navLinks = [
     label: "Resources",
     children: [
       { label: "Documentation", href: "/docs", icon: FileCode, description: "API & SDK guides" },
+      { label: "AI Collaboration", href: "/docs/collaboration", icon: Network, description: "Manus + Claude MCP Guide" },
       { label: "Python SDK", href: "/sdk", icon: Code, description: "Python integration" },
       { label: "MCP Integration", href: "/sdk#mcp", icon: Cpu, description: "Model Context Protocol" },
       { label: "GitHub", href: "https://github.com/everest-an/Awareness-Market", icon: Github, description: "View source code", external: true },
