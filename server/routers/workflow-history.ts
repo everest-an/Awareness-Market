@@ -7,7 +7,7 @@ import type { Prisma } from "@prisma/client";
  * Workflow History Router
  * 
  * Provides API endpoints for querying and replaying workflow history.
- * All sessions and events are persisted in the database by WorkflowManager.
+ * Uses the Workflow model (mapped to "workflows" table) which is the actual schema model.
  */
 export const workflowHistoryRouter = router({
   /**
@@ -16,11 +16,8 @@ export const workflowHistoryRouter = router({
   getHistory: publicProcedure
     .input(
       z.object({
-        // Pagination
         page: z.number().min(1).default(1),
         pageSize: z.number().min(1).max(100).default(20),
-
-        // Filters
         userId: z.number().optional(),
         sessionType: z.enum([
           "ai_reasoning",
@@ -29,31 +26,25 @@ export const workflowHistoryRouter = router({
           "w_matrix_training",
           "vector_invocation",
         ]).optional(),
-        status: z.enum(["active", "completed", "failed"]).optional(),
-        startDate: z.string().optional(), // ISO date string
+        status: z.enum(["pending", "active", "completed", "failed"]).optional(),
+        startDate: z.string().optional(),
         endDate: z.string().optional(),
-
-        // Sorting
-        sortBy: z.enum(["createdAt", "updatedAt", "duration"]).default("createdAt"),
+        sortBy: z.enum(["createdAt", "updatedAt"]).default("createdAt"),
         sortOrder: z.enum(["asc", "desc"]).default("desc"),
       })
     )
     .query(async ({ input }) => {
       const offset = (input.page - 1) * input.pageSize;
 
-      // Build filter conditions
-      const where: Prisma.WorkflowSessionWhereInput = {};
+      // Build filter conditions using Workflow model
+      const where: Prisma.WorkflowWhereInput = {};
 
       if (input.userId) {
-        where.userId = input.userId;
-      }
-
-      if (input.sessionType) {
-        where.type = input.sessionType;
+        where.createdBy = input.userId;
       }
 
       if (input.status) {
-        where.status = input.status;
+        where.status = input.status as any;
       }
 
       if (input.startDate || input.endDate) {
@@ -66,20 +57,34 @@ export const workflowHistoryRouter = router({
         }
       }
 
-      // Query sessions with filters
-      const sessions = await prisma.workflowSession.findMany({
+      const sessions = await prisma.workflow.findMany({
         where,
-        orderBy: { createdAt: input.sortOrder },
+        orderBy: { [input.sortBy]: input.sortOrder },
         take: input.pageSize,
         skip: offset,
+        include: {
+          steps: { select: { id: true, status: true, agentRole: true } },
+        },
       });
 
-      // Get total count for pagination
-      const totalCount = await prisma.workflowSession.count({ where });
+      const totalCount = await prisma.workflow.count({ where });
       const totalPages = Math.ceil(totalCount / input.pageSize);
 
       return {
-        sessions,
+        sessions: sessions.map(s => ({
+          id: s.id,
+          task: s.task,
+          description: s.description,
+          status: s.status,
+          orchestration: s.orchestration,
+          createdBy: s.createdBy,
+          startedAt: s.startedAt,
+          completedAt: s.completedAt,
+          totalExecutionTime: s.totalExecutionTime,
+          stepsCount: s.steps.length,
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
+        })),
         pagination: {
           page: input.page,
           pageSize: input.pageSize,
@@ -95,14 +100,15 @@ export const workflowHistoryRouter = router({
    * Get single workflow session details
    */
   getSession: publicProcedure
-    .input(
-      z.object({
-        sessionId: z.string(),
-      })
-    )
+    .input(z.object({ sessionId: z.string() }))
     .query(async ({ input }) => {
-      const session = await prisma.workflowSession.findUnique({
-        where: { id: input.sessionId }
+      const session = await prisma.workflow.findUnique({
+        where: { id: input.sessionId },
+        include: {
+          steps: true,
+          interactions: true,
+          creator: { select: { id: true, name: true, email: true } },
+        },
       });
 
       if (!session) {
@@ -113,7 +119,7 @@ export const workflowHistoryRouter = router({
     }),
 
   /**
-   * Get all events for a workflow session
+   * Get all steps/events for a workflow session
    */
   getEvents: publicProcedure
     .input(
@@ -123,59 +129,12 @@ export const workflowHistoryRouter = router({
       })
     )
     .query(async ({ input }) => {
-      const events = await prisma.workflowEvent.findMany({
+      const steps = await prisma.workflowStep.findMany({
         where: { workflowId: input.sessionId },
-        orderBy: { timestamp: input.sortOrder },
+        orderBy: { stepOrder: input.sortOrder },
       });
 
-      return events;
-    }),
-
-  /**
-   * Search workflow sessions by keyword
-   */
-  searchSessions: publicProcedure
-    .input(
-      z.object({
-        query: z.string().min(1),
-        page: z.number().min(1).default(1),
-        pageSize: z.number().min(1).max(100).default(20),
-      })
-    )
-    .query(async ({ input }) => {
-      const offset = (input.page - 1) * input.pageSize;
-
-      // Search in id, type, title, and description
-      const where: Prisma.WorkflowSessionWhereInput = {
-        OR: [
-          { id: { contains: input.query, mode: 'insensitive' } },
-          { title: { contains: input.query, mode: 'insensitive' } },
-          { description: { contains: input.query, mode: 'insensitive' } },
-        ],
-      };
-
-      const sessions = await prisma.workflowSession.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        take: input.pageSize,
-        skip: offset,
-      });
-
-      // Get total count
-      const totalCount = await prisma.workflowSession.count({ where });
-      const totalPages = Math.ceil(totalCount / input.pageSize);
-
-      return {
-        sessions,
-        pagination: {
-          page: input.page,
-          pageSize: input.pageSize,
-          totalCount,
-          totalPages,
-          hasNext: input.page < totalPages,
-          hasPrev: input.page > 1,
-        },
-      };
+      return steps;
     }),
 
   /**
@@ -190,11 +149,10 @@ export const workflowHistoryRouter = router({
       })
     )
     .query(async ({ input }) => {
-      // Build filter conditions
-      const where: Prisma.WorkflowSessionWhereInput = {};
+      const where: Prisma.WorkflowWhereInput = {};
 
       if (input.userId) {
-        where.userId = input.userId;
+        where.createdBy = input.userId;
       }
 
       if (input.startDate || input.endDate) {
@@ -207,53 +165,35 @@ export const workflowHistoryRouter = router({
         }
       }
 
-      // Get statistics using raw SQL for complex aggregation
-      const startDate = input.startDate ? new Date(input.startDate) : null;
-      const endDate = input.endDate ? new Date(input.endDate) : null;
+      // Use Prisma aggregation instead of raw SQL to avoid missing table errors
+      const [total, completed, failed, active] = await Promise.all([
+        prisma.workflow.count({ where }),
+        prisma.workflow.count({ where: { ...where, status: "completed" } }),
+        prisma.workflow.count({ where: { ...where, status: "failed" } }),
+        prisma.workflow.count({ where: { ...where, status: "active" } }),
+      ]);
 
-      const stats = await prisma.$queryRaw<Array<{
-        totalSessions: bigint;
-        completedSessions: bigint;
-        failedSessions: bigint;
-        avgDuration: number | null;
-        avgEventCount: number | null;
-      }>>`
-        SELECT
-          COUNT(*) as "totalSessions",
-          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as "completedSessions",
-          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as "failedSessions",
-          AVG(total_duration) as "avgDuration",
-          AVG(total_events) as "avgEventCount"
-        FROM workflow_sessions
-        WHERE (${input.userId}::int IS NULL OR user_id = ${input.userId})
-          AND (${startDate}::timestamp IS NULL OR created_at >= ${startDate})
-          AND (${endDate}::timestamp IS NULL OR created_at <= ${endDate})
-      `;
+      const avgDuration = await prisma.workflow.aggregate({
+        where: { ...where, totalExecutionTime: { not: null } },
+        _avg: { totalExecutionTime: true },
+      });
 
-      // Get session type breakdown
-      const typeBreakdown = await prisma.$queryRaw<Array<{
-        sessionType: string;
-        count: bigint;
-      }>>`
-        SELECT
-          type as "sessionType",
-          COUNT(*) as count
-        FROM workflow_sessions
-        WHERE (${input.userId}::int IS NULL OR user_id = ${input.userId})
-          AND (${startDate}::timestamp IS NULL OR created_at >= ${startDate})
-          AND (${endDate}::timestamp IS NULL OR created_at <= ${endDate})
-        GROUP BY type
-      `;
+      // Get orchestration type breakdown
+      const orchestrationBreakdown = await prisma.workflow.groupBy({
+        by: ["orchestration"],
+        where,
+        _count: { id: true },
+      });
 
       return {
-        totalSessions: Number(stats[0]?.totalSessions || 0),
-        completedSessions: Number(stats[0]?.completedSessions || 0),
-        failedSessions: Number(stats[0]?.failedSessions || 0),
-        avgDuration: stats[0]?.avgDuration || 0,
-        avgEventCount: stats[0]?.avgEventCount || 0,
-        typeBreakdown: typeBreakdown.map(t => ({
-          sessionType: t.sessionType,
-          count: Number(t.count),
+        totalSessions: total,
+        completedSessions: completed,
+        failedSessions: failed,
+        activeSessions: active,
+        avgDuration: avgDuration._avg.totalExecutionTime || 0,
+        orchestrationBreakdown: orchestrationBreakdown.map(t => ({
+          orchestration: t.orchestration,
+          count: t._count.id,
         })),
       };
     }),
@@ -271,28 +211,33 @@ export const workflowHistoryRouter = router({
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - input.olderThanDays);
 
-      // Get sessions to delete
-      const sessionsToDelete = await prisma.workflowSession.findMany({
+      // Get workflows to delete
+      const workflowsToDelete = await prisma.workflow.findMany({
         where: { createdAt: { lte: cutoffDate } },
         select: { id: true },
       });
 
-      const sessionIds = sessionsToDelete.map((s) => s.id);
+      const workflowIds = workflowsToDelete.map((w) => w.id);
 
-      if (sessionIds.length > 0) {
-        // Delete events first (foreign key constraint)
-        await prisma.workflowEvent.deleteMany({
-          where: { workflowId: { in: sessionIds } },
+      if (workflowIds.length > 0) {
+        // Delete steps first (foreign key constraint)
+        await prisma.workflowStep.deleteMany({
+          where: { workflowId: { in: workflowIds } },
         });
 
-        // Delete sessions
-        await prisma.workflowSession.deleteMany({
+        // Delete on-chain interactions
+        await prisma.onChainInteraction.deleteMany({
+          where: { workflowId: { in: workflowIds } },
+        });
+
+        // Delete workflows
+        await prisma.workflow.deleteMany({
           where: { createdAt: { lte: cutoffDate } },
         });
       }
 
       return {
-        deletedCount: sessionIds.length,
+        deletedCount: workflowIds.length,
         cutoffDate: cutoffDate.toISOString(),
       };
     }),

@@ -298,24 +298,18 @@ router.get("/batch-invoke/:batchId", async (req: Request, res: Response) => {
   try {
     const { batchId } = req.params;
 
-    const session = await prisma.workflowSession.findUnique({
-      where: { id: batchId },
-    });
-
+      // Use in-memory WorkflowManager instead of missing DB model
+    const { workflowManager } = await import("./workflow-manager");
+    const session = workflowManager.getSession(batchId);
     if (!session) {
       res.status(404).json({ error: "Batch not found" });
       return;
     }
-
-    const events = await prisma.workflowEvent.findMany({
-      where: { workflowId: batchId },
-    });
-
+    const events = session.events || [];
     const total = events.length;
     const successful = events.filter(e => e.status === "completed").length;
     const failed = events.filter(e => e.status === "failed").length;
     const progress = total === 0 ? 0 : (successful + failed) / total;
-
     res.json({
       batchId,
       status: session.status,

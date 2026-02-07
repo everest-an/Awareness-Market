@@ -56,7 +56,7 @@ export default function HiveMind() {
   const networkVisualizationRef = useRef<HTMLDivElement>(null);
 
   // Fetch network statistics
-  const { data: stats } = trpc.agent.getNetworkStats.useQuery(undefined, {
+  const { data: stats } = trpc.semanticIndex.stats.useQuery(undefined, {
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 

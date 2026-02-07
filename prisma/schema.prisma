@@ -50,6 +50,7 @@ model User {
   memoryUsageAsConsumer MemoryUsageLog[] @relation("MemoryConsumer")
   memoryUsageAsProvider MemoryUsageLog[] @relation("MemoryProvider")
   verificationCodes     VerificationCode[]
+  blogPosts             BlogPost[]
 
   @@map("users")
 }
@@ -827,4 +828,36 @@ model VerificationCode {
   @@index([expiresAt])
   @@index([userId])
   @@map("verification_codes")
+}
+
+
+// ============================================================================
+// Blog System
+// ============================================================================
+
+model BlogPost {
+  id          Int       @id @default(autoincrement())
+  title       String    @db.VarChar(500)
+  slug        String    @unique @db.VarChar(500)
+  excerpt     String?
+  content     String
+  coverImage  String?   @map("cover_image")
+  tags        String[]  @default([])
+  category    String?   @db.VarChar(100)
+  status      String    @default("draft") @db.VarChar(20) // draft, published, archived
+  authorId    Int?      @map("author_id")
+  viewCount   Int       @default(0) @map("view_count")
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  author      User?     @relation(fields: [authorId], references: [id])
+
+  @@index([slug])
+  @@index([status])
+  @@index([category])
+  @@index([authorId])
+  @@index([publishedAt])
+  @@map("blog_posts")
 }
