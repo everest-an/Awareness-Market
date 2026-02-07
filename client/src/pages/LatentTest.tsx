@@ -138,7 +138,7 @@ export default function LatentTest() {
                 </ol>
               </CardContent>
             </Card>
-          </TabsContent>>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
