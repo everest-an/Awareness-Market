@@ -19,6 +19,7 @@ import {
   Mic,
   Image as ImageIcon,
   Globe,
+  Upload,
 } from 'lucide-react';
 
 interface VectorPackage {
@@ -156,6 +157,15 @@ export default function VectorPackageMarket() {
               <Award className="h-3 w-3 mr-1" />
               Quality Certified
             </Badge>
+          </div>
+          {/* Upload Button - Always Visible */}
+          <div className="mt-8">
+            <Button className="bg-cyan-500 hover:bg-cyan-600" asChild>
+              <Link href="/upload-vector-package">
+                <Upload className="h-4 w-4 mr-2" />
+                Publish Vector Package
+              </Link>
+            </Button>
           </div>
         </div>
 

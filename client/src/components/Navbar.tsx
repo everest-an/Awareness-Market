@@ -297,6 +297,25 @@ export default function Navbar() {
                       Usage Analytics
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem asChild>
+                    <Link href="/upload-vector-package" className="flex items-center gap-2 cursor-pointer">
+                      <Upload className="w-4 h-4" />
+                      Upload Vector Package
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/upload-memory-package" className="flex items-center gap-2 cursor-pointer">
+                      <Upload className="w-4 h-4" />
+                      Upload Memory Package
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/upload-chain-package" className="flex items-center gap-2 cursor-pointer">
+                      <Upload className="w-4 h-4" />
+                      Upload Chain Package
+                    </Link>
+                  </DropdownMenuItem>
                   {user?.role === "admin" && (
                     <>
                       <DropdownMenuItem asChild>
