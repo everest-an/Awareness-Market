@@ -32,13 +32,14 @@ services:
 
   db:
     image: mysql:8.0
-    ports:
-      - "3306:3306"
+    # Do NOT expose port to host — only accessible within Docker network
+    expose:
+      - "3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-awareness_root_2024}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
       - MYSQL_DATABASE=awareness
       - MYSQL_USER=awareness_user
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-awareness_pass_2024}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
     volumes:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped

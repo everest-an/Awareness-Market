@@ -53,14 +53,16 @@ const defaultConfig: SecurityHeadersConfig = {
 
   cspDirectives: {
     'default-src': ["'self'"],
-    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+    'script-src': ["'self'"],
     'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'data:', 'https:'],
     'font-src': ["'self'", 'data:'],
-    'connect-src': ["'self'"],
+    'connect-src': ["'self'", 'wss:', 'https:'],
     'frame-ancestors': ["'none'"],
     'base-uri': ["'self'"],
     'form-action': ["'self'"],
+    'object-src': ["'none'"],
+    'upgrade-insecure-requests': [],
   },
 
   frameOptions: 'DENY',

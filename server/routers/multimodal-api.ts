@@ -263,7 +263,7 @@ export const multimodalRouter = router({
   /**
    * Fuse multi-modal vectors
    */
-  fuseVectors: publicProcedure
+  fuseVectors: protectedProcedure
     .input(z.object({
       modalityVectors: z.array(ModalityVectorSchema).min(2).max(4),
       fusionConfig: FusionConfigSchema,
@@ -323,7 +323,7 @@ export const multimodalRouter = router({
    * Search for vectors in one modality using a query from another modality
    * E.g., text -> image, image -> audio, etc.
    */
-  crossModalSearch: publicProcedure
+  crossModalSearch: protectedProcedure
     .input(CrossModalSearchSchema)
     .query(async ({ input }) => {
       try {
@@ -398,7 +398,7 @@ export const multimodalRouter = router({
   /**
    * Extract specific modality from multi-modal package
    */
-  extractModality: publicProcedure
+  extractModality: protectedProcedure
     .input(z.object({
       packageId: z.string(),
       modality: z.enum(['text', 'image', 'audio', 'video']),
@@ -511,7 +511,7 @@ export const multimodalRouter = router({
   /**
    * Get fusion method recommendations
    */
-  getFusionRecommendation: publicProcedure
+  getFusionRecommendation: protectedProcedure
     .input(z.object({
       modalitiesUsed: z.array(z.enum(['text', 'image', 'audio', 'video'])).min(2),
       useCase: z.enum(['search', 'classification', 'generation', 'retrieval']),

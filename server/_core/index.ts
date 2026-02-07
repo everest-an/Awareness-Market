@@ -25,6 +25,9 @@ import { erc8004Router } from "../erc8004-api";
 import inferenceRouter from "../inference-api";
 import { createLogger } from "../utils/logger";
 import { initializeSocketIO } from "../socket-events";
+import { securityHeaders, getSecurityConfig } from "../middleware/security-headers";
+import { httpsRedirect, getHttpsConfig } from "../middleware/https-redirect";
+import { globalLimiter, uploadLimiter, aiAgentLimiter } from "../rate-limiter";
 
 const logger = createLogger('Server');
 
@@ -53,14 +56,35 @@ async function startServer() {
 
   // Trust reverse proxies (required for secure cookies behind HTTPS proxies)
   app.set("trust proxy", 1);
+
+  // ─── Security Middleware ────────────────────────────────────────────
+  // HTTPS redirect (production only)
+  app.use(httpsRedirect(getHttpsConfig()));
+  
+  // Security headers (CSP, HSTS, X-Frame-Options, etc.)
+  app.use(securityHeaders(getSecurityConfig()));
+  
+  // Global rate limiter (100 req/min per IP)
+  app.use('/api', globalLimiter);
   
   // Stripe webhook MUST be registered BEFORE express.json() middleware
   // to preserve raw body for signature verification
   app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
   
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Default body parser — 1MB limit for most routes (defense against memory DoS)
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ limit: "1mb", extended: true }));
+
+  // Larger body limit ONLY for file upload routes
+  app.use("/api/vectors", express.json({ limit: "50mb" }));
+  app.use("/api/ai", express.json({ limit: "10mb" }));
+
+  // Apply AI agent rate limiter to AI endpoints
+  app.use("/api/ai", aiAgentLimiter);
+  app.use("/api/mcp", aiAgentLimiter);
+  app.use("/api/inference", aiAgentLimiter);
+  app.use("/api/latentmas", aiAgentLimiter);
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // MCP Protocol API

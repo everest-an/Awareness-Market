@@ -581,8 +581,8 @@ export const appRouter = router({
         minRating: z.number().optional(),
         searchTerm: z.string().optional(),
         sortBy: z.enum(["newest", "oldest", "price_low", "price_high", "rating", "popular"]).default("newest"),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
+        limit: z.number().min(1).max(100).default(20),
+        offset: z.number().min(0).default(0),
       }))
       .query(async ({ input }) => {
         return await db.searchLatentVectors(input);
@@ -659,8 +659,8 @@ export const appRouter = router({
     invocationHistory: protectedProcedure
       .input(z.object({
         vectorId: z.number().optional(),
-        limit: z.number().default(50),
-        offset: z.number().default(0),
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
       }))
       .query(async ({ ctx, input }) => {
         const { getInvocationHistory } = await import("./vector-invocation");
@@ -867,8 +867,8 @@ export const appRouter = router({
       .input(z.object({ 
         vectorId: z.number(),
         sortBy: z.enum(["newest", "oldest", "highest", "lowest"]).default("newest"),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
+        limit: z.number().min(1).max(100).default(20),
+        offset: z.number().min(0).default(0),
       }))
       .query(async ({ input }) => {
         return await db.getVectorReviews(input.vectorId);
@@ -1029,7 +1029,7 @@ export const appRouter = router({
   recommendations: router({
     // Get personalized recommendations using LLM
     getRecommendations: protectedProcedure
-      .input(z.object({ limit: z.number().default(5) }))
+      .input(z.object({ limit: z.number().min(1).max(50).default(5) }))
       .query(async ({ ctx, input }) => {
         const recommendations = await recommendationEngine.generateRecommendations({
           userId: ctx.user.id,
@@ -1080,8 +1080,8 @@ export const appRouter = router({
         status: z.enum(["draft", "published", "archived"]).optional(),
         category: z.string().optional(),
         search: z.string().optional(),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
+        limit: z.number().min(1).max(100).default(20),
+        offset: z.number().min(0).default(0),
       }))
       .query(async ({ input }) => {
         // Only show published posts to non-admin users
