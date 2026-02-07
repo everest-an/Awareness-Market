@@ -93,6 +93,7 @@
     "express-http-proxy": "^2.1.2",
     "express-rate-limit": "^8.2.1",
     "framer-motion": "^12.23.22",
+    "html2canvas": "^1.4.1",
     "i18next": "^25.8.0",
     "input-otp": "^1.4.2",
     "ioredis": "^5.9.2",

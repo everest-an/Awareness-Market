@@ -5,7 +5,7 @@
  * Shows 3D agent network and live resonance events.
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import { NetworkBrain } from "@/components/NetworkBrain";
 import { ActivityTicker } from "@/components/ActivityTicker";
@@ -16,7 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { trpc } from "@/lib/trpc";
+import html2canvas from "html2canvas";
 import {
   Brain,
   Activity,
@@ -40,6 +47,9 @@ export default function HiveMind() {
   const [agentTypeFilter, setAgentTypeFilter] = useState<string>("all");
   const [minResonance, setMinResonance] = useState([0]);
   const [maxNodes, setMaxNodes] = useState(100);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const networkVisualizationRef = useRef<HTMLDivElement>(null);
 
   // Fetch network statistics
   const { data: stats } = trpc.agent.getNetworkStats.useQuery(undefined, {
@@ -48,6 +58,100 @@ export default function HiveMind() {
 
   // Performance warning
   const showPerformanceWarning = stats && stats.totalAgents > 100;
+
+  // Export handlers
+  const handleExportJSON = () => {
+    if (!stats) return;
+
+    const exportData = {
+      metadata: {
+        exportDate: new Date().toISOString(),
+        totalAgents: stats.totalAgents,
+        activeAgents: stats.activeAgents,
+        totalMemories: stats.totalMemories,
+        totalResonances: stats.totalResonances,
+        recentResonances24h: stats.recentResonances24h,
+      },
+      filters: {
+        searchQuery,
+        agentTypeFilter,
+        minResonance: minResonance[0],
+        maxNodes,
+      },
+      networkHealth: Math.round((stats.activeAgents / Math.max(stats.totalAgents, 1)) * 100),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hive-mind-network-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCSV = () => {
+    if (!stats) return;
+
+    const csvRows = [
+      ['Metric', 'Value'],
+      ['Export Date', new Date().toISOString()],
+      ['Total Agents', stats.totalAgents.toString()],
+      ['Active Agents', stats.activeAgents.toString()],
+      ['Total Memories', stats.totalMemories.toString()],
+      ['Total Resonances', stats.totalResonances.toString()],
+      ['Recent Resonances (24h)', stats.recentResonances24h.toString()],
+      ['Network Health %', Math.round((stats.activeAgents / Math.max(stats.totalAgents, 1)) * 100).toString()],
+      ['', ''],
+      ['Filters', ''],
+      ['Search Query', searchQuery || 'N/A'],
+      ['Agent Type Filter', agentTypeFilter],
+      ['Min Resonance', `${minResonance[0]}%`],
+      ['Max Nodes Display', maxNodes.toString()],
+    ];
+
+    const csvContent = csvRows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hive-mind-network-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPNG = async () => {
+    if (!networkVisualizationRef.current) return;
+
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(networkVisualizationRef.current, {
+        backgroundColor: '#0a0e27',
+        scale: 2,
+        logging: false,
+      });
+
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `hive-mind-visualization-${new Date().toISOString().split('T')[0]}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        setIsExporting(false);
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -229,13 +333,28 @@ export default function HiveMind() {
               </div>
 
               {/* Export Button */}
-              <Button variant="outline" className="w-full" onClick={() => {
-                // TODO: Implement export
-                alert("Export functionality coming soon!");
-              }}>
-                <Download className="w-4 h-4 mr-2" />
-                Export Network Data
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full" disabled={isExporting}>
+                    <Download className="w-4 h-4 mr-2" />
+                    {isExporting ? 'Exporting...' : 'Export Network Data'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  <DropdownMenuItem onClick={handleExportJSON}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export as JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportCSV}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPNG}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Visualization (PNG)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </CardContent>
           )}
         </Card>
@@ -262,7 +381,10 @@ export default function HiveMind() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="relative w-full h-[600px] rounded-lg overflow-hidden bg-black/20 border border-border/50">
+              <div
+                ref={networkVisualizationRef}
+                className="relative w-full h-[600px] rounded-lg overflow-hidden bg-black/20 border border-border/50"
+              >
                 <NetworkBrain maxNodes={maxNodes} />
 
                 {/* Overlay Controls */}
