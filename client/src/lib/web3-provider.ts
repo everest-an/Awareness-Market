@@ -1,12 +1,12 @@
 /**
- * Web3 钱包提供�?- ethers.js 集成
- * 支持 MetaMask 和其他以太坊钱包
+ * Web3 Wallet Provider - ethers.js Integration
+ * Supports MetaMask and other Ethereum wallets
  * 
- * 功能:
- * - 自动检测钱�?
- * - 连接/断开钱包
- * - 管理账户和网�?
- * - 监听账户和网络变�?
+ * Features:
+ * - Auto-detect wallet
+ * - Connect/Disconnect wallet
+ * - Manage accounts and network
+ * - Listen for account and network changes
  */
 
 import { ethers, BrowserProvider, Contract } from 'ethers';
@@ -53,11 +53,11 @@ export class Web3Provider {
   }
 
   /**
-   * 初始化提供商
+   * Initialize provider
    */
   async initialize(): Promise<void> {
     if (typeof window === 'undefined' || !window.ethereum) {
-      this.state.error = '未检测到以太坊钱包（MetaMask）';
+      this.state.error = 'Ethereum wallet (MetaMask) not detected';
       throw new Error('MetaMask not detected');
     }
 
@@ -65,10 +65,10 @@ export class Web3Provider {
       this.provider = new ethers.BrowserProvider(window.ethereum);
       this.state.provider = this.provider;
 
-      // 设置事件监听�?
+      // Set up event listeners
       this.setupEventListeners();
 
-      // 尝试自动连接之前连接的钱�?
+      // Try to auto-connect the previously connected wallet
       await this.checkConnection();
     } catch (error) {
       this.state.error = (error as Error).message;
@@ -77,7 +77,7 @@ export class Web3Provider {
   }
 
   /**
-   * 连接钱包
+   * Connect wallet
    */
   async connect(): Promise<string> {
     if (!this.provider) {
@@ -85,7 +85,7 @@ export class Web3Provider {
     }
 
     try {
-      // 请求用户连接
+      // Request user connection
       const accounts = await window.ethereum!.request({
         method: 'eth_requestAccounts',
       });
@@ -98,10 +98,10 @@ export class Web3Provider {
       this.signer = await this.provider!.getSigner();
       this.state.signer = this.signer;
 
-      // 更新状�?
+      // Update state
       await this.updateState(address);
 
-      // 保存连接状�?
+      // Save connection state
       localStorage.setItem('walletConnected', 'true');
       localStorage.setItem('walletAddress', address);
 
@@ -117,7 +117,7 @@ export class Web3Provider {
   }
 
   /**
-   * 断开钱包连接
+   * Disconnect wallet
    */
   async disconnect(): Promise<void> {
     this.provider = null;
@@ -142,7 +142,7 @@ export class Web3Provider {
   }
 
   /**
-   * 检查是否已连接
+   * Check connection
    */
   async checkConnection(): Promise<boolean> {
     if (!this.provider) {
@@ -168,22 +168,22 @@ export class Web3Provider {
   }
 
   /**
-   * 更新状态信�?
+   * Update state information
    */
   private async updateState(address: string): Promise<void> {
     if (!this.provider) return;
 
     try {
-      // 获取链信�?
+      // Get chain information
       const network = await this.provider.getNetwork();
       this.state.chainId = Number(network.chainId);
       this.state.chainName = network.name;
 
-      // 获取余额
+      // Get balance
       const balance = await this.provider.getBalance(address);
       this.state.balance = ethers.formatEther(balance);
 
-      // 更新地址
+      // Update address
       this.state.address = address;
       this.state.isConnected = true;
       this.state.error = null;
@@ -194,7 +194,7 @@ export class Web3Provider {
   }
 
   /**
-   * 切换网络�?Polygon Amoy
+   * Switch to Polygon Amoy Network
    */
   async switchToAmoy(): Promise<void> {
     if (!window.ethereum) {
@@ -204,14 +204,14 @@ export class Web3Provider {
     const amoyChainId = '0x13881'; // Polygon Amoy Chain ID in hex
 
     try {
-      // 尝试切换�?Amoy
+      // Attempt to switch to Amoy
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: amoyChainId }],
       });
     } catch (error) {
       const ethError = error as { code?: number };
-      // 如果网络不存在，添加�?
+      // If network does not exist, add it
       if (ethError.code === 4902) {
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
@@ -230,7 +230,7 @@ export class Web3Provider {
           ],
         });
 
-        // 重新尝试切换
+        // Retry switch
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: amoyChainId }],
@@ -240,14 +240,14 @@ export class Web3Provider {
       }
     }
 
-    // 刷新网络信息
+    // Refresh network info
     if (this.state.address) {
       await this.updateState(this.state.address);
     }
   }
 
   /**
-   * 签署消息
+   * Sign message
    */
   async signMessage(message: string): Promise<string> {
     if (!this.signer) {
@@ -264,7 +264,7 @@ export class Web3Provider {
   }
 
   /**
-   * 发送交�?
+   * Send transaction
    */
   async sendTransaction(to: string, value: string, data?: string): Promise<string> {
     if (!this.signer) {
@@ -287,7 +287,7 @@ export class Web3Provider {
   }
 
   /**
-   * 获取合约实例
+   * Get contract instance
    */
   getContract(address: string, abi: ethers.InterfaceAbi): Contract {
     if (!this.signer) {
@@ -298,7 +298,7 @@ export class Web3Provider {
   }
 
   /**
-   * 设置事件回调
+   * Set event callbacks
    */
   onAccountsChanged(callback: (accounts: string[]) => void): void {
     this.callbacks.onAccountsChanged = callback;
@@ -317,7 +317,7 @@ export class Web3Provider {
   }
 
   /**
-   * 设置事件监听�?
+   * Set up event listeners
    */
   private setupEventListeners(): void {
     if (!window.ethereum) return;
@@ -350,28 +350,28 @@ export class Web3Provider {
   }
 
   /**
-   * 获取当前状�?
+   * Get current state
    */
   getState(): WalletState {
     return { ...this.state };
   }
 
   /**
-   * 获取账户
+   * Get account
    */
   getAddress(): string | null {
     return this.state.address;
   }
 
   /**
-   * 获取余额
+   * Get balance
    */
   getBalance(): string | null {
     return this.state.balance;
   }
 
   /**
-   * 获取链信�?
+   * Get chain info
    */
   getChainInfo(): { chainId: number | null; chainName: string | null } {
     return {
@@ -381,14 +381,14 @@ export class Web3Provider {
   }
 
   /**
-   * 是否连接�?Polygon Amoy
+   * Is connected to Polygon Amoy
    */
   isOnAmoy(): boolean {
     return this.state.chainId === 80002; // Polygon Amoy Chain ID
   }
 }
 
-// 单例实例
+// Singleton instance
 let instance: Web3Provider | null = null;
 
 export function getWeb3Provider(): Web3Provider {
@@ -653,7 +653,7 @@ export function getStablecoinService(): StablecoinService {
   return stablecoinServiceInstance;
 }
 
-// 类型定义
+// Type definitions
 interface EthereumProvider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
   on: (event: string, callback: (...args: unknown[]) => void) => void;

@@ -1,5 +1,5 @@
 /**
- * 钱包连接组件样式
+ * Wallet Connection Component Styles
  */
 
 .wallet-connect {
@@ -36,7 +36,7 @@
   cursor: not-allowed;
 }
 
-/* 钱包信息容器 */
+/* Wallet Info Container */
 .wallet-info {
   display: flex;
   align-items: center;
@@ -44,7 +44,7 @@
   position: relative;
 }
 
-/* 网络徽章 */
+/* Network Badge */
 .network-badge {
   display: flex;
   align-items: center;
@@ -76,7 +76,7 @@
   }
 }
 
-/* 地址按钮 */
+/* Address Button */
 .btn-address {
   padding: 0.5rem 1rem;
   background: rgba(102, 126, 234, 0.1);
@@ -95,7 +95,7 @@
   border-color: rgba(102, 126, 234, 0.5);
 }
 
-/* 钱包菜单 */
+/* Wallet Menu */
 .wallet-menu {
   position: absolute;
   top: 100%;
@@ -157,7 +157,7 @@
   margin: 0.75rem 0;
 }
 
-/* 菜单项 */
+/* Menu Items */
 .btn-menu-item {
   width: 100%;
   padding: 0.75rem 1rem;
@@ -184,7 +184,7 @@
   cursor: not-allowed;
 }
 
-/* 网络切换按钮 */
+/* Network Switch Button */
 .btn-switch-network {
   color: #10b981;
 }
@@ -194,7 +194,7 @@
   color: #059669;
 }
 
-/* 断开连接按钮 */
+/* Disconnect Button */
 .btn-disconnect {
   color: #ef4444;
   border-top: 1px solid #e5e7eb;
@@ -205,7 +205,7 @@
   color: #dc2626;
 }
 
-/* 网络确认 */
+/* Network Confirmation */
 .network-ok {
   padding: 0.75rem 1rem;
   background: rgba(16, 185, 129, 0.05);
@@ -216,7 +216,7 @@
   border-top: 1px solid #e5e7eb;
 }
 
-/* 错误消息 */
+/* Error Message */
 .error-message {
   padding: 0.5rem 0.75rem;
   background: rgba(239, 68, 68, 0.1);
@@ -227,7 +227,7 @@
   margin-top: 0.5rem;
 }
 
-/* 响应式 */
+/* Responsive */
 @media (max-width: 768px) {
   .wallet-menu {
     position: fixed;
