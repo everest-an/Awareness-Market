@@ -27,7 +27,9 @@ import { createLogger } from "../utils/logger";
 import { initializeSocketIO } from "../socket-events";
 import { securityHeaders, getSecurityConfig } from "../middleware/security-headers";
 import { httpsRedirect, getHttpsConfig } from "../middleware/https-redirect";
-import { globalLimiter, uploadLimiter, aiAgentLimiter } from "../rate-limiter";
+import { globalLimiter, uploadLimiter, purchaseLimiter, browseLimiter, aiAgentLimiter } from "../rate-limiter";
+import { ddosShield, ddosStatsHandler } from "../middleware/ddos-shield";
+import { ghostTrapMiddleware, ghostTrapStatsHandler } from "../middleware/ghost-trap";
 
 const logger = createLogger('Server');
 
@@ -58,6 +60,12 @@ async function startServer() {
   app.set("trust proxy", 1);
 
   // ─── Security Middleware ────────────────────────────────────────────
+  // DDoS Shield — network-level defense (blacklist, flood, slowloris)
+  app.use(ddosShield());
+  
+  // GhostTrap — behavioral threat detection (fingerprint, honeypot, PoW)
+  app.use(ghostTrapMiddleware());
+  
   // HTTPS redirect (production only)
   app.use(httpsRedirect(getHttpsConfig()));
   
@@ -66,6 +74,10 @@ async function startServer() {
   
   // Global rate limiter (100 req/min per IP)
   app.use('/api', globalLimiter);
+  
+  // Browse rate limiter (200 req/min per user for listing endpoints)
+  app.use('/api/trpc/vectors', browseLimiter);
+  app.use('/api/trpc/marketplace', browseLimiter);
   
   // Stripe webhook MUST be registered BEFORE express.json() middleware
   // to preserve raw body for signature verification
@@ -84,6 +96,25 @@ async function startServer() {
   app.use("/api/mcp", aiAgentLimiter);
   app.use("/api/inference", aiAgentLimiter);
   app.use("/api/latentmas", aiAgentLimiter);
+  
+  // Upload rate limiter (10/hour per user)
+  app.use("/api/vectors/upload", uploadLimiter);
+  app.use("/api/vectors/publish", uploadLimiter);
+  
+  // Purchase rate limiter (50/hour per user)
+  app.use("/api/vectors/purchase", purchaseLimiter);
+  app.use("/api/stripe", purchaseLimiter);
+  
+  // Security monitoring endpoint (internal only)
+  app.get('/api/security/stats', (req, res) => {
+    // Only allow from loopback or trusted proxy
+    const ip = req.ip || '';
+    if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('10.') || ip.startsWith('172.') || ip.startsWith('192.168.')) {
+      ghostTrapStatsHandler(req, res);
+    } else {
+      res.status(403).json({ error: 'Forbidden' });
+    }
+  });
 
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
