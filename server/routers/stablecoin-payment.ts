@@ -32,6 +32,11 @@ import {
   STABLECOIN_ADDRESSES,
 } from '../blockchain/token-system';
 import { prisma } from '../db-prisma';
+import {
+  validateApproveTarget,
+  checkTransactionAnomaly,
+  safeCryptoError,
+} from '../middleware/crypto-asset-guard';
 
 const logger = createLogger('StablecoinPayment');
 
@@ -258,6 +263,15 @@ export const stablecoinPaymentRouter = router({
         });
       }
 
+      // 2b. Transaction anomaly detection (token drain prevention)
+      const anomalyCheck = checkTransactionAnomaly(userId, 'purchase', priceUSD, input.token);
+      if (!anomalyCheck.allowed) {
+        throw new TRPCError({
+          code: 'TOO_MANY_REQUESTS',
+          message: anomalyCheck.reason || 'Transaction blocked due to unusual activity',
+        });
+      }
+
       // 3. Get agent signer
       const signer = await getAgentSigner(userId);
       const tokenAddress = resolveTokenAddress(input.token);
@@ -278,11 +292,14 @@ export const stablecoinPaymentRouter = router({
         });
       }
 
-      // 5. Approve token spending
+      // 5. Approve token spending (with contract whitelist validation)
       const erc20WithSigner = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
       const currentAllowance = await erc20.allowance(signer.address, PAYMENT_CONTRACT_ADDRESS);
 
       if (currentAllowance < tokenAmount) {
+        // Validate approve target is whitelisted — prevents phishing contract redirect
+        validateApproveTarget(PAYMENT_CONTRACT_ADDRESS, `agentPurchase:${input.packageId}`);
+        
         logger.info('Approving token spend', { userId, token: input.token, amount: ethers.formatUnits(tokenAmount, 6) });
         const approveTx = await erc20WithSigner.approve(PAYMENT_CONTRACT_ADDRESS, tokenAmount);
         await approveTx.wait();
@@ -376,7 +393,17 @@ export const stablecoinPaymentRouter = router({
       const tokenAddress = resolveTokenAddress(input.token);
       const amountWei = ethers.parseUnits(input.amount, 6);
 
-      // Approve
+      // Transaction anomaly detection
+      const anomalyCheck = checkTransactionAnomaly(userId, 'deposit', parseFloat(input.amount), input.token);
+      if (!anomalyCheck.allowed) {
+        throw new TRPCError({
+          code: 'TOO_MANY_REQUESTS',
+          message: anomalyCheck.reason || 'Transaction blocked due to unusual activity',
+        });
+      }
+
+      // Approve (with whitelist validation)
+      validateApproveTarget(PAYMENT_CONTRACT_ADDRESS, `agentDeposit:${input.token}`);
       const erc20 = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
       const currentAllowance = await erc20.allowance(signer.address, PAYMENT_CONTRACT_ADDRESS);
 
@@ -420,6 +447,16 @@ export const stablecoinPaymentRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user.id;
+
+      // Transaction anomaly detection — withdrawals are high-risk
+      const anomalyCheck = checkTransactionAnomaly(userId, 'withdraw', parseFloat(input.amount), input.token);
+      if (!anomalyCheck.allowed) {
+        throw new TRPCError({
+          code: 'TOO_MANY_REQUESTS',
+          message: anomalyCheck.reason || 'Withdrawal blocked due to unusual activity',
+        });
+      }
+
       const signer = await getAgentSigner(userId);
       const tokenAddress = resolveTokenAddress(input.token);
       const amountWei = ethers.parseUnits(input.amount, 6);
@@ -517,6 +554,24 @@ export const stablecoinPaymentRouter = router({
         });
       }
 
+      // Verify the sender is the authenticated user's wallet
+      const user = await prisma.user.findUnique({
+        where: { id: ctx.user.id },
+        select: { walletAddress: true },
+      });
+      if (user?.walletAddress && receipt.from.toLowerCase() !== user.walletAddress.toLowerCase()) {
+        logger.warn('verifyPurchase: sender mismatch', {
+          userId: ctx.user.id,
+          expected: user.walletAddress,
+          actual: receipt.from,
+          txHash: input.txHash,
+        });
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Transaction sender does not match your registered wallet',
+        });
+      }
+
       // Parse Spent event to verify it's the correct package
       const iface = new ethers.Interface(PAYMENT_ABI);
       let verified = false;
@@ -575,6 +630,7 @@ export const stablecoinPaymentRouter = router({
 
   /**
    * Get supported stablecoins and contract info
+   * NOTE: Treasury address removed from public response (prevents targeted phishing)
    */
   getInfo: protectedProcedure
     .query(async () => {
@@ -597,7 +653,8 @@ export const stablecoinPaymentRouter = router({
               decimals: 6,
             },
           ],
-          platformTreasury: PLATFORM_TREASURY,
+          // Treasury address intentionally omitted — on-chain public but
+          // no need to serve it, reduces phishing attack surface
           explorerUrl: `https://polygonscan.com/address/${PAYMENT_CONTRACT_ADDRESS}`,
         },
       };

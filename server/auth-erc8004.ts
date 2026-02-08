@@ -277,7 +277,7 @@ This signature will not trigger any blockchain transaction.`;
     };
   } catch (error: unknown) {
     logger.error('Authentication failed', { error: getErrorMessage(error) });
-    return { success: false, error: getErrorMessage(error) };
+    return { success: false, error: 'Authentication failed' };
   }
 }
 
@@ -421,7 +421,7 @@ export function verifyERC8004Token(token: string): {
       }
     };
   } catch (error: unknown) {
-    return { valid: false, error: getErrorMessage(error) };
+    return { valid: false, error: 'Token verification failed' };
   }
 }
 

@@ -21,6 +21,13 @@ import { ethers } from 'ethers';
 import crypto from 'crypto';
 import { prisma } from '../db-prisma';
 import { createLogger } from '../utils/logger';
+import {
+  validateApproveTarget,
+  isWhitelistedContract,
+  checkTransactionAnomaly,
+  sanitizeErrorMessage,
+  safeCryptoError,
+} from '../middleware/crypto-asset-guard';
 
 const logger = createLogger('AgentWallet');
 
@@ -207,6 +214,7 @@ export async function getOrCreateAgentWallet(userId: number): Promise<AgentWalle
 /**
  * Get wallet signer for on-chain transactions.
  * Never expose the signer or private key externally.
+ * Key is scrubbed from local variable after Wallet construction.
  */
 export async function getAgentSigner(userId: number): Promise<ethers.Wallet> {
   const record = await prisma.agentWallet.findUnique({
@@ -222,10 +230,14 @@ export async function getAgentSigner(userId: number): Promise<ethers.Wallet> {
   }
 
   const encrypted: EncryptedKey = JSON.parse(record.encryptedKey);
-  const privateKey = decryptPrivateKey(encrypted);
+  let privateKey: string | null = decryptPrivateKey(encrypted);
   const provider = getProvider();
 
-  return new ethers.Wallet(privateKey, provider);
+  // Construct wallet and immediately scrub the key variable
+  const wallet = new ethers.Wallet(privateKey, provider);
+  privateKey = null; // Release reference for GC
+
+  return wallet;
 }
 
 /**

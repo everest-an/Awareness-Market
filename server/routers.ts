@@ -456,7 +456,7 @@ export const appRouter = router({
             },
           };
         } catch (error: any) {
-          return { success: false, error: error.message || 'Wallet authentication failed' };
+          return { success: false, error: 'Wallet authentication failed' };
         }
       }),
   }),
