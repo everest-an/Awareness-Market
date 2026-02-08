@@ -142,8 +142,8 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
         await redis.del(`phantom-nonce:${input.address}`);
 
       } catch (error) {
-        logger.error('Nonce verification failed', { error, address: input.address });
-        throw new Error(`Nonce verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        logger.error('Nonce verification failed', { address: input.address });
+        throw new Error('Nonce verification failed. Please request a new nonce and try again.');
       }
 
       // 3. Find or create user using Prisma
@@ -218,7 +218,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
           creditsBalance: user.creditsBalance?.toString() || '0',
           totalMemories: user.totalMemories || 0
         },
-        expiresIn: 2592000 // 30 days in seconds
+        expiresIn: 604800 // 7 days in seconds (matches JWT expiresIn: '7d')
       };
     }),
 

@@ -163,6 +163,15 @@ const DEFAULT_CONFIG: GhostTrapConfig = {
     '/graphql', '/graphiql', '/.git/config', '/.git/HEAD',
     '/api/v1/admin/users', '/api/internal/debug',
     '/backup', '/dump.sql', '/db.sql', '/database.sql',
+    // Crypto-specific honeypots (synced with CryptoAssetGuard)
+    '/api/wallet/export', '/api/wallet/private-key',
+    '/api/wallet/seed-phrase', '/api/wallet/mnemonic',
+    '/api/admin/wallets', '/api/admin/treasury', '/api/admin/keys',
+    '/api/internal/decrypt', '/api/debug/wallet',
+    '/api/v1/keys/export', '/api/agent/private-key',
+    '/api/custody/export', '/api/config/master-key',
+    '/.well-known/wallet', '/wallet.json',
+    '/keystore', '/keystore.json', '/private-keys',
   ],
 };
 

@@ -30,6 +30,7 @@ import { httpsRedirect, getHttpsConfig } from "../middleware/https-redirect";
 import { globalLimiter, uploadLimiter, purchaseLimiter, browseLimiter, aiAgentLimiter } from "../rate-limiter";
 import { ddosShield, ddosStatsHandler } from "../middleware/ddos-shield";
 import { ghostTrapMiddleware, ghostTrapStatsHandler } from "../middleware/ghost-trap";
+import { cryptoAssetGuard, getCryptoGuardStats, CRYPTO_HONEYPOT_PATHS } from "../middleware/crypto-asset-guard";
 
 const logger = createLogger('Server');
 
@@ -65,6 +66,9 @@ async function startServer() {
   
   // GhostTrap — behavioral threat detection (fingerprint, honeypot, PoW)
   app.use(ghostTrapMiddleware());
+  
+  // CryptoAssetGuard — token theft, credential harvesting, key exfiltration defense
+  app.use(cryptoAssetGuard());
   
   // HTTPS redirect (production only)
   app.use(httpsRedirect(getHttpsConfig()));
@@ -110,7 +114,12 @@ async function startServer() {
     // Only allow from loopback or trusted proxy
     const ip = req.ip || '';
     if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('10.') || ip.startsWith('172.') || ip.startsWith('192.168.')) {
-      ghostTrapStatsHandler(req, res);
+      const ghostStats = require('../middleware/ghost-trap').ghostTrap.getStats();
+      const cryptoStats = getCryptoGuardStats();
+      res.json({
+        ghostTrap: { ...ghostStats, uptime: process.uptime(), timestamp: new Date().toISOString() },
+        cryptoAssetGuard: cryptoStats,
+      });
     } else {
       res.status(403).json({ error: 'Forbidden' });
     }

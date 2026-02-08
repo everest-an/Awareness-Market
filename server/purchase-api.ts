@@ -317,10 +317,10 @@ router.post('/invoke', authenticateApiKey, async (req, res) => {
     });
 
   } catch (error: unknown) {
-    logger.error('Invocation failed', { error: getErrorMessage(error), accessToken: req.body.accessToken });
+    logger.error('Invocation failed', { error: getErrorMessage(error) });
     res.status(500).json({
       error: 'Invocation failed',
-      message: getErrorMessage(error)
+      message: 'An internal error occurred while processing the invocation'
     });
   }
 });
