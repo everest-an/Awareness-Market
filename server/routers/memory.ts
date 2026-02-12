@@ -9,13 +9,21 @@ import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { prisma } from '../db-prisma';
-import { createMemoryRouter } from '../memory-core';
+import {
+  createMemoryRouter,
+  createConflictResolver,
+  createVersionTreeManager,
+  createSemanticConflictDetector,
+} from '../memory-core';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('Memory:API');
 
 // Initialize memory router (singleton)
 let memoryRouter: ReturnType<typeof createMemoryRouter> | null = null;
+let conflictResolver: ReturnType<typeof createConflictResolver> | null = null;
+let versionTreeManager: ReturnType<typeof createVersionTreeManager> | null = null;
+let semanticDetector: ReturnType<typeof createSemanticConflictDetector> | null = null;
 
 function getMemoryRouter() {
   if (!memoryRouter) {
@@ -23,6 +31,30 @@ function getMemoryRouter() {
     logger.info('[Memory:API] Memory router initialized');
   }
   return memoryRouter;
+}
+
+function getConflictResolver() {
+  if (!conflictResolver) {
+    conflictResolver = createConflictResolver(prisma);
+    logger.info('[Memory:API] Conflict resolver initialized');
+  }
+  return conflictResolver;
+}
+
+function getVersionTreeManager() {
+  if (!versionTreeManager) {
+    versionTreeManager = createVersionTreeManager(prisma);
+    logger.info('[Memory:API] Version tree manager initialized');
+  }
+  return versionTreeManager;
+}
+
+function getSemanticDetector() {
+  if (!semanticDetector) {
+    semanticDetector = createSemanticConflictDetector(prisma);
+    logger.info('[Memory:API] Semantic detector initialized');
+  }
+  return semanticDetector;
 }
 
 // ============================================================================
@@ -77,6 +109,45 @@ const incrementReputationSchema = z.object({
 
 const markValidatedSchema = z.object({
   memory_id: z.string().uuid(),
+});
+
+// Phase 2: Conflict Detection & Version Tree Schemas
+const listConflictsSchema = z.object({
+  status: z.enum(['pending', 'resolved', 'ignored']).optional(),
+  conflict_type: z.enum(['claim_value_mismatch', 'semantic_contradiction']).optional(),
+  limit: z.number().min(1).max(100).default(50),
+  offset: z.number().min(0).default(0),
+});
+
+const resolveConflictSchema = z.object({
+  conflict_id: z.string().uuid(),
+  resolution_memory_id: z.string().uuid(),
+});
+
+const ignoreConflictSchema = z.object({
+  conflict_id: z.string().uuid(),
+});
+
+const getVersionHistorySchema = z.object({
+  memory_id: z.string().uuid(),
+});
+
+const getVersionTreeSchema = z.object({
+  root_id: z.string().uuid(),
+});
+
+const rollbackVersionSchema = z.object({
+  target_version_id: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+const compareVersionsSchema = z.object({
+  version_id_1: z.string().uuid(),
+  version_id_2: z.string().uuid(),
+});
+
+const runSemanticDetectionSchema = z.object({
+  force: z.boolean().default(false), // Force run even if recently ran
 });
 
 // ============================================================================
@@ -415,6 +486,319 @@ export const memoryRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: error.message || 'Failed to mark validated',
+        });
+      }
+    }),
+
+  // ============================================================================
+  // Phase 2: Conflict Detection
+  // ============================================================================
+
+  /**
+   * List conflicts for the user's organization
+   */
+  listConflicts: protectedProcedure
+    .input(listConflictsSchema)
+    .query(async ({ input, ctx }) => {
+      const resolver = getConflictResolver();
+
+      try {
+        const conflicts = await resolver.listConflicts({
+          org_id: `org-${ctx.user.id}`,
+          status: input.status,
+          conflict_type: input.conflict_type,
+          limit: input.limit,
+          offset: input.offset,
+        });
+
+        return {
+          conflicts: conflicts.map((c) => ({
+            id: c.id,
+            memory1: {
+              id: c.memory1.id,
+              content: c.memory1.content.substring(0, 200),
+              confidence: c.memory1.confidence,
+              created_at: c.memory1.created_at,
+            },
+            memory2: {
+              id: c.memory2.id,
+              content: c.memory2.content.substring(0, 200),
+              confidence: c.memory2.confidence,
+              created_at: c.memory2.created_at,
+            },
+            conflict_type: c.conflictType,
+            status: c.status,
+            detected_at: c.detectedAt,
+            resolved_at: c.resolvedAt,
+            resolved_by: c.resolvedBy,
+          })),
+          count: conflicts.length,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to list conflicts:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to list conflicts',
+        });
+      }
+    }),
+
+  /**
+   * Get conflict statistics
+   */
+  getConflictStats: protectedProcedure
+    .query(async ({ ctx }) => {
+      const resolver = getConflictResolver();
+
+      try {
+        const stats = await resolver.getConflictStats(`org-${ctx.user.id}`);
+        return stats;
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to get conflict stats:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to get conflict stats',
+        });
+      }
+    }),
+
+  /**
+   * Resolve a conflict by choosing winning memory
+   */
+  resolveConflict: protectedProcedure
+    .input(resolveConflictSchema)
+    .mutation(async ({ input, ctx }) => {
+      const resolver = getConflictResolver();
+
+      try {
+        await resolver.resolveConflict({
+          conflict_id: input.conflict_id,
+          resolution_memory_id: input.resolution_memory_id,
+          resolved_by: ctx.user.id.toString(),
+        });
+
+        logger.info(`[Memory:API] Resolved conflict ${input.conflict_id}`);
+
+        return {
+          success: true,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to resolve conflict:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to resolve conflict',
+        });
+      }
+    }),
+
+  /**
+   * Ignore a conflict
+   */
+  ignoreConflict: protectedProcedure
+    .input(ignoreConflictSchema)
+    .mutation(async ({ input, ctx }) => {
+      const resolver = getConflictResolver();
+
+      try {
+        await resolver.ignoreConflict({
+          conflict_id: input.conflict_id,
+          resolved_by: ctx.user.id.toString(),
+        });
+
+        logger.info(`[Memory:API] Ignored conflict ${input.conflict_id}`);
+
+        return {
+          success: true,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to ignore conflict:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to ignore conflict',
+        });
+      }
+    }),
+
+  /**
+   * Run semantic conflict detection (LLM-based)
+   */
+  runSemanticDetection: protectedProcedure
+    .input(runSemanticDetectionSchema)
+    .mutation(async ({ input, ctx }) => {
+      const detector = getSemanticDetector();
+
+      try {
+        const results = await detector.detectConflicts(`org-${ctx.user.id}`);
+
+        logger.info(
+          `[Memory:API] Semantic detection: ${results.conflicts_detected} conflicts found`
+        );
+
+        return {
+          success: true,
+          ...results,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to run semantic detection:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to run semantic detection',
+        });
+      }
+    }),
+
+  // ============================================================================
+  // Phase 2: Version Tree
+  // ============================================================================
+
+  /**
+   * Get version history for a memory (linear chain)
+   */
+  getVersionHistory: protectedProcedure
+    .input(getVersionHistorySchema)
+    .query(async ({ input, ctx }) => {
+      const versionTree = getVersionTreeManager();
+
+      try {
+        const history = await versionTree.getVersionHistory(input.memory_id);
+
+        if (!history) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Memory not found',
+          });
+        }
+
+        return {
+          versions: history.versions.map((v) => ({
+            id: v.id,
+            content: v.content,
+            confidence: v.confidence,
+            version: v.version,
+            created_by: v.created_by,
+            created_at: v.created_at,
+            parent_id: v.parentId,
+          })),
+          root: {
+            id: history.root.id,
+            content: history.root.content,
+          },
+          current: {
+            id: history.current.id,
+            content: history.current.content,
+          },
+          depth: history.depth,
+        };
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+
+        logger.error('[Memory:API] Failed to get version history:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to get version history',
+        });
+      }
+    }),
+
+  /**
+   * Get full version tree (including branches)
+   */
+  getVersionTree: protectedProcedure
+    .input(getVersionTreeSchema)
+    .query(async ({ input, ctx }) => {
+      const versionTree = getVersionTreeManager();
+
+      try {
+        const tree = await versionTree.getVersionTree(input.root_id);
+
+        if (!tree) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Root memory not found',
+          });
+        }
+
+        // Recursive function to serialize tree
+        function serializeNode(node: any): any {
+          return {
+            id: node.id,
+            content: node.content.substring(0, 200),
+            confidence: node.confidence,
+            version: node.version,
+            created_by: node.created_by,
+            created_at: node.created_at,
+            is_latest: node.is_latest,
+            children: node.children?.map((c: any) => serializeNode(c)) || [],
+          };
+        }
+
+        return serializeNode(tree);
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+
+        logger.error('[Memory:API] Failed to get version tree:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to get version tree',
+        });
+      }
+    }),
+
+  /**
+   * Rollback to a previous version
+   */
+  rollbackVersion: protectedProcedure
+    .input(rollbackVersionSchema)
+    .mutation(async ({ input, ctx }) => {
+      const versionTree = getVersionTreeManager();
+
+      try {
+        const newVersion = await versionTree.rollbackToVersion({
+          target_version_id: input.target_version_id,
+          created_by: ctx.user.id.toString(),
+          reason: input.reason,
+        });
+
+        logger.info(
+          `[Memory:API] Rolled back to version ${input.target_version_id} → ${newVersion.id}`
+        );
+
+        return {
+          success: true,
+          new_version_id: newVersion.id,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to rollback version:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to rollback version',
+        });
+      }
+    }),
+
+  /**
+   * Compare two versions
+   */
+  compareVersions: protectedProcedure
+    .input(compareVersionsSchema)
+    .query(async ({ input, ctx }) => {
+      const versionTree = getVersionTreeManager();
+
+      try {
+        const diffs = await versionTree.compareVersions(
+          input.version_id_1,
+          input.version_id_2
+        );
+
+        return {
+          differences: diffs,
+          count: diffs.length,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to compare versions:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to compare versions',
         });
       }
     }),
