@@ -24,6 +24,7 @@ import {
 import { VectorStore } from './vector-store';
 import { calculateMemoryScore, rerank, QueryContext } from './scoring-engine';
 import { VersionManager } from './version-manager';
+import { EmbeddingService } from './embedding-service';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('MemoryRouter');
