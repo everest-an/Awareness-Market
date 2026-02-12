@@ -912,3 +912,97 @@ model AgentWalletTransaction {
   @@index([userId, action, createdAt])
   @@map("agent_wallet_transactions")
 }
+
+// ============================================================================
+// Memory System (Phase A - Infrastructure Transformation)
+// Core tables for universal AI memory management
+// ============================================================================
+
+model MemoryEntry {
+  id                  String    @id @default(uuid()) @db.Uuid
+  orgId               String    @map("org_id") @db.VarChar(255)
+  namespace           String    @db.VarChar(255)
+
+  // Content
+  contentType         String    @map("content_type") @db.VarChar(50)
+  content             String    @db.Text
+  embedding           Unsupported("vector(1536)")?  // pgvector extension
+  metadata            Json?
+
+  // Quality Signals
+  confidence          Decimal   @db.Decimal(3, 2) // [0.00-1.00]
+  reputation          Decimal   @default(50) @db.Decimal(5, 2) // [0-100]
+  usageCount          Int       @default(0) @map("usage_count")
+  validationCount     Int       @default(0) @map("validation_count")
+
+  // Versioning
+  version             Int       @default(1)
+  parentId            String?   @map("parent_id") @db.Uuid
+  isLatest            Boolean   @default(true) @map("is_latest")
+
+  // Lifecycle
+  createdBy           String    @map("created_by") @db.VarChar(255)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  accessedAt          DateTime  @default(now()) @map("accessed_at")
+  expiresAt           DateTime? @map("expires_at")
+
+  // Decay
+  decayFactor         Decimal   @default(0.01) @map("decay_factor") @db.Decimal(5, 4)
+  decayCheckpoint     DateTime  @default(now()) @map("decay_checkpoint")
+
+  // Relations
+  parent              MemoryEntry?  @relation("MemoryVersionTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children            MemoryEntry[] @relation("MemoryVersionTree")
+  score               MemoryScore?
+
+  @@index([orgId, namespace])
+  @@index([createdBy])
+  @@index([isLatest])
+  @@index([contentType])
+  @@index([createdAt])
+  @@map("memory_entries")
+}
+
+model MemoryScore {
+  memoryId            String    @id @map("memory_id") @db.Uuid
+  baseScore           Decimal   @map("base_score") @db.Decimal(5, 2)
+  decayMultiplier     Decimal   @map("decay_multiplier") @db.Decimal(5, 4)
+  finalScore          Decimal   @map("final_score") @db.Decimal(5, 2)
+  lastCalculated      DateTime  @default(now()) @map("last_calculated")
+
+  // Relations
+  memory              MemoryEntry @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+
+  @@index([finalScore(sort: Desc)])
+  @@map("memory_scores")
+}
+
+// ============================================================================
+// Memory Governance (Phase B - To be implemented)
+// Commented out for now, will be activated in Phase B
+// ============================================================================
+
+model MemoryPolicy {
+  id                  String    @id @default(uuid()) @db.Uuid
+  orgId               String    @map("org_id") @db.VarChar(255)
+  namespace           String    @db.VarChar(255)
+  policyType          String    @map("policy_type") @db.VarChar(50) // 'retention', 'access', 'conflict_resolution'
+  rules               Json
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  @@index([orgId, namespace])
+  @@map("memory_policies")
+}
+
+model MemoryAccessLog {
+  id                  String    @id @default(uuid()) @db.Uuid
+  memoryId            String    @map("memory_id") @db.Uuid
+  accessedBy          String    @map("accessed_by") @db.VarChar(255)
+  accessType          String    @map("access_type") @db.VarChar(50) // 'read', 'write', 'delete'
+  accessedAt          DateTime  @default(now()) @map("accessed_at")
+
+  @@index([memoryId])
+  @@index([accessedAt])
+  @@map("memory_access_logs")
+}
