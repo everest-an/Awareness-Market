@@ -30,8 +30,10 @@
     "check:pgvector": "tsx scripts/check-pgvector.ts",
     "monitor": "tsx scripts/monitor-resources.ts",
     "monitor:watch": "tsx scripts/monitor-resources.ts --watch",
+    "memory:check": "tsx scripts/test-database-connection.ts",
     "memory:migrate": "tsx scripts/run-memory-migration.ts",
-    "memory:test": "tsx scripts/test-phase1-scoring.ts"
+    "memory:test": "tsx scripts/test-phase1-scoring.ts",
+    "memory:test:phase2": "tsx scripts/test-phase2-features.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",
