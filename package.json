@@ -29,7 +29,9 @@
     "check:deploy": "tsx scripts/pre-deployment-check.ts",
     "check:pgvector": "tsx scripts/check-pgvector.ts",
     "monitor": "tsx scripts/monitor-resources.ts",
-    "monitor:watch": "tsx scripts/monitor-resources.ts --watch"
+    "monitor:watch": "tsx scripts/monitor-resources.ts --watch",
+    "memory:migrate": "tsx scripts/run-memory-migration.ts",
+    "memory:test": "tsx scripts/test-phase1-scoring.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",
