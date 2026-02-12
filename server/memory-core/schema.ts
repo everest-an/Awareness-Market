@@ -151,12 +151,17 @@ export const DECAY_FACTORS: Record<ContentType, number> = {
 };
 
 /**
- * Scoring weights for base score calculation
+ * Scoring weights (第1阶段: User-specified formula)
+ *
+ * Formula: score = (similarity*0.4 + log(usage+1)*0.2 + validation*0.2 + reputation*0.2) * time_decay
+ *
+ * Key: "similarity 只是 40%" - similarity is only 40%
  */
 export const SCORING_WEIGHTS = {
-  confidence_reputation: 0.5,
-  usage_log: 0.3,
-  validation: 0.2,
+  similarity: 0.4, // Similarity from vector search
+  usage_log: 0.2, // log(usage_count + 1)
+  validation: 0.2, // validation_count ratio
+  reputation: 0.2, // reputation / 100
 } as const;
 
 /**

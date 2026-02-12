@@ -169,11 +169,11 @@ export class MemoryRouter {
       };
     });
 
-    // Re-rank by combined score
+    // Re-rank by combined score (第1阶段: User formula - similarity 只是 40%)
     const reranked = rerank(results, {
-      similarity_weight: 0.7,
-      score_weight: 0.3,
-      recency_boost: true,
+      similarity_weight: 0.4, // User spec: similarity is only 40%
+      score_weight: 0.6, // User spec: quality is 60%
+      recency_boost: false, // Disabled - time decay already handles recency
     });
 
     // Filter by min_score and limit
