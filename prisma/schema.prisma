@@ -935,10 +935,20 @@ model MemoryEntry {
   usageCount          Int       @default(0) @map("usage_count")
   validationCount     Int       @default(0) @map("validation_count")
 
+  // Conflict Detection (Phase B)
+  claimKey            String?   @map("claim_key") @db.VarChar(255)
+  claimValue          String?   @map("claim_value") @db.Text
+
   // Versioning
   version             Int       @default(1)
   parentId            String?   @map("parent_id") @db.Uuid
+  rootId              String?   @map("root_id") @db.Uuid
   isLatest            Boolean   @default(true) @map("is_latest")
+
+  // Department & Role (Phase B - 权限隔离)
+  agentId             String?   @map("agent_id") @db.VarChar(255)
+  department          String?   @db.VarChar(100)
+  role                String?   @db.VarChar(50)
 
   // Lifecycle
   createdBy           String    @map("created_by") @db.VarChar(255)
@@ -952,15 +962,21 @@ model MemoryEntry {
   decayCheckpoint     DateTime  @default(now()) @map("decay_checkpoint")
 
   // Relations
-  parent              MemoryEntry?  @relation("MemoryVersionTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children            MemoryEntry[] @relation("MemoryVersionTree")
+  parent              MemoryEntry?      @relation("MemoryVersionTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children            MemoryEntry[]     @relation("MemoryVersionTree")
   score               MemoryScore?
+  conflictsAsMemory1  MemoryConflict[]  @relation("ConflictMemory1")
+  conflictsAsMemory2  MemoryConflict[]  @relation("ConflictMemory2")
 
   @@index([orgId, namespace])
   @@index([createdBy])
   @@index([isLatest])
   @@index([contentType])
   @@index([createdAt])
+  @@index([claimKey])
+  @@index([rootId])
+  @@index([department])
+  @@index([agentId])
   @@map("memory_entries")
 }
 
@@ -1005,4 +1021,26 @@ model MemoryAccessLog {
   @@index([memoryId])
   @@index([accessedAt])
   @@map("memory_access_logs")
+}
+
+model MemoryConflict {
+  id                  String    @id @default(uuid()) @db.Uuid
+  memoryId1           String    @map("memory_id_1") @db.Uuid
+  memoryId2           String    @map("memory_id_2") @db.Uuid
+  conflictType        String    @map("conflict_type") @db.VarChar(50) // 'claim_value_mismatch', 'semantic_contradiction'
+  status              String    @default("pending") @db.VarChar(20) // 'pending', 'resolved', 'ignored'
+  resolutionMemoryId  String?   @map("resolution_memory_id") @db.Uuid
+  detectedAt          DateTime  @default(now()) @map("detected_at")
+  resolvedAt          DateTime? @map("resolved_at")
+  resolvedBy          String?   @map("resolved_by") @db.VarChar(255)
+
+  // Relations
+  memory1             MemoryEntry @relation("ConflictMemory1", fields: [memoryId1], references: [id], onDelete: Cascade)
+  memory2             MemoryEntry @relation("ConflictMemory2", fields: [memoryId2], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([detectedAt])
+  @@index([memoryId1])
+  @@index([memoryId2])
+  @@map("memory_conflicts")
 }
