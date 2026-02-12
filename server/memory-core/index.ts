@@ -1,0 +1,48 @@
+/**
+ * Memory Core Module Exports
+ *
+ * Central export point for all memory system components.
+ * Import from here to use the memory infrastructure.
+ */
+
+// Core types and schemas
+export * from './schema';
+
+// Main router (Control Plane entry point)
+export { MemoryRouter } from './router';
+
+// Vector storage abstraction
+export { VectorStore, PgVectorStore, createVectorStore } from './vector-store';
+export type { VectorData, VectorSearchResult, VectorSearchFilters } from './vector-store';
+
+// Scoring engine
+export * from './scoring-engine';
+
+// Version management
+export { VersionManager } from './version-manager';
+
+// Embedding service
+export {
+  EmbeddingService,
+  OpenAIEmbeddingService,
+  MockEmbeddingService,
+  createEmbeddingService,
+} from './embedding-service';
+
+/**
+ * Factory function to create a fully configured MemoryRouter instance
+ */
+import { MemoryRouter } from './router';
+import { createVectorStore } from './vector-store';
+import { createEmbeddingService } from './embedding-service';
+
+export function createMemoryRouter(prisma: any): MemoryRouter {
+  // Create vector store (defaults to pgvector)
+  const vectorStore = createVectorStore('pgvector', { prisma });
+
+  // Create embedding service (uses OpenAI or mock)
+  const embeddingService = createEmbeddingService();
+
+  // Create router
+  return new MemoryRouter(prisma, vectorStore, embeddingService);
+}

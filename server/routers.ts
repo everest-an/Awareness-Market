@@ -38,6 +38,7 @@ import { authUnifiedRouter } from './routers/auth-unified';
 import { apiAnalyticsRouter } from './routers/api-analytics';
 import { agentDiscoveryRouter } from './routers/agent-discovery';
 import { agentCollaborationRouter } from './routers/agent-collaboration';
+import { memoryRouter } from './routers/memory';
 import { neuralBridgeRouter } from './routers/neural-bridge-api';
 import { creatorDashboardRouter } from './routers/creator-dashboard-api';
 import { zkpRouter } from './routers/zkp-api';
@@ -2030,6 +2031,9 @@ export const appRouter = router({
   apiAnalytics: apiAnalyticsRouter,
   agentDiscovery: agentDiscoveryRouter,
   agentCollaboration: agentCollaborationRouter,
+
+  // Memory System API (Phase A - Universal AI Memory Infrastructure)
+  memory: memoryRouter,
 
   // Neural Bridge Protocol API (P1 - Technical Moat)
   neuralBridge: neuralBridgeRouter,
