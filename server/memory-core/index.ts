@@ -12,8 +12,8 @@ export * from './schema';
 export { MemoryRouter } from './router';
 
 // Vector storage abstraction
-export { VectorStore, PgVectorStore, createVectorStore } from './vector-store';
-export type { VectorData, VectorSearchResult, VectorSearchFilters } from './vector-store';
+export type { VectorStore, VectorData, VectorSearchResult, VectorSearchFilters } from './vector-store';
+export { PgVectorStore, createVectorStore } from './vector-store';
 
 // Scoring engine
 export * from './scoring-engine';
@@ -22,8 +22,8 @@ export * from './scoring-engine';
 export { VersionManager } from './version-manager';
 
 // Embedding service
+export type { EmbeddingService } from './embedding-service';
 export {
-  EmbeddingService,
   OpenAIEmbeddingService,
   MockEmbeddingService,
   createEmbeddingService,
