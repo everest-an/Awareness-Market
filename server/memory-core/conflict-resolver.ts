@@ -22,7 +22,7 @@ export interface ConflictWithMemories extends MemoryConflict {
 }
 
 export interface ListConflictsParams {
-  org_id: string;
+  orgId: string;
   status?: ConflictStatus;
   conflict_type?: ConflictType;
   limit?: number;
@@ -44,14 +44,14 @@ export class ConflictResolver {
    * Usage:
    * ```typescript
    * const conflicts = await resolver.listConflicts({
-   *   org_id: 'org-123',
+   *   orgId: 'org-123',
    *   status: 'pending',
    *   limit: 20,
    * });
    * ```
    */
   async listConflicts(params: ListConflictsParams): Promise<ConflictWithMemories[]> {
-    const { org_id, status, conflict_type, limit = 50, offset = 0 } = params;
+    const { orgId, status, conflict_type, limit = 50, offset = 0 } = params;
 
     // Find all conflicts where either memory belongs to this org
     const conflicts = await this.prisma.memoryConflict.findMany({
@@ -59,8 +59,8 @@ export class ConflictResolver {
         AND: [
           {
             OR: [
-              { memory1: { org_id } },
-              { memory2: { org_id } },
+              { memory1: { orgId: orgId } },
+              { memory2: { orgId: orgId } },
             ],
           },
           status ? { status } : {},
@@ -70,11 +70,6 @@ export class ConflictResolver {
       include: {
         memory1: true,
         memory2: true,
-        resolutionMemory: {
-          include: {
-            score: true,
-          },
-        },
       },
       orderBy: {
         detectedAt: 'desc',
@@ -223,7 +218,7 @@ export class ConflictResolver {
    * console.log('Resolved:', stats.resolved);
    * ```
    */
-  async getConflictStats(org_id: string): Promise<{
+  async getConflictStats(orgId: string): Promise<{
     pending: number;
     resolved: number;
     ignored: number;
@@ -234,19 +229,19 @@ export class ConflictResolver {
     const [pending, resolved, ignored] = await Promise.all([
       this.prisma.memoryConflict.count({
         where: {
-          OR: [{ memory1: { org_id } }, { memory2: { org_id } }],
+          OR: [{ memory1: { orgId } }, { memory2: { orgId } }],
           status: 'pending',
         },
       }),
       this.prisma.memoryConflict.count({
         where: {
-          OR: [{ memory1: { org_id } }, { memory2: { org_id } }],
+          OR: [{ memory1: { orgId } }, { memory2: { orgId } }],
           status: 'resolved',
         },
       }),
       this.prisma.memoryConflict.count({
         where: {
-          OR: [{ memory1: { org_id } }, { memory2: { org_id } }],
+          OR: [{ memory1: { orgId } }, { memory2: { orgId } }],
           status: 'ignored',
         },
       }),
@@ -256,7 +251,7 @@ export class ConflictResolver {
     const typeGroups = await this.prisma.memoryConflict.groupBy({
       by: ['conflictType'],
       where: {
-        OR: [{ memory1: { org_id } }, { memory2: { org_id } }],
+        OR: [{ memory1: { orgId } }, { memory2: { orgId } }],
       },
       _count: true,
     });

@@ -38,12 +38,12 @@ async function testPhase2() {
     console.log('Creating conflicting memories...\n');
 
     const memory1 = await router.create({
-      org_id: testOrgId,
+      orgId: testOrgId,
       namespace: `${testOrgId}/engineering/config`,
       content_type: 'text',
       content: 'Our primary database is PostgreSQL',
       confidence: 0.9,
-      created_by: 'user-alice',
+      createdBy: 'user-alice',
     });
 
     // Add claim to trigger conflict
@@ -58,12 +58,12 @@ async function testPhase2() {
     console.log(`  ✅ Memory 1: primary_database = PostgreSQL`);
 
     const memory2 = await router.create({
-      org_id: testOrgId,
+      orgId: testOrgId,
       namespace: `${testOrgId}/engineering/config`,
       content_type: 'text',
       content: 'Our primary database is MongoDB',
       confidence: 0.85,
-      created_by: 'user-bob',
+      createdBy: 'user-bob',
     });
 
     await prisma.memoryEntry.update({
@@ -81,7 +81,7 @@ async function testPhase2() {
 
     // List conflicts
     const conflicts = await conflictResolver.listConflicts({
-      org_id: testOrgId,
+      orgId: testOrgId,
       status: 'pending',
     });
 
@@ -131,12 +131,12 @@ async function testPhase2() {
     console.log('Creating memory with version history...\n');
 
     const originalId = await router.create({
-      org_id: testOrgId,
+      orgId: testOrgId,
       namespace: `${testOrgId}/docs/api`,
       content_type: 'text',
       content: 'API timeout is set to 30 seconds',
       confidence: 0.9,
-      created_by: 'user-alice',
+      createdBy: 'user-alice',
     });
 
     console.log(`  ✅ Original version: "timeout = 30s"`);
@@ -178,7 +178,7 @@ async function testPhase2() {
       console.log('  Versions:');
       history.versions.forEach((v, idx) => {
         console.log(`    [${idx + 1}] ${v.content.substring(0, 60)}...`);
-        console.log(`        Created by: ${v.created_by}, Confidence: ${v.confidence}`);
+        console.log(`        Created by: ${v.createdBy}, Confidence: ${v.confidence}`);
       });
       console.log('');
     }
@@ -186,19 +186,20 @@ async function testPhase2() {
     // Get full version tree
     const tree = await versionTree.getVersionTree(originalId);
 
+    // Helper function for printing tree
+    const printTree = (node: any, indent = '  '): void => {
+      console.log(`${indent}→ ${node.content.substring(0, 50)}...`);
+      console.log(`${indent}  (v${node.version}, ${node.createdBy})`);
+
+      if (node.children && node.children.length > 0) {
+        node.children.forEach((child: any) => printTree(child, indent + '  '));
+      }
+    };
+
     if (tree) {
       console.log('Version Tree (full structure):');
       console.log(`  Root ID: ${tree.id.substring(0, 8)}`);
       console.log(`  Children: ${tree.children?.length || 0}\n`);
-
-      function printTree(node: any, indent = '  ') {
-        console.log(`${indent}→ ${node.content.substring(0, 50)}...`);
-        console.log(`${indent}  (v${node.version}, ${node.created_by})`);
-
-        if (node.children && node.children.length > 0) {
-          node.children.forEach((child: any) => printTree(child, indent + '  '));
-        }
-      }
 
       printTree(tree);
       console.log('');
@@ -254,23 +255,23 @@ async function testPhase2() {
       console.log('Creating semantically conflicting memories...\n');
 
       const semantic1 = await router.create({
-        org_id: testOrgId,
+        orgId: testOrgId,
         namespace: `${testOrgId}/engineering/policies`,
         content_type: 'text',
         content: 'All API endpoints must be authenticated using JWT tokens',
         confidence: 0.9,
-        created_by: 'user-alice',
+        createdBy: 'user-alice',
       });
 
       console.log('  ✅ Memory 1: "API endpoints must be authenticated"');
 
       const semantic2 = await router.create({
-        org_id: testOrgId,
+        orgId: testOrgId,
         namespace: `${testOrgId}/engineering/policies`,
         content_type: 'text',
         content: 'Public API endpoints do not require authentication',
         confidence: 0.85,
-        created_by: 'user-bob',
+        createdBy: 'user-bob',
       });
 
       console.log('  ✅ Memory 2: "Public endpoints do not require auth"\n');
@@ -289,7 +290,7 @@ async function testPhase2() {
 
       if (results.conflicts_detected > 0) {
         const semanticConflicts = await conflictResolver.listConflicts({
-          org_id: testOrgId,
+          orgId: testOrgId,
           conflict_type: 'semantic_contradiction',
         });
 
@@ -326,7 +327,7 @@ async function testPhase2() {
     // Cleanup
     console.log('Cleaning up test data...');
     await prisma.memoryEntry.deleteMany({
-      where: { org_id: testOrgId },
+      where: { orgId: testOrgId },
     });
     console.log('✅ Cleanup complete\n');
   } catch (error) {

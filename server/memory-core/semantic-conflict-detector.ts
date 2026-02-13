@@ -25,7 +25,7 @@ export interface SemanticConflictDetectorConfig {
    * Minimum usage count for strategic pool
    * Default: 5 (memories that have been retrieved at least 5 times)
    */
-  min_usage_count?: number;
+  min_usageCount?: number;
 
   /**
    * Batch size for LLM processing
@@ -62,7 +62,7 @@ export class SemanticConflictDetector {
   ) {
     this.config = {
       min_confidence: config.min_confidence ?? 0.8,
-      min_usage_count: config.min_usage_count ?? 5,
+      min_usageCount: config.min_usageCount ?? 5,
       batch_size: config.batch_size ?? 10,
       model: config.model ?? 'gpt-4o',
       max_age_days: config.max_age_days ?? 90,
@@ -74,21 +74,21 @@ export class SemanticConflictDetector {
    *
    * Strategic pool = high confidence + high usage + recent
    */
-  private async getStrategicPool(org_id: string): Promise<MemoryEntry[]> {
+  private async getStrategicPool(orgId: string): Promise<MemoryEntry[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - this.config.max_age_days);
 
     const pool = await this.prisma.memoryEntry.findMany({
       where: {
-        org_id,
+        orgId,
         is_latest: true,
         confidence: {
           gte: this.config.min_confidence,
         },
-        usage_count: {
-          gte: this.config.min_usage_count,
+        usageCount: {
+          gte: this.config.min_usageCount,
         },
-        created_at: {
+        createdAt: {
           gte: cutoffDate,
         },
       },
@@ -96,7 +96,7 @@ export class SemanticConflictDetector {
         score: true,
       },
       orderBy: [
-        { usage_count: 'desc' },
+        { usageCount: 'desc' },
         { confidence: 'desc' },
       ],
     });
@@ -116,13 +116,13 @@ export class SemanticConflictDetector {
 Memory 1:
 Content: ${memory1.content}
 Namespace: ${memory1.namespace}
-Created: ${memory1.created_at.toISOString()}
+Created: ${memory1.createdAt.toISOString()}
 Confidence: ${memory1.confidence}
 
 Memory 2:
 Content: ${memory2.content}
 Namespace: ${memory2.namespace}
-Created: ${memory2.created_at.toISOString()}
+Created: ${memory2.createdAt.toISOString()}
 Confidence: ${memory2.confidence}
 
 Determine if these memories semantically contradict each other. A contradiction exists when:
@@ -214,7 +214,7 @@ Respond in JSON format:
    * console.log('Conflicts found:', results.conflicts_detected);
    * ```
    */
-  async detectConflicts(org_id: string): Promise<{
+  async detectConflicts(orgId: string): Promise<{
     pairs_checked: number;
     conflicts_detected: number;
     conflicts_saved: number;
@@ -224,7 +224,7 @@ Respond in JSON format:
     const startTime = Date.now();
 
     // Get strategic pool
-    const pool = await this.getStrategicPool(org_id);
+    const pool = await this.getStrategicPool(orgId);
 
     if (pool.length < 2) {
       return {
@@ -349,17 +349,17 @@ Respond in JSON format:
    * await detector.scheduleDetection(['org-1', 'org-2', 'org-3']);
    * ```
    */
-  async scheduleDetection(org_ids: string[]): Promise<void> {
-    console.log(`[SemanticConflictDetector] Starting scheduled detection for ${org_ids.length} orgs`);
+  async scheduleDetection(orgIds: string[]): Promise<void> {
+    console.log(`[SemanticConflictDetector] Starting scheduled detection for ${orgIds.length} orgs`);
 
-    for (const org_id of org_ids) {
+    for (const orgId of orgIds) {
       try {
-        const results = await this.detectConflicts(org_id);
+        const results = await this.detectConflicts(orgId);
         console.log(
-          `[SemanticConflictDetector] ${org_id}: Checked ${results.pairs_checked} pairs, found ${results.conflicts_detected} conflicts (${results.duration_ms}ms)`
+          `[SemanticConflictDetector] ${orgId}: Checked ${results.pairs_checked} pairs, found ${results.conflicts_detected} conflicts (${results.duration_ms}ms)`
         );
       } catch (error: any) {
-        console.error(`[SemanticConflictDetector] Error for ${org_id}:`, error.message);
+        console.error(`[SemanticConflictDetector] Error for ${orgId}:`, error.message);
       }
 
       // Delay between orgs to avoid rate limits
