@@ -19,7 +19,7 @@ import {
   CreateMemoryInput,
   UpdateMemoryInput,
   validateNamespace,
-  getDecayFactor,
+  DECAY_FACTORS,
 } from './schema';
 import { VectorStore } from './vector-store';
 import { calculateMemoryScore, rerank, QueryContext } from './scoring-engine';
@@ -68,7 +68,7 @@ export class MemoryRouter {
     }
 
     // Determine decay factor
-    const decay_factor = input.decay_factor || getDecayFactor(input.content_type);
+    const decay_factor = input.decay_factor || DECAY_FACTORS[input.content_type];
 
     // Create memory entry
     const memoryId = uuidv4();
