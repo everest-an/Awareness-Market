@@ -33,7 +33,8 @@
     "memory:check": "tsx scripts/test-database-connection.ts",
     "memory:migrate": "tsx scripts/run-memory-migration.ts",
     "memory:test": "tsx scripts/test-phase1-scoring.ts",
-    "memory:test:phase2": "tsx scripts/test-phase2-features.ts"
+    "memory:test:phase2": "tsx scripts/test-phase2-features.ts",
+    "memory:verify": "cross-env OPENAI_API_KEY=sk-dummy tsx scripts/verify-phase2-imports.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",
