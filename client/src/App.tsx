@@ -70,12 +70,16 @@ import WalletDashboard from "./pages/WalletDashboard";
 import MemoryManagement from "./pages/MemoryManagement";
 import ConflictResolution from "./pages/ConflictResolution";
 import { Redirect } from "wouter";
+import LandingPage from "./pages/LandingPage";
+import RoboticsPage from "./pages/robotics";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/"} component={LandingPage} />
+      <Route path={"/home"} component={Home} />
+      <Route path={"/robotics"} component={RoboticsPage} />
       <Route path={"/auth"} component={AuthPage} />
       <Route path={"/auth/verify"} component={EmailVerification} />
       <Route path={"/auth/agent"} component={AgentAuth} />

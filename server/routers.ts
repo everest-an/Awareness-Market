@@ -49,6 +49,7 @@ import { resonanceRouter } from './latentmas-resonance';
 import { embeddingRouter } from './routers/embedding-api';
 import { stablecoinPaymentRouter } from './routers/stablecoin-payment';
 import { mcpRouter } from './routers/mcp';
+import { roboticsRouter } from './routers/robotics';
 import { prisma } from './db-prisma';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
@@ -2038,6 +2039,9 @@ export const appRouter = router({
 
   // MCP (Model Context Protocol) - AI Agent Token Management
   mcp: mcpRouter,
+
+  // Robotics Middleware - Robot Integration (ROS2, VR, Multi-Robot Coordination)
+  robotics: roboticsRouter,
 
   // Neural Bridge Protocol API (P1 - Technical Moat)
   neuralBridge: neuralBridgeRouter,
