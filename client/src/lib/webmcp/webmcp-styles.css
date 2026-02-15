@@ -1,0 +1,288 @@
+/**
+ * WebMCP Widget Styles
+ *
+ * Styles for the WebMCP floating widget and panel
+ */
+
+/* Widget Container */
+.webmcp-widget {
+  position: fixed;
+  z-index: 9999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.webmcp-widget.bottom-right {
+  bottom: 20px;
+  right: 20px;
+}
+
+.webmcp-widget.bottom-left {
+  bottom: 20px;
+  left: 20px;
+}
+
+.webmcp-widget.top-right {
+  top: 20px;
+  right: 20px;
+}
+
+.webmcp-widget.top-left {
+  top: 20px;
+  left: 20px;
+}
+
+/* Toggle Button */
+.webmcp-toggle-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.webmcp-toggle-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.webmcp-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.webmcp-toggle-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Panel */
+.webmcp-panel {
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  width: 350px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+.webmcp-widget.bottom-left .webmcp-panel {
+  left: 0;
+  right: auto;
+}
+
+.webmcp-widget.top-right .webmcp-panel {
+  top: 70px;
+  bottom: auto;
+}
+
+.webmcp-widget.top-left .webmcp-panel {
+  top: 70px;
+  bottom: auto;
+  left: 0;
+  right: auto;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Panel Header */
+.webmcp-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.webmcp-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.webmcp-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.webmcp-close-btn:hover {
+  opacity: 1;
+}
+
+/* Panel Content */
+.webmcp-content {
+  padding: 20px;
+}
+
+.webmcp-content p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* Token Input */
+.webmcp-token-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.webmcp-token-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.webmcp-token-input::placeholder {
+  color: #999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Connect Button */
+.webmcp-connect-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.webmcp-connect-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.webmcp-connect-btn:active {
+  transform: translateY(0);
+}
+
+.webmcp-connect-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Status Message */
+.webmcp-status {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.webmcp-status.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.webmcp-status.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.webmcp-status.loading {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .webmcp-panel {
+    width: calc(100vw - 40px);
+    max-width: 350px;
+  }
+
+  .webmcp-widget.bottom-right .webmcp-panel,
+  .webmcp-widget.top-right .webmcp-panel {
+    right: 0;
+  }
+
+  .webmcp-widget.bottom-left .webmcp-panel,
+  .webmcp-widget.top-left .webmcp-panel {
+    left: 0;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .webmcp-panel {
+    background: #1e1e1e;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .webmcp-content p {
+    color: #b0b0b0;
+  }
+
+  .webmcp-token-input {
+    background: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #404040;
+  }
+
+  .webmcp-token-input:focus {
+    border-color: #667eea;
+  }
+
+  .webmcp-status.success {
+    background: #1b4332;
+    color: #d8f3dc;
+    border-color: #2d6a4f;
+  }
+
+  .webmcp-status.error {
+    background: #571f1f;
+    color: #f8d7da;
+    border-color: #842029;
+  }
+
+  .webmcp-status.loading {
+    background: #1b3a52;
+    color: #bee5eb;
+    border-color: #0c5460;
+  }
+}

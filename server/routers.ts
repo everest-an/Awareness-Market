@@ -48,6 +48,7 @@ import { latentUploadRouter } from './latentmas-upload';
 import { resonanceRouter } from './latentmas-resonance';
 import { embeddingRouter } from './routers/embedding-api';
 import { stablecoinPaymentRouter } from './routers/stablecoin-payment';
+import { mcpRouter } from './routers/mcp';
 import { prisma } from './db-prisma';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
@@ -2034,6 +2035,9 @@ export const appRouter = router({
 
   // Memory System API (Phase A - Universal AI Memory Infrastructure)
   memory: memoryRouter,
+
+  // MCP (Model Context Protocol) - AI Agent Token Management
+  mcp: mcpRouter,
 
   // Neural Bridge Protocol API (P1 - Technical Moat)
   neuralBridge: neuralBridgeRouter,

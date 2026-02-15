@@ -8,6 +8,8 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 import { loadAnalytics } from "./utils/analytics";
+import "./lib/webmcp/webmcp-styles.css";
+import { initializeWebMCP } from "./lib/webmcp";
 
 const queryClient = new QueryClient();
 
@@ -65,4 +67,19 @@ createRoot(document.getElementById("root")!).render(
 
 // Load analytics script dynamically
 loadAnalytics();
+
+// Initialize WebMCP for AI Agent integration
+if (typeof window !== 'undefined') {
+  initializeWebMCP({
+    apiBaseUrl: API_URL || window.location.origin,
+    enableWidget: true,
+    widgetPosition: 'bottom-right',
+    autoConnect: false
+  }).then(() => {
+    console.log('✅ WebMCP initialized successfully');
+  }).catch((error) => {
+    console.error('❌ Failed to initialize WebMCP:', error);
+  });
+}
+
 // Force rebuild 1770027465

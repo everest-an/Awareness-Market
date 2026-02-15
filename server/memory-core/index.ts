@@ -52,6 +52,32 @@ export {
 } from './semantic-conflict-detector';
 export type { SemanticConflictDetectorConfig } from './semantic-conflict-detector';
 
+// Phase 3: RMC (Relational Memory Core) for Multi-AI Reasoning
+export { EntityExtractor, createEntityExtractor } from './entity-extractor';
+export type {
+  Entity,
+  EntityType,
+  ExtractionResult,
+  EntityExtractorConfig,
+} from './entity-extractor';
+
+export { RelationBuilder, createRelationBuilder } from './relation-builder';
+export type {
+  RelationType,
+  RelationInferenceResult,
+  RelationBuilderConfig,
+} from './relation-builder';
+
+export { RMCRetriever, createRMCRetriever } from './rmc-retriever';
+export type {
+  MemoryNode,
+  RelationEdge,
+  InferencePath,
+  GraphContext,
+  RetrievalResult,
+  RetrievalOptions,
+} from './rmc-retriever';
+
 /**
  * Factory function to create a fully configured MemoryRouter instance
  */
