@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
-import Globe3D from "@/components/Globe3D";
+import { UnicornScene } from "@/components/UnicornScene";
 import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { trpc } from "@/lib/trpc";
 import {
@@ -54,8 +54,14 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,oklch(0.65_0.20_230_/_0.15),transparent_50%)]" />
+        {/* Unicorn Studio Background */}
+        <div className="absolute inset-0 z-0">
+          <UnicornScene
+            projectId="DHrYV5fcnlpS1Vj341CH"
+            width="100%"
+            height="100%"
+          />
+        </div>
         
         <div className="container relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -112,10 +118,8 @@ export default function Home() {
 
             </div>
             
-            {/* Right: 3D Globe */}
-            <div className="hidden lg:block h-[600px]">
-              <Globe3D />
-            </div>
+            {/* Right: spacer for layout balance */}
+            <div className="hidden lg:block h-[600px]" />
           </div>
         </div>
       </section>

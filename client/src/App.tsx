@@ -77,8 +77,7 @@ function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={LandingPage} />
-      <Route path={"/home"} component={Home} />
+      <Route path={"/"} component={Home} />
       <Route path={"/robotics"} component={RoboticsPage} />
       <Route path={"/auth"} component={AuthPage} />
       <Route path={"/auth/verify"} component={EmailVerification} />
