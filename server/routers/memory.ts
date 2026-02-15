@@ -20,17 +20,17 @@ import { createLogger } from '../utils/logger';
 const logger = createLogger('Memory:API');
 
 // Initialize memory router (singleton)
-let memoryRouter: ReturnType<typeof createMemoryRouter> | null = null;
+let memoryRouterInstance: ReturnType<typeof createMemoryRouter> | null = null;
 let conflictResolver: ReturnType<typeof createConflictResolver> | null = null;
 let versionTreeManager: ReturnType<typeof createVersionTreeManager> | null = null;
 let semanticDetector: ReturnType<typeof createSemanticConflictDetector> | null = null;
 
 function getMemoryRouter() {
-  if (!memoryRouter) {
-    memoryRouter = createMemoryRouter(prisma);
+  if (!memoryRouterInstance) {
+    memoryRouterInstance = createMemoryRouter(prisma);
     logger.info('[Memory:API] Memory router initialized');
   }
-  return memoryRouter;
+  return memoryRouterInstance;
 }
 
 function getConflictResolver() {
