@@ -39,11 +39,29 @@ export const UnicornScene: React.FC<UnicornSceneProps> = ({
     if (initializedRef.current) return;
     initializedRef.current = true;
 
+    // Remove watermark links injected by Unicorn Studio SDK
+    const removeWatermarks = () => {
+      document.querySelectorAll('a[href*="unicorn.studio"]').forEach(el => el.remove());
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (node instanceof HTMLAnchorElement && node.href?.includes('unicorn.studio')) {
+            node.remove();
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
     const initScene = () => {
       if (!window.UnicornStudio?.init) return;
       window.UnicornStudio.init()
         .then(() => {
-          // Scene initialized via data attributes
+          removeWatermarks();
+          setTimeout(removeWatermarks, 500);
+          setTimeout(removeWatermarks, 2000);
         })
         .catch((err) => {
           console.warn('Unicorn Studio init error:', err);
@@ -65,7 +83,7 @@ export const UnicornScene: React.FC<UnicornSceneProps> = ({
     }
 
     return () => {
-      // Cleanup on unmount
+      observer.disconnect();
       try {
         window.UnicornStudio?.destroy();
       } catch {
@@ -85,7 +103,7 @@ export const UnicornScene: React.FC<UnicornSceneProps> = ({
       style={{
         width,
         height,
-        filter: 'hue-rotate(180deg) saturate(1.2)',
+        filter: 'hue-rotate(120deg) saturate(1.3)',
       }}
     />
   );
