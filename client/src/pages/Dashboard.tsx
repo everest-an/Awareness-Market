@@ -88,7 +88,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
         <Navbar />
-        <div className="container py-8">
+        <div className="pt-20 container py-8">
           <Skeleton className="h-8 w-64 mb-8" />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (

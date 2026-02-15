@@ -55,7 +55,7 @@ function AdminPanelContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <Navbar />
-      <div className="container max-w-7xl py-8 mt-16">
+      <div className="pt-20 container max-w-7xl py-8 mt-16">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
           <p className="text-muted-foreground">
@@ -268,7 +268,7 @@ function AdminPanelContent() {
                                 )}
                               </div>
                               <p className="font-mono text-sm text-muted-foreground">
-                                {key.keyPrefix}•••••••••••••••�?
+                                {key.keyPrefix}•••••••••••••••�?
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 User: {key.userName} ({key.userEmail})
@@ -336,7 +336,7 @@ function AdminPanelContent() {
                         <div className="text-right">
                           <p className="font-bold">{formatNumber(user.totalRequests)} requests</p>
                           <p className="text-sm text-muted-foreground">
-                            {user.apiKeyCount} API keys �?{Math.round(user.avgResponseTime)}ms avg
+                            {user.apiKeyCount} API keys �?{Math.round(user.avgResponseTime)}ms avg
                           </p>
                         </div>
                       </div>

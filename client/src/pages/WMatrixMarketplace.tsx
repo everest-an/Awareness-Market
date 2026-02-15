@@ -96,7 +96,7 @@ export default function WMatrixMarketplace() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="pt-20 container mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
@@ -126,7 +126,7 @@ export default function WMatrixMarketplace() {
                   }}
                   className="text-sm"
                 >
-                  {pair.sourceModel} â†?{pair.targetModel}
+                  {pair.sourceModel} ï¿½?{pair.targetModel}
                   <Badge variant="secondary" className="ml-2">{pair.count}</Badge>
                 </Button>
               ))}
@@ -206,13 +206,13 @@ export default function WMatrixMarketplace() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Model Pair:</span>
                     <span className="text-cyan-400 font-mono text-xs">
-                      {listing.sourceModel} â†?{listing.targetModel}
+                      {listing.sourceModel} ï¿½?{listing.targetModel}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Dimensions:</span>
-                    <span className="text-white">{listing.sourceDim} â†?{listing.targetDim}</span>
+                    <span className="text-white">{listing.sourceDim} ï¿½?{listing.targetDim}</span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">

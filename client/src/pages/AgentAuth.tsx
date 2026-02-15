@@ -209,7 +209,7 @@ export default function AgentAuth() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <Navbar />
       
-      <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-12">
+      <div className="pt-20 container flex items-center justify-center min-h-[calc(100vh-4rem)] py-12">
         <Card className="w-full max-w-lg shadow-xl">
           <CardHeader className="space-y-1 text-center">
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mb-4">

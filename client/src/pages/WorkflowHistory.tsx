@@ -124,7 +124,7 @@ export function WorkflowHistory() {
     <div className="min-h-screen bg-black text-white">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8 mt-20">
+      <div className="pt-20 container mx-auto px-4 py-8 mt-20">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">

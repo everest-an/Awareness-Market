@@ -150,7 +150,7 @@ export default function ConflictResolution() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="pt-20 container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">

@@ -75,7 +75,7 @@ export default function KVCacheDemo() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="container max-w-6xl py-12 mt-20">
+      <div className="pt-20 container max-w-6xl py-12 mt-20">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">KV-Cache Compression Demo</h1>
         <p className="text-lg text-muted-foreground">

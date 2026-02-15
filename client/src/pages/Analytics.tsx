@@ -14,7 +14,7 @@ export default function Analytics() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="container mx-auto py-8 mt-20">
+      <div className="pt-20 container mx-auto py-8 mt-20">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Usage Analytics</h1>
           <p className="text-muted-foreground">Monitor your AI capability usage, costs, and performance</p>

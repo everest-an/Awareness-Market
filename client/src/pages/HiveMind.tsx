@@ -161,7 +161,7 @@ export default function HiveMind() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="container py-8 mt-16 space-y-6">
+      <div className="pt-20 container py-8 mt-16 space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>

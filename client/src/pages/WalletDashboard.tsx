@@ -69,7 +69,7 @@ export default function WalletDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="pt-20 container mx-auto px-4 py-8 max-w-5xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Wallet className="h-8 w-8 text-primary" />

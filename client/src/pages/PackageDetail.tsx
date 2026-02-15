@@ -127,7 +127,7 @@ export default function PackageDetail() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <Navbar />
-        <div className="container mx-auto px-4 py-16 text-center">
+        <div className="pt-20 container mx-auto px-4 py-16 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-white">Loading package details...</p>
         </div>
