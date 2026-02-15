@@ -1,9 +1,10 @@
 /**
  * Unicorn Studio Scene Component
  *
- * Interactive 3D/Animation scene for website hero section
- * Uses locally hosted modified project JSON (text changed from UNICORN to 01,
- * watermark layer removed).
+ * Interactive 3D/Animation scene for website hero section.
+ * Uses locally hosted modified project JSON:
+ *   - Glyph texture changed from "UNICORN" to "01" pattern
+ *   - Watermark layer hidden with transparent texture
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -32,77 +33,43 @@ export const UnicornScene: React.FC<UnicornSceneProps> = ({
   className = '',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<{ destroy: () => void } | null>(null);
-  const scriptLoadedRef = useRef(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
+    if (initializedRef.current) return;
+    initializedRef.current = true;
 
-    const loadScene = () => {
-      if (!mounted || !containerRef.current || !window.UnicornStudio) return;
-
-      // Use addScene with filePath to load our modified local JSON
-      // (watermark layer removed, glyph texture changed to 01)
-      window.UnicornStudio.addScene({
-        elementId: containerRef.current.id,
-        fps: 60,
-        scale: 1,
-        dpi: 1.5,
-        filePath: '/unicorn-scene.json',
-        lazyLoad: false,
-        interactivity: {
-          mouse: {
-            disableMobile: false,
-            disabled: false,
-          },
-        },
-      })
-        .then((scene) => {
-          if (mounted) {
-            sceneRef.current = scene;
-          } else {
-            scene.destroy();
-          }
+    const initScene = () => {
+      if (!window.UnicornStudio?.init) return;
+      window.UnicornStudio.init()
+        .then(() => {
+          // Scene initialized via data attributes
         })
         .catch((err) => {
-          console.warn('Unicorn Studio scene load error:', err);
+          console.warn('Unicorn Studio init error:', err);
         });
     };
 
-    const loadScript = () => {
-      if (window.UnicornStudio?.addScene) {
-        loadScene();
-        return;
-      }
-
-      if (scriptLoadedRef.current) return;
-      scriptLoadedRef.current = true;
-
+    // Load the SDK script
+    if (window.UnicornStudio?.init) {
+      initScene();
+    } else {
       const script = document.createElement('script');
       script.src =
         'https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.0.5/dist/unicornStudio.umd.js';
       script.type = 'text/javascript';
       script.onload = () => {
-        loadScene();
+        initScene();
       };
       (document.head || document.body).appendChild(script);
-    };
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadScript);
-    } else {
-      loadScene();
-      // If SDK not loaded yet, load it
-      if (!window.UnicornStudio?.addScene) {
-        loadScript();
-      }
     }
 
     return () => {
-      mounted = false;
-      if (sceneRef.current) {
-        sceneRef.current.destroy();
-        sceneRef.current = null;
+      // Cleanup on unmount
+      try {
+        window.UnicornStudio?.destroy();
+      } catch {
+        // ignore cleanup errors
       }
     };
   }, []);
@@ -112,6 +79,9 @@ export const UnicornScene: React.FC<UnicornSceneProps> = ({
       ref={containerRef}
       id="unicorn-hero-scene"
       className={`unicorn-scene ${className}`}
+      data-us-project-src="/unicorn-scene.json"
+      data-us-scale="1"
+      data-us-dpi="1.5"
       style={{ width, height }}
     />
   );
