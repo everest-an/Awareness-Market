@@ -1,10 +1,9 @@
 /**
- * Unicorn Studio Scene Component
+ * Unicorn Studio Scene Component (Paid Version)
  *
  * Interactive 3D/Animation scene for website hero section.
- * Uses self-hosted modified SDK (watermark code removed) and project JSON:
- *   - SDK: /unicornStudio.umd.js (watermark injection code stripped)
- *   - Scene: /unicorn-scene.json (glyph texture changed to "01" pattern)
+ * Uses official Unicorn Studio SDK (paid plan - no watermark).
+ * Scene JSON: /unicorn-scene.json (glyph texture changed to "01" pattern)
  */
 
 import { useEffect, useRef } from 'react';
@@ -46,12 +45,13 @@ export const UnicornScene: React.FC<UnicornSceneProps> = ({
       });
     };
 
-    // Load the self-hosted SDK (watermark code removed)
+    // Load official Unicorn Studio SDK (paid plan - no watermark)
     if (window.UnicornStudio?.init) {
       initScene();
     } else {
       const script = document.createElement('script');
-      script.src = '/unicornStudio.umd.js';
+      script.src =
+        'https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.0.5/dist/unicornStudio.umd.js';
       script.type = 'text/javascript';
       script.onload = initScene;
       (document.head || document.body).appendChild(script);
@@ -73,7 +73,6 @@ export const UnicornScene: React.FC<UnicornSceneProps> = ({
       style={{
         width,
         height,
-        filter: 'hue-rotate(240deg) saturate(1.5)',
       }}
     />
   );
