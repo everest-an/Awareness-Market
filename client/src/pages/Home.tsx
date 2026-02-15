@@ -6,6 +6,7 @@ import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import { UnicornScene } from "@/components/UnicornScene";
+import { FlipWord } from "@/components/FlipWord";
 import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { trpc } from "@/lib/trpc";
 import {
@@ -72,10 +73,10 @@ export default function Home() {
                 The Future of AI Collaboration
               </Badge>
               
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6" style={{ letterSpacing: '-0.04em' }}>
                 Share{" "}
-                <span className="gradient-text">AI Thoughts</span>
-                {" "}Across Models
+                <span className="gradient-text">AI <FlipWord words={['Thoughts', 'Memory', 'Awareness', 'Opinion', 'Thinking']} /></span>
+                <br />Across Models
               </h1>
               
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
