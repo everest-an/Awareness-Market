@@ -1,12 +1,12 @@
 /**
  * FlipWord Component
  *
- * Vertical page-flip text animation. Current word slides up and out,
- * next word slides up from below. Accepts optional className to apply
- * styles (like gradient-text) directly to each word span.
+ * Smooth vertical flip animation using CSS @keyframes.
+ * Avoids React state-driven transitions to prevent re-render stutter.
+ * The animation runs entirely in CSS — no JS state changes during flip.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMemo } from 'react';
 
 interface FlipWordProps {
   words: string[];
@@ -14,7 +14,7 @@ interface FlipWordProps {
   className?: string;
   /** Duration each word is displayed (ms) */
   interval?: number;
-  /** Animation duration (ms) */
+  /** Flip transition duration (ms) */
   duration?: number;
 }
 
@@ -24,58 +24,70 @@ export const FlipWord: React.FC<FlipWordProps> = ({
   interval = 2500,
   duration = 600,
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const nextIndex = (currentIndex + 1) % words.length;
+  const totalCycle = words.length * interval;
+  const flipPct = (duration / totalCycle) * 100;
+  const holdPct = (interval / totalCycle) * 100;
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIsAnimating(true);
-    }, interval);
-    return () => clearInterval(timer);
-  }, [interval]);
+  // Build CSS keyframes: each word holds, then flips up
+  const keyframes = useMemo(() => {
+    const frames: string[] = [];
+    words.forEach((_, i) => {
+      const start = i * holdPct;
+      const flipStart = start + holdPct - flipPct;
+      const flipEnd = start + holdPct;
+      const yOffset = i * 100;
 
-  const handleTransitionEnd = useCallback(() => {
-    if (isAnimating) {
-      setIsAnimating(false);
-      setCurrentIndex((prev) => (prev + 1) % words.length);
+      // Hold position
+      if (i === 0) {
+        frames.push(`0% { transform: translateY(-${yOffset}%); }`);
+      }
+      frames.push(`${flipStart.toFixed(2)}% { transform: translateY(-${yOffset}%); }`);
+      // Flip to next
+      if (i < words.length - 1) {
+        frames.push(`${flipEnd.toFixed(2)}% { transform: translateY(-${yOffset + 100}%); }`);
+      }
+    });
+    // Loop back to first
+    const lastFlipStart = 100 - flipPct;
+    frames.push(`${lastFlipStart.toFixed(2)}% { transform: translateY(-${(words.length - 1) * 100}%); }`);
+    frames.push(`100% { transform: translateY(0%); }`);
+
+    return frames.join('\n    ');
+  }, [words, holdPct, flipPct]);
+
+  const animationName = `flipword-${words.length}`;
+  const styleTag = `
+    @keyframes ${animationName} {
+      ${keyframes}
     }
-  }, [isAnimating, words.length]);
+  `;
 
   return (
-    <span
-      className="inline-block relative overflow-hidden"
-      style={{ height: '1.25em', verticalAlign: 'text-bottom' }}
-    >
-      {/* Current word - slides up and out */}
+    <>
+      <style>{styleTag}</style>
       <span
-        className={`inline-block ${className}`}
-        onTransitionEnd={handleTransitionEnd}
-        style={{
-          transform: isAnimating ? 'translateY(-100%)' : 'translateY(0)',
-          transition: isAnimating
-            ? `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`
-            : 'none',
-          whiteSpace: 'nowrap',
-        }}
+        className="inline-block relative overflow-hidden"
+        style={{ height: '1.25em', verticalAlign: 'text-bottom' }}
       >
-        {words[currentIndex]}
+        <span
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            animation: `${animationName} ${totalCycle}ms cubic-bezier(0.4, 0, 0.2, 1) infinite`,
+          }}
+        >
+          {words.map((word, i) => (
+            <span
+              key={i}
+              className={`inline-block ${className}`}
+              style={{ whiteSpace: 'nowrap', height: '1.25em', lineHeight: '1.25em' }}
+            >
+              {word}
+            </span>
+          ))}
+        </span>
       </span>
-
-      {/* Next word - positioned below, slides up into view */}
-      <span
-        className={`absolute left-0 top-full inline-block ${className}`}
-        style={{
-          transform: isAnimating ? 'translateY(-100%)' : 'translateY(0)',
-          transition: isAnimating
-            ? `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`
-            : 'none',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {words[nextIndex]}
-      </span>
-    </span>
+    </>
   );
 };
 
