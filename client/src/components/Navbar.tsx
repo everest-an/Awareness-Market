@@ -53,7 +53,6 @@ const navLinks = [
     label: "Tools",
     children: [
       { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork", featured: true },
-      { label: "Hive Mind", href: "/hive-mind", icon: Network, description: "3D network visualization" },
       { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
@@ -162,12 +161,7 @@ export default function Navbar() {
                 <span className="text-cyan-400 font-medium">Reasoning Chains</span>
               </>
             )}
-            {(location === '/hive-mind' || location === '/network') && (
-              <>
-                <span className="text-white/30 mx-1">/</span>
-                <span className="text-cyan-400 font-medium">Hive Mind</span>
-              </>
-            )}
+
             {location === '/latent-test' && (
               <>
                 <span className="text-white/30 mx-1">/</span>

@@ -65,7 +65,7 @@ import AiCollaborationHub from "./pages/AiCollaboration";
 import NewCollaborationSession from "./pages/AiCollaboration/NewSession";
 import SessionConnect from "./pages/AiCollaboration/SessionConnect";
 import SessionsList from "./pages/AiCollaboration/SessionsList";
-import HiveMind from "./pages/HiveMind";
+// HiveMind removed - redirects to NeuralCortex
 import WalletDashboard from "./pages/WalletDashboard";
 import MemoryManagement from "./pages/MemoryManagement";
 import ConflictResolution from "./pages/ConflictResolution";
@@ -138,8 +138,8 @@ function Router() {
       <Route path="/package/:type/:id" component={PackageDetail} />
       <Route path="/memory/:id" component={MemoryNFTDetail} />
 
-      <Route path="/hive-mind" component={HiveMind} />
-      <Route path="/network" component={HiveMind} />
+      <Route path="/hive-mind">{() => <Redirect to="/neural-cortex" />}</Route>
+      <Route path="/network">{() => <Redirect to="/neural-cortex" />}</Route>
       <Route path="/agents" component={AgentRegistry} />
       <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/sdk" component={SDKPage} />
