@@ -1131,3 +1131,76 @@ model EntityTag {
   @@index([normalizedName])
   @@map("entity_tags")
 }
+
+// ============================================================================
+// Robotics Middleware (Production-Ready)
+// WebMCP + RMC + Multi-Robot Coordination
+// ============================================================================
+
+// Robot Registry
+model RobotRegistry {
+  robotId       String    @id @map("robot_id") @db.VarChar(255)
+  name          String    @db.VarChar(255)
+  type          String    @db.VarChar(50)  // quadruped, humanoid, wheeled, arm, other
+  manufacturer  String    @db.VarChar(100) // unitree, boston_dynamics, other
+  model         String    @db.VarChar(100)
+  capabilities  Json      // ["navigation", "vision", "manipulation"]
+  status        String    @db.VarChar(50)  // online, offline, busy, error
+  location      Json?     // {x, y, z}
+  battery       Int?      // 0-100
+  lastSeen      DateTime  @map("last_seen")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([manufacturer])
+  @@index([lastSeen])
+  @@map("robot_registry")
+}
+
+// Robot Sessions (WebMCP Authentication)
+model RobotSession {
+  id              Int       @id @default(autoincrement())
+  robotId         String    @unique @map("robot_id") @db.VarChar(255)
+  sessionId       String    @unique @map("session_id") @db.VarChar(255)
+  userId          Int       @map("user_id")
+  capabilities    Json      // {canMove, canSense, canLearn, canCollaborate}
+  authenticatedAt DateTime  @map("authenticated_at")
+  lastHeartbeat   DateTime  @map("last_heartbeat")
+
+  @@index([sessionId])
+  @@index([userId])
+  @@map("robot_sessions")
+}
+
+// Multi-Robot Tasks
+model MultiRobotTask {
+  taskId      String    @id @map("task_id") @db.VarChar(255)
+  name        String    @db.VarChar(255)
+  description String    @db.Text
+  robotIds    Json      @map("robot_ids") // ["robot1", "robot2", "robot3"]
+  status      String    @db.VarChar(50)   // pending, in_progress, completed, failed
+  assignments Json      // [{robotId, subtask, status, result}]
+  createdAt   DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("multi_robot_tasks")
+}
+
+// VR Sessions (Remote Control)
+model VrSession {
+  sessionId       String    @id @map("session_id") @db.VarChar(255)
+  userId          Int       @map("user_id")
+  robotId         String    @map("robot_id") @db.VarChar(255)
+  status          String    @db.VarChar(50) // connecting, connected, disconnected
+  videoStreamUrl  String?   @map("video_stream_url") @db.Text
+  controlChannel  String?   @map("control_channel") @db.Text
+  startedAt       DateTime  @default(now()) @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  metrics         Json?     // {latency, fps, bandwidth}
+
+  @@index([userId, robotId])
+  @@index([status])
+  @@map("vr_sessions")
+}
