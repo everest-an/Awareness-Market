@@ -802,4 +802,269 @@ export const memoryRouter = router({
         });
       }
     }),
+
+  // ============================================================================
+  // Phase 3: RMC (Relational Memory Core)
+  // ============================================================================
+
+  /**
+   * RMC Hybrid Retrieval: Vector + Graph + Inference Paths
+   */
+  hybridRetrieve: protectedProcedure
+    .input(
+      z.object({
+        query: z.string().min(1),
+        max_depth: z.number().min(1).max(5).default(2),
+        relation_types: z.array(z.string()).optional(),
+        agent_filter: z.array(z.string()).optional(),
+        include_inference_paths: z.boolean().default(true),
+        min_confidence: z.number().min(0).max(1).default(0.5),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const { createRMCRetriever } = await import('../memory-core');
+        const retriever = createRMCRetriever(prisma);
+
+        const result = await retriever.retrieve(input.query, {
+          maxDepth: input.max_depth,
+          relationTypes: input.relation_types as any,
+          agentFilter: input.agent_filter,
+          includeInferencePaths: input.include_inference_paths,
+          minConfidence: input.min_confidence,
+        });
+
+        logger.info(
+          `[Memory:API] RMC retrieval: ${result.directMatches.length} direct, ${result.relatedContext.memories.length} related, ${result.inferencePaths.length} paths`
+        );
+
+        return {
+          direct_matches: result.directMatches.map((m) => ({
+            id: m.id,
+            content: m.content,
+            agent_id: m.agentId,
+            confidence: m.confidence,
+            similarity: m.similarity,
+            depth: m.depth,
+          })),
+          related_context: {
+            memories: result.relatedContext.memories.map((m) => ({
+              id: m.id,
+              content: m.content,
+              depth: m.depth,
+            })),
+            relations: result.relatedContext.relations,
+          },
+          inference_paths: result.inferencePaths.map((path) => ({
+            type: path.type,
+            description: path.description,
+            confidence: path.confidence,
+            nodes: path.nodes.map((n) => ({
+              id: n.id,
+              content: n.content.substring(0, 100),
+            })),
+            edges: path.edges,
+          })),
+          summary: result.summary,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to perform hybrid retrieval:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to perform hybrid retrieval',
+        });
+      }
+    }),
+
+  /**
+   * Get memory relationship graph
+   */
+  getMemoryGraph: protectedProcedure
+    .input(
+      z.object({
+        memory_id: z.string().uuid(),
+        depth: z.number().min(1).max(3).default(1),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const relations = await prisma.memoryRelation.findMany({
+          where: {
+            OR: [
+              { sourceMemoryId: input.memory_id },
+              { targetMemoryId: input.memory_id },
+            ],
+          },
+          include: {
+            sourceMemory: {
+              select: {
+                id: true,
+                content: true,
+                confidence: true,
+                createdBy: true,
+              },
+            },
+            targetMemory: {
+              select: {
+                id: true,
+                content: true,
+                confidence: true,
+                createdBy: true,
+              },
+            },
+          },
+          take: 100, // Limit for performance
+        });
+
+        return {
+          center_memory_id: input.memory_id,
+          relations: relations.map((r) => ({
+            source: {
+              id: r.sourceMemory.id,
+              content: r.sourceMemory.content.substring(0, 100),
+            },
+            target: {
+              id: r.targetMemory.id,
+              content: r.targetMemory.content.substring(0, 100),
+            },
+            type: r.relationType,
+            strength: r.strength.toNumber(),
+            reason: r.reason,
+          })),
+          count: relations.length,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to get memory graph:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to get memory graph',
+        });
+      }
+    }),
+
+  /**
+   * Manually trigger relation building for a memory
+   */
+  rebuildRelations: protectedProcedure
+    .input(
+      z.object({
+        memory_id: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const { createRelationBuilder } = await import('../memory-core');
+        const builder = createRelationBuilder(prisma);
+
+        const count = await builder.buildRelations(input.memory_id);
+
+        logger.info(`[Memory:API] Rebuilt ${count} relations for memory ${input.memory_id}`);
+
+        return {
+          success: true,
+          relations_created: count,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to rebuild relations:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to rebuild relations',
+        });
+      }
+    }),
+
+  /**
+   * Search entities and get related memories
+   */
+  searchEntities: protectedProcedure
+    .input(
+      z.object({
+        entity_name: z.string().min(1),
+        entity_type: z.string().optional(),
+        limit: z.number().min(1).max(100).default(10),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const normalizedName = input.entity_name.toLowerCase().replace(/\s+/g, '_');
+
+        const entityTag = await prisma.entityTag.findFirst({
+          where: {
+            normalizedName: { contains: normalizedName },
+            ...(input.entity_type && { type: input.entity_type }),
+          },
+          include: {
+            memories: {
+              take: input.limit,
+              orderBy: { createdAt: 'desc' },
+            },
+          },
+        });
+
+        if (!entityTag) {
+          return {
+            entity: null,
+            memories: [],
+            count: 0,
+          };
+        }
+
+        return {
+          entity: {
+            name: entityTag.name,
+            type: entityTag.type,
+            mention_count: entityTag.mentionCount,
+          },
+          memories: entityTag.memories.map((m) => ({
+            id: m.id,
+            content: m.content.substring(0, 200),
+            confidence: m.confidence,
+            created_at: m.createdAt,
+          })),
+          count: entityTag.memories.length,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to search entities:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to search entities',
+        });
+      }
+    }),
+
+  /**
+   * Get hot entities (most mentioned)
+   */
+  getHotEntities: protectedProcedure
+    .input(
+      z.object({
+        entity_type: z.string().optional(),
+        limit: z.number().min(1).max(50).default(10),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const entities = await prisma.entityTag.findMany({
+          where: input.entity_type ? { type: input.entity_type } : undefined,
+          orderBy: { mentionCount: 'desc' },
+          take: input.limit,
+        });
+
+        return {
+          entities: entities.map((e) => ({
+            name: e.name,
+            type: e.type,
+            mention_count: e.mentionCount,
+            confidence: e.confidence.toNumber(),
+          })),
+          count: entities.length,
+        };
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to get hot entities:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to get hot entities',
+        });
+      }
+    }),
 });

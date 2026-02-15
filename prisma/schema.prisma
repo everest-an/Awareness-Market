@@ -939,6 +939,20 @@ model MemoryEntry {
   claimKey            String?   @map("claim_key") @db.VarChar(255)
   claimValue          String?   @map("claim_value") @db.Text
 
+  // RMC Entity Extraction (Phase C) - DEPRECATED, use EntityTag relation
+  // entities            Json?     // ❌ Removed, use EntityTag table instead
+
+  // ✅ LatentMAS Integration (Phase D)
+  latentState         Unsupported("vector(1024)")?  // Hidden State from Agent's internal layers
+  latentModel         String?   @map("latent_model") @db.VarChar(100) // e.g., "llama-3-8b"
+  latentLayer         Int?      @map("latent_layer")  // Layer number where latent was extracted
+
+  // NFT Metadata (for trading latent states)
+  isNFTized           Boolean   @default(false) @map("is_nftized")
+  nftContractAddress  String?   @map("nft_contract_address") @db.VarChar(42)
+  nftTokenId          String?   @map("nft_token_id") @db.VarChar(78)
+  latentValueUSD      Decimal?  @map("latent_value_usd") @db.Decimal(18, 2)
+
   // Versioning
   version             Int       @default(1)
   parentId            String?   @map("parent_id") @db.Uuid
@@ -967,6 +981,9 @@ model MemoryEntry {
   score               MemoryScore?
   conflictsAsMemory1  MemoryConflict[]  @relation("ConflictMemory1")
   conflictsAsMemory2  MemoryConflict[]  @relation("ConflictMemory2")
+  relationsAsSource   MemoryRelation[]  @relation("RelationSource")
+  relationsAsTarget   MemoryRelation[]  @relation("RelationTarget")
+  entityTags          EntityTag[]       @relation("MemoryEntityTags") // ✅ Multi-to-multi relation
 
   @@index([orgId, namespace])
   @@index([createdBy])
@@ -977,6 +994,8 @@ model MemoryEntry {
   @@index([rootId])
   @@index([department])
   @@index([agentId])
+  @@index([latentModel, latentLayer])
+  @@index([isNFTized])
   @@map("memory_entries")
 }
 
@@ -1043,4 +1062,72 @@ model MemoryConflict {
   @@index([memoryId1])
   @@index([memoryId2])
   @@map("memory_conflicts")
+}
+
+// ============================================================================
+// RMC: Relational Memory Core (Phase C - Multi-AI Reasoning)
+// Graph-based memory relationships for inference path discovery
+// ============================================================================
+
+model MemoryRelation {
+  id                  String    @id @default(uuid()) @db.Uuid
+  sourceMemoryId      String    @map("source_memory_id") @db.Uuid
+  targetMemoryId      String    @map("target_memory_id") @db.Uuid
+
+  // Relation metadata
+  relationType        String    @map("relation_type") @db.VarChar(50) // CAUSES, CONTRADICTS, SUPPORTS, IMPACTS, TEMPORAL_BEFORE, etc.
+  strength            Decimal   @db.Decimal(5, 4) // [0.0000-1.0000] confidence in this relation
+  reason              String?   @db.Text // Optional explanation from LLM
+
+  // Inference metadata
+  inferredBy          String    @map("inferred_by") @db.VarChar(50) // 'llm', 'rule', 'manual'
+  entityOverlap       Int       @default(0) @map("entity_overlap") // Number of shared entities
+
+  // Lifecycle
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  sourceMemory        MemoryEntry @relation("RelationSource", fields: [sourceMemoryId], references: [id], onDelete: Cascade)
+  targetMemory        MemoryEntry @relation("RelationTarget", fields: [targetMemoryId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceMemoryId, targetMemoryId, relationType])
+  @@index([sourceMemoryId])
+  @@index([targetMemoryId])
+  @@index([relationType])
+  @@index([strength(sort: Desc)])
+  @@index([relationType, strength(sort: Desc)]) // ✅ Composite index for optimized queries
+  @@map("memory_relations")
+}
+
+// ============================================================================
+// Entity Tags (Phase D - Production Optimization)
+// Replaces JSON entities field with proper relational model
+// Enables reverse queries like "find all memories mentioning Elon Musk"
+// ============================================================================
+
+model EntityTag {
+  id                  String    @id @default(uuid()) @db.Uuid
+  name                String    @db.VarChar(255)       // "Elon Musk"
+  type                String    @db.VarChar(50)        // "PERSON", "COMPANY", "TECHNOLOGY", etc.
+  normalizedName      String    @map("normalized_name") @db.VarChar(255) // "elon_musk" (for deduplication)
+  confidence          Decimal   @db.Decimal(3, 2)      // [0.00-1.00] Entity confidence
+  mentionCount        Int       @default(0) @map("mention_count") // How many times mentioned across memories
+
+  // Metadata
+  description         String?   @db.Text               // Optional description
+  aliases             String[]  @default([])           // Alternative names ["Tesla CEO", "SpaceX Founder"]
+
+  // Lifecycle
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  memories            MemoryEntry[] @relation("MemoryEntityTags")
+
+  @@unique([normalizedName, type]) // Ensure entity uniqueness
+  @@index([type])
+  @@index([mentionCount(sort: Desc)]) // Support hot entity queries
+  @@index([normalizedName])
+  @@map("entity_tags")
 }

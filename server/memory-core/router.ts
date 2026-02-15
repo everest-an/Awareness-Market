@@ -106,7 +106,88 @@ export class MemoryRouter {
 
     logger.info(`[MemoryRouter] Created memory ${memoryId} in ${input.namespace}`);
 
+    // ✅ RMC: Trigger async entity extraction and relation building
+    this.processRMCAsync(memoryId, input).catch((err) => {
+      logger.error(`[RMC] Failed to process memory ${memoryId}:`, err);
+    });
+
     return memoryId;
+  }
+
+  /**
+   * RMC: Async entity extraction and relation building (non-blocking)
+   */
+  private async processRMCAsync(memoryId: string, input: CreateMemoryInput): Promise<void> {
+    try {
+      // Import RMC modules dynamically to avoid circular dependencies
+      const { createEntityExtractor, createRelationBuilder } = await import('./index');
+
+      // 1. Extract entities
+      const extractor = createEntityExtractor({
+        enableLLM: process.env.RMC_ENABLE_LLM === 'true',
+        openaiApiKey: process.env.OPENAI_API_KEY,
+        model: process.env.OPENAI_MODEL_ENTITY || 'gpt-4o-mini',
+      });
+
+      const extractionResult = await extractor.extract(input.content);
+
+      // 2. Create EntityTags and link to memory
+      const entityTags = await Promise.all(
+        extractionResult.entities.map(async (entity: any) => {
+          const normalizedName = entity.name.toLowerCase().replace(/\s+/g, '_');
+
+          return await this.prisma.entityTag.upsert({
+            where: {
+              normalizedName_type: {
+                normalizedName,
+                type: entity.type,
+              },
+            },
+            update: {
+              mentionCount: { increment: 1 },
+              confidence: Math.max(entity.confidence, 0.5),
+            },
+            create: {
+              name: entity.name,
+              type: entity.type,
+              normalizedName,
+              confidence: entity.confidence,
+              mentionCount: 1,
+            },
+          });
+        })
+      );
+
+      // 3. Link EntityTags to Memory
+      if (entityTags.length > 0) {
+        await this.prisma.memoryEntry.update({
+          where: { id: memoryId },
+          data: {
+            entityTags: {
+              connect: entityTags.map((tag: any) => ({ id: tag.id })),
+            },
+          },
+        });
+        logger.info(`[RMC] Linked ${entityTags.length} entities to memory ${memoryId}`);
+      }
+
+      // 4. Build relations (with coarse filtering)
+      const builder = createRelationBuilder(this.prisma, {
+        enableLLM: process.env.RMC_ENABLE_LLM === 'true',
+        openaiApiKey: process.env.OPENAI_API_KEY,
+        model: process.env.OPENAI_MODEL_RELATION || 'gpt-4o-mini',
+        candidateLimit: 20,
+        minEntityOverlap: 1,
+        minVectorSimilarity: 0.75,
+        maxCandidateAge: 30,
+      });
+
+      const relationsCount = await builder.buildRelations(memoryId);
+      logger.info(`[RMC] Created ${relationsCount} relations for memory ${memoryId}`);
+    } catch (error) {
+      logger.error(`[RMC] Async processing failed for memory ${memoryId}:`, error);
+      // Don't throw - memory is already created
+    }
   }
 
   /**
