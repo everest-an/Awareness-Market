@@ -67,6 +67,8 @@ import SessionConnect from "./pages/AiCollaboration/SessionConnect";
 import SessionsList from "./pages/AiCollaboration/SessionsList";
 import HiveMind from "./pages/HiveMind";
 import WalletDashboard from "./pages/WalletDashboard";
+import MemoryManagement from "./pages/MemoryManagement";
+import ConflictResolution from "./pages/ConflictResolution";
 import { Redirect } from "wouter";
 
 function Router() {
@@ -124,6 +126,8 @@ function Router() {
       <Route path="/memory-marketplace" component={MemoryMarketplace} />
       <Route path="/memory-packages" component={MemoryMarketplace} />
       <Route path="/upload-memory-package" component={UploadMemoryPackage} />
+      <Route path="/memory-management" component={MemoryManagement} />
+      <Route path="/conflicts" component={ConflictResolution} />
       <Route path="/chain-packages" component={ChainPackageMarketplace} />
       <Route path="/upload-chain-package" component={UploadChainPackage} />
       <Route path="/upload-multimodal-package" component={UploadMultimodalPackage} />
