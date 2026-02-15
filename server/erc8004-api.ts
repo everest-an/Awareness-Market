@@ -44,6 +44,10 @@ router.post("/nonce", (req, res) => {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
     res.status(500).json({ error: 'Failed to generate nonce' });
+  }
+});
+
+/**
  * Authenticate with wallet signature
  */
 router.post("/authenticate", async (req, res) => {

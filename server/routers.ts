@@ -1293,7 +1293,7 @@ export const appRouter = router({
   }),
 
   // LatentMAS V2.0 - Memory Exchange and W-Matrix Protocol
-  memory: router({
+  memoryExchange: router({
     // Browse available memories for purchase (from Go service)
     browse: publicProcedure
       .input(z.object({
