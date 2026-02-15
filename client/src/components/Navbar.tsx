@@ -281,13 +281,13 @@ export default function Navbar() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
-            {/* AI Collaboration CTA Button */}
+            {/* AI Collaboration CTA Button - Glass Style */}
             <Link href="/ai-collaboration/new">
               <Button
                 size="sm"
-                className="hidden md:flex bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 text-white border-0"
+                variant="ghost"
+                className="hidden md:flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.1] text-white/80 hover:bg-white/[0.12] hover:text-white hover:border-white/[0.18] transition-all"
               >
-                <Users className="w-4 h-4 mr-1.5" />
                 AI Collab
               </Button>
             </Link>
@@ -381,17 +381,11 @@ export default function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <>
-                <Link
-                  href="/auth"
-                  className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Button asChild size="sm" className="rounded-full px-4">
-                  <Link href="/auth">Get Started</Link>
-                </Button>
-              </>
+              <Button asChild size="sm" variant="ghost"
+                className="rounded-full px-4 py-1.5 bg-white/[0.06] backdrop-blur-md border border-white/[0.1] text-white/80 hover:bg-white/[0.12] hover:text-white hover:border-white/[0.18] transition-all"
+              >
+                <Link href="/auth">Sign In</Link>
+              </Button>
             )}
 
             {/* Mobile Menu Toggle */}
