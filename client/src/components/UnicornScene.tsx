@@ -2,103 +2,116 @@
  * Unicorn Studio Scene Component
  *
  * Interactive 3D/Animation scene for website hero section
- * Based on Unicorn Studio project: DHrYV5fcnlpS1Vj341CH
+ * Uses locally hosted modified project JSON (text changed from UNICORN to 01,
+ * watermark layer removed).
  */
 
 import React, { useEffect, useRef } from 'react';
 
 interface UnicornSceneProps {
-  projectId?: string;
   width?: string;
   height?: string;
   className?: string;
 }
 
+declare global {
+  interface Window {
+    UnicornStudio?: {
+      addScene: (opts: Record<string, unknown>) => Promise<{ destroy: () => void; resize: () => void }>;
+      destroy: () => void;
+      init: () => Promise<unknown[]>;
+      scenes: unknown[];
+      unbindEvents: () => void;
+    };
+  }
+}
+
 export const UnicornScene: React.FC<UnicornSceneProps> = ({
-  projectId = 'DHrYV5fcnlpS1Vj341CH',
   width = '100%',
-  height = '500px',
+  height = '100%',
   className = '',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<{ destroy: () => void } | null>(null);
+  const scriptLoadedRef = useRef(false);
 
   useEffect(() => {
-    const w = window as any;
+    let mounted = true;
 
-    const initAndClean = () => {
-      if (w.UnicornStudio && w.UnicornStudio.init) {
-        w.UnicornStudio.init();
-      }
-      // Remove watermark link injected by Unicorn Studio SDK
-      removeWatermark();
+    const loadScene = () => {
+      if (!mounted || !containerRef.current || !window.UnicornStudio) return;
+
+      // Use addScene with filePath to load our modified local JSON
+      // (watermark layer removed, glyph texture changed to 01)
+      window.UnicornStudio.addScene({
+        elementId: containerRef.current.id,
+        fps: 60,
+        scale: 1,
+        dpi: 1.5,
+        filePath: '/unicorn-scene.json',
+        lazyLoad: false,
+        interactivity: {
+          mouse: {
+            disableMobile: false,
+            disabled: false,
+          },
+        },
+      })
+        .then((scene) => {
+          if (mounted) {
+            sceneRef.current = scene;
+          } else {
+            scene.destroy();
+          }
+        })
+        .catch((err) => {
+          console.warn('Unicorn Studio scene load error:', err);
+        });
     };
 
-    const removeWatermark = () => {
-      // The SDK injects an <a> tag linking to unicorn.studio
-      // We use a MutationObserver to catch it whenever it appears
-      const observer = new MutationObserver(() => {
-        if (containerRef.current) {
-          const watermarks = containerRef.current.querySelectorAll('a[href*="unicorn.studio"]');
-          watermarks.forEach((el) => el.remove());
-        }
-        // Also check document-wide
-        const globalWatermarks = document.querySelectorAll('a[href*="unicorn.studio"]');
-        globalWatermarks.forEach((el) => el.remove());
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-      });
-
-      // Also do an immediate sweep
-      setTimeout(() => {
-        const watermarks = document.querySelectorAll('a[href*="unicorn.studio"]');
-        watermarks.forEach((el) => el.remove());
-      }, 1000);
-      setTimeout(() => {
-        const watermarks = document.querySelectorAll('a[href*="unicorn.studio"]');
-        watermarks.forEach((el) => el.remove());
-      }, 3000);
-
-      // Disconnect observer after 10 seconds to avoid memory leaks
-      setTimeout(() => observer.disconnect(), 10000);
-    };
-
-    if (w.UnicornStudio && w.UnicornStudio.init) {
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAndClean);
-      } else {
-        initAndClean();
+    const loadScript = () => {
+      if (window.UnicornStudio?.addScene) {
+        loadScene();
+        return;
       }
-    } else {
-      w.UnicornStudio = { isInitialized: false };
+
+      if (scriptLoadedRef.current) return;
+      scriptLoadedRef.current = true;
 
       const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.0.5/dist/unicornStudio.umd.js';
+      script.src =
+        'https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.0.5/dist/unicornStudio.umd.js';
       script.type = 'text/javascript';
-
       script.onload = () => {
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initAndClean);
-        } else {
-          initAndClean();
-        }
+        loadScene();
       };
-
       (document.head || document.body).appendChild(script);
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadScript);
+    } else {
+      loadScene();
+      // If SDK not loaded yet, load it
+      if (!window.UnicornStudio?.addScene) {
+        loadScript();
+      }
     }
 
     return () => {
-      // Cleanup
+      mounted = false;
+      if (sceneRef.current) {
+        sceneRef.current.destroy();
+        sceneRef.current = null;
+      }
     };
   }, []);
 
   return (
     <div
       ref={containerRef}
+      id="unicorn-hero-scene"
       className={`unicorn-scene ${className}`}
-      data-us-project={projectId}
       style={{ width, height }}
     />
   );
