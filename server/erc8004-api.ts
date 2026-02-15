@@ -102,6 +102,10 @@ router.get("/agent/:agentId", async (req, res) => {
     res.json(agent);
   } catch (error: unknown) {
     res.status(500).json({ error: 'Failed to retrieve agent info' });
+  }
+});
+
+/**
  * Check if agent has a verified capability
  */
 router.get("/agent/:agentId/capability/:capability", async (req, res) => {
@@ -116,6 +120,10 @@ router.get("/agent/:agentId/capability/:capability", async (req, res) => {
     });
   } catch (error: unknown) {
     res.status(500).json({ error: 'Failed to check capability' });
+  }
+});
+
+/**
  * Prepare registration data for on-chain registration
  */
 router.post("/register/prepare", (req, res) => {
@@ -144,6 +152,10 @@ router.post("/register/prepare", (req, res) => {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
     res.status(500).json({ error: 'Failed to prepare registration' });
+  }
+});
+
+/**
  * List standard capability claims
  */
 router.get("/capabilities", (req, res) => {
