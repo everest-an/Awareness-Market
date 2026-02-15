@@ -35,6 +35,8 @@ import {
   Search,
   History,
   Wallet,
+  Database,
+  AlertTriangle,
 } from "lucide-react";
 
 const navLinks = [
@@ -55,6 +57,8 @@ const navLinks = [
       { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
+      { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
+      { label: "Conflict Resolution", href: "/conflicts", icon: AlertTriangle, description: "Resolve memory conflicts" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
       { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
       { label: "Agent Login", href: "/auth/agent", icon: Server, description: "AI agent authentication" },
@@ -180,6 +184,18 @@ export default function Navbar() {
               <>
                 <span className="text-white/30 mx-1">/</span>
                 <span className="text-cyan-400 font-medium">Performance</span>
+              </>
+            )}
+            {location === '/memory-management' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Memory Management</span>
+              </>
+            )}
+            {location === '/conflicts' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Conflicts</span>
               </>
             )}
             {location === '/dashboard' && (
