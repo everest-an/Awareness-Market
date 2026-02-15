@@ -105,7 +105,7 @@ export default function MyMemories() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="container mx-auto py-8 mt-20">
+      <div className="pt-20 container mx-auto py-8 mt-20">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">My Memories</h1>
         <p className="text-muted-foreground">

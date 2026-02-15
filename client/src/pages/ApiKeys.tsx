@@ -102,7 +102,7 @@ export default function ApiKeysPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="container max-w-6xl py-8 mt-20">
+      <div className="pt-20 container max-w-6xl py-8 mt-20">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">API Keys</h1>
@@ -235,7 +235,7 @@ export default function ApiKeysPage() {
                   <div className="space-y-1">
                     <CardTitle className="text-lg">{key.name}</CardTitle>
                     <CardDescription className="font-mono text-xs">
-                      {key.keyPrefix}•••••••••••••••�?
+                      {key.keyPrefix}•••••••••••••••�?
                     </CardDescription>
                   </div>
                   <Button

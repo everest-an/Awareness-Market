@@ -160,7 +160,7 @@ export default function SessionConnect() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <Navbar />
-        <div className="container mx-auto px-4 py-16 max-w-4xl">
+        <div className="pt-20 container mx-auto px-4 py-16 max-w-4xl">
           <Skeleton className="h-12 w-3/4 mb-4" />
           <Skeleton className="h-6 w-1/2 mb-8" />
           <Skeleton className="h-64 w-full" />

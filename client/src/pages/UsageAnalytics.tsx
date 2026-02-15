@@ -43,7 +43,7 @@ export default function UsageAnalytics() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="container py-8 space-y-8 mt-20">
+      <div className="pt-20 container py-8 space-y-8 mt-20">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>

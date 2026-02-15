@@ -97,7 +97,7 @@ export default function SessionsList() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-16 max-w-6xl">
+      <div className="pt-20 container mx-auto px-4 py-16 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
           <Link href="/ai-collaboration">

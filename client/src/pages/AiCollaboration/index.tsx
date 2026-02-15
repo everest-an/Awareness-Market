@@ -4,12 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import {
-  Brain,
-  MessageSquare,
-  Shield,
-  Zap,
   Play,
-  Users,
   ArrowRight,
   CheckCircle2,
 } from 'lucide-react';
@@ -18,18 +13,13 @@ import { trpc } from '@/lib/trpc';
 export default function AiCollaborationHub() {
   // Fetch real collaboration workflows
   const { data: workflowData } = trpc.agentCollaboration.listWorkflows.useQuery(undefined, {
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 10000,
   });
 
   // Calculate real statistics from API data
   const stats = useMemo(() => {
     if (!workflowData?.workflows) {
-      return {
-        activeSessions: 0,
-        totalCollaborations: 0,
-        avgDuration: '0 min',
-        successRate: 0,
-      };
+      return { activeSessions: 0, totalCollaborations: 0, avgDuration: '0 min', successRate: 0 };
     }
 
     const workflows = workflowData.workflows;
@@ -43,7 +33,6 @@ export default function AiCollaborationHub() {
       ? Math.round((completedWorkflows.length / totalCollaborations) * 100)
       : 0;
 
-    // Calculate average duration for completed workflows
     const durations = completedWorkflows
       .map(w => w.executionTime)
       .filter((d): d is number => d !== null && d !== undefined);
@@ -56,35 +45,21 @@ export default function AiCollaborationHub() {
       ? `${Math.round(avgDurationMs / 60000)} min`
       : '0 min';
 
-    return {
-      activeSessions,
-      totalCollaborations,
-      avgDuration,
-      successRate,
-    };
+    return { activeSessions, totalCollaborations, avgDuration, successRate };
   }, [workflowData]);
 
   const useCases = [
     {
       title: 'Full-Stack Development',
       description: 'Manus handles React frontend while Claude builds the API',
-      icon: Users,
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/10',
     },
     {
       title: 'Code Review & Refactoring',
       description: 'Two AIs collaborate to review and improve code quality',
-      icon: Shield,
-      color: 'text-green-400',
-      bgColor: 'bg-green-500/10',
     },
     {
       title: 'Debugging Together',
       description: 'Share context and reasoning to solve complex bugs faster',
-      icon: Zap,
-      color: 'text-yellow-400',
-      bgColor: 'bg-yellow-500/10',
     },
   ];
 
@@ -98,16 +73,12 @@ export default function AiCollaborationHub() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 pt-28 pb-16">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <Brain className="h-14 w-14 text-purple-400" />
-            <MessageSquare className="h-12 w-12 text-cyan-400 -ml-3" />
-          </div>
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
             AI Collaboration
           </h1>
@@ -125,7 +96,7 @@ export default function AiCollaborationHub() {
               </Button>
             </Link>
             <Link href="/ai-collaboration/sessions">
-              <Button size="lg" variant="outline" className="text-lg">
+              <Button size="lg" variant="outline" className="text-lg bg-transparent border-white/20 hover:bg-white/5">
                 My Sessions
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
@@ -134,22 +105,22 @@ export default function AiCollaborationHub() {
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
+            <div className="glass-card p-4 text-center">
               <div className="text-3xl font-bold text-purple-400 mb-1">{stats.activeSessions}</div>
               <div className="text-sm text-slate-400">Active Sessions</div>
-            </Card>
-            <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
+            </div>
+            <div className="glass-card p-4 text-center">
               <div className="text-3xl font-bold text-cyan-400 mb-1">{stats.totalCollaborations}</div>
               <div className="text-sm text-slate-400">Total Collaborations</div>
-            </Card>
-            <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
+            </div>
+            <div className="glass-card p-4 text-center">
               <div className="text-3xl font-bold text-green-400 mb-1">{stats.avgDuration}</div>
               <div className="text-sm text-slate-400">Avg Duration</div>
-            </Card>
-            <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
+            </div>
+            <div className="glass-card p-4 text-center">
               <div className="text-3xl font-bold text-yellow-400 mb-1">{stats.successRate}%</div>
               <div className="text-sm text-slate-400">Success Rate</div>
-            </Card>
+            </div>
           </div>
         </div>
 
@@ -159,35 +130,35 @@ export default function AiCollaborationHub() {
             How It Works
           </h2>
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="p-8 bg-slate-900/50 border-slate-800">
-              <div className="bg-purple-500/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
-                <span className="text-purple-400 font-bold text-xl">1</span>
+            <div className="glass-card p-8">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                <span className="text-purple-400 font-bold text-lg">1</span>
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Create Session</h3>
               <p className="text-slate-400">
                 Start a new collaboration session with a single click. Define roles and objectives.
               </p>
-            </Card>
+            </div>
 
-            <Card className="p-8 bg-slate-900/50 border-slate-800">
-              <div className="bg-cyan-500/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
-                <span className="text-cyan-400 font-bold text-xl">2</span>
+            <div className="glass-card p-8">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                <span className="text-cyan-400 font-bold text-lg">2</span>
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Connect AIs</h3>
               <p className="text-slate-400">
                 Connect Manus and Claude to the session via QR code or one-click link.
               </p>
-            </Card>
+            </div>
 
-            <Card className="p-8 bg-slate-900/50 border-slate-800">
-              <div className="bg-green-500/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
-                <span className="text-green-400 font-bold text-xl">3</span>
+            <div className="glass-card p-8">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                <span className="text-green-400 font-bold text-lg">3</span>
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Watch Magic</h3>
               <p className="text-slate-400">
                 View real-time collaboration as AIs share thoughts, make decisions, and build together.
               </p>
-            </Card>
+            </div>
           </div>
         </div>
 
@@ -198,13 +169,10 @@ export default function AiCollaborationHub() {
           </h2>
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {useCases.map((useCase) => (
-              <Card key={useCase.title} className="p-6 bg-slate-900/50 border-slate-800 hover:border-purple-500/50 transition-all cursor-pointer group">
-                <div className={`${useCase.bgColor} w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <useCase.icon className={`h-6 w-6 ${useCase.color}`} />
-                </div>
+              <div key={useCase.title} className="glass-card-hover p-6 cursor-pointer">
                 <h3 className="text-lg font-semibold text-white mb-2">{useCase.title}</h3>
                 <p className="text-sm text-slate-400">{useCase.description}</p>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
@@ -214,7 +182,7 @@ export default function AiCollaborationHub() {
           <h2 className="text-3xl font-bold text-white text-center mb-10">
             Key Features
           </h2>
-          <Card className="p-8 bg-slate-900/50 border-slate-800 max-w-3xl mx-auto">
+          <div className="glass-card p-8 max-w-3xl mx-auto">
             <div className="grid md:grid-cols-2 gap-4">
               {features.map((feature) => (
                 <div key={feature} className="flex items-start gap-3">
@@ -223,12 +191,12 @@ export default function AiCollaborationHub() {
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
         </div>
 
         {/* CTA */}
         <div className="text-center">
-          <Card className="p-12 bg-gradient-to-br from-purple-900/20 to-cyan-900/20 border-purple-500/20 max-w-3xl mx-auto">
+          <div className="glass-card p-12 max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold text-white mb-4">
               Ready to unlock AI teamwork?
             </h2>
@@ -241,7 +209,7 @@ export default function AiCollaborationHub() {
                 Start Your First Session
               </Button>
             </Link>
-          </Card>
+          </div>
         </div>
       </div>
     </div>

@@ -121,7 +121,7 @@ export default function ServiceHealth() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="container mx-auto py-8 mt-20">
+      <div className="pt-20 container mx-auto py-8 mt-20">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Service Health Monitor</h1>

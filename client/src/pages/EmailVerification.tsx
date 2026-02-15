@@ -84,7 +84,7 @@ export default function EmailVerification() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
         <Navbar />
-        <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-12">
+        <div className="pt-20 container flex items-center justify-center min-h-[calc(100vh-4rem)] py-12">
           <Card className="w-full max-w-md shadow-xl text-center">
             <CardContent className="pt-8 pb-8">
               <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />

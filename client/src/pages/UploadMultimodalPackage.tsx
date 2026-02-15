@@ -164,7 +164,7 @@ export default function UploadMultimodalPackage() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-16 max-w-5xl">
+      <div className="pt-20 container mx-auto px-4 py-16 max-w-5xl">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">

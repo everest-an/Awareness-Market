@@ -62,7 +62,7 @@ export default function WorkflowDemo() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="container mx-auto py-8 space-y-8 mt-20">
+      <div className="pt-20 container mx-auto py-8 space-y-8 mt-20">
         {/* Header */}
         <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold">Workflow Visualizer Demo</h1>

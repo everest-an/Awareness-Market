@@ -300,7 +300,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <Navbar />
       
-      <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-12">
+      <div className="pt-20 container flex items-center justify-center min-h-[calc(100vh-4rem)] py-12">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold">Welcome to Awareness</CardTitle>
