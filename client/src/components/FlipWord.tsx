@@ -28,14 +28,19 @@ export const FlipWord: React.FC<FlipWordProps> = ({
   const flipPct = (duration / totalCycle) * 100;
   const holdPct = (interval / totalCycle) * 100;
 
+  // Each word is 1/N of the total column height
+  // translateY(-100%) moves by the full column height
+  // To move by one word, we need translateY(-(1/N * 100)%)
+  const stepPct = 100 / words.length; // e.g. 20% for 5 words
+
   // Build CSS keyframes: each word holds, then flips up
   const keyframes = useMemo(() => {
     const frames: string[] = [];
     words.forEach((_, i) => {
-      const start = i * holdPct;
-      const flipStart = start + holdPct - flipPct;
-      const flipEnd = start + holdPct;
-      const yOffset = i * 100;
+      const timeStart = i * holdPct;
+      const flipStart = timeStart + holdPct - flipPct;
+      const flipEnd = timeStart + holdPct;
+      const yOffset = i * stepPct;
 
       // Hold position
       if (i === 0) {
@@ -44,16 +49,17 @@ export const FlipWord: React.FC<FlipWordProps> = ({
       frames.push(`${flipStart.toFixed(2)}% { transform: translateY(-${yOffset}%); }`);
       // Flip to next
       if (i < words.length - 1) {
-        frames.push(`${flipEnd.toFixed(2)}% { transform: translateY(-${yOffset + 100}%); }`);
+        frames.push(`${flipEnd.toFixed(2)}% { transform: translateY(-${yOffset + stepPct}%); }`);
       }
     });
-    // Loop back to first
+    // Last word holds, then flips back to first
     const lastFlipStart = 100 - flipPct;
-    frames.push(`${lastFlipStart.toFixed(2)}% { transform: translateY(-${(words.length - 1) * 100}%); }`);
+    const lastYOffset = (words.length - 1) * stepPct;
+    frames.push(`${lastFlipStart.toFixed(2)}% { transform: translateY(-${lastYOffset}%); }`);
     frames.push(`100% { transform: translateY(0%); }`);
 
     return frames.join('\n    ');
-  }, [words, holdPct, flipPct]);
+  }, [words, holdPct, flipPct, stepPct]);
 
   const animationName = `flipword-${words.length}`;
   const styleTag = `
