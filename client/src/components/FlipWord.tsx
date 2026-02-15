@@ -44,8 +44,8 @@ export const FlipWord: React.FC<FlipWordProps> = ({
 
   return (
     <span
-      className="inline-flex relative overflow-hidden"
-      style={{ height: '1.2em', verticalAlign: 'baseline' }}
+      className="inline-block relative overflow-hidden"
+      style={{ height: '1.15em', verticalAlign: 'text-bottom' }}
     >
       {/* Current word - slides up and out */}
       <span
