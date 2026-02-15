@@ -1,12 +1,12 @@
 /**
  * FlipWord Component
  *
- * Displays a word that flips vertically (slide up) to cycle through
- * a list of words. Creates a smooth page-flip effect where the current
- * word slides up and out while the next word slides up from below.
+ * Vertical page-flip text animation. Current word slides up and out,
+ * next word slides up from below. Uses requestAnimationFrame for
+ * smooth transition triggering.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface FlipWordProps {
   words: string[];
@@ -19,49 +19,69 @@ interface FlipWordProps {
 export const FlipWord: React.FC<FlipWordProps> = ({
   words,
   interval = 2500,
-  duration = 500,
+  duration = 600,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isFlipping, setIsFlipping] = useState(false);
+  const [phase, setPhase] = useState<'idle' | 'ready' | 'animating'>('idle');
+  const nextIndexRef = useRef(0);
 
-  const flip = useCallback(() => {
-    setIsFlipping(true);
-    setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % words.length);
-      setIsFlipping(false);
-    }, duration);
-  }, [words.length, duration]);
+  const startFlip = useCallback(() => {
+    nextIndexRef.current = (currentIndex + 1) % words.length;
+    // First frame: position incoming word below (no transition)
+    setPhase('ready');
+  }, [currentIndex, words.length]);
 
   useEffect(() => {
-    const timer = setInterval(flip, interval);
+    if (phase === 'ready') {
+      // Next frame: trigger the slide-up animation
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setPhase('animating'));
+      });
+    }
+    if (phase === 'animating') {
+      const timer = setTimeout(() => {
+        setCurrentIndex(nextIndexRef.current);
+        setPhase('idle');
+      }, duration);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, duration]);
+
+  useEffect(() => {
+    const timer = setInterval(startFlip, interval);
     return () => clearInterval(timer);
-  }, [flip, interval]);
+  }, [startFlip, interval]);
+
+  const isMoving = phase === 'animating';
+  const nextIndex = nextIndexRef.current;
 
   return (
     <span
-      className="inline-block relative overflow-hidden align-bottom"
-      style={{ height: '1.15em', verticalAlign: 'baseline' }}
+      className="inline-block relative overflow-hidden"
+      style={{ height: '1.2em', lineHeight: '1.2em', verticalAlign: 'bottom' }}
     >
+      {/* Current word */}
       <span
-        className="inline-block transition-transform"
+        className="inline-block"
         style={{
-          transform: isFlipping ? 'translateY(-100%)' : 'translateY(0)',
-          transitionDuration: `${duration}ms`,
-          transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: isMoving ? 'translateY(-100%)' : 'translateY(0)',
+          transition: isMoving ? `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
         }}
       >
         {words[currentIndex]}
       </span>
-      {isFlipping && (
+
+      {/* Incoming word (positioned below, slides up) */}
+      {phase !== 'idle' && (
         <span
-          className="absolute left-0 top-full inline-block transition-transform"
+          className="absolute left-0 inline-block"
           style={{
-            transform: 'translateY(-100%)',
-            transitionDuration: `${duration}ms`,
-            transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            top: '100%',
+            transform: isMoving ? 'translateY(-100%)' : 'translateY(0)',
+            transition: isMoving ? `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
           }}
         >
-          {words[(currentIndex + 1) % words.length]}
+          {words[nextIndex]}
         </span>
       )}
     </span>

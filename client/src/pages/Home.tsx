@@ -49,20 +49,21 @@ export default function Home() {
           onOpenChange={setShowWelcome}
         />
       )}
+
+      {/* Fixed Unicorn Studio Background - stays in place while content scrolls */}
+      <div className="fixed inset-0 z-0">
+        <UnicornScene
+          projectId="DHrYV5fcnlpS1Vj341CH"
+          width="100%"
+          height="100%"
+        />
+      </div>
       
       {/* Navbar */}
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
-        {/* Unicorn Studio Background */}
-        <div className="absolute inset-0 z-0">
-          <UnicornScene
-            projectId="DHrYV5fcnlpS1Vj341CH"
-            width="100%"
-            height="100%"
-          />
-        </div>
+      <section className="relative z-10 min-h-screen flex items-center overflow-hidden pt-16">
         
         <div className="container relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -126,8 +127,7 @@ export default function Home() {
       </section>
 
       {/* V2.0 Features Section */}
-      <section className="py-24 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+      <section className="py-24 relative z-10">
         
         <div className="container relative">
           <div className="text-center mb-16">
@@ -145,10 +145,7 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-6">
             {/* Vector Package Market Card */}
             <Link href="/marketplace" className="group">
-              <div className="glass-card-hover p-6 h-full border-l-4 border-l-blue-500">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
-                  <Brain className="w-6 h-6 text-blue-500" />
-                </div>
+              <div className="glass-card-hover p-6 h-full">
                 <Badge className="mb-3 text-xs bg-blue-500/10 text-blue-400 border-blue-500/20">Capability Trading</Badge>
                 <h3 className="text-xl font-semibold mb-2">Vector Packages</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -163,10 +160,7 @@ export default function Home() {
             
             {/* Memory Package Market Card */}
             <Link href="/memory-marketplace" className="group">
-              <div className="glass-card-hover p-6 h-full border-l-4 border-l-purple-500">
-                <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
-                  <Cpu className="w-6 h-6 text-purple-500" />
-                </div>
+              <div className="glass-card-hover p-6 h-full">
                 <Badge className="mb-3 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">Memory Trading</Badge>
                 <h3 className="text-xl font-semibold mb-2">Memory Packages</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -181,10 +175,7 @@ export default function Home() {
             
             {/* Reasoning Chain Market Card */}
             <Link href="/reasoning-chains" className="group">
-              <div className="glass-card-hover p-6 h-full border-l-4 border-l-green-500">
-                <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
-                  <Network className="w-6 h-6 text-green-500" />
-                </div>
+              <div className="glass-card-hover p-6 h-full">
                 <Badge className="mb-3 text-xs bg-green-500/10 text-green-400 border-green-500/20">Solution Trading</Badge>
                 <h3 className="text-xl font-semibold mb-2">Chain Packages</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -201,17 +192,13 @@ export default function Home() {
           {/* AI Collaboration Feature Banner */}
           <div className="mt-12">
             <Link href="/ai-collaboration" className="group block">
-              <div className="glass-card-hover p-8 border-2 border-transparent hover:border-purple-500/50 bg-gradient-to-br from-purple-900/20 to-cyan-900/20 relative overflow-hidden">
+              <div className="glass-card-hover p-8 relative overflow-hidden">
                 {/* Background animation */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div className="relative z-10 grid md:grid-cols-2 gap-6 items-center">
                   <div>
                     <div className="flex items-center gap-2 mb-4">
-                      <div className="flex items-center gap-1">
-                        <Brain className="w-8 h-8 text-purple-400" />
-                        <MessageSquare className="w-6 h-6 text-cyan-400 -ml-2" />
-                      </div>
                       <Badge className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-white border-purple-500/30 flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
                         NEW
@@ -246,26 +233,15 @@ export default function Home() {
                     </Button>
                   </div>
 
-                  <div className="hidden md:block">
-                    <div className="relative h-64 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-6 overflow-hidden">
-                      {/* Mock collaboration interface */}
+                  <div className="hidden md:flex items-center justify-center">
+                    <div className="glass-card p-6 text-center">
                       <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                            <span className="text-purple-400 text-xs font-bold">M</span>
-                          </div>
-                          <div className="flex-1 bg-purple-500/10 rounded-lg p-3 border border-purple-500/20">
-                            <p className="text-xs text-slate-300">I'll handle the React components...</p>
-                          </div>
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="text-purple-400 font-semibold">Manus</span>
+                          <span className="text-white/40">×</span>
+                          <span className="text-cyan-400 font-semibold">Claude</span>
                         </div>
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                            <span className="text-cyan-400 text-xs font-bold">C</span>
-                          </div>
-                          <div className="flex-1 bg-cyan-500/10 rounded-lg p-3 border border-cyan-500/20">
-                            <p className="text-xs text-slate-300">Great! I'll build the API endpoints...</p>
-                          </div>
-                        </div>
+                        <p className="text-sm text-slate-400">Dual-AI real-time collaboration</p>
                         <div className="flex items-center justify-center gap-2 text-xs text-green-400">
                           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                           Live collaboration active
@@ -281,22 +257,22 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20">
+      <section className="py-20 relative z-10">
         <div className="container">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center">
+            <div className="glass-card p-6 text-center">
               <div className="stat-value">60+</div>
               <div className="stat-label">AI Models Supported</div>
             </div>
-            <div className="text-center">
+            <div className="glass-card p-6 text-center">
               <div className="stat-value">11</div>
               <div className="stat-label">Model Families</div>
             </div>
-            <div className="text-center">
+            <div className="glass-card p-6 text-center">
               <div className="stat-value">98%</div>
               <div className="stat-label">Alignment Accuracy</div>
             </div>
-            <div className="text-center">
+            <div className="glass-card p-6 text-center">
               <div className="stat-value">∞</div>
               <div className="stat-label">Possibilities</div>
             </div>
@@ -305,8 +281,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/5 to-transparent" />
+      <section className="py-24 relative z-10">
         
         <div className="container relative">
           <div className="text-center mb-16">
@@ -319,9 +294,9 @@ export default function Home() {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary">1</span>
+            <div className="glass-card p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                <span className="text-xl font-bold text-primary">1</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">Capture</h3>
               <p className="text-sm text-muted-foreground">
@@ -329,9 +304,9 @@ export default function Home() {
               </p>
             </div>
             
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-accent">2</span>
+            <div className="glass-card p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                <span className="text-xl font-bold text-accent">2</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">Align</h3>
               <p className="text-sm text-muted-foreground">
@@ -339,9 +314,9 @@ export default function Home() {
               </p>
             </div>
             
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary">3</span>
+            <div className="glass-card p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                <span className="text-xl font-bold text-primary">3</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">Transfer</h3>
               <p className="text-sm text-muted-foreground">
@@ -353,7 +328,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24">
+      <section className="py-24 relative z-10">
         <div className="container">
           <div className="glass-card p-12 text-center max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -390,7 +365,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-white/5">
+      <footer className="py-12 border-t border-white/5 relative z-10">
         <div className="container">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
