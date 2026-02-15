@@ -76,7 +76,7 @@ export default function Home() {
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6" style={{ letterSpacing: '-0.04em' }}>
                 Share{" "}
-                <span className="gradient-text">AI <FlipWord words={['Thoughts', 'Memory', 'Awareness', 'Opinion', 'Thinking']} /></span>
+<span className="gradient-text">AI </span><FlipWord words={['Thoughts', 'Memory', 'Awareness', 'Opinion', 'Thinking']} className="gradient-text" />
                 <br />Across Models
               </h1>
               

@@ -2,14 +2,16 @@
  * FlipWord Component
  *
  * Vertical page-flip text animation. Current word slides up and out,
- * next word slides up from below. Uses requestAnimationFrame for
- * smooth transition triggering.
+ * next word slides up from below. Accepts optional className to apply
+ * styles (like gradient-text) directly to each word span.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface FlipWordProps {
   words: string[];
+  /** CSS class applied to each word span (e.g. 'gradient-text') */
+  className?: string;
   /** Duration each word is displayed (ms) */
   interval?: number;
   /** Animation duration (ms) */
@@ -18,72 +20,61 @@ interface FlipWordProps {
 
 export const FlipWord: React.FC<FlipWordProps> = ({
   words,
+  className = '',
   interval = 2500,
   duration = 600,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [phase, setPhase] = useState<'idle' | 'ready' | 'animating'>('idle');
-  const nextIndexRef = useRef(0);
-
-  const startFlip = useCallback(() => {
-    nextIndexRef.current = (currentIndex + 1) % words.length;
-    // First frame: position incoming word below (no transition)
-    setPhase('ready');
-  }, [currentIndex, words.length]);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const nextIndex = (currentIndex + 1) % words.length;
 
   useEffect(() => {
-    if (phase === 'ready') {
-      // Next frame: trigger the slide-up animation
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setPhase('animating'));
-      });
-    }
-    if (phase === 'animating') {
-      const timer = setTimeout(() => {
-        setCurrentIndex(nextIndexRef.current);
-        setPhase('idle');
-      }, duration);
-      return () => clearTimeout(timer);
-    }
-  }, [phase, duration]);
-
-  useEffect(() => {
-    const timer = setInterval(startFlip, interval);
+    const timer = setInterval(() => {
+      setIsAnimating(true);
+    }, interval);
     return () => clearInterval(timer);
-  }, [startFlip, interval]);
+  }, [interval]);
 
-  const isMoving = phase === 'animating';
-  const nextIndex = nextIndexRef.current;
+  const handleTransitionEnd = useCallback(() => {
+    if (isAnimating) {
+      setIsAnimating(false);
+      setCurrentIndex((prev) => (prev + 1) % words.length);
+    }
+  }, [isAnimating, words.length]);
 
   return (
     <span
-      className="inline-block relative overflow-hidden"
-      style={{ height: '1.2em', lineHeight: '1.2em', verticalAlign: 'bottom' }}
+      className="inline-flex relative overflow-hidden align-bottom"
+      style={{ height: '1.15em' }}
     >
-      {/* Current word */}
+      {/* Current word - slides up and out */}
       <span
-        className="inline-block"
+        className={`inline-block ${className}`}
+        onTransitionEnd={handleTransitionEnd}
         style={{
-          transform: isMoving ? 'translateY(-100%)' : 'translateY(0)',
-          transition: isMoving ? `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
+          transform: isAnimating ? 'translateY(-100%)' : 'translateY(0)',
+          transition: isAnimating
+            ? `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`
+            : 'none',
+          whiteSpace: 'nowrap',
         }}
       >
         {words[currentIndex]}
       </span>
 
-      {/* Incoming word (positioned below, slides up) */}
-      {phase !== 'idle' && (
-        <span
-          className="absolute left-0 inline-block"
-          style={{
-            top: '100%',
-            transform: isMoving ? 'translateY(-100%)' : 'translateY(0)',
-            transition: isMoving ? `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
-          }}
-        >
-          {words[nextIndex]}
-        </span>
-      )}
+      {/* Next word - positioned below, slides up into view */}
+      <span
+        className={`absolute left-0 top-full inline-block ${className}`}
+        style={{
+          transform: isAnimating ? 'translateY(-100%)' : 'translateY(0)',
+          transition: isAnimating
+            ? `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`
+            : 'none',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {words[nextIndex]}
+      </span>
     </span>
   );
 };
