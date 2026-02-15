@@ -82,7 +82,11 @@ export const UnicornScene: React.FC<UnicornSceneProps> = ({
       data-us-project-src="/unicorn-scene.json"
       data-us-scale="1"
       data-us-dpi="1.5"
-      style={{ width, height }}
+      style={{
+        width,
+        height,
+        filter: 'hue-rotate(180deg) saturate(1.2)',
+      }}
     />
   );
 };
