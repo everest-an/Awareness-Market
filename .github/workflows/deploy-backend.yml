@@ -1,0 +1,99 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'server/**'
+      - 'prisma/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Build and Deploy Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Generate Prisma client
+        run: npx prisma generate
+      
+      - name: Build backend
+        run: |
+          npx esbuild server/_core/index.ts \
+            --bundle \
+            --platform=node \
+            --target=node20 \
+            --outfile=dist/index.js \
+            --external:@prisma/client \
+            --external:better-sqlite3 \
+            --external:@tensorflow/tfjs-node
+
+      - name: Build frontend
+        run: |
+          pnpm run copy:docs
+          pnpm run build:client
+      
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/awareness-key.pem
+          chmod 600 ~/.ssh/awareness-key.pem
+          ssh-keyscan -H 44.220.181.78 >> ~/.ssh/known_hosts
+      
+      - name: Upload files to EC2
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 "mkdir -p /home/ec2-user/Awareness-Market/dist"
+          scp -i ~/.ssh/awareness-key.pem dist/index.js ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/dist/
+          scp -i ~/.ssh/awareness-key.pem -r dist/public ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/dist/
+          scp -i ~/.ssh/awareness-key.pem package.json ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
+          scp -i ~/.ssh/awareness-key.pem -r prisma ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
+          scp -i ~/.ssh/awareness-key.pem ecosystem.config.cjs ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
+      
+      - name: Restart PM2 service
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            cd /home/ec2-user/Awareness-Market
+            pnpm install --prod --frozen-lockfile
+            npx prisma generate
+            pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs
+            pm2 status
+          ENDSSH
+      
+      - name: Verify deployment
+        run: |
+          sleep 10
+          curl -f http://44.220.181.78:3001/api-docs/ || exit 1
+      
+      - name: Notify success
+        if: success( )
+        run: |
+          echo "✅ Backend deployment successful!"
+          echo "API URL: http://44.220.181.78:3001/api-docs/"
+      
+      - name: Notify failure
+        if: failure( )
+        run: |
+          echo "❌ Backend deployment failed!"
+          echo "Check the logs above for details."
