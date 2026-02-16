@@ -61,6 +61,7 @@ model User {
   ipWhitelists          IpWhitelist[]
   ipAccessLogs          IpAccessLog[]
   createdWhitelists     IpWhitelist[] @relation("WhitelistCreator")
+  userSessions          UserSession[]
 
   // Ensure no duplicate emails (allows multiple NULLs for wallet-only users)
   @@unique([email], map: "unique_email_non_null")
@@ -604,6 +605,42 @@ model IpAccessLog {
   @@index([timestamp])
   @@index([allowed])
   @@map("ip_access_logs")
+}
+
+// P2 Security: Enhanced Session Management
+model UserSession {
+  id                  String    @id @default(uuid()) @db.VarChar(36)
+  userId              Int       @map("user_id")
+  sessionToken        String    @unique @map("session_token") @db.VarChar(255) // JWT access token hash
+  refreshToken        String?   @unique @map("refresh_token") @db.VarChar(255) // JWT refresh token hash
+
+  // Device tracking
+  ipAddress           String    @map("ip_address") @db.VarChar(45)
+  userAgent           String?   @map("user_agent") @db.Text
+  deviceFingerprint   String?   @map("device_fingerprint") @db.VarChar(255)
+  deviceName          String?   @map("device_name") @db.VarChar(100) // e.g., "Chrome on Windows"
+
+  // Session lifecycle
+  createdAt           DateTime  @default(now()) @map("created_at")
+  lastActivityAt      DateTime  @default(now()) @map("last_activity_at")
+  expiresAt           DateTime  @map("expires_at") // Absolute expiration
+  revokedAt           DateTime? @map("revoked_at") // Manual revocation
+  revokedReason       String?   @map("revoked_reason") @db.VarChar(255)
+
+  // Security flags
+  isActive            Boolean   @default(true) @map("is_active")
+  idleTimeoutMinutes  Int       @default(30) @map("idle_timeout_minutes") // Auto-logout after inactivity
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([refreshToken])
+  @@index([lastActivityAt])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("user_sessions")
 }
 
 model McpToken {

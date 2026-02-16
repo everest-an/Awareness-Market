@@ -299,21 +299,76 @@ export class AnthropicAdapter implements LLMAdapter {
 // Self-Hosted Adapter (vLLM / TGI / Ollama)
 // ============================================================================
 
+import { getGlobalSelfHostedClient, isSelfHostedEnabled } from "./clients/self-hosted-llm";
+
 export class SelfHostedAdapter implements LLMAdapter {
   name = "SelfHosted";
   supportedModels = [
     "llama-3.1-8b",
     "llama-3.1-70b",
+    "llama-3.2-3b",
     "mistral-7b",
     "mixtral-8x7b",
     "qwen-2.5-7b",
+    "qwen-2.5-14b",
     "deepseek-v2",
+    "phi-3-mini",
   ];
 
   constructor(private baseUrl: string = "http://localhost:8000") {}
 
   async extractHiddenStates(config: HiddenStateExtractionConfig): Promise<HiddenStateResult[]> {
     const startTime = Date.now();
+
+    // Check if self-hosted LLM is enabled
+    if (isSelfHostedEnabled()) {
+      try {
+        logger.info('Using enhanced self-hosted LLM client', {
+          model: config.modelName,
+          promptCount: config.prompts.length,
+        });
+
+        const client = getGlobalSelfHostedClient();
+
+        // Check server availability first
+        const isAvailable = await client.isAvailable();
+        if (!isAvailable) {
+          throw new Error('Self-hosted LLM server is not available');
+        }
+
+        // Extract hidden states using the new client
+        const results = await client.extractHiddenStates(config.prompts, config.layer);
+
+        // Convert to HiddenStateResult format
+        return results.map(result => ({
+          prompt: result.prompt,
+          hiddenState: result.hiddenState,
+          layer: result.layer,
+          tokenCount: Math.ceil(result.prompt.length / 4),
+          metadata: {
+            model: result.metadata.model,
+            provider: result.metadata.provider,
+            timestamp: result.metadata.timestamp,
+            processingTime: result.metadata.processingTime,
+          },
+        }));
+      } catch (error) {
+        logger.warn('Enhanced self-hosted client failed, falling back to legacy method', { error });
+        // Continue to legacy fallback below
+      }
+    }
+
+    // Legacy fallback or when self-hosted is not enabled
+    return this.extractWithLegacyMethod(config, startTime);
+  }
+
+  /**
+   * Legacy extraction method (for backward compatibility)
+   */
+  private async extractWithLegacyMethod(
+    config: HiddenStateExtractionConfig,
+    startTime: number
+  ): Promise<HiddenStateResult[]> {
     const results: HiddenStateResult[] = [];
 
     for (const prompt of config.prompts) {
@@ -345,7 +400,7 @@ export class SelfHostedAdapter implements LLMAdapter {
           tokenCount: data.usage.prompt_tokens,
           metadata: {
             model: config.modelName,
-            provider: "SelfHosted",
+            provider: "SelfHosted (Legacy)",
             timestamp: new Date(),
             processingTime: Date.now() - startTime,
           },
@@ -361,7 +416,7 @@ export class SelfHostedAdapter implements LLMAdapter {
           tokenCount: Math.ceil(prompt.length / 4),
           metadata: {
             model: config.modelName,
-            provider: "SelfHosted (Fallback)",
+            provider: "SelfHosted (Deterministic Fallback)",
             timestamp: new Date(),
             processingTime: Date.now() - startTime,
           },
@@ -375,11 +430,11 @@ export class SelfHostedAdapter implements LLMAdapter {
   private generateFallbackState(text: string, dimension: number): number[] {
     const hash = this.hashString(text);
     const state: number[] = [];
-    
+
     for (let i = 0; i < dimension; i++) {
       state.push(Math.sin(hash + i * 0.1) * 0.5);
     }
-    
+
     const norm = Math.sqrt(state.reduce((sum, val) => sum + val * val, 0));
     return state.map(val => val / norm);
   }
@@ -394,7 +449,7 @@ export class SelfHostedAdapter implements LLMAdapter {
   }
 
   estimateCost(config: HiddenStateExtractionConfig): number {
-    // Self-hosted models have no API cost
+    // Self-hosted models have no API cost (only infrastructure cost)
     return 0;
   }
 }

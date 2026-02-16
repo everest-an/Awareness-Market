@@ -56,6 +56,7 @@ import { verificationRouter } from './routers/verification';
 import { orgAnalyticsRouter } from './routers/org-analytics';
 import { apiKeyRouter } from './routers/api-key';
 import { ipWhitelistRouter } from './routers/ip-whitelist';
+import { sessionManagementRouter } from './routers/session-management';
 import { prisma } from './db-prisma';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
@@ -475,6 +476,9 @@ export const appRouter = router({
 
   // IP Whitelist Control (P2 Security: Organization & User Level IP Restrictions)
   ipWhitelist: ipWhitelistRouter,
+
+  // Session Management (P2 Security: Idle Timeout, Device Tracking, Session Revocation)
+  sessionManagement: sessionManagementRouter,
 
   // Latent Vectors Management
   vectors: router({
