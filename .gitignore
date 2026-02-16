@@ -126,3 +126,5 @@ __pycache__/
 go-services/*/memory-exchange
 go-services/*/w-matrix-marketplace
 go-services/*/*.exe
+
+client/public/gitbook

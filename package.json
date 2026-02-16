@@ -4,9 +4,10 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development tsx watch server/_core/index.ts",
-    "build": "pnpm run build:client && pnpm run build:server",
+    "dev": "tsx scripts/copy-docs.ts && cross-env NODE_ENV=development tsx watch server/_core/index.ts",
+    "build": "pnpm run copy:docs && pnpm run build:client && pnpm run build:server",
     "build:client": "cross-env NODE_ENV=production vite build",
+    "copy:docs": "tsx scripts/copy-docs.ts",
     "build:server": "esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit",
