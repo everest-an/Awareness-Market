@@ -31,18 +31,9 @@
     "check:pgvector": "tsx scripts/check-pgvector.ts",
     "monitor": "tsx scripts/monitor-resources.ts",
     "monitor:watch": "tsx scripts/monitor-resources.ts --watch",
-    "memory:check": "tsx scripts/test-database-connection.ts",
-    "memory:migrate": "tsx scripts/run-memory-migration.ts",
-    "memory:test": "tsx scripts/test-phase1-scoring.ts",
-    "memory:test:phase2": "tsx scripts/test-phase2-features.ts",
-    "memory:verify": "cross-env OPENAI_API_KEY=sk-dummy tsx scripts/verify-phase2-imports.ts",
-    "rmc:test:entity": "tsx scripts/test-rmc-entity-extraction.ts",
-    "rmc:test:relation": "tsx scripts/test-rmc-relation-building.ts",
-    "rmc:test:retrieval": "tsx scripts/test-rmc-retrieval.ts",
-    "rmc:test:all": "pnpm run rmc:test:entity && pnpm run rmc:test:relation && pnpm run rmc:test:retrieval",
-    "rmc:worker": "tsx server/workers/rmc-worker.ts",
-    "rmc:worker:prod": "pm2 start server/workers/rmc-worker.ts --name rmc-worker -i 2",
-    "rmc:optimize:indexes": "psql $DATABASE_URL -f scripts/create-rmc-indexes.sql"
+    "build:frontend": "vite build",
+    "build:backend": "esbuild server/_core/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:@prisma/client --external:better-sqlite3 --external:@tensorflow/tfjs-node",
+    "deploy:backend": "./scripts/deploy-backend.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.907.0",
