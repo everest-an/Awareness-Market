@@ -99,6 +99,29 @@ export const wMatrixMarketplaceV2Router = router({
     .input(CreateListingInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        // ✅ P0-2: Check user listing quota before proceeding
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient();
+
+        const user = await prisma.user.findUnique({
+          where: { id: ctx.user.id },
+          select: { maxListings: true, currentListingCount: true },
+        });
+
+        if (!user) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'User not found',
+          });
+        }
+
+        if (user.currentListingCount >= user.maxListings) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Listing limit reached (${user.maxListings}). Please contact support to increase your limit.`,
+          });
+        }
+
         // Create quality certification
         const certification = QualityCertifier.createCertification(
           input.epsilon,
@@ -106,7 +129,7 @@ export const wMatrixMarketplaceV2Router = router({
           input.euclideanDistance,
           input.testSamples
         );
-        
+
         // Build W-Matrix protocol
         const protocol = new WMatrixProtocolBuilder()
           .setVersion(input.version)
@@ -125,12 +148,12 @@ export const wMatrixMarketplaceV2Router = router({
             tags: input.tags || [],
           })
           .build();
-        
+
         // Upload to S3
         const fileKey = `w-matrix/${ctx.user.id}/${nanoid()}-${Date.now()}.json`;
         const protocolJson = JSON.stringify(protocol);
         const { url: storageUrl } = await storagePut(fileKey, protocolJson, 'application/json');
-        
+
         // Update protocol with CDN URLs
         protocol.metadata.downloadUrl = storageUrl;
         protocol.metadata.cdnUrls = [storageUrl];
@@ -176,6 +199,14 @@ export const wMatrixMarketplaceV2Router = router({
           sizeBytes: protocol.metadata.sizeBytes,
           tags: input.tags,
         });
+
+        // ✅ P0-2: Increment user listing counter
+        await prisma.user.update({
+          where: { id: ctx.user.id },
+          data: { currentListingCount: { increment: 1 } },
+        });
+
+        await prisma.$disconnect();
 
         return {
           success: true,

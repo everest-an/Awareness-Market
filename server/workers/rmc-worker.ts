@@ -40,11 +40,7 @@ const rmcWorker = new Worker(
       }
 
       // 2. Extract entities and create EntityTags
-      const extractor = createEntityExtractor({
-        enableLLM: process.env.RMC_ENABLE_LLM === 'true',
-        openaiApiKey: process.env.OPENAI_API_KEY,
-        model: process.env.OPENAI_MODEL_ENTITY || 'gpt-4o-mini',
-      });
+      const extractor = createEntityExtractor();
 
       const extractionResult = await extractor.extract(memory.content);
 
@@ -88,15 +84,7 @@ const rmcWorker = new Worker(
       console.log(`[RMC Worker] Linked ${entityTags.length} entities to memory ${memoryId}`);
 
       // 5. Build relations (with coarse filtering)
-      const builder = createRelationBuilder(prisma, {
-        enableLLM: process.env.RMC_ENABLE_LLM === 'true',
-        openaiApiKey: process.env.OPENAI_API_KEY,
-        model: process.env.OPENAI_MODEL_RELATION || 'gpt-4o-mini',
-        candidateLimit: 20,
-        minEntityOverlap: 1,
-        minVectorSimilarity: 0.75, // ✅ Coarse filter: only high similarity
-        maxCandidateAge: 30, // Only check memories from last 30 days
-      });
+      const builder = createRelationBuilder(prisma);
 
       const relationsCount = await builder.buildRelations(memoryId);
 

@@ -37,6 +37,10 @@ model User {
   totalMemories        Int       @default(0) @map("total_memories")
   totalResonances      Int       @default(0) @map("total_resonances")
 
+  // V1 Marketplace Quotas (P0-2 Security Fix)
+  maxListings          Int       @default(10) @map("max_listings")
+  currentListingCount  Int       @default(0) @map("current_listing_count")
+
   // Relations
   createdWorkflows      Workflow[]
   createdVectors        LatentVector[]
@@ -53,6 +57,7 @@ model User {
   blogPosts             BlogPost[]
   agentWallet           AgentWallet?
   agentWalletTxs        AgentWalletTransaction[]
+  orgMemberships        OrgMembership[]
 
   // Ensure no duplicate emails (allows multiple NULLs for wallet-only users)
   @@unique([email], map: "unique_email_non_null")
@@ -975,15 +980,28 @@ model MemoryEntry {
   decayFactor         Decimal   @default(0.01) @map("decay_factor") @db.Decimal(5, 4)
   decayCheckpoint     DateTime  @default(now()) @map("decay_checkpoint")
 
+  // v3: Organization FK (parallel to legacy orgId string, will be backfilled)
+  organizationId      Int?      @map("organization_id")
+  memoryType          MemoryType @default(semantic) @map("memory_type")
+
+  // v3 Phase 2: Memory Pool Layer
+  poolType            PoolType  @default(domain) @map("pool_type")
+
   // Relations
   parent              MemoryEntry?      @relation("MemoryVersionTree", fields: [parentId], references: [id], onDelete: SetNull)
   children            MemoryEntry[]     @relation("MemoryVersionTree")
   score               MemoryScore?
   conflictsAsMemory1  MemoryConflict[]  @relation("ConflictMemory1")
   conflictsAsMemory2  MemoryConflict[]  @relation("ConflictMemory2")
+  conflictResolutions MemoryConflict[]  @relation("ConflictResolution")
   relationsAsSource   MemoryRelation[]  @relation("RelationSource")
   relationsAsTarget   MemoryRelation[]  @relation("RelationTarget")
   entityTags          EntityTag[]       @relation("MemoryEntityTags") // ✅ Multi-to-multi relation
+  organization        Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  verificationRequests VerificationRequest[]
+  evidence            Evidence[]
+  dependenciesAsSource MemoryDependency[] @relation("DependencySource")
+  dependenciesAsTarget MemoryDependency[] @relation("DependencyTarget")
 
   @@index([orgId, namespace])
   @@index([createdBy])
@@ -996,6 +1014,9 @@ model MemoryEntry {
   @@index([agentId])
   @@index([latentModel, latentLayer])
   @@index([isNFTized])
+  @@index([organizationId])
+  @@index([memoryType])
+  @@index([poolType])
   @@map("memory_entries")
 }
 
@@ -1053,11 +1074,21 @@ model MemoryConflict {
   resolvedAt          DateTime? @map("resolved_at")
   resolvedBy          String?   @map("resolved_by") @db.VarChar(255)
 
+  // v3 Phase 2: Severity & Arbitration
+  severity            ConflictSeverity @default(medium)
+  autoResolvable      Boolean   @default(false) @map("auto_resolvable")
+  arbitrationAgent    String?   @map("arbitration_agent") @db.VarChar(255) // Agent that arbitrated
+  impactScope         Json?     @map("impact_scope") // { affectedMemoryIds: [], affectedDepts: [] }
+  explanation         String?   @db.Text // LLM explanation of conflict
+  confidence          Decimal?  @db.Decimal(3, 2) // LLM confidence [0-1]
+
   // Relations
   memory1             MemoryEntry @relation("ConflictMemory1", fields: [memoryId1], references: [id], onDelete: Cascade)
   memory2             MemoryEntry @relation("ConflictMemory2", fields: [memoryId2], references: [id], onDelete: Cascade)
+  resolutionMemory    MemoryEntry? @relation("ConflictResolution", fields: [resolutionMemoryId], references: [id], onDelete: SetNull)
 
   @@index([status])
+  @@index([severity])
   @@index([detectedAt])
   @@index([memoryId1])
   @@index([memoryId2])
@@ -1203,4 +1234,423 @@ model VrSession {
   @@index([userId, robotId])
   @@index([status])
   @@map("vr_sessions")
+}
+
+// ============================================================================
+// v3: AI Organization Governance & Decision Infrastructure
+// Multi-tenant organization hierarchy with plan-based limits
+// ============================================================================
+
+enum OrgPlanTier {
+  lite        // $49/mo, 2-8 agents, 1 department
+  team        // $199/mo, 8-32 agents, multi-department
+  enterprise  // $499/mo, 32-128 agents, decision audit
+  scientific  // $999/mo, unlimited agents, cross-domain verification
+}
+
+enum OrgMemberRole {
+  owner       // Full control, billing
+  admin       // Manage agents, departments, members
+  dept_admin  // Manage own department only
+  member      // Read/write within assigned departments
+  viewer      // Read-only access
+}
+
+enum MemoryType {
+  episodic    // λ=0.05 — short-term, event-specific
+  semantic    // λ=0.01 — general knowledge (default)
+  strategic   // λ=0.001 — long-term strategic decisions
+  procedural  // λ=0.02 — how-to, process knowledge
+}
+
+model Organization {
+  id                Int           @id @default(autoincrement())
+  name              String        @db.VarChar(255)
+  slug              String        @unique @db.VarChar(255)
+  description       String?       @db.Text
+  planTier          OrgPlanTier   @default(lite) @map("plan_tier")
+
+  // Plan limits
+  maxAgents         Int           @default(8) @map("max_agents")
+  maxMemories       Int           @default(10000) @map("max_memories")
+  maxDepartments    Int           @default(1) @map("max_departments")
+
+  // Billing
+  stripeCustomerId  String?       @unique @map("stripe_customer_id") @db.VarChar(255)
+
+  // Feature flags (per-org overrides)
+  enableMemoryPools Boolean       @default(false) @map("enable_memory_pools")
+  enableDecisions   Boolean       @default(false) @map("enable_decisions")
+  enableVerification Boolean      @default(false) @map("enable_verification")
+
+  // Stats (denormalized for dashboard performance)
+  currentAgentCount  Int          @default(0) @map("current_agent_count")
+  currentMemoryCount Int          @default(0) @map("current_memory_count")
+
+  // Lifecycle
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  departments       Department[]
+  memberships       OrgMembership[]
+  agentAssignments  AgentAssignment[]
+  memories          MemoryEntry[]
+  decisions         Decision[]
+  agentReputations  AgentReputation[]
+  verificationRequests VerificationRequest[]
+  evidence          Evidence[]
+  memoryDependencies MemoryDependency[]
+
+  @@index([planTier])
+  @@index([slug])
+  @@map("organizations")
+}
+
+model Department {
+  id                Int           @id @default(autoincrement())
+  organizationId    Int           @map("organization_id")
+  name              String        @db.VarChar(255)
+  slug              String        @db.VarChar(255)
+  description       String?       @db.Text
+
+  // Tree hierarchy (null = root department)
+  parentDeptId      Int?          @map("parent_dept_id")
+
+  // Department-specific settings
+  defaultMemoryType MemoryType    @default(semantic) @map("default_memory_type")
+  defaultDecayFactor Decimal      @default(0.01) @map("default_decay_factor") @db.Decimal(5, 4)
+
+  // Lifecycle
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parentDept        Department?   @relation("DeptHierarchy", fields: [parentDeptId], references: [id], onDelete: SetNull)
+  childDepts        Department[]  @relation("DeptHierarchy")
+  agentAssignments  AgentAssignment[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([parentDeptId])
+  @@map("departments")
+}
+
+model OrgMembership {
+  id                Int           @id @default(autoincrement())
+  userId            Int           @map("user_id")
+  organizationId    Int           @map("organization_id")
+  role              OrgMemberRole @default(member)
+
+  // Department scope (for dept_admin role; null = all departments)
+  departmentIds     Int[]         @default([]) @map("department_ids")
+
+  // Lifecycle
+  joinedAt          DateTime      @default(now()) @map("joined_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([role])
+  @@map("org_memberships")
+}
+
+model AgentAssignment {
+  id                Int           @id @default(autoincrement())
+  agentId           String        @map("agent_id") @db.VarChar(255)
+  organizationId    Int           @map("organization_id")
+  departmentId      Int?          @map("department_id")
+
+  // Agent metadata
+  agentName         String?       @map("agent_name") @db.VarChar(255)
+  agentModel        String?       @map("agent_model") @db.VarChar(100) // e.g. "gpt-4o", "claude-3"
+  capabilities      Json?         // ["write", "read", "verify", "decide"]
+
+  // Status
+  isActive          Boolean       @default(true) @map("is_active")
+  lastSeenAt        DateTime?     @map("last_seen_at")
+
+  // Lifecycle
+  assignedAt        DateTime      @default(now()) @map("assigned_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department        Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@unique([agentId, organizationId])
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([isActive])
+  @@map("agent_assignments")
+}
+
+// ============================================================================
+// v3 Phase 2: Multi-Layer Memory Pools + Conflict Severity
+// ============================================================================
+
+enum PoolType {
+  private   // Agent-local, not shared
+  domain    // Department-level shared (default)
+  global    // Organization-wide, promoted from domain
+}
+
+enum ConflictSeverity {
+  low       // Auto-resolvable (e.g. minor wording differences)
+  medium    // Needs review but not critical
+  high      // Affects decisions, requires arbitration
+  critical  // Cross-department contradiction, urgent
+}
+
+// ============================================================================
+// v3 Phase 3: Decision Recorder + Agent Reputation System
+// ============================================================================
+
+model Decision {
+  id                  String    @id @default(uuid()) @db.Uuid
+  organizationId      Int       @map("organization_id")
+  agentId             String    @map("agent_id") @db.VarChar(255)
+  departmentId        Int?      @map("department_id")
+
+  // Decision context
+  inputQuery          String    @map("input_query") @db.Text
+  output              String    @db.Text
+  confidence          Decimal   @db.Decimal(3, 2) // [0.00-1.00]
+
+  // Memory context at decision time (snapshot)
+  retrievedMemoryIds  String[]  @default([]) @map("retrieved_memory_ids") // UUID array
+  memoryScoresSnapshot Json?    @map("memory_scores_snapshot") // { memoryId: { finalScore, poolType, content } }
+  poolBreakdown       Json?     @map("pool_breakdown") // { private: N, domain: N, global: N }
+  totalTokensUsed     Int       @default(0) @map("total_tokens_used")
+
+  // Outcome tracking (filled later by verification)
+  outcomeVerified     Boolean   @default(false) @map("outcome_verified")
+  outcomeCorrect      Boolean?  @map("outcome_correct")
+  outcomeNotes        String?   @map("outcome_notes") @db.Text
+  verifiedAt          DateTime? @map("verified_at")
+  verifiedBy          String?   @map("verified_by") @db.VarChar(255)
+
+  // Metadata
+  decisionType        String?   @map("decision_type") @db.VarChar(50) // query, action, recommendation
+  latencyMs           Int?      @map("latency_ms")
+  modelUsed           String?   @map("model_used") @db.VarChar(100)
+
+  // Lifecycle
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([agentId])
+  @@index([departmentId])
+  @@index([createdAt])
+  @@index([outcomeVerified])
+  @@map("decisions")
+}
+
+model AgentReputation {
+  id                  Int       @id @default(autoincrement())
+  agentId             String    @map("agent_id") @db.VarChar(255)
+  organizationId      Int       @map("organization_id")
+  departmentId        Int?      @map("department_id")
+
+  // Multi-dimensional reputation scores [0-100]
+  writeQuality        Decimal   @default(50) @map("write_quality") @db.Decimal(5, 2)
+  decisionAccuracy    Decimal   @default(50) @map("decision_accuracy") @db.Decimal(5, 2)
+  collaborationScore  Decimal   @default(50) @map("collaboration_score") @db.Decimal(5, 2)
+  domainExpertise     Decimal   @default(50) @map("domain_expertise") @db.Decimal(5, 2)
+
+  // Overall reputation = writeQuality*0.3 + decisionAccuracy*0.3 + collaboration*0.2 + domainExpertise*0.2
+  overallReputation   Decimal   @default(50) @map("overall_reputation") @db.Decimal(5, 2)
+
+  // Activity counters
+  totalWrites         Int       @default(0) @map("total_writes")
+  validatedWrites     Int       @default(0) @map("validated_writes")
+  conflictedWrites    Int       @default(0) @map("conflicted_writes")
+  totalDecisions      Int       @default(0) @map("total_decisions")
+  correctDecisions    Int       @default(0) @map("correct_decisions")
+  totalCollaborations Int       @default(0) @map("total_collaborations")
+
+  // Lifecycle
+  lastActiveAt        DateTime  @default(now()) @map("last_active_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, organizationId, departmentId])
+  @@index([organizationId])
+  @@index([agentId])
+  @@index([overallReputation(sort: Desc)])
+  @@map("agent_reputations")
+}
+
+model MemoryPool {
+  id                  Int           @id @default(autoincrement())
+  organizationId      Int           @map("organization_id")
+  poolType            PoolType      @map("pool_type")
+  departmentId        Int?          @map("department_id") // null for global pools
+
+  // Access policies
+  readPolicy          Json?         @map("read_policy")  // { roles: ["member", "admin"], depts: [1,2] }
+  writePolicy         Json?         @map("write_policy") // { roles: ["admin"], minReputation: 70 }
+
+  // Promotion settings (domain -> global)
+  promotionThreshold  Int           @default(5) @map("promotion_threshold") // validation_count needed
+  promotionMinScore   Decimal       @default(60) @map("promotion_min_score") @db.Decimal(5, 2)
+  autoPromote         Boolean       @default(false) @map("auto_promote")
+
+  // Stats
+  memoryCount         Int           @default(0) @map("memory_count")
+  totalTokens         Int           @default(0) @map("total_tokens") // Token budget tracking
+
+  // Lifecycle
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  @@unique([organizationId, poolType, departmentId])
+  @@index([organizationId])
+  @@index([poolType])
+  @@map("memory_pools")
+}
+
+// ============================================================================
+// v3 Phase 4: Cross-Domain Verification + Evidence Layer
+// ============================================================================
+
+enum VerificationStatus {
+  pending
+  assigned
+  verified
+  rejected
+  expired
+}
+
+enum EvidenceType {
+  arxiv
+  doi
+  internal_data
+  experimental
+  computational
+  url
+}
+
+enum DependencyType {
+  assumes        // Memory assumes another memory is true
+  builds_on      // Memory extends another
+  requires       // Memory requires another to be valid
+  refutes        // Memory contradicts (inverse dependency)
+}
+
+model VerificationRequest {
+  id                  String              @id @default(uuid()) @db.Uuid
+  memoryId            String              @map("memory_id") @db.Uuid
+  organizationId      Int                 @map("organization_id")
+  sourceDepartmentId  Int?                @map("source_department_id")
+  targetDepartmentId  Int?                @map("target_department_id")
+
+  // Verification workflow
+  status              VerificationStatus  @default(pending)
+  verifierAgentId     String?             @map("verifier_agent_id") @db.VarChar(255)
+
+  // Result
+  verificationResult  Json?               @map("verification_result") // { verdict, confidence, notes }
+  scoreImpact         Decimal?            @map("score_impact") @db.Decimal(5, 2) // How much confidence changed
+
+  // Priority (based on memory type and pool)
+  priority            Int                 @default(0) // Higher = more urgent
+
+  // Lifecycle
+  requestedAt         DateTime            @default(now()) @map("requested_at")
+  assignedAt          DateTime?           @map("assigned_at")
+  completedAt         DateTime?           @map("completed_at")
+  expiresAt           DateTime?           @map("expires_at")
+
+  // Relations
+  memory              MemoryEntry         @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([memoryId])
+  @@index([status])
+  @@index([verifierAgentId])
+  @@index([targetDepartmentId])
+  @@map("verification_requests")
+}
+
+model Evidence {
+  id                  String       @id @default(uuid()) @db.Uuid
+  memoryId            String       @map("memory_id") @db.Uuid
+  organizationId      Int          @map("organization_id")
+
+  // Evidence metadata
+  evidenceType        EvidenceType @map("evidence_type")
+  sourceUrl           String?      @map("source_url") @db.Text
+  sourceDoi           String?      @map("source_doi") @db.VarChar(255) // DOI identifier
+  title               String?      @db.VarChar(500)
+  description         String?      @db.Text
+
+  // Claim details
+  claimType           String?      @map("claim_type") @db.VarChar(50) // theorem, hypothesis, model, experimental_result
+  assumptions         Json?        // Array of assumption strings
+  unit                String?      @db.VarChar(50) // Physical unit if applicable
+  dimension           String?      @db.VarChar(50) // Dimension if applicable
+
+  // Quality
+  confidence          Decimal      @default(0.5) @db.Decimal(3, 2)
+  peerReviewed        Boolean      @default(false) @map("peer_reviewed")
+
+  // Lifecycle
+  createdAt           DateTime     @default(now()) @map("created_at")
+  createdBy           String       @map("created_by") @db.VarChar(255)
+
+  // Relations
+  memory              MemoryEntry  @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([memoryId])
+  @@index([organizationId])
+  @@index([evidenceType])
+  @@index([sourceDoi])
+  @@map("evidence")
+}
+
+model MemoryDependency {
+  id                  String         @id @default(uuid()) @db.Uuid
+  sourceMemoryId      String         @map("source_memory_id") @db.Uuid
+  dependsOnMemoryId   String         @map("depends_on_memory_id") @db.Uuid
+  organizationId      Int            @map("organization_id")
+
+  // Dependency metadata
+  dependencyType      DependencyType @map("dependency_type")
+  strength            Decimal        @default(0.5) @db.Decimal(3, 2) // [0-1]
+  description         String?        @db.Text
+
+  // Revalidation
+  needsRevalidation   Boolean        @default(false) @map("needs_revalidation")
+  lastValidatedAt     DateTime?      @map("last_validated_at")
+
+  // Lifecycle
+  createdAt           DateTime       @default(now()) @map("created_at")
+  createdBy           String         @map("created_by") @db.VarChar(255)
+
+  // Relations
+  sourceMemory        MemoryEntry    @relation("DependencySource", fields: [sourceMemoryId], references: [id], onDelete: Cascade)
+  dependsOnMemory     MemoryEntry    @relation("DependencyTarget", fields: [dependsOnMemoryId], references: [id], onDelete: Cascade)
+  organization        Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceMemoryId, dependsOnMemoryId, dependencyType])
+  @@index([sourceMemoryId])
+  @@index([dependsOnMemoryId])
+  @@index([organizationId])
+  @@index([needsRevalidation])
+  @@map("memory_dependencies")
 }
