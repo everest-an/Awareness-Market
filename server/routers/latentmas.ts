@@ -1275,5 +1275,263 @@ export const latentmasRouter = router({
         },
       };
     }),
+
+    // ============================================================
+    // Self-Hosted LLM Testing & Management (v2.2)
+    // 自部署 LLM 测试和管理功能
+    // ============================================================
+
+    /**
+     * 测试自部署 LLM 服务器健康状态
+     */
+    testSelfHostedHealth: publicProcedure.query(async () => {
+      try {
+        const { getGlobalSelfHostedClient, isSelfHostedEnabled } = await import('../latentmas/clients/self-hosted-llm');
+
+        if (!isSelfHostedEnabled()) {
+          return {
+            success: false,
+            enabled: false,
+            message: 'Self-hosted LLM is not enabled. Set USE_SELF_HOSTED_LLM=true in .env',
+          };
+        }
+
+        const client = getGlobalSelfHostedClient();
+        const serverInfo = client.getServerInfo();
+        const health = await client.healthCheck();
+
+        return {
+          success: true,
+          enabled: true,
+          health,
+          serverInfo,
+          message: 'Self-hosted LLM server is healthy and ready',
+        };
+      } catch (error: any) {
+        return {
+          success: false,
+          enabled: true,
+          error: error.message,
+          message: 'Failed to connect to self-hosted LLM server. Please check VLLM_BASE_URL and ensure the server is running.',
+        };
+      }
+    }),
+
+    /**
+     * 测试隐藏状态提取
+     */
+    testHiddenStateExtraction: publicProcedure
+      .input(
+        z.object({
+          prompts: z.array(z.string()).min(1).max(5).optional().default(['Hello, world!', 'Test prompt']),
+          layer: z.number().int().optional().default(-2),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const { getGlobalSelfHostedClient, isSelfHostedEnabled } = await import('../latentmas/clients/self-hosted-llm');
+          const { getGlobalCostTracker } = await import('../latentmas/clients/cost-tracker');
+
+          if (!isSelfHostedEnabled()) {
+            throw new Error('Self-hosted LLM is not enabled. Set USE_SELF_HOSTED_LLM=true in .env');
+          }
+
+          const client = getGlobalSelfHostedClient();
+          const costTracker = getGlobalCostTracker();
+
+          // Track execution time
+          const startTime = Date.now();
+          const results = await client.extractHiddenStates(input.prompts, input.layer);
+          const duration = (Date.now() - startTime) / 1000;
+
+          // Track cost
+          costTracker.trackUsage('Hidden State Extraction Test', duration, 'SelfHosted', 'llama-3.1-8b', {
+            promptCount: input.prompts.length,
+            layer: input.layer,
+          });
+
+          return {
+            success: true,
+            results: results.map(r => ({
+              prompt: r.prompt,
+              dimension: r.dimension,
+              layer: r.layer,
+              hiddenStateSample: r.hiddenState.slice(0, 10), // First 10 dimensions
+              metadata: r.metadata,
+            })),
+            totalPrompts: results.length,
+            averageDimension: results.reduce((sum, r) => sum + r.dimension, 0) / results.length,
+            processingTime: `${duration.toFixed(2)}s`,
+            estimatedCost: `$${((duration / 3600) * 0.44).toFixed(4)}`,
+          };
+        } catch (error: any) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `Hidden state extraction test failed: ${error.message}`,
+          });
+        }
+      }),
+
+    /**
+     * 获取 RunPod Pod 状态
+     */
+    getRunPodStatus: publicProcedure.query(async () => {
+      try {
+        const { getGlobalRunPodManager, isRunPodEnabled } = await import('../latentmas/clients/runpod-manager');
+
+        if (!isRunPodEnabled()) {
+          return {
+            success: false,
+            enabled: false,
+            message: 'RunPod management is not enabled. Set RUNPOD_POD_ID and RUNPOD_API_KEY in .env',
+          };
+        }
+
+        const manager = getGlobalRunPodManager();
+        const status = await manager.getPodStatus();
+        const isRunning = await manager.isRunning();
+
+        return {
+          success: true,
+          enabled: true,
+          status,
+          isRunning,
+          message: isRunning ? 'Pod is currently running' : 'Pod is stopped',
+        };
+      } catch (error: any) {
+        return {
+          success: false,
+          enabled: true,
+          error: error.message,
+          message: 'Failed to get RunPod status. Please check your RUNPOD_API_KEY and RUNPOD_POD_ID.',
+        };
+      }
+    }),
+
+    /**
+     * 启动 RunPod Pod
+     */
+    startRunPod: publicProcedure.mutation(async () => {
+      try {
+        const { getGlobalRunPodManager, isRunPodEnabled } = await import('../latentmas/clients/runpod-manager');
+
+        if (!isRunPodEnabled()) {
+          throw new Error('RunPod management is not enabled');
+        }
+
+        const manager = getGlobalRunPodManager();
+        const isAlreadyRunning = await manager.isRunning();
+
+        if (isAlreadyRunning) {
+          return {
+            success: true,
+            message: 'Pod is already running',
+            alreadyRunning: true,
+          };
+        }
+
+        await manager.startPod();
+
+        return {
+          success: true,
+          message: 'Pod started successfully',
+          alreadyRunning: false,
+        };
+      } catch (error: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to start RunPod: ${error.message}`,
+        });
+      }
+    }),
+
+    /**
+     * 停止 RunPod Pod
+     */
+    stopRunPod: publicProcedure.mutation(async () => {
+      try {
+        const { getGlobalRunPodManager, isRunPodEnabled } = await import('../latentmas/clients/runpod-manager');
+
+        if (!isRunPodEnabled()) {
+          throw new Error('RunPod management is not enabled');
+        }
+
+        const manager = getGlobalRunPodManager();
+        const isRunning = await manager.isRunning();
+
+        if (!isRunning) {
+          return {
+            success: true,
+            message: 'Pod is already stopped',
+            wasRunning: false,
+          };
+        }
+
+        await manager.stopPod();
+
+        return {
+          success: true,
+          message: 'Pod stopped successfully',
+          wasRunning: true,
+        };
+      } catch (error: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to stop RunPod: ${error.message}`,
+        });
+      }
+    }),
+
+    /**
+     * 获取成本统计
+     */
+    getCostStats: publicProcedure.query(async () => {
+      try {
+        const { getGlobalCostTracker } = await import('../latentmas/clients/cost-tracker');
+
+        const tracker = getGlobalCostTracker();
+        const stats = tracker.getStats();
+
+        return {
+          success: true,
+          stats,
+          formatted: {
+            totalCost: `$${stats.totalCost.toFixed(2)}`,
+            dailyCost: `$${stats.dailyCost.toFixed(2)}`,
+            monthlyCost: `$${stats.monthlyCost.toFixed(2)}`,
+            projectedMonthlyCost: `$${stats.projectedMonthlyCost.toFixed(2)}`,
+            avgCostPerRequest: `$${stats.avgCostPerRequest.toFixed(4)}`,
+          },
+        };
+      } catch (error: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to get cost stats: ${error.message}`,
+        });
+      }
+    }),
+
+    /**
+     * 导出成本数据为 CSV
+     */
+    exportCostData: publicProcedure.query(async () => {
+      try {
+        const { getGlobalCostTracker } = await import('../latentmas/clients/cost-tracker');
+
+        const tracker = getGlobalCostTracker();
+        const csv = tracker.exportCSV();
+
+        return {
+          success: true,
+          csv,
+          filename: `llm-cost-${new Date().toISOString().split('T')[0]}.csv`,
+        };
+      } catch (error: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to export cost data: ${error.message}`,
+        });
+      }
+    }),
   }),
 });
