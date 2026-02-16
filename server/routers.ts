@@ -50,6 +50,11 @@ import { embeddingRouter } from './routers/embedding-api';
 import { stablecoinPaymentRouter } from './routers/stablecoin-payment';
 import { mcpRouter } from './routers/mcp';
 import { roboticsRouter } from './routers/robotics';
+import { organizationRouter } from './routers/organization';
+import { decisionRouter } from './routers/decision';
+import { verificationRouter } from './routers/verification';
+import { orgAnalyticsRouter } from './routers/org-analytics';
+import { apiKeyRouter } from './routers/api-key';
 import { prisma } from './db-prisma';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
@@ -464,59 +469,8 @@ export const appRouter = router({
       }),
   }),
 
-  // API Key Management
-  apiKeys: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      const keys = await listApiKeys(ctx.user.id);
-      return { keys };
-    }),
-    
-    create: protectedProcedure
-      .input(z.object({
-        name: z.string().min(1).max(255),
-        permissions: z.array(z.string()).optional(),
-        expiresInDays: z.number().positive().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const expiresAt = input.expiresInDays
-          ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
-          : null;
-        
-        const result = await createApiKey({
-          userId: ctx.user.id,
-          name: input.name,
-          permissions: input.permissions || ['*'],
-          expiresAt,
-        });
-        
-        return {
-          success: true,
-          apiKey: result.key,
-          keyPrefix: result.keyPrefix,
-          message: 'API key created successfully. Store it securely - it won\'t be shown again.',
-        };
-      }),
-    
-    revoke: protectedProcedure
-      .input(z.object({ keyId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const success = await revokeApiKey(input.keyId, ctx.user.id);
-        if (!success) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'API key not found' });
-        }
-        return { success: true, message: 'API key revoked successfully' };
-      }),
-    
-    delete: protectedProcedure
-      .input(z.object({ keyId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const success = await deleteApiKey(input.keyId, ctx.user.id);
-        if (!success) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'API key not found' });
-        }
-        return { success: true, message: 'API key deleted successfully' };
-      }),
-  }),
+  // API Key Management (P2 Security: Auto-Rotation + Expiration Tracking)
+  apiKeys: apiKeyRouter,
 
   // Latent Vectors Management
   vectors: router({
@@ -700,7 +654,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Vector not available" });
         }
 
-        const amount = parseFloat(vector.basePrice);
+        const amount = parseFloat(vector.basePrice.toString());
         const platformFeeRate = 0.20; // 20% platform fee
         const platformFee = amount * platformFeeRate;
         const creatorEarnings = amount - platformFee;
@@ -1193,9 +1147,9 @@ export const appRouter = router({
       const vectors = await db.getLatentVectorsByCreator(ctx.user.id);
       const earnings = await db.getUserTransactions(ctx.user.id, "creator");
 
-      const totalRevenue = vectors.reduce((sum, v) => sum + parseFloat(v.totalRevenue), 0);
+      const totalRevenue = vectors.reduce((sum, v) => sum + parseFloat(v.totalRevenue.toString()), 0);
       const totalCalls = vectors.reduce((sum, v) => sum + v.totalCalls, 0);
-      const avgRating = vectors.reduce((sum, v) => sum + parseFloat(v.averageRating || "0"), 0) / (vectors.length || 1);
+      const avgRating = vectors.reduce((sum, v) => sum + parseFloat((v.averageRating || "0").toString()), 0) / (vectors.length || 1);
 
       return {
         totalVectors: vectors.length,
@@ -1243,7 +1197,7 @@ export const appRouter = router({
         })
         .reduce((sum: number, t) => {
           const tx = 'amount' in t ? t : (t as { transactions: { amount: string } }).transactions;
-          return sum + parseFloat(tx.amount);
+          return sum + parseFloat(tx.amount.toString());
         }, 0);
 
       return {
@@ -1848,7 +1802,7 @@ export const appRouter = router({
               serializedMatrix = JSON.stringify(parsed);
             }
           } catch (error) {
-            logger.warn('Failed to apply Procrustes orthogonalization to trained W-Matrix', { error });
+            console.warn('Failed to apply Procrustes orthogonalization to trained W-Matrix', { error });
           }
 
           workflowManager.updateEvent(workflowId, trainEvent.id, {
@@ -2042,6 +1996,18 @@ export const appRouter = router({
 
   // Robotics Middleware - Robot Integration (ROS2, VR, Multi-Robot Coordination)
   robotics: roboticsRouter,
+
+  // v3: Organization Governance & Decision Infrastructure
+  organization: organizationRouter,
+
+  // v3 Phase 3: Decision Audit + Agent Reputation
+  decision: decisionRouter,
+
+  // v3 Phase 4: Cross-Domain Verification + Evidence
+  verification: verificationRouter,
+
+  // v3 Phase 5: Enterprise Dashboard + Analytics
+  orgAnalytics: orgAnalyticsRouter,
 
   // Neural Bridge Protocol API (P1 - Technical Moat)
   neuralBridge: neuralBridgeRouter,

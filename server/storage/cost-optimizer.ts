@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '../db-prisma';
+const prismaAny = prisma as any;
 import type { DataTier } from './access-tracker';
 import { createLogger } from '../utils/logger';
 
@@ -105,7 +106,7 @@ export class CostOptimizer {
         const totalCost = storageCost + bandwidthCost;
 
         // Upsert metrics
-        await prisma.storageCostMetric.upsert({
+        await prismaAny.storageCostMetric.upsert({
           where: {
             date_tier_backend: {
               date: today,
@@ -147,7 +148,7 @@ export class CostOptimizer {
       // Get current month's costs
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-      const currentCosts = await prisma.storageCostMetric.findMany({
+      const currentCosts = await prismaAny.storageCostMetric.findMany({
         where: { date: { gte: thirtyDaysAgo } },
       });
 
@@ -258,7 +259,7 @@ export class CostOptimizer {
       const recommendations: OptimizationRecommendation[] = [];
 
       // Get all packages with tier info
-      const packages = await prisma.packageStorageTier.findMany();
+      const packages = await prismaAny.packageStorageTier.findMany();
 
       for (const pkg of packages) {
         const daysSinceAccess = (Date.now() - pkg.lastAccessAt.getTime()) / (1000 * 60 * 60 * 24);
@@ -381,7 +382,7 @@ export class CostOptimizer {
     try {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-      const metrics = await prisma.storageCostMetric.findMany({
+      const metrics = await prismaAny.storageCostMetric.findMany({
         where: { date: { gte: since } },
         orderBy: { date: 'asc' },
       });

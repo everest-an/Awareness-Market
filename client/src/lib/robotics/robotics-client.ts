@@ -8,12 +8,15 @@
 import { trpc } from '../trpc';
 import type { RobotInfo, RobotSession, MultiRobotTask, VRSession, RobotMemory } from '../../../../server/robotics/types';
 
+// Cast trpc for robotics router not yet in AppRouter (legacy v1/v2)
+const trpcClient = trpc as any;
+
 export class RoboticsClient {
   /**
    * 健康检查
    */
   async healthCheck() {
-    const result = await trpc.robotics.health.query();
+    const result = await trpcClient.robotics.health.query();
     return result;
   }
 
@@ -21,7 +24,7 @@ export class RoboticsClient {
    * 获取 Prometheus 指标
    */
   async getMetrics() {
-    const result = await trpc.robotics.metrics.query();
+    const result = await trpcClient.robotics.metrics.query();
     return result.metrics;
   }
 
@@ -29,7 +32,7 @@ export class RoboticsClient {
    * 机器人认证
    */
   async authenticateRobot(mcpToken: string, robotId: string): Promise<RobotSession> {
-    const result = await trpc.robotics.authenticateRobot.mutate({
+    const result = await trpcClient.robotics.authenticateRobot.mutate({
       mcpToken,
       robotId,
     });
@@ -55,7 +58,7 @@ export class RoboticsClient {
     location?: { x: number; y: number; z: number };
     battery?: number;
   }): Promise<RobotInfo> {
-    const result = await trpc.robotics.registerRobot.mutate(robotInfo);
+    const result = await trpcClient.robotics.registerRobot.mutate(robotInfo);
 
     if (!result.success) {
       throw new Error('Robot registration failed');
@@ -68,7 +71,7 @@ export class RoboticsClient {
    * 获取机器人状态
    */
   async getRobotStatus(robotId: string): Promise<RobotInfo> {
-    const result = await trpc.robotics.getRobotStatus.query({ robotId });
+    const result = await trpcClient.robotics.getRobotStatus.query({ robotId });
 
     if (!result.success) {
       throw new Error(`Robot ${robotId} not found`);
@@ -81,7 +84,7 @@ export class RoboticsClient {
    * 列出在线机器人
    */
   async listOnlineRobots(): Promise<RobotInfo[]> {
-    const result = await trpc.robotics.listOnlineRobots.query();
+    const result = await trpcClient.robotics.listOnlineRobots.query();
 
     if (!result.success) {
       throw new Error('Failed to list online robots');
@@ -94,7 +97,7 @@ export class RoboticsClient {
    * 调用机器人工具
    */
   async callTool(robotId: string, toolName: string, args: any): Promise<any> {
-    const result = await trpc.robotics.callTool.mutate({
+    const result = await trpcClient.robotics.callTool.mutate({
       robotId,
       toolName,
       args,
@@ -116,7 +119,7 @@ export class RoboticsClient {
     robotIds: string[],
     mcpToken: string
   ): Promise<MultiRobotTask> {
-    const result = await trpc.robotics.createTask.mutate({
+    const result = await trpcClient.robotics.createTask.mutate({
       name,
       description,
       robotIds,
@@ -134,7 +137,7 @@ export class RoboticsClient {
    * 执行任务
    */
   async executeTask(taskId: string): Promise<void> {
-    const result = await trpc.robotics.executeTask.mutate({ taskId });
+    const result = await trpcClient.robotics.executeTask.mutate({ taskId });
 
     if (!result.success) {
       throw new Error('Task execution failed');
@@ -145,7 +148,7 @@ export class RoboticsClient {
    * 获取任务状态
    */
   async getTaskStatus(taskId: string): Promise<MultiRobotTask> {
-    const result = await trpc.robotics.getTaskStatus.query({ taskId });
+    const result = await trpcClient.robotics.getTaskStatus.query({ taskId });
 
     if (!result.success) {
       throw new Error(`Task ${taskId} not found`);
@@ -158,7 +161,7 @@ export class RoboticsClient {
    * 列出任务
    */
   async listTasks(status?: 'pending' | 'in_progress' | 'completed' | 'failed'): Promise<MultiRobotTask[]> {
-    const result = await trpc.robotics.listTasks.query({ status });
+    const result = await trpcClient.robotics.listTasks.query({ status });
 
     if (!result.success) {
       throw new Error('Failed to list tasks');
@@ -171,7 +174,7 @@ export class RoboticsClient {
    * 取消任务
    */
   async cancelTask(taskId: string): Promise<void> {
-    const result = await trpc.robotics.cancelTask.mutate({ taskId });
+    const result = await trpcClient.robotics.cancelTask.mutate({ taskId });
 
     if (!result.success) {
       throw new Error('Failed to cancel task');
@@ -182,7 +185,7 @@ export class RoboticsClient {
    * 创建 VR 控制会话
    */
   async createVRSession(robotId: string, mcpToken: string): Promise<VRSession> {
-    const result = await trpc.robotics.createVRSession.mutate({
+    const result = await trpcClient.robotics.createVRSession.mutate({
       robotId,
       mcpToken,
     });
@@ -198,7 +201,7 @@ export class RoboticsClient {
    * 终止 VR 会话
    */
   async terminateVRSession(sessionId: string): Promise<void> {
-    const result = await trpc.robotics.terminateVRSession.mutate({ sessionId });
+    const result = await trpcClient.robotics.terminateVRSession.mutate({ sessionId });
 
     if (!result.success) {
       throw new Error('Failed to terminate VR session');
@@ -209,7 +212,7 @@ export class RoboticsClient {
    * 获取 VR 会话状态
    */
   async getVRSession(sessionId: string): Promise<VRSession> {
-    const result = await trpc.robotics.getVRSession.query({ sessionId });
+    const result = await trpcClient.robotics.getVRSession.query({ sessionId });
 
     if (!result.success) {
       throw new Error(`VR session ${sessionId} not found`);
@@ -222,7 +225,7 @@ export class RoboticsClient {
    * 列出活跃的 VR 会话
    */
   async listActiveSessions(): Promise<VRSession[]> {
-    const result = await trpc.robotics.listActiveSessions.query();
+    const result = await trpcClient.robotics.listActiveSessions.query();
 
     if (!result.success) {
       throw new Error('Failed to list active VR sessions');
@@ -241,7 +244,7 @@ export class RoboticsClient {
     confidence: number,
     mcpToken: string
   ): Promise<RobotMemory> {
-    const result = await trpc.robotics.recordObservation.mutate({
+    const result = await trpcClient.robotics.recordObservation.mutate({
       robotId,
       description,
       location,
@@ -265,7 +268,7 @@ export class RoboticsClient {
     memoryType?: 'observation' | 'conversation' | 'task' | 'event',
     k: number = 5
   ): Promise<RobotMemory[]> {
-    const result = await trpc.robotics.retrieveMemories.query({
+    const result = await trpcClient.robotics.retrieveMemories.query({
       robotId,
       query,
       memoryType,
@@ -289,7 +292,7 @@ export class RoboticsClient {
     details: string,
     mcpToken: string
   ): Promise<RobotMemory> {
-    const result = await trpc.robotics.recordTask.mutate({
+    const result = await trpcClient.robotics.recordTask.mutate({
       robotId,
       taskName,
       taskResult,
@@ -313,7 +316,7 @@ export class RoboticsClient {
     message: string,
     mcpToken: string
   ): Promise<RobotMemory> {
-    const result = await trpc.robotics.recordConversation.mutate({
+    const result = await trpcClient.robotics.recordConversation.mutate({
       robotId,
       speaker,
       message,
@@ -336,7 +339,7 @@ export class RoboticsClient {
     currentDescription: string,
     mcpToken: string
   ): Promise<RobotMemory[]> {
-    const result = await trpc.robotics.recallSimilarScenarios.query({
+    const result = await trpcClient.robotics.recallSimilarScenarios.query({
       robotId,
       currentLocation,
       currentDescription,

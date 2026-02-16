@@ -20,11 +20,16 @@ import {
   GitBranch,
   TrendingUp,
   Eye,
-  History
+  History,
+  Lock,
+  Users,
+  Globe,
+  ArrowUp,
 } from "lucide-react";
 import { MemoryScoreBreakdown } from "@/components/MemoryScoreBreakdown";
 import { VersionHistoryViewer } from "@/components/VersionHistoryViewer";
 import { Link } from "wouter";
+import { toast } from "sonner";
 
 interface Memory {
   id: string;
@@ -48,17 +53,54 @@ export default function MemoryManagement() {
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
   const [showScoreDialog, setShowScoreDialog] = useState(false);
   const [showVersionDialog, setShowVersionDialog] = useState(false);
+  const [activePool, setActivePool] = useState<"all" | "private" | "domain" | "global">("all");
 
-  // Fetch memories (using search query if provided)
-  const { data: memories, isLoading } = trpc.memory.search.useQuery(
+  // Pool stats
+  const { data: poolStats } = trpc.memory.getPoolStats.useQuery(
+    { orgId: 0 },
+    { retry: false }
+  );
+
+  // Promote mutation
+  const promoteMutation = trpc.memory.promoteMemory.useMutation({
+    onSuccess: () => {
+      toast.success("Memory promoted to Global pool!");
+    },
+    onError: (err: any) => {
+      toast.error(`Promotion failed: ${err.message}`);
+    },
+  });
+
+  // Fetch memories (using query if provided)
+  const { data: memoriesResult, isLoading } = trpc.memory.query.useQuery(
     {
+      namespaces: ["default"],
       query: searchQuery || "",
       limit: 20,
+      ...(activePool !== "all" && { pools: [activePool] }),
     },
     {
       enabled: !!searchQuery,
     }
   );
+
+  // Flatten results for display
+  const memories = memoriesResult?.results?.map((r: any) => ({
+    id: r.memory.id,
+    content: r.memory.content,
+    namespace: r.memory.namespace,
+    contentType: r.memory.content_type,
+    confidence: Number(r.memory.confidence),
+    usageCount: 0,
+    createdAt: r.memory.created_at,
+    createdBy: r.memory.created_by,
+    score: r.score ? {
+      totalScore: r.score,
+      baseScore: r.score,
+      timeDecay: 0,
+      usageBoost: 0,
+    } : undefined,
+  })) as Memory[] | undefined;
 
   // Fetch conflict stats
   const { data: conflictStats } = trpc.memory.getConflictStats.useQuery();
@@ -88,57 +130,62 @@ export default function MemoryManagement() {
           </p>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                Total Memories
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {memories?.length || 0}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Pool Selector Tabs */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {[
+            { key: "all" as const, label: "All Pools", icon: Database, count: poolStats?.total ?? 0, color: "text-white/60", bg: "bg-white/[0.06]", activeBg: "bg-white/[0.12]" },
+            { key: "private" as const, label: "Private", icon: Lock, count: poolStats?.private ?? 0, color: "text-blue-400", bg: "bg-blue-500/[0.06]", activeBg: "bg-blue-500/[0.15]" },
+            { key: "domain" as const, label: "Domain", icon: Users, count: poolStats?.domain ?? 0, color: "text-cyan-400", bg: "bg-cyan-500/[0.06]", activeBg: "bg-cyan-500/[0.15]" },
+            { key: "global" as const, label: "Global", icon: Globe, count: poolStats?.global ?? 0, color: "text-purple-400", bg: "bg-purple-500/[0.06]", activeBg: "bg-purple-500/[0.15]" },
+          ].map((pool) => {
+            const Icon = pool.icon;
+            const isActive = activePool === pool.key;
+            return (
+              <button
+                key={pool.key}
+                onClick={() => setActivePool(pool.key)}
+                className={`rounded-xl border backdrop-blur-md p-4 text-left transition-all ${
+                  isActive
+                    ? `${pool.activeBg} border-white/20 shadow-lg`
+                    : `${pool.bg} border-white/[0.08] hover:border-white/15 hover:bg-white/[0.08]`
+                }`}
+              >
+                <Icon className={`h-4 w-4 ${pool.color} mb-2`} />
+                <div className="text-xl font-bold text-white">{pool.count}</div>
+                <div className="text-xs text-white/40">{pool.label}</div>
+              </button>
+            );
+          })}
+        </div>
 
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Link href="/conflicts">
-            <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  Pending Conflicts
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {conflictStats?.pending || 0}
-                  </div>
+            <div className="rounded-xl border border-white/[0.08] backdrop-blur-md bg-white/[0.04] p-4 cursor-pointer hover:bg-white/[0.06] transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                  <span className="text-sm text-white/50">Pending Conflicts</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-bold text-yellow-400">{conflictStats?.pending || 0}</span>
                   {conflictStats && conflictStats.pending > 0 && (
-                    <Badge variant="destructive">Action Required</Badge>
+                    <Badge variant="destructive" className="text-xs">Action Required</Badge>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Link>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <GitBranch className="h-4 w-4" />
-                Version Branches
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {/* This would need a separate query */}
-                -
+          <div className="rounded-xl border border-white/[0.08] backdrop-blur-md bg-white/[0.04] p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GitBranch className="h-4 w-4 text-purple-400" />
+                <span className="text-sm text-white/50">Version Branches</span>
               </div>
-            </CardContent>
-          </Card>
+              <span className="text-xl font-bold text-white">-</span>
+            </div>
+          </div>
         </div>
 
         {/* Search and Results */}
@@ -204,6 +251,18 @@ export default function MemoryManagement() {
                         </div>
 
                         <div className="flex gap-2">
+                          {activePool === "domain" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                              onClick={() => promoteMutation.mutate({ memoryId: memory.id })}
+                              disabled={promoteMutation.isPending}
+                            >
+                              <ArrowUp className="h-4 w-4 mr-1" />
+                              Promote
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"

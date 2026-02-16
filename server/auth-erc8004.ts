@@ -260,7 +260,7 @@ This signature will not trigger any blockchain transaction.`;
         isOnChain,
         type: "erc8004"
       },
-      JWT_SECRET,
+      process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: JWT_EXPIRY, algorithm: 'HS256' }
     );
     
@@ -405,18 +405,18 @@ export function verifyERC8004Token(token: string): {
   error?: string;
 } {
   try {
-    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
-    
+    const payload = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret', { algorithms: ['HS256'] }) as unknown as JWTPayload;
+
     if (payload.type !== "erc8004") {
       return { valid: false, error: "Invalid token type" };
     }
-    
+
     return {
       valid: true,
       payload: {
         userId: payload.userId,
         walletAddress: payload.walletAddress,
-        agentId: payload.agentId,
+        agentId: payload.agentId || null,
         isOnChain: payload.isOnChain
       }
     };

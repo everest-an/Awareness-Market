@@ -27,7 +27,7 @@ export function WorkflowHistory() {
   const [sessionType, setSessionType] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"createdAt" | "updatedAt" | "duration">("createdAt");
+  const [sortBy, setSortBy] = useState<"createdAt" | "updatedAt">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedSearchFilters>({});
@@ -297,7 +297,7 @@ export function WorkflowHistory() {
                           {session.status}
                         </Badge>
                         <Badge variant="outline" className="border-gray-700">
-                          {getSessionTypeLabel(session.type)}
+                          {getSessionTypeLabel((session as any).type)}
                         </Badge>
                       </div>
                       
@@ -316,7 +316,7 @@ export function WorkflowHistory() {
                         </div>
                         <div>
                           <p className="text-gray-500">User ID</p>
-                          <p>{session.userId || "N/A"}</p>
+                          <p>{(session as any).userId || session.createdBy || "N/A"}</p>
                         </div>
                       </div>
                     </div>

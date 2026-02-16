@@ -96,7 +96,7 @@ export const resonanceRouter = router({
 
         // Calculate real similarity if vector data is available
         let similarity = 0.5; // Default fallback
-        const vectorData = parseVectorData(m.vectorData as string | null);
+        const vectorData = parseVectorData((m as any).vectorData);
         if (vectorData) {
           similarity = cosineSimilarity(input.embedding, vectorData);
         }
@@ -346,7 +346,7 @@ export const resonanceRouter = router({
         let similarity = 0;
 
         // Calculate real similarity if vector data is available
-        const vectorData = parseVectorData(m.vectorData as string | null);
+        const vectorData = parseVectorData((m as any).vectorData);
         if (vectorData) {
           similarity = cosineSimilarity(input.contextEmbedding, vectorData);
         }
@@ -508,8 +508,8 @@ export const resonanceRouter = router({
               maxCostPerQuery: input.maxCostPerQuery,
               subscribedAt: new Date().toISOString()
             }
-          })
-        }
+          }) as any
+        } as any
       });
 
       logger.info('Auto-resonance subscription updated', {
@@ -537,13 +537,13 @@ export const resonanceRouter = router({
           preferredCategories: true,
           creditsBalance: true,
           totalResonances: true
-        }
+        } as any
       });
 
       let subscription = null;
-      if (user?.preferredCategories) {
+      if ((user as any)?.preferredCategories) {
         try {
-          const prefs = JSON.parse(user.preferredCategories as string);
+          const prefs = JSON.parse((user as any).preferredCategories);
           subscription = prefs.autoResonance || null;
         } catch {
           // Ignore parse errors

@@ -78,7 +78,7 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
     const buyerId = (req as PurchaseAuthenticatedRequest).userId;
     
     // Calculate fees
-    const amount = parseFloat(vector.basePrice);
+    const amount = parseFloat(vector.basePrice.toString());
     const platformFeeRate = 0.15; // 15%
     const platformFee = amount * platformFeeRate;
     const creatorEarnings = amount - platformFee;
@@ -144,7 +144,7 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
       where: { id: vectorId },
       data: {
         totalCalls: vector.totalCalls + 1,
-        totalRevenue: (parseFloat(vector.totalRevenue) + amount).toFixed(2)
+        totalRevenue: (parseFloat(vector.totalRevenue.toString()) + amount).toFixed(2)
       }
     });
 
@@ -199,7 +199,7 @@ router.get('/:id/pricing', async (req, res) => {
       return res.status(404).json({ error: 'Vector not found' });
     }
 
-    const amount = parseFloat(vector.basePrice);
+    const amount = parseFloat(vector.basePrice.toString());
     const platformFeeRate = 0.15;
     const platformFee = amount * platformFeeRate;
     const creatorEarnings = amount - platformFee;

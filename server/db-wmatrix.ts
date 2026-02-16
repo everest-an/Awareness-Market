@@ -355,7 +355,7 @@ export async function getWMatrixListingById(listingId: string): Promise<{
   const db = getPrisma();
 
   const result = await db.wMatrixListing.findUnique({
-    where: { id: listingId },
+    where: { id: parseInt(listingId) },
     select: {
       id: true,
       title: true,
@@ -368,7 +368,7 @@ export async function getWMatrixListingById(listingId: string): Promise<{
   if (!result) return null;
 
   return {
-    id: result.id,
+    id: result.id.toString(),
     title: result.title,
     storageUrl: result.storageUrl,
     checksumSHA256: result.checksumSHA256,

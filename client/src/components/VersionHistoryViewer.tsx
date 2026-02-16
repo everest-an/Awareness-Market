@@ -71,7 +71,7 @@ export function VersionHistoryViewer({ memoryId, className }: VersionHistoryView
 
   // Fetch version tree
   const { data: versionTree, isLoading: treeLoading } = trpc.memory.getVersionTree.useQuery({
-    memory_id: memoryId,
+    root_id: memoryId,
   });
 
   // Fetch version history (linear)
@@ -119,7 +119,6 @@ export function VersionHistoryViewer({ memoryId, className }: VersionHistoryView
 
     rollbackMutation.mutate({
       target_version_id: rollbackTarget,
-      created_by: "current-user", // TODO: Get from auth context
       reason: "Manual rollback via UI",
     });
   };
@@ -299,9 +298,9 @@ export function VersionHistoryViewer({ memoryId, className }: VersionHistoryView
                         </div>
                         <p className="text-sm line-clamp-1">{version.content}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          <span>{version.createdBy}</span>
+                          <span>{(version as any).created_by || (version as any).createdBy}</span>
                           <span>•</span>
-                          <span>{new Date(version.createdAt).toLocaleDateString()}</span>
+                          <span>{new Date((version as any).created_at || (version as any).createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
@@ -380,15 +379,15 @@ export function VersionHistoryViewer({ memoryId, className }: VersionHistoryView
                 </ScrollArea>
               </div>
 
-              {versionDiff && versionDiff.length > 0 && (
+              {versionDiff && versionDiff.differences.length > 0 && (
                 <div className="space-y-3">
                   <Separator />
                   <h3 className="font-medium">Changes Detected:</h3>
-                  {versionDiff.map(renderDiff)}
+                  {versionDiff.differences.map(renderDiff)}
                 </div>
               )}
 
-              {versionDiff && versionDiff.length === 0 && compareVersion && (
+              {versionDiff && versionDiff.differences.length === 0 && compareVersion && (
                 <div className="text-center py-4 text-muted-foreground">
                   No differences found between these versions
                 </div>

@@ -95,7 +95,7 @@ function getProvider(): ethers.JsonRpcProvider {
 async function getPackageSellerAddress(
   packageType: 'vector' | 'memory' | 'chain',
   packageId: string
-): Promise<{ sellerAddress: string; priceUSD: number }> {
+): Promise<{ sellerAddress: string; priceUSD: number; sellerId: number }> {
   let sellerId: number | null = null;
   let price = 0;
 
@@ -103,30 +103,30 @@ async function getPackageSellerAddress(
     case 'vector': {
       const pkg = await prisma.vectorPackage.findUnique({
         where: { packageId },
-        select: { creatorId: true, price: true },
+        select: { userId: true, price: true },
       });
       if (!pkg) throw new TRPCError({ code: 'NOT_FOUND', message: 'Vector package not found' });
-      sellerId = pkg.creatorId;
+      sellerId = pkg.userId;
       price = Number(pkg.price);
       break;
     }
     case 'memory': {
       const pkg = await prisma.memoryPackage.findUnique({
         where: { packageId },
-        select: { creatorId: true, price: true },
+        select: { userId: true, price: true },
       });
       if (!pkg) throw new TRPCError({ code: 'NOT_FOUND', message: 'Memory package not found' });
-      sellerId = pkg.creatorId;
+      sellerId = pkg.userId;
       price = Number(pkg.price);
       break;
     }
     case 'chain': {
       const pkg = await prisma.chainPackage.findUnique({
         where: { packageId },
-        select: { creatorId: true, price: true },
+        select: { userId: true, price: true },
       });
       if (!pkg) throw new TRPCError({ code: 'NOT_FOUND', message: 'Chain package not found' });
-      sellerId = pkg.creatorId;
+      sellerId = pkg.userId;
       price = Number(pkg.price);
       break;
     }
@@ -145,7 +145,7 @@ async function getPackageSellerAddress(
   // If seller has no wallet, payments go to platform treasury
   const sellerAddress = seller?.walletAddress || PLATFORM_TREASURY;
 
-  return { sellerAddress, priceUSD: price };
+  return { sellerAddress, priceUSD: price, sellerId };
 }
 
 // ============================================================================
@@ -346,14 +346,25 @@ export const stablecoinPaymentRouter = router({
       });
 
       // 8. Also record in platform DB for download access
+      const platformFeeRate = 0.05;
+      const platformFeeAmount = priceUSD * platformFeeRate;
+
+      // Get seller ID from package
+      const { sellerId: packageSellerId } = await getPackageSellerAddress(
+        input.packageType,
+        input.packageId
+      );
+
       await prisma.packagePurchase.create({
         data: {
           buyerId: userId,
+          sellerId: packageSellerId,
           packageType: input.packageType,
           packageId: input.packageId,
-          amount: priceUSD,
-          paymentMethod: 'stablecoin',
-          paymentId: receipt.hash,
+          price: priceUSD,
+          platformFee: platformFeeAmount,
+          sellerEarnings: priceUSD - platformFeeAmount,
+          stripePaymentIntentId: receipt.hash,
           status: 'completed',
         },
       });
@@ -606,11 +617,10 @@ export const stablecoinPaymentRouter = router({
           buyerId: ctx.user.id,
           packageType: input.packageType,
           packageId: input.packageId,
-          amount: parseFloat(amountPaid),
-          paymentMethod: 'stablecoin',
+          price: parseFloat(amountPaid),
           paymentId: input.txHash,
           status: 'completed',
-        },
+        } as any,
       });
 
       return {

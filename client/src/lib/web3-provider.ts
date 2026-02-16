@@ -90,11 +90,11 @@ export class Web3Provider {
         method: 'eth_requestAccounts',
       });
 
-      if (!accounts || accounts.length === 0) {
+      if (!accounts || (accounts as any).length === 0) {
         throw new Error('No accounts found');
       }
 
-      const address = accounts[0];
+      const address = (accounts as any)[0];
       this.signer = await this.provider!.getSigner();
       this.state.signer = this.signer;
 
@@ -322,7 +322,7 @@ export class Web3Provider {
   private setupEventListeners(): void {
     if (!window.ethereum) return;
 
-    window.ethereum.on('accountsChanged', (accounts: string[]) => {
+    window.ethereum.on('accountsChanged', ((accounts: string[]) => {
       if (accounts.length === 0) {
         this.disconnect();
       } else {
@@ -331,18 +331,18 @@ export class Web3Provider {
           this.callbacks.onAccountsChanged(accounts);
         }
       }
-    });
+    }) as any);
 
-    window.ethereum.on('chainChanged', (chainId: string) => {
+    window.ethereum.on('chainChanged', ((chainId: string) => {
       this.state.chainId = parseInt(chainId, 16);
       if (this.callbacks.onChainChanged) {
         this.callbacks.onChainChanged(chainId);
       }
-    });
+    }) as any);
 
-    window.ethereum.on('connect', (_info: { chainId: string }) => {
+    window.ethereum.on('connect', ((_info: { chainId: string }) => {
       this.state.isConnected = true;
-    });
+    }) as any);
 
     window.ethereum.on('disconnect', () => {
       this.disconnect();

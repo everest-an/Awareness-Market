@@ -51,6 +51,7 @@ export function MemoryGraphViewer({ memoryId, depth = 1, className }: MemoryGrap
   const { data: graphData, isLoading, refetch } = trpc.memory.getMemoryGraph.useQuery({
     memory_id: memoryId,
     depth,
+    orgId: 1, // TODO: Get orgId from props or context
   });
 
   useEffect(() => {
@@ -97,7 +98,7 @@ export function MemoryGraphViewer({ memoryId, depth = 1, className }: MemoryGrap
       target: rel.target.id,
       type: rel.type,
       strength: rel.strength,
-      reason: rel.reason,
+      reason: rel.reason ?? undefined,
     }));
 
     // Create SVG

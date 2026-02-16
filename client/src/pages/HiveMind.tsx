@@ -61,7 +61,7 @@ export default function HiveMind() {
   });
 
   // Performance warning
-  const showPerformanceWarning = stats && stats.totalAgents > 100;
+  const showPerformanceWarning = stats && stats.total_agents > 100;
 
   // Export handlers
   const handleExportJSON = () => {
@@ -70,11 +70,11 @@ export default function HiveMind() {
     const exportData = {
       metadata: {
         exportDate: new Date().toISOString(),
-        totalAgents: stats.totalAgents,
-        activeAgents: stats.activeAgents,
-        totalMemories: stats.totalMemories,
-        totalResonances: stats.totalResonances,
-        recentResonances24h: stats.recentResonances24h,
+        totalAgents: stats.total_agents,
+        activeAgents: stats.active_agents_24h,
+        totalMemories: stats.total_memories,
+        totalResonances: stats.total_memory_calls,
+        recentResonances24h: stats.new_agents_7d,
       },
       filters: {
         searchQuery,
@@ -82,7 +82,7 @@ export default function HiveMind() {
         minResonance: minResonance[0],
         maxNodes,
       },
-      networkHealth: Math.round((stats.activeAgents / Math.max(stats.totalAgents, 1)) * 100),
+      networkHealth: Math.round((stats.active_agents_24h / Math.max(stats.total_agents, 1)) * 100),
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -102,12 +102,12 @@ export default function HiveMind() {
     const csvRows = [
       ['Metric', 'Value'],
       ['Export Date', new Date().toISOString()],
-      ['Total Agents', stats.totalAgents.toString()],
-      ['Active Agents', stats.activeAgents.toString()],
-      ['Total Memories', stats.totalMemories.toString()],
-      ['Total Resonances', stats.totalResonances.toString()],
-      ['Recent Resonances (24h)', stats.recentResonances24h.toString()],
-      ['Network Health %', Math.round((stats.activeAgents / Math.max(stats.totalAgents, 1)) * 100).toString()],
+      ['Total Agents', stats.total_agents.toString()],
+      ['Active Agents', stats.active_agents_24h.toString()],
+      ['Total Memories', stats.total_memories.toString()],
+      ['Total Resonances', stats.total_memory_calls.toString()],
+      ['Recent Resonances (24h)', stats.new_agents_7d.toString()],
+      ['Network Health %', Math.round((stats.active_agents_24h / Math.max(stats.total_agents, 1)) * 100).toString()],
       ['', ''],
       ['Filters', ''],
       ['Search Query', searchQuery || 'N/A'],
@@ -191,9 +191,9 @@ export default function HiveMind() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.activeAgents || 0}</div>
+              <div className="text-2xl font-bold">{stats?.active_agents_24h || 0}</div>
               <p className="text-xs text-muted-foreground">
-                of {stats?.totalAgents || 0} total
+                of {stats?.total_agents || 0} total
               </p>
             </CardContent>
           </Card>
@@ -204,7 +204,7 @@ export default function HiveMind() {
               <Brain className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalMemories || 0}</div>
+              <div className="text-2xl font-bold">{stats?.total_memories || 0}</div>
               <p className="text-xs text-muted-foreground">
                 shared in network
               </p>
@@ -217,9 +217,9 @@ export default function HiveMind() {
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalResonances || 0}</div>
+              <div className="text-2xl font-bold">{stats?.total_memory_calls || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {stats?.recentResonances24h || 0} in last 24h
+                {stats?.new_agents_7d || 0} in last 24h
               </p>
             </CardContent>
           </Card>
@@ -231,7 +231,7 @@ export default function HiveMind() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-500">
-                {stats ? Math.round((stats.activeAgents / Math.max(stats.totalAgents, 1)) * 100) : 0}%
+                {stats ? Math.round((stats.active_agents_24h / Math.max(stats.total_agents, 1)) * 100) : 0}%
               </div>
               <p className="text-xs text-muted-foreground">
                 agent activity rate
@@ -245,7 +245,7 @@ export default function HiveMind() {
           <Alert className="border-yellow-500/50 bg-yellow-500/10">
             <AlertTriangle className="h-4 w-4 text-yellow-500" />
             <AlertDescription className="text-yellow-200">
-              <strong>Performance Notice:</strong> Network has {stats?.totalAgents} agents.
+              <strong>Performance Notice:</strong> Network has {stats?.total_agents} agents.
               Displaying limited to {maxNodes} nodes for optimal performance.
               Use filters below to refine your view.
             </AlertDescription>

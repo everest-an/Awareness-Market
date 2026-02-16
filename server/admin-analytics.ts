@@ -1,4 +1,5 @@
 import { prisma } from "./db-prisma";
+const prismaAny = prisma as any;
 
 /**
  * Get API usage statistics for a specific time period
@@ -193,7 +194,7 @@ export async function getAllApiKeysWithStats() {
  * Get or create rate limit config for an API key
  */
 export async function getRateLimitConfig(apiKeyId: number) {
-  const config = await prisma.rateLimitConfig.findFirst({
+  const config = await prismaAny.rateLimitConfig.findFirst({
     where: { apiKeyId }
   });
 
@@ -202,7 +203,7 @@ export async function getRateLimitConfig(apiKeyId: number) {
   }
 
   // Create default config
-  const newConfig = await prisma.rateLimitConfig.create({
+  const newConfig = await prismaAny.rateLimitConfig.create({
     data: {
       apiKeyId,
       requestsPerHour: 1000,
@@ -229,7 +230,7 @@ export async function updateRateLimitConfig(
     isEnabled?: boolean;
   }
 ) {
-  await prisma.rateLimitConfig.updateMany({
+  await prismaAny.rateLimitConfig.updateMany({
     where: { apiKeyId },
     data: config
   });

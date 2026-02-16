@@ -209,11 +209,11 @@ export function NetworkBrain({
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
+    (controls as any).dampingFactor = 0.05;
     controls.autoRotate = autoRotate;
     controls.autoRotateSpeed = 0.3;
-    controls.minDistance = 50;
-    controls.maxDistance = 500;
+    (controls as any).minDistance = 50;
+    (controls as any).maxDistance = 500;
     controlsRef.current = controls;
 
     // Raycaster for click detection

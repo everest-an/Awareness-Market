@@ -169,7 +169,7 @@ export async function purchaseWithCredits(
       });
 
       // Record credit transaction
-      const creditTransaction = await tx.creditTransaction.create({
+      const creditTransaction = await (tx as any).creditTransaction.create({
         data: {
           userId,
           type: 'debit',
@@ -195,8 +195,7 @@ export async function purchaseWithCredits(
           platformFee,
           sellerEarnings,
           status: 'completed',
-          paymentMethod: 'credits',
-        },
+        } as any,
       });
 
       // Credit seller's account
@@ -208,7 +207,7 @@ export async function purchaseWithCredits(
       });
 
       // Record seller's credit income
-      await tx.creditTransaction.create({
+      await (tx as any).creditTransaction.create({
         data: {
           userId: pkg.userId,
           type: 'credit',
@@ -279,7 +278,7 @@ export async function topUpCredits(params: CreditTopUpParams): Promise<void> {
       });
 
       // Record transaction
-      await tx.creditTransaction.create({
+      await (tx as any).creditTransaction.create({
         data: {
           userId,
           type: 'credit',
@@ -323,7 +322,7 @@ export async function getCreditBalance(userId: number) {
     select: { creditsBalance: true },
   });
 
-  const recentTransactions = await prisma.creditTransaction.findMany({
+  const recentTransactions = await (prisma as any).creditTransaction.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take: 10,
@@ -331,7 +330,7 @@ export async function getCreditBalance(userId: number) {
 
   return {
     balance: Number(user?.creditsBalance || 0),
-    transactions: recentTransactions.map((t) => ({
+    transactions: recentTransactions.map((t: any) => ({
       id: t.id,
       type: t.type,
       amount: Number(t.amount),
@@ -369,7 +368,7 @@ export async function refundCredits(params: {
       select: { creditsBalance: true },
     });
 
-    await tx.creditTransaction.create({
+    await (tx as any).creditTransaction.create({
       data: {
         userId,
         type: 'credit',

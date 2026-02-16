@@ -112,7 +112,7 @@ export default function BlogPost() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {parseTags(post.tags).map((tag) => (
+              {parseTags(post.tags as any).map((tag) => (
                 <Badge key={tag} variant="secondary" className="bg-white/5">
                   {tag}
                 </Badge>

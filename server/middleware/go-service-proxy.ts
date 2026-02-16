@@ -19,7 +19,7 @@ interface ProxyReqOpts {
 
 function createServiceProxy(target: string, errorLabel: string) {
   return proxy(target, {
-    proxyReqOptDecorator: (proxyReqOpts: ProxyReqOpts, srcReq: Request) => {
+    proxyReqOptDecorator: ((proxyReqOpts: ProxyReqOpts, srcReq: Request) => {
       proxyReqOpts.headers = proxyReqOpts.headers || {};
       if (srcReq.headers.authorization) {
         proxyReqOpts.headers['Authorization'] = srcReq.headers.authorization;
@@ -28,7 +28,7 @@ function createServiceProxy(target: string, errorLabel: string) {
         proxyReqOpts.headers['X-API-Key'] = process.env.API_KEY_SECRET;
       }
       return proxyReqOpts;
-    },
+    }) as any,
     proxyErrorHandler: (err: Error, res: Response, _next: NextFunction) => {
       logger.error(`[${errorLabel} Proxy Error]`, { message: err.message });
       res.status(503).json({

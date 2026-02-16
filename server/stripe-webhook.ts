@@ -301,7 +301,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       isActive: true,
     });
 
-    await db.incrementVectorStats(vectorId, parseFloat(transaction.creatorEarnings));
+    await db.incrementVectorStats(vectorId, parseFloat(transaction.creatorEarnings.toString()));
 
     // Transaction should already be created by the purchase API
     // Just update the payment intent ID
@@ -344,7 +344,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       });
 
       if (creator.email) {
-        const emailText = `Great news! ${user?.name || "A user"} just purchased your AI capability "${vector.title}". You earned $${parseFloat(transaction.creatorEarnings).toFixed(2)}.`;
+        const emailText = `Great news! ${user?.name || "A user"} just purchased your AI capability "${vector.title}". You earned $${parseFloat(transaction.creatorEarnings.toString()).toFixed(2)}.`;
         await sendEmail({
           to: creator.email,
           subject: "Awareness Market - New Sale",
@@ -368,6 +368,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     // Get listing details using Prisma
     const { prisma } = await import('./db-prisma');
+    const prismaAny = prisma as any;
 
     const listing = await prisma.wMatrixListing.findUnique({
       where: { id: listingId }
@@ -383,7 +384,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     // Check if purchase already exists
-    const existingPurchase = await prisma.wMatrixPurchase.findFirst({
+    const existingPurchase = await prismaAny.wMatrixPurchase.findFirst({
       where: {
         listingId,
         buyerId: userId,
@@ -406,7 +407,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       : session.payment_intent?.id || null;
 
     // Create purchase record
-    await prisma.wMatrixPurchase.create({
+    await prismaAny.wMatrixPurchase.create({
       data: {
         listingId,
         buyerId: userId,
@@ -420,8 +421,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     await prisma.wMatrixListing.update({
       where: { id: listingId },
       data: {
-        totalSales: { increment: 1 },
-        totalRevenue: { increment: parseFloat(listing.price) },
+        downloads: { increment: 1 },
       }
     });
 
@@ -453,13 +453,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     // Notify seller
-    const seller = await db.getUserById(listing.sellerId);
+    const seller = await db.getUserById(listing.creatorId);
     if (seller) {
       const platformFeeRate = 0.15; // 15%
-      const sellerEarnings = parseFloat(listing.price) * (1 - platformFeeRate);
+      const sellerEarnings = parseFloat(listing.price.toString()) * (1 - platformFeeRate);
 
       await db.createNotification({
-        userId: listing.sellerId,
+        userId: listing.creatorId,
         type: "transaction",
         title: "New W-Matrix Sale",
         message: `${user?.name || "Someone"} purchased your W-Matrix "${listing.title}"`,
@@ -476,8 +476,58 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         });
       }
     }
+  } else if (purchaseType === "org_plan") {
+    // Handle organization plan subscription
+    const orgIdStr = session.metadata?.org_id || "";
+    const orgId = orgIdStr ? parseInt(orgIdStr, 10) : NaN;
+    const targetTier = session.metadata?.target_tier || "";
+
+    if (!orgId || isNaN(orgId)) {
+      logger.error("Missing org_id in org_plan session metadata", {
+        sessionId: session.id, userId
+      });
+      return;
+    }
+
+    const customerId = typeof session.customer === "string"
+      ? session.customer
+      : (session.customer as any)?.id || null;
+
+    // Tier → plan limits mapping
+    const TIER_LIMITS: Record<string, { maxAgents: number; maxMemories: number; maxDepartments: number; pools: boolean; decisions: boolean; verification: boolean }> = {
+      lite:       { maxAgents: 8,      maxMemories: 10000,   maxDepartments: 1,   pools: false, decisions: false, verification: false },
+      team:       { maxAgents: 32,     maxMemories: 50000,   maxDepartments: 10,  pools: true,  decisions: false, verification: false },
+      enterprise: { maxAgents: 128,    maxMemories: 500000,  maxDepartments: 50,  pools: true,  decisions: true,  verification: false },
+      scientific: { maxAgents: 999999, maxMemories: 9999999, maxDepartments: 999, pools: true,  decisions: true,  verification: true },
+    };
+
+    const limits = TIER_LIMITS[targetTier] || TIER_LIMITS.lite;
+
+    const { prisma } = await import('./db-prisma');
+    await prisma.organization.update({
+      where: { id: orgId },
+      data: {
+        planTier: targetTier as any,
+        maxAgents: limits.maxAgents,
+        maxMemories: limits.maxMemories,
+        maxDepartments: limits.maxDepartments,
+        enableMemoryPools: limits.pools,
+        enableDecisions: limits.decisions,
+        enableVerification: limits.verification,
+        stripeCustomerId: customerId,
+      },
+    });
+
+    logger.info("Organization plan upgraded", { orgId, userId, targetTier, customerId });
+
+    await db.createNotification({
+      userId,
+      type: "subscription",
+      title: "Plan Upgraded",
+      message: `Your organization has been upgraded to the ${targetTier} plan.`,
+    });
   } else if (session.mode === "subscription") {
-    // Handle subscription purchase
+    // Handle generic subscription purchase
     const subscriptionId = session.subscription;
     logger.info("Subscription created", {
       userId,

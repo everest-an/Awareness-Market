@@ -194,31 +194,68 @@ export async function deleteApiKey(keyId: number, userId: number): Promise<boole
 /**
  * Rotate an API key (create new key, revoke old one)
  */
-export async function rotateApiKey(oldKeyId: number, userId: number): Promise<{
+export async function rotateApiKey(
+  oldKeyId: number,
+  userId: number,
+  options?: {
+    rotationType?: 'manual' | 'automatic' | 'forced';
+    rotatedBy?: number;
+    reason?: string;
+  }
+): Promise<{
   success: boolean;
   newKey?: string;
   newKeyPrefix?: string;
+  newKeyId?: number;
   error?: string;
 }> {
   // Get old key details
   const oldKey = await prisma.apiKey.findFirst({
     where: {
       id: oldKeyId,
-      userId
-    }
+      userId,
+    },
   });
 
   if (!oldKey) {
     return { success: false, error: 'API key not found' };
   }
 
-  // Create new key with same permissions
+  // Create new key with same permissions and auto-rotation settings
   const permissions = oldKey.permissions ? JSON.parse(oldKey.permissions) : ['*'];
-  const { key: newKey, keyPrefix: newKeyPrefix } = await createApiKey({
+
+  // Calculate new expiration date based on rotation interval
+  const newExpiresAt = oldKey.rotationIntervalDays
+    ? new Date(Date.now() + oldKey.rotationIntervalDays * 24 * 60 * 60 * 1000)
+    : oldKey.expiresAt;
+
+  const { id: newKeyId, key: newKey, keyPrefix: newKeyPrefix } = await createApiKey({
     userId,
-    name: `${oldKey.name} (Rotated)`,
+    name: oldKey.name, // Keep the same name
     permissions,
-    expiresAt: oldKey.expiresAt
+    expiresAt: newExpiresAt,
+  });
+
+  // Copy auto-rotation settings to new key
+  await prisma.apiKey.update({
+    where: { id: newKeyId },
+    data: {
+      autoRotationEnabled: oldKey.autoRotationEnabled,
+      rotationIntervalDays: oldKey.rotationIntervalDays,
+      rotatedFromId: oldKeyId,
+    },
+  });
+
+  // Record rotation in history
+  await prisma.apiKeyRotationHistory.create({
+    data: {
+      apiKeyId: newKeyId,
+      oldKeyPrefix: oldKey.keyPrefix,
+      newKeyPrefix,
+      rotationType: options?.rotationType || 'manual',
+      rotatedBy: options?.rotatedBy,
+      rotationReason: options?.reason,
+    },
   });
 
   // Revoke old key
@@ -227,6 +264,97 @@ export async function rotateApiKey(oldKeyId: number, userId: number): Promise<{
   return {
     success: true,
     newKey,
-    newKeyPrefix
+    newKeyPrefix,
+    newKeyId,
   };
+}
+
+/**
+ * Enable auto-rotation for an API key
+ */
+export async function enableAutoRotation(
+  keyId: number,
+  userId: number,
+  rotationIntervalDays: number = 90
+): Promise<{ success: boolean; error?: string }> {
+  const key = await prisma.apiKey.findFirst({
+    where: { id: keyId, userId },
+  });
+
+  if (!key) {
+    return { success: false, error: 'API key not found' };
+  }
+
+  // Calculate expiration date if not set
+  let expiresAt = key.expiresAt;
+  if (!expiresAt) {
+    expiresAt = new Date(Date.now() + rotationIntervalDays * 24 * 60 * 60 * 1000);
+  }
+
+  await prisma.apiKey.update({
+    where: { id: keyId },
+    data: {
+      autoRotationEnabled: true,
+      rotationIntervalDays,
+      expiresAt,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Disable auto-rotation for an API key
+ */
+export async function disableAutoRotation(
+  keyId: number,
+  userId: number
+): Promise<{ success: boolean; error?: string }> {
+  const result = await prisma.apiKey.updateMany({
+    where: { id: keyId, userId },
+    data: { autoRotationEnabled: false },
+  });
+
+  if (result.count === 0) {
+    return { success: false, error: 'API key not found' };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Get rotation history for an API key
+ */
+export async function getRotationHistory(keyId: number, userId: number): Promise<
+  Array<{
+    id: number;
+    oldKeyPrefix: string;
+    newKeyPrefix: string;
+    rotationType: string;
+    rotationReason: string | null;
+    createdAt: Date;
+  }>
+> {
+  // Verify key belongs to user
+  const key = await prisma.apiKey.findFirst({
+    where: { id: keyId, userId },
+  });
+
+  if (!key) {
+    return [];
+  }
+
+  const history = await prisma.apiKeyRotationHistory.findMany({
+    where: { apiKeyId: keyId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return history.map((h) => ({
+    id: h.id,
+    oldKeyPrefix: h.oldKeyPrefix,
+    newKeyPrefix: h.newKeyPrefix,
+    rotationType: h.rotationType,
+    rotationReason: h.rotationReason,
+    createdAt: h.createdAt,
+  }));
 }

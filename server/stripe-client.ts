@@ -238,6 +238,58 @@ export async function createCreditTopUpCheckout(params: {
 }
 
 /**
+ * Create a checkout session for organization plan subscription
+ */
+export async function createOrgPlanCheckout(params: {
+  userId: number;
+  userEmail: string;
+  userName?: string;
+  orgId: number;
+  targetTier: string;
+  priceMonthly: number;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<string> {
+  const customerId = await getOrCreateStripeCustomer({
+    userId: params.userId,
+    email: params.userEmail,
+    name: params.userName,
+  });
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: "subscription",
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `Awareness Network — ${params.targetTier.charAt(0).toUpperCase() + params.targetTier.slice(1)} Plan`,
+            description: `AI Organization Governance — ${params.targetTier} tier`,
+          },
+          unit_amount: Math.round(params.priceMonthly * 100),
+          recurring: { interval: "month" },
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    client_reference_id: params.userId.toString(),
+    metadata: {
+      user_id: params.userId.toString(),
+      org_id: params.orgId.toString(),
+      target_tier: params.targetTier,
+      purchase_type: "org_plan",
+      customer_email: params.userEmail,
+    },
+    allow_promotion_codes: true,
+  });
+
+  return session.url!;
+}
+
+/**
  * Cancel a subscription
  */
 export async function cancelSubscription(subscriptionId: string): Promise<void> {

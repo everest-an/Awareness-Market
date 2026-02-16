@@ -227,6 +227,146 @@ export function estimateDecay(decayFactor: number, days: number): number {
   return Math.exp(-decayFactor * days);
 }
 
+// ============================================================================
+// v3: Quality Tier Classification + MemoryType Decay
+// ============================================================================
+
+/**
+ * Quality tiers for memory classification
+ * Used for dashboard display, filtering, and promotion eligibility
+ */
+export type QualityTier = 'platinum' | 'gold' | 'silver' | 'bronze';
+
+export interface QualityTierInfo {
+  tier: QualityTier;
+  label: string;
+  minScore: number;
+  color: string; // Tailwind color token for frontend
+}
+
+const QUALITY_TIERS: QualityTierInfo[] = [
+  { tier: 'platinum', label: 'Platinum', minScore: 80, color: 'purple' },
+  { tier: 'gold',     label: 'Gold',     minScore: 60, color: 'yellow' },
+  { tier: 'silver',   label: 'Silver',   minScore: 40, color: 'gray' },
+  { tier: 'bronze',   label: 'Bronze',   minScore: 0,  color: 'orange' },
+];
+
+/**
+ * Classify a memory's quality tier based on final score
+ * Platinum >= 80, Gold >= 60, Silver >= 40, Bronze < 40
+ */
+export function classifyQualityTier(finalScore: number): QualityTierInfo {
+  for (const tier of QUALITY_TIERS) {
+    if (finalScore >= tier.minScore) return tier;
+  }
+  return QUALITY_TIERS[QUALITY_TIERS.length - 1]; // bronze fallback
+}
+
+/**
+ * MemoryType -> decay rate mapping
+ * episodic: short-term events (0.05, ~14 days half-life)
+ * semantic: general knowledge (0.01, ~70 days half-life)
+ * strategic: long-term decisions (0.001, ~693 days half-life)
+ * procedural: process/how-to (0.02, ~35 days half-life)
+ */
+export const MEMORY_TYPE_DECAY: Record<string, number> = {
+  episodic: 0.05,
+  semantic: 0.01,
+  strategic: 0.001,
+  procedural: 0.02,
+};
+
+/**
+ * Get decay factor for a memory type
+ * Falls back to content-type decay if memoryType is not set
+ */
+export function getMemoryTypeDecayFactor(memoryType?: string, contentType?: string): number {
+  if (memoryType && MEMORY_TYPE_DECAY[memoryType] !== undefined) {
+    return MEMORY_TYPE_DECAY[memoryType];
+  }
+  return getDecayFactor(contentType || 'text');
+}
+
+/**
+ * Configurable scoring weights (allows per-org overrides in future)
+ */
+export interface ScoringConfig {
+  similarityWeight: number;
+  usageWeight: number;
+  validationWeight: number;
+  reputationWeight: number;
+}
+
+export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
+  similarityWeight: 0.4,
+  usageWeight: 0.2,
+  validationWeight: 0.2,
+  reputationWeight: 0.2,
+};
+
+/**
+ * Calculate base score with configurable weights
+ */
+export function calculateBaseScoreConfigurable(memory: MemoryEntry, config: ScoringConfig = DEFAULT_SCORING_CONFIG): number {
+  const { reputation, usage_count, validation_count } = memory;
+
+  const usageComponent = (Math.log(usage_count + 1) / 10) * (config.usageWeight * 100);
+  const validationRatio = usage_count > 0 ? validation_count / usage_count : 0;
+  const validationComponent = validationRatio * (config.validationWeight * 100);
+  const reputationComponent = (reputation / 100) * (config.reputationWeight * 100);
+
+  const qualityScore = usageComponent + validationComponent + reputationComponent;
+  const maxQuality = (config.usageWeight + config.validationWeight + config.reputationWeight) * 100;
+  return Math.max(0, Math.min(maxQuality, qualityScore));
+}
+
+// ============================================================================
+// v3 Phase 3: Agent Reputation Feedback Loop
+// High-reputation agents → higher-scored memories
+// ============================================================================
+
+/**
+ * Calculate reputation-boosted base score
+ *
+ * Integrates agent reputation into memory scoring:
+ * - Agents with reputation > 70 get a boost (up to +10%)
+ * - Agents with reputation < 30 get a penalty (up to -10%)
+ * - Default reputation (50) = no change
+ *
+ * @param baseScore - Original base score [0-60]
+ * @param agentReputation - Agent's overall reputation [0-100]
+ * @returns Adjusted base score
+ */
+export function applyReputationBoost(baseScore: number, agentReputation: number): number {
+  // Reputation influence: map [0-100] reputation to [-0.1, +0.1] multiplier
+  // rep 50 → 0 (neutral), rep 100 → +0.1, rep 0 → -0.1
+  const reputationMultiplier = (agentReputation - 50) / 500; // [-0.1, +0.1]
+
+  const boostedScore = baseScore * (1 + reputationMultiplier);
+  return Math.max(0, Math.min(60, boostedScore));
+}
+
+/**
+ * Full scoring pipeline with reputation integration
+ *
+ * Flow: base_score → reputation_boost → decay → final_score
+ */
+export function calculateFinalScoreWithReputation(
+  memory: MemoryEntry,
+  agentReputation?: number
+): number {
+  let baseScore = calculateBaseScore(memory);
+
+  if (agentReputation !== undefined) {
+    baseScore = applyReputationBoost(baseScore, agentReputation);
+  }
+
+  const decayMultiplier = calculateDecayMultiplier(memory);
+  return baseScore * decayMultiplier;
+}
+
+// ============================================================================
+
 /**
  * Example usage and testing
  */

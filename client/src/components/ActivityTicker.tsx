@@ -194,14 +194,11 @@ export function ActivityTicker({
       </div>
 
       {events.length > 0 ? (
-        <List
-          defaultHeight={600}
-          rowCount={events.length}
-          rowHeight={120}
-          rowComponent={EventRow}
-          rowProps={{}}
-          className="scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
-        />
+        <div>
+          {events.map((event, index) => (
+            <EventRow key={event.id} index={index} />
+          ))}
+        </div>
       ) : (
         <div className="glass-card text-center py-8 h-[600px] flex flex-col items-center justify-center">
           <Activity className="w-12 h-12 mb-3 text-muted-foreground opacity-50" />

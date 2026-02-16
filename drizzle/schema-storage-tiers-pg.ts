@@ -7,6 +7,12 @@
 
 import { pgTable, integer, serial, varchar, timestamp, index, primaryKey, numeric, pgEnum } from "drizzle-orm/pg-core";
 
+// Define enums at the top level
+export const packageTypeEnum = pgEnum('package_type', ['vector', 'memory', 'chain']);
+export const accessTypeEnum = pgEnum('access_type', ['download', 'view', 'purchase']);
+export const tierEnum = pgEnum('tier', ['hot', 'warm', 'cold']);
+export const statusEnum = pgEnum('status', ['pending', 'processing', 'completed', 'failed']);
+
 /**
  * Package Access Log
  * Records every access to track data temperature
@@ -14,8 +20,8 @@ import { pgTable, integer, serial, varchar, timestamp, index, primaryKey, numeri
 export const packageAccessLog = pgTable('packageAccessLog', {
   id: serial('id').primaryKey(),
   packageId: integer('package_id').notNull(),
-  packageType: pgEnum('package_type', ['vector', 'memory', 'chain']).notNull(),
-  accessType: pgEnum('access_type', ['download', 'view', 'purchase']).notNull(),
+  packageType: packageTypeEnum('package_type').notNull(),
+  accessType: accessTypeEnum('access_type').notNull(),
   userId: integer('user_id'),
   timestamp: timestamp('timestamp').defaultNow().notNull(),
 }, (table) => ({
@@ -29,8 +35,8 @@ export const packageAccessLog = pgTable('packageAccessLog', {
  */
 export const packageStorageTier = pgTable('packageStorageTier', {
   packageId: integer('package_id').notNull(),
-  packageType: pgEnum('package_type', ['vector', 'memory', 'chain']).notNull(),
-  currentTier: pgEnum('current_tier', ['hot', 'warm', 'cold']).notNull(),
+  packageType: packageTypeEnum('package_type').notNull(),
+  currentTier: tierEnum('current_tier').notNull(),
   currentBackend: varchar('current_backend', { length: 20 }).notNull(),
   lastAccessAt: timestamp('last_access_at').notNull(),
   accessCount: integer('access_count').default(0).notNull(),
@@ -49,12 +55,12 @@ export const packageStorageTier = pgTable('packageStorageTier', {
 export const migrationQueue = pgTable('migrationQueue', {
   id: serial('id').primaryKey(),
   packageId: integer('package_id').notNull(),
-  packageType: pgEnum('package_type', ['vector', 'memory', 'chain']).notNull(),
+  packageType: packageTypeEnum('package_type').notNull(),
   fromBackend: varchar('from_backend', { length: 20 }).notNull(),
   toBackend: varchar('to_backend', { length: 20 }).notNull(),
-  fromTier: pgEnum('from_tier', ['hot', 'warm', 'cold']).notNull(),
-  toTier: pgEnum('to_tier', ['hot', 'warm', 'cold']).notNull(),
-  status: pgEnum('status', ['pending', 'processing', 'completed', 'failed']).default('pending').notNull(),
+  fromTier: tierEnum('from_tier').notNull(),
+  toTier: tierEnum('to_tier').notNull(),
+  status: statusEnum('status').$default(() => 'pending'),
   priority: integer('priority').default(0).notNull(),
   estimatedSavings: numeric('estimated_savings', { precision: 10, scale: 4 }),
   errorMessage: varchar('error_message', { length: 500 }),
@@ -72,7 +78,7 @@ export const migrationQueue = pgTable('migrationQueue', {
 export const storageCostMetrics = pgTable('storageCostMetrics', {
   id: serial('id').primaryKey(),
   date: timestamp('date').notNull(),
-  tier: pgEnum('tier', ['hot', 'warm', 'cold']).notNull(),
+  tier: tierEnum('tier').notNull(),
   backend: varchar('backend', { length: 20 }).notNull(),
   storageGB: numeric('storage_gb', { precision: 10, scale: 2 }).notNull(),
   downloadGB: numeric('download_gb', { precision: 10, scale: 2 }).notNull(),

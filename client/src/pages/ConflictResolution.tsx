@@ -16,7 +16,10 @@ import {
   GitBranch,
   Eye,
   Info,
-  Sparkles
+  Sparkles,
+  Zap,
+  Scale,
+  Network,
 } from "lucide-react";
 import {
   Dialog,
@@ -68,6 +71,25 @@ export default function ConflictResolution() {
 
   const utils = trpc.useUtils();
 
+  // Auto-resolve mutation (low severity)
+  const autoResolveMutation = trpc.memory.autoResolveConflict.useMutation({
+    onSuccess: () => {
+      toast.success("Conflict auto-resolved (higher-scoring memory wins)");
+      utils.memory.listConflicts.invalidate();
+      utils.memory.getConflictStats.invalidate();
+    },
+    onError: (error: any) => toast.error(`Auto-resolve failed: ${error.message}`),
+  });
+
+  // Request arbitration mutation (high/critical severity)
+  const requestArbitrationMutation = trpc.memory.requestArbitration.useMutation({
+    onSuccess: () => {
+      toast.success("Arbitration requested — LLM analysis queued");
+      utils.memory.listConflicts.invalidate();
+    },
+    onError: (error: any) => toast.error(`Arbitration failed: ${error.message}`),
+  });
+
   // Fetch conflicts
   const { data: conflicts, isLoading } = trpc.memory.listConflicts.useQuery({
     status: selectedTab,
@@ -109,7 +131,6 @@ export default function ConflictResolution() {
     resolveConflict.mutate({
       conflict_id: selectedConflict.id,
       resolution_memory_id: selectedWinner,
-      resolved_by: "current-user", // TODO: Get from auth context
     });
   };
 
@@ -118,7 +139,6 @@ export default function ConflictResolution() {
 
     ignoreConflict.mutate({
       conflict_id: selectedConflict.id,
-      ignored_by: "current-user", // TODO: Get from auth context
     });
   };
 
@@ -143,6 +163,21 @@ export default function ConflictResolution() {
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
       default:
         return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getSeverityBadge = (severity?: string) => {
+    switch (severity) {
+      case "critical":
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Critical</Badge>;
+      case "high":
+        return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">High</Badge>;
+      case "medium":
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Medium</Badge>;
+      case "low":
+        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Low</Badge>;
+      default:
+        return <Badge variant="outline" className="text-white/30">Unclassified</Badge>;
     }
   };
 
@@ -249,7 +284,7 @@ export default function ConflictResolution() {
                   <div className="text-center py-8 text-muted-foreground">
                     Loading conflicts...
                   </div>
-                ) : !conflicts || conflicts.length === 0 ? (
+                ) : !conflicts || conflicts.conflicts.length === 0 ? (
                   <div className="text-center py-12">
                     <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
                     <p className="text-muted-foreground">
@@ -257,7 +292,7 @@ export default function ConflictResolution() {
                     </p>
                   </div>
                 ) : (
-                  conflicts.map((conflict) => (
+                  conflicts.conflicts.map((conflict: any) => (
                     <Card key={conflict.id} className="border-l-4 border-l-yellow-500">
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -267,20 +302,47 @@ export default function ConflictResolution() {
                               <CardTitle className="text-lg">Conflict Detected</CardTitle>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge className={getConflictTypeColor(conflict.conflictType)}>
-                                {conflict.conflictType.replace(/_/g, " ")}
+                              <Badge className={getConflictTypeColor(conflict.conflict_type)}>
+                                {conflict.conflict_type.replace(/_/g, " ")}
                               </Badge>
+                              {getSeverityBadge(conflict.severity)}
                               <Badge className={getStatusColor(conflict.status)}>
                                 {conflict.status}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                {new Date(conflict.detectedAt).toLocaleDateString()}
+                                {new Date(conflict.detected_at).toLocaleDateString()}
                               </span>
                             </div>
                           </div>
 
                           {conflict.status === "pending" && (
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
+                              {/* Auto-Resolve for low severity */}
+                              {(conflict.severity === "low" || conflict.severity === "medium") && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                                  onClick={() => autoResolveMutation.mutate({ conflict_id: conflict.id })}
+                                  disabled={autoResolveMutation.isPending}
+                                >
+                                  <Zap className="h-4 w-4 mr-1" />
+                                  Auto-Resolve
+                                </Button>
+                              )}
+                              {/* Request Arbitration for high/critical */}
+                              {(conflict.severity === "high" || conflict.severity === "critical") && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+                                  onClick={() => requestArbitrationMutation.mutate({ conflict_id: conflict.id })}
+                                  disabled={requestArbitrationMutation.isPending}
+                                >
+                                  <Scale className="h-4 w-4 mr-1" />
+                                  Request Arbitration
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -337,9 +399,9 @@ export default function ConflictResolution() {
                             </div>
                             <p className="text-sm line-clamp-3">{conflict.memory1.content}</p>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>by {conflict.memory1.createdBy}</span>
+                              <span>by {conflict.memory1.id.slice(0, 8)}</span>
                               <span>•</span>
-                              <span>{new Date(conflict.memory1.createdAt).toLocaleDateString()}</span>
+                              <span>{new Date(conflict.memory1.created_at).toLocaleDateString()}</span>
                             </div>
                           </div>
 
@@ -353,19 +415,19 @@ export default function ConflictResolution() {
                             </div>
                             <p className="text-sm line-clamp-3">{conflict.memory2.content}</p>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>by {conflict.memory2.createdBy}</span>
+                              <span>by {conflict.memory2.id.slice(0, 8)}</span>
                               <span>•</span>
-                              <span>{new Date(conflict.memory2.createdAt).toLocaleDateString()}</span>
+                              <span>{new Date(conflict.memory2.created_at).toLocaleDateString()}</span>
                             </div>
                           </div>
                         </div>
 
                         {/* Resolution Info */}
-                        {conflict.status === "resolved" && conflict.resolvedBy && (
+                        {conflict.status === "resolved" && conflict.resolved_by && (
                           <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-3">
                             <p className="text-sm text-green-800 dark:text-green-200">
-                              ✓ Resolved by {conflict.resolvedBy} on{" "}
-                              {conflict.resolvedAt && new Date(conflict.resolvedAt).toLocaleDateString()}
+                              ✓ Resolved by {conflict.resolved_by} on{" "}
+                              {conflict.resolved_at && new Date(conflict.resolved_at).toLocaleDateString()}
                             </p>
                           </div>
                         )}

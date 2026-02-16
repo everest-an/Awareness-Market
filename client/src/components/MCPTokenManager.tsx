@@ -204,9 +204,9 @@ export function MCPTokenManager() {
             <button
               className="mcp-create-btn"
               onClick={handleCreateToken}
-              disabled={createTokenMutation.isLoading}
+              disabled={createTokenMutation.isPending}
             >
-              {createTokenMutation.isLoading ? 'Creating...' : 'Create Token'}
+              {createTokenMutation.isPending ? 'Creating...' : 'Create Token'}
             </button>
           </div>
         )}
@@ -263,7 +263,7 @@ export function MCPTokenManager() {
                   <button
                     className="mcp-revoke-btn"
                     onClick={() => handleRevokeToken(token.id, token.name)}
-                    disabled={revokeTokenMutation.isLoading}
+                    disabled={revokeTokenMutation.isPending}
                   >
                     Revoke
                   </button>

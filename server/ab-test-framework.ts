@@ -1,4 +1,5 @@
 import { prisma } from "./db-prisma";
+const prismaAny = prisma as any;
 import { generateCollaborativeRecommendations } from "./collaborative-filtering";
 import { generateRecommendations as generateLLMRecommendations } from "./recommendation-engine";
 import { createLogger } from "./utils/logger";
@@ -20,7 +21,7 @@ export async function getABTestAssignment(
 ): Promise<RecommendationAlgorithm> {
   try {
     // Check if user already has an assignment
-    const existing = await prisma.abTestAssignment.findFirst({
+    const existing = await prismaAny.abTestAssignment.findFirst({
       where: {
         userId,
         experimentId,
@@ -32,7 +33,7 @@ export async function getABTestAssignment(
     }
 
     // Get experiment details
-    const experiment = await prisma.abTestExperiment.findUnique({
+    const experiment = await prismaAny.abTestExperiment.findUnique({
       where: { id: experimentId },
     });
 
@@ -47,7 +48,7 @@ export async function getABTestAssignment(
       : experiment.algorithmB;
 
     // Save assignment
-    await prisma.abTestAssignment.create({
+    await prismaAny.abTestAssignment.create({
       data: {
         experimentId,
         userId,
@@ -71,7 +72,7 @@ export async function getRecommendationsWithABTest(
 ): Promise<Array<{ vectorId: number; score: number; reason: string; algorithm: string }>> {
   try {
     // Get active experiment
-    const activeExperiment = await prisma.abTestExperiment.findFirst({
+    const activeExperiment = await prismaAny.abTestExperiment.findFirst({
       where: { status: "running" },
     });
 
@@ -115,16 +116,16 @@ export async function getRecommendationsWithABTest(
 export async function calculateABTestMetrics(experimentId: number) {
   try {
     // Get all assignments for this experiment
-    const assignments = await prisma.abTestAssignment.findMany({
+    const assignments = await prismaAny.abTestAssignment.findMany({
       where: { experimentId },
     });
 
-    const algorithmA = assignments.filter(a => a.assignedAlgorithm === "llm_based");
-    const algorithmB = assignments.filter(a => a.assignedAlgorithm === "collaborative_filtering");
+    const algorithmA = assignments.filter((a: any) => a.assignedAlgorithm === "llm_based");
+    const algorithmB = assignments.filter((a: any) => a.assignedAlgorithm === "collaborative_filtering");
 
     // Calculate metrics for each algorithm
-    const metricsA = await calculateAlgorithmMetrics(algorithmA.map(a => a.userId));
-    const metricsB = await calculateAlgorithmMetrics(algorithmB.map(a => a.userId));
+    const metricsA = await calculateAlgorithmMetrics(algorithmA.map((a: any) => a.userId));
+    const metricsB = await calculateAlgorithmMetrics(algorithmB.map((a: any) => a.userId));
 
     return {
       experimentId,
@@ -197,7 +198,7 @@ export async function createABTestExperiment(
   trafficSplit: number = 0.5
 ) {
   try {
-    const result = await prisma.abTestExperiment.create({
+    const result = await prismaAny.abTestExperiment.create({
       data: {
         name,
         description,
@@ -220,7 +221,7 @@ export async function createABTestExperiment(
  */
 export async function startABTestExperiment(experimentId: number) {
   try {
-    await prisma.abTestExperiment.update({
+    await prismaAny.abTestExperiment.update({
       where: { id: experimentId },
       data: {
         status: "running",
@@ -240,7 +241,7 @@ export async function startABTestExperiment(experimentId: number) {
  */
 export async function stopABTestExperiment(experimentId: number) {
   try {
-    await prisma.abTestExperiment.update({
+    await prismaAny.abTestExperiment.update({
       where: { id: experimentId },
       data: {
         status: "completed",

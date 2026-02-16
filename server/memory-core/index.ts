@@ -58,14 +58,12 @@ export type {
   Entity,
   EntityType,
   ExtractionResult,
-  EntityExtractorConfig,
 } from './entity-extractor';
 
 export { RelationBuilder, createRelationBuilder } from './relation-builder';
 export type {
   RelationType,
   RelationInferenceResult,
-  RelationBuilderConfig,
 } from './relation-builder';
 
 export { RMCRetriever, createRMCRetriever } from './rmc-retriever';
@@ -77,6 +75,13 @@ export type {
   RetrievalResult,
   RetrievalOptions,
 } from './rmc-retriever';
+
+// Phase 2: Memory Pools & Promotion
+export { MemoryPoolRouter, createMemoryPoolRouter } from './memory-pool-router';
+export type { PoolRetrievalOptions, PoolRetrievalResult, PoolMemory } from './memory-pool-router';
+
+export { MemoryPromoter, createMemoryPromoter } from './memory-promoter';
+export type { PromotionResult } from './memory-promoter';
 
 /**
  * Factory function to create a fully configured MemoryRouter instance

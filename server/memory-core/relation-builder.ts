@@ -139,15 +139,10 @@ export class RelationBuilder {
         where: {
           id: { not: memory.id },
           isLatest: true,
-          entities: {
-            path: '$[*].name',
-            array_contains: entityNames,
-          },
         },
         select: {
           id: true,
           content: true,
-          entities: true,
           createdAt: true,
           agentId: true,
         },
@@ -174,7 +169,6 @@ export class RelationBuilder {
       select: {
         id: true,
         content: true,
-        entities: true,
         createdAt: true,
         agentId: true,
       },
@@ -361,10 +355,8 @@ ${memoryB.content}
       select: {
         id: true,
         content: true,
-        entities: true,
         createdAt: true,
         agentId: true,
-        embedding: true,
       },
     });
 
@@ -373,7 +365,6 @@ ${memoryB.content}
     return {
       ...memory,
       agentId: memory.agentId || 'unknown',
-      embedding: memory.embedding as number[] | undefined,
     };
   }
 }

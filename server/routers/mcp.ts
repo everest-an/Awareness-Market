@@ -16,7 +16,7 @@ export const mcpRouter = router({
   listTokens: protectedProcedure
     .query(async ({ ctx }) => {
       try {
-        const tokens = await db.listMcpTokens(ctx.session.userId);
+        const tokens = await db.listMcpTokens((ctx as any).session.userId);
         return tokens;
       } catch (error) {
         throw new TRPCError({
@@ -40,7 +40,7 @@ export const mcpRouter = router({
     .mutation(async ({ ctx, input }) => {
       try {
         const result = await db.createMcpToken({
-          userId: ctx.session.userId,
+          userId: (ctx as any).session.userId,
           name: input.name,
           permissions: input.permissions,
           expiresInDays: input.expiresInDays,
@@ -72,7 +72,7 @@ export const mcpRouter = router({
     .mutation(async ({ ctx, input }) => {
       try {
         await db.revokeMcpToken({
-          userId: ctx.session.userId,
+          userId: (ctx as any).session.userId,
           tokenId: input.tokenId,
         });
 

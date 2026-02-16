@@ -239,10 +239,10 @@ export class SharedLatentMemoryManager {
 
           // Batch align vectors using GPU
           const aligned = await neuralBridgeRouter
-            .createCaller({})
+            .createCaller({ user: { id: 1 } } as any)
             .batchAlignVectors({
               vectors: results.map(r => r.memory.embedding),
-              wMatrix: wMatrix.matrix,
+              wMatrix: (wMatrix as any).matrix,
               useGPU: true,
             });
 
@@ -259,8 +259,8 @@ export class SharedLatentMemoryManager {
 
           logger.info('GPU batch alignment completed', {
             candidateCount: results.length,
-            avgQuality: aligned.avgQuality.toFixed(4),
-            processingTime: `${aligned.processingTimeMs}ms`,
+            avgQuality: (aligned as any).avgQuality.toFixed(4),
+            processingTime: `${(aligned as any).processingTimeMs}ms`,
           });
         } catch (gpuError) {
           // Fallback: continue with original results if GPU alignment fails
@@ -607,7 +607,6 @@ class FAISSVectorStore extends LatentVectorStore {
 // ============================================================================
 
 export {
-  SharedLatentMemoryManager,
   InMemoryVectorStore,
   ChromaDBVectorStore,
   FAISSVectorStore,

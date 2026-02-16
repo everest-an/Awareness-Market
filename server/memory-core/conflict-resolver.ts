@@ -300,6 +300,67 @@ export class ConflictResolver {
 
     return { success, failed, errors };
   }
+
+  /**
+   * Classify conflict severity based on memory scores, confidence, and usage
+   */
+  classifySeverity(conflict: ConflictWithMemories): 'low' | 'medium' | 'high' | 'critical' {
+    const m1 = conflict.memory1;
+    const m2 = conflict.memory2;
+
+    const maxConfidence = Math.max(Number(m1.confidence), Number(m2.confidence));
+    const maxUsage = Math.max(m1.usageCount || 0, m2.usageCount || 0);
+    const isStrategic = (m1 as any).memoryType === 'strategic' || (m2 as any).memoryType === 'strategic';
+
+    if (isStrategic || (maxConfidence > 0.9 && maxUsage > 20)) return 'critical';
+    if (maxConfidence > 0.7 && maxUsage > 10) return 'high';
+    if (maxConfidence > 0.5 || maxUsage > 5) return 'medium';
+    return 'low';
+  }
+
+  /**
+   * Auto-resolve a low-severity conflict (higher-scoring memory wins)
+   */
+  async autoResolve(conflictId: string, resolvedBy: string = 'system:auto-resolve'): Promise<MemoryConflict> {
+    const conflict = await this.getConflict(conflictId);
+    if (!conflict) throw new Error(`Conflict ${conflictId} not found`);
+
+    const score1 = (conflict.memory1 as any).score?.finalScore ?? Number(conflict.memory1.confidence);
+    const score2 = (conflict.memory2 as any).score?.finalScore ?? Number(conflict.memory2.confidence);
+
+    const winnerId = score1 >= score2 ? conflict.memoryId1 : conflict.memoryId2;
+
+    return this.resolveConflict({
+      conflict_id: conflictId,
+      resolution_memory_id: winnerId,
+      resolved_by: resolvedBy,
+    });
+  }
+
+  /**
+   * Request LLM arbitration for a high/critical severity conflict.
+   * Enqueues the conflict for background processing via BullMQ.
+   */
+  async requestArbitration(conflictId: string): Promise<{ queued: boolean }> {
+    const conflict = await this.prisma.memoryConflict.findUnique({ where: { id: conflictId } });
+    if (!conflict) throw new Error(`Conflict ${conflictId} not found`);
+
+    // Update status to indicate arbitration is in progress
+    await this.prisma.memoryConflict.update({
+      where: { id: conflictId },
+      data: { autoResolvable: false },
+    });
+
+    // If BullMQ is available, enqueue; otherwise mark for manual review
+    try {
+      const { arbitrationQueue } = await import('../workers/conflict-arbitration-worker');
+      await arbitrationQueue.add('arbitrate', { conflictId }, { priority: 1 });
+      return { queued: true };
+    } catch {
+      // BullMQ not available — conflict remains pending for manual resolution
+      return { queued: false };
+    }
+  }
 }
 
 /**

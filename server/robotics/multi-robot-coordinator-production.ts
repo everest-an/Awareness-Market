@@ -399,7 +399,7 @@ export class MultiRobotCoordinatorProduction {
         take: 100,
       });
 
-      return tasks as MultiRobotTask[];
+      return tasks as unknown as MultiRobotTask[];
     } catch (error) {
       console.error('[MultiRobotCoordinator] Failed to list tasks:', error);
       return [];

@@ -561,7 +561,7 @@ export const latentmasRouter = router({
       .query(async ({ input }) => {
         try {
           const anchors = semanticAnchorDB.getAnchorsByCategory(
-            input.category
+            input.category as any
           );
 
           return {

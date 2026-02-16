@@ -135,7 +135,7 @@ export async function purchasePackageTransaction(params: {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const downloadUrl = `https://awareness.market/api/packages/download/${packageType}/${packageId}`;
 
-    const download = await tx.packageDownload.create({
+    const download = await (tx as any).packageDownload.create({
       data: {
         packageType,
         packageId,

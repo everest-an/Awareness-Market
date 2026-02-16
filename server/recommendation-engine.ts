@@ -69,10 +69,10 @@ export async function generateRecommendations(
   const purchases = await db.getUserTransactions(userId, "buyer");
   
   // 4. Get all active vectors
-  const allVectors = await db.searchLatentVectors({
+  const allVectors = (await db.searchLatentVectors({
     status: "active",
     limit: 100,
-  });
+  })).map(v => ({...v, basePrice: v.basePrice.toString(), averageRating: v.averageRating?.toString() || null}));
 
   // 5. Build context for LLM
   const viewedVectors = browsingHistory

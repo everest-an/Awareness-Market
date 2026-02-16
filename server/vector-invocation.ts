@@ -4,6 +4,7 @@
  */
 
 import { prisma } from "./db-prisma";
+const prismaAny = prisma as any;
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
 import { storageGet } from "./storage";
@@ -295,7 +296,7 @@ export async function invokeVector(
     });
 
     // 6. Record invocation
-    await prisma.vectorInvocation.create({
+    await prismaAny.vectorInvocation.create({
       data: {
         userId,
         vectorId: input.vectorId,
@@ -342,7 +343,7 @@ export async function invokeVector(
     try {
       const accessCheck = await verifyVectorAccess(userId, input.vectorId);
       if (accessCheck.permission) {
-        await prisma.vectorInvocation.create({
+        await prismaAny.vectorInvocation.create({
           data: {
             userId,
             vectorId: input.vectorId,
@@ -401,7 +402,7 @@ export async function getInvocationHistory(
     where.vectorId = vectorId;
   }
 
-  const results = await prisma.vectorInvocation.findMany({
+  const results = await prismaAny.vectorInvocation.findMany({
     where,
     include: {
       vector: {
@@ -424,16 +425,16 @@ export async function getInvocationHistory(
  * Get invocation statistics for a vector (creator view)
  */
 export async function getVectorInvocationStats(vectorId: number) {
-  const invocations = await prisma.vectorInvocation.findMany({
+  const invocations = await prismaAny.vectorInvocation.findMany({
     where: { vectorId }
   });
 
   const totalInvocations = invocations.length;
-  const successfulInvocations = invocations.filter(i => i.status === 'success').length;
-  const totalTokens = invocations.reduce((sum, i) => sum + (i.tokensUsed || 0), 0);
-  const totalRevenue = invocations.reduce((sum, i) => sum + parseFloat(i.cost?.toString() || '0'), 0);
+  const successfulInvocations = invocations.filter((i: any) => i.status === 'success').length;
+  const totalTokens = invocations.reduce((sum: any, i: any) => sum + (i.tokensUsed || 0), 0);
+  const totalRevenue = invocations.reduce((sum: any, i: any) => sum + parseFloat(i.cost?.toString() || '0'), 0);
   const avgExecutionTime = invocations.length > 0
-    ? invocations.reduce((sum, i) => sum + (i.executionTime || 0), 0) / invocations.length
+    ? invocations.reduce((sum: any, i: any) => sum + (i.executionTime || 0), 0) / invocations.length
     : 0;
 
   return {

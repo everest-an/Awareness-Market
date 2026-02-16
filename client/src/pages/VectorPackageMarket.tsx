@@ -280,8 +280,8 @@ export default function VectorPackageMarket() {
                       </h3>
                       <p className="text-sm text-slate-400 line-clamp-2">{pkg.description}</p>
                     </div>
-                    <Badge className={`${getCategoryColor(pkg.category)} text-white ml-2`}>
-                      {getCategoryIcon(pkg.category)}
+                    <Badge className={`${getCategoryColor(pkg.category || '')} text-white ml-2`}>
+                      {getCategoryIcon(pkg.category || '')}
                       <span className="ml-1">{pkg.category?.toUpperCase()}</span>
                     </Badge>
                   </div>

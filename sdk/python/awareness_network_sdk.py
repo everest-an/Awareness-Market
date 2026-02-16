@@ -517,6 +517,234 @@ class AwarenessNetworkClient:
         
         return self._request("POST", "/mcp/invoke", data=data)
 
+    # ==================== v3: Organization Governance ====================
+
+    def create_organization(
+        self,
+        name: str,
+        slug: str,
+        plan_tier: str = "lite",
+        description: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create a new organization for multi-agent governance
+
+        Args:
+            name: Organization display name
+            slug: URL-safe identifier (lowercase, no spaces)
+            plan_tier: Pricing tier — lite, team, enterprise, scientific
+            description: Optional description
+
+        Returns:
+            Created organization object with id
+        """
+        data = {
+            "name": name,
+            "slug": slug,
+            "planTier": plan_tier,
+        }
+        if description:
+            data["description"] = description
+        return self._request("POST", "/trpc/organization.create", data=data)
+
+    def create_memory(
+        self,
+        org_id: int,
+        namespace: str,
+        content: str,
+        content_type: str = "text",
+        confidence: float = 0.8,
+        metadata: Optional[Dict] = None,
+        pool_type: str = "domain",
+        department_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create a memory entry within an organization
+
+        Args:
+            org_id: Organization ID
+            namespace: Memory namespace (e.g., "research", "ops")
+            content: Memory content text
+            content_type: text|code|data|image|audio|composite
+            confidence: Confidence score 0-1
+            metadata: Optional key-value metadata
+            pool_type: private|domain|global
+            department_id: Optional department scope
+
+        Returns:
+            Created memory with id
+        """
+        data = {
+            "namespace": namespace,
+            "content": content,
+            "content_type": content_type,
+            "confidence": confidence,
+        }
+        if metadata:
+            data["metadata"] = metadata
+        return self._request("POST", "/trpc/memory.create", data=data)
+
+    def record_decision(
+        self,
+        org_id: int,
+        agent_id: str,
+        input_query: str,
+        output: str,
+        confidence: float,
+        retrieved_memory_ids: Optional[List[str]] = None,
+        department_id: Optional[int] = None,
+        model_used: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Record an AI decision for audit trail (v3 Phase 3)
+
+        Args:
+            org_id: Organization ID
+            agent_id: Agent identifier
+            input_query: The input/question that led to this decision
+            output: The decision output/answer
+            confidence: Decision confidence 0-1
+            retrieved_memory_ids: Memory IDs used for context
+            department_id: Optional department scope
+            model_used: LLM model used
+
+        Returns:
+            Decision record with id
+        """
+        data = {
+            "orgId": org_id,
+            "agentId": agent_id,
+            "inputQuery": input_query,
+            "output": output,
+            "confidence": confidence,
+        }
+        if retrieved_memory_ids:
+            data["retrievedMemoryIds"] = retrieved_memory_ids
+        if department_id:
+            data["departmentId"] = department_id
+        if model_used:
+            data["modelUsed"] = model_used
+        return self._request("POST", "/trpc/decision.record", data=data)
+
+    def verify_decision(
+        self,
+        decision_id: str,
+        correct: bool,
+        notes: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Verify a decision outcome (correct/incorrect)
+
+        Args:
+            decision_id: Decision UUID
+            correct: Whether the decision was correct
+            notes: Optional verification notes
+
+        Returns:
+            Updated decision record
+        """
+        data = {
+            "decisionId": decision_id,
+            "correct": correct,
+        }
+        if notes:
+            data["notes"] = notes
+        return self._request("POST", "/trpc/decision.verifyOutcome", data=data)
+
+    def get_agent_reputation(
+        self,
+        org_id: int,
+        agent_id: str,
+        department_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get multi-dimensional reputation for an agent (v3 Phase 3)
+
+        Args:
+            org_id: Organization ID
+            agent_id: Agent identifier
+            department_id: Optional department filter
+
+        Returns:
+            Reputation with writeQuality, decisionAccuracy,
+            collaborationScore, domainExpertise, overallReputation
+        """
+        params = {
+            "orgId": org_id,
+            "agentId": agent_id,
+        }
+        if department_id:
+            params["departmentId"] = department_id
+        return self._request("GET", "/trpc/decision.getReputation", params=params)
+
+    def add_evidence(
+        self,
+        org_id: int,
+        memory_id: str,
+        evidence_type: str,
+        title: str,
+        created_by: str,
+        source_url: Optional[str] = None,
+        source_doi: Optional[str] = None,
+        confidence: float = 0.5,
+        peer_reviewed: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Attach evidence to a memory (v3 Phase 4)
+
+        Args:
+            org_id: Organization ID
+            memory_id: Memory UUID
+            evidence_type: arxiv|doi|internal_data|experimental|computational|url
+            title: Evidence title
+            created_by: Creator identifier
+            source_url: Optional URL source
+            source_doi: Optional DOI reference
+            confidence: Evidence confidence 0-1
+            peer_reviewed: Whether peer-reviewed
+
+        Returns:
+            Created evidence record
+        """
+        data = {
+            "orgId": org_id,
+            "memoryId": memory_id,
+            "evidenceType": evidence_type,
+            "title": title,
+            "createdBy": created_by,
+            "confidence": confidence,
+            "peerReviewed": peer_reviewed,
+        }
+        if source_url:
+            data["sourceUrl"] = source_url
+        if source_doi:
+            data["sourceDoi"] = source_doi
+        return self._request("POST", "/trpc/verification.addEvidence", data=data)
+
+    def get_org_analytics(self, org_id: int) -> Dict[str, Any]:
+        """
+        Get organization analytics overview (v3 Phase 5)
+
+        Args:
+            org_id: Organization ID
+
+        Returns:
+            Overview with agent/memory/decision/department counts
+        """
+        return self._request("GET", "/trpc/orgAnalytics.overview", params={"orgId": org_id})
+
+    def get_billing(self, org_id: int) -> Dict[str, Any]:
+        """
+        Get billing and usage overview (v3 Phase 5)
+
+        Args:
+            org_id: Organization ID
+
+        Returns:
+            Plan info, usage vs limits, billing status
+        """
+        return self._request("GET", "/trpc/orgAnalytics.billingOverview", params={"orgId": org_id})
+
 
 # ==================== Convenience Functions ====================
 

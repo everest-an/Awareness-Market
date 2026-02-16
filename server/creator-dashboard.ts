@@ -5,6 +5,9 @@
 
 import { prisma } from "./db-prisma";
 
+// Cast prisma for models not yet in schema (legacy v1/v2)
+const prismaAny = prisma as any;
+
 export interface RevenueAnalytics {
   totalRevenue: number;
   revenueThisMonth: number;
@@ -79,27 +82,27 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
   }
 
   // Get all invocations for creator's vectors
-  const allInvocations = await prisma.vectorInvocation.findMany({
+  const allInvocations = await prismaAny.vectorInvocation.findMany({
     where: {
       vectorId: { in: vectorIds },
     },
   });
 
   // Calculate total revenue
-  const totalRevenue = allInvocations.reduce((sum, inv) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
+  const totalRevenue = allInvocations.reduce((sum: number, inv: any) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
 
   // Revenue this month
   const revenueThisMonth = allInvocations
-    .filter(inv => new Date(inv.createdAt) >= monthStart)
-    .reduce((sum, inv) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
+    .filter((inv: any) => new Date(inv.createdAt) >= monthStart)
+    .reduce((sum: number, inv: any) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
 
   // Revenue last month
   const revenueLastMonth = allInvocations
-    .filter(inv => {
+    .filter((inv: any) => {
       const date = new Date(inv.createdAt);
       return date >= lastMonthStart && date <= lastMonthEnd;
     })
-    .reduce((sum, inv) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
+    .reduce((sum: number, inv: any) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
 
   // Calculate growth
   const revenueGrowth = revenueLastMonth > 0
@@ -109,8 +112,8 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
   // Daily revenue for the period
   const dailyRevenueMap = new Map<string, number>();
   allInvocations
-    .filter(inv => new Date(inv.createdAt) >= startDate)
-    .forEach(inv => {
+    .filter((inv: any) => new Date(inv.createdAt) >= startDate)
+    .forEach((inv: any) => {
       const date = new Date(inv.createdAt).toISOString().split('T')[0];
       const current = dailyRevenueMap.get(date) || 0;
       dailyRevenueMap.set(date, current + parseFloat(inv.cost?.toString() || '0'));
@@ -122,7 +125,7 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
 
   // Revenue by vector
   const revenueByVectorMap = new Map<number, number>();
-  allInvocations.forEach(inv => {
+  allInvocations.forEach((inv: any) => {
     const current = revenueByVectorMap.get(inv.vectorId) || 0;
     revenueByVectorMap.set(inv.vectorId, current + parseFloat(inv.cost?.toString() || '0'));
   });
@@ -178,35 +181,35 @@ export async function getCreatorPerformanceMetrics(creatorId: number): Promise<P
   }
 
   // Get all invocations
-  const allInvocations = await prisma.vectorInvocation.findMany({
+  const allInvocations = await prismaAny.vectorInvocation.findMany({
     where: {
       vectorId: { in: vectorIds },
     },
   });
 
   const totalInvocations = allInvocations.length;
-  const successfulInvocations = allInvocations.filter(inv => inv.status === 'success').length;
+  const successfulInvocations = allInvocations.filter((inv: any) => inv.status === 'success').length;
   const successRate = totalInvocations > 0 ? (successfulInvocations / totalInvocations) * 100 : 0;
 
   const avgExecutionTime = totalInvocations > 0
-    ? allInvocations.reduce((sum, inv) => sum + (inv.executionTime || 0), 0) / totalInvocations
+    ? allInvocations.reduce((sum: number, inv: any) => sum + (inv.executionTime || 0), 0) / totalInvocations
     : 0;
 
-  const totalTokensUsed = allInvocations.reduce((sum, inv) => sum + (inv.tokensUsed || 0), 0);
+  const totalTokensUsed = allInvocations.reduce((sum: number, inv: any) => sum + (inv.tokensUsed || 0), 0);
 
-  const invocationsThisMonth = allInvocations.filter(inv => new Date(inv.createdAt) >= monthStart).length;
-  const invocationsLastMonth = allInvocations.filter(inv => {
+  const invocationsThisMonth = allInvocations.filter((inv: any) => new Date(inv.createdAt) >= monthStart).length;
+  const invocationsLastMonth = allInvocations.filter((inv: any) => {
     const date = new Date(inv.createdAt);
     return date >= lastMonthStart && date <= lastMonthEnd;
   }).length;
 
   // Performance by vector
   const performanceByVector = vectorIds.map(vectorId => {
-    const vectorInvs = allInvocations.filter(inv => inv.vectorId === vectorId);
+    const vectorInvs = allInvocations.filter((inv: any) => inv.vectorId === vectorId);
     const vector = creatorVectors.find(v => v.id === vectorId);
-    const successful = vectorInvs.filter(inv => inv.status === 'success').length;
+    const successful = vectorInvs.filter((inv: any) => inv.status === 'success').length;
     const avgExecTime = vectorInvs.length > 0
-      ? vectorInvs.reduce((sum, inv) => sum + (inv.executionTime || 0), 0) / vectorInvs.length
+      ? vectorInvs.reduce((sum: number, inv: any) => sum + (inv.executionTime || 0), 0) / vectorInvs.length
       : 0;
 
     return {

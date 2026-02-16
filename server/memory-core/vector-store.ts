@@ -124,7 +124,7 @@ export class PgVectorStore implements VectorStore {
       LIMIT ${limit}
     `;
 
-    return results.map((row) => ({
+    return results.map((row: any) => ({
       id: row.id,
       similarity: parseFloat(row.similarity),
       metadata: row.metadata,

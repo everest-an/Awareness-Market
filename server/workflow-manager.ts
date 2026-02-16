@@ -13,6 +13,7 @@ import type {
   WorkflowEventStatus,
 } from "../shared/workflow-types";
 import { prisma } from "./db-prisma";
+const prismaAny = prisma as any;
 import { getErrorMessage } from "./utils/error-handling";
 import { createLogger } from "./utils/logger";
 
@@ -269,7 +270,7 @@ class WorkflowManager extends EventEmitter {
    */
   private async saveSessionToDb(session: WorkflowSession): Promise<void> {
     try {
-      await prisma.workflowSession.create({
+      await prismaAny.workflowSession.create({
         data: {
           id: session.id,
           userId: session.userId,
@@ -308,7 +309,7 @@ class WorkflowManager extends EventEmitter {
       if (updates.totalDuration !== undefined) dbUpdates.totalDuration = updates.totalDuration;
       if (updates.totalCost !== undefined) dbUpdates.totalCost = updates.totalCost.toString();
 
-      await prisma.workflowSession.update({
+      await prismaAny.workflowSession.update({
         where: { id: workflowId },
         data: dbUpdates,
       });
@@ -322,7 +323,7 @@ class WorkflowManager extends EventEmitter {
    */
   private async saveEventToDb(event: WorkflowEvent): Promise<void> {
     try {
-      await prisma.workflowEvent.create({
+      await prismaAny.workflowEvent.create({
         data: {
           id: event.id,
           workflowId: event.workflowId,
@@ -360,7 +361,7 @@ class WorkflowManager extends EventEmitter {
       if (updates.output !== undefined) dbUpdates.output = JSON.stringify(updates.output);
       if (updates.error !== undefined) dbUpdates.error = JSON.stringify(updates.error);
 
-      await prisma.workflowEvent.update({
+      await prismaAny.workflowEvent.update({
         where: { id: eventId },
         data: dbUpdates,
       });

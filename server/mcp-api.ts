@@ -98,14 +98,14 @@ mcpRouter.get("/discover", async (req, res) => {
         performance,
         pricing: {
           model: v.pricingModel,
-          base_price: parseFloat(v.basePrice),
+          base_price: parseFloat(v.basePrice.toString()),
           currency: "USD",
         },
         metadata: {
           creator_id: v.creatorId,
           created_at: v.createdAt,
           total_calls: v.totalCalls,
-          average_rating: parseFloat(v.averageRating || "0"),
+          average_rating: parseFloat((v.averageRating || "0").toString()),
           review_count: v.reviewCount,
         },
       };
@@ -225,7 +225,7 @@ mcpRouter.get("/vectors/:id", async (req, res) => {
         performance_metrics: performance,
         pricing: {
           model: vector.pricingModel,
-          base_price: parseFloat(vector.basePrice),
+          base_price: parseFloat(vector.basePrice.toString()),
         },
         access_requirements: {
           authentication: "token",
@@ -452,7 +452,7 @@ mcpRouter.post("/sync", async (req, res) => {
 
         const llmResult = await invokeLLM({
           messages: agentMessages.length > 0
-            ? agentMessages.filter((m): m is LLMMessage => m !== null)
+            ? agentMessages.filter((m): m is LLMMessage => m !== null) as any
             : [{ role: "user", content: JSON.stringify(agentContext) }],
         });
 
@@ -636,7 +636,7 @@ mcpRouter.post("/auth/verify", async (req, res) => {
     }
 
     // Update last used timestamp
-    await db.updateMcpTokenLastUsed(mcpRecord.id);
+    await (db as any).updateMcpTokenLastUsed?.(mcpRecord.id);
 
     // Parse permissions
     let permissions: string[] = [];
@@ -834,5 +834,141 @@ setInterval(() => {
     }
   }
 }, 60000); // Every minute
+
+// ============================================================================
+// v3: Organization-scoped MCP endpoints
+// ============================================================================
+
+/**
+ * MCP Organization Memory Query
+ * POST /api/mcp/org/memory/query
+ *
+ * Query memories within an organization scope with pool awareness
+ */
+mcpRouter.post("/org/memory/query", validateApiKey, async (req, res) => {
+  try {
+    const schema = z.object({
+      org_id: z.number(),
+      query: z.string().min(1).max(1000),
+      pools: z.array(z.enum(["private", "domain", "global"])).optional(),
+      agent_id: z.string().optional(),
+      department_id: z.number().optional(),
+      max_results: z.number().min(1).max(50).default(10),
+    });
+
+    const body = schema.parse(req.body);
+    const { prisma } = await import("./db-prisma");
+    const { createMemoryPoolRouter } = await import("./memory-core");
+    const poolRouter = createMemoryPoolRouter(prisma);
+
+    const results = await poolRouter.retrieve({
+      orgId: body.org_id,
+      query: body.query,
+      pools: body.pools,
+      agentId: body.agent_id,
+      departmentId: body.department_id,
+      maxResults: body.max_results,
+      maxTokens: 4096,
+      minScore: 0,
+    });
+
+    res.json({
+      protocol: "MCP/1.0",
+      org_id: body.org_id,
+      ...results,
+    });
+  } catch (error) {
+    logger.error("MCP org memory query error:", { error });
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Invalid request", details: error.issues });
+    }
+    res.status(500).json({ error: "Organization memory query failed" });
+  }
+});
+
+/**
+ * MCP Record Decision
+ * POST /api/mcp/org/decision
+ *
+ * Record an AI decision for the audit trail
+ */
+mcpRouter.post("/org/decision", validateApiKey, async (req, res) => {
+  try {
+    const schema = z.object({
+      org_id: z.number(),
+      agent_id: z.string(),
+      input_query: z.string(),
+      output: z.string(),
+      confidence: z.number().min(0).max(1),
+      retrieved_memory_ids: z.array(z.string()).optional(),
+      department_id: z.number().optional(),
+      model_used: z.string().optional(),
+      latency_ms: z.number().optional(),
+    });
+
+    const body = schema.parse(req.body);
+    const { prisma } = await import("./db-prisma");
+    const { DecisionRecorder } = await import("./decision/decision-recorder");
+    const recorder = new DecisionRecorder(prisma);
+
+    const decision = await recorder.record({
+      organizationId: body.org_id,
+      agentId: body.agent_id,
+      inputQuery: body.input_query,
+      output: body.output,
+      confidence: body.confidence,
+      retrievedMemoryIds: body.retrieved_memory_ids || [],
+      departmentId: body.department_id,
+      modelUsed: body.model_used,
+      latencyMs: body.latency_ms,
+    });
+
+    res.status(201).json({
+      protocol: "MCP/1.0",
+      decision_id: (decision as any).id,
+      org_id: body.org_id,
+      recorded_at: (decision as any).createdAt,
+    });
+  } catch (error) {
+    logger.error("MCP decision record error:", { error });
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Invalid request", details: error.issues });
+    }
+    res.status(500).json({ error: "Decision recording failed" });
+  }
+});
+
+/**
+ * MCP Agent Reputation
+ * GET /api/mcp/org/reputation
+ *
+ * Get agent reputation within an organization
+ */
+mcpRouter.get("/org/reputation", validateApiKey, async (req, res) => {
+  try {
+    const orgId = parseInt(req.query.org_id as string);
+    const agentId = req.query.agent_id as string;
+
+    if (!orgId || !agentId) {
+      return res.status(400).json({ error: "org_id and agent_id are required" });
+    }
+
+    const { prisma } = await import("./db-prisma");
+    const { ReputationEngine } = await import("./reputation/reputation-engine");
+    const engine = new ReputationEngine(prisma);
+
+    const reputation = await engine.getProfile(agentId, orgId);
+
+    res.json({
+      protocol: "MCP/1.0",
+      org_id: orgId,
+      agent_id: agentId,
+      reputation,
+    });
+  } catch (error) {
+    logger.error("MCP reputation query error:", { error });
+    res.status(500).json({ error: "Reputation query failed" });
+  }
+});
 
 export default mcpRouter;

@@ -80,8 +80,8 @@ export default function PrivacySettings() {
 
   // Fetch budget history
   const { data: budgetHistory } = trpc.user.getPrivacyBudgetHistory.useQuery(
-    { limit: 30 },
-    { enabled: !!user }
+    undefined,
+    { refetchInterval: 30000 }
   );
 
   // Update settings mutation
@@ -98,7 +98,7 @@ export default function PrivacySettings() {
   // Simulate privacy mutation
   const simulateMutation = trpc.user.simulatePrivacy.useMutation({
     onSuccess: (data) => {
-      setSimulationResult(data);
+      setSimulationResult(data as any);
       toast.success("Privacy simulation completed");
     },
     onError: (error) => {
@@ -161,7 +161,7 @@ export default function PrivacySettings() {
   const budgetPercentage = (budgetUsed / monthlyBudget) * 100;
 
   // Chart data
-  const budgetChartData = budgetHistory?.history?.map((item: BudgetHistoryItem) => ({
+  const budgetChartData = budgetHistory?.history?.map((item: any) => ({
     date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     remaining: item.budgetRemaining,
     used: item.budgetUsed,
@@ -457,7 +457,7 @@ export default function PrivacySettings() {
                   <div>
                     <h3 className="font-medium mb-3">Recent Activity</h3>
                     <div className="space-y-2">
-                      {budgetHistory.history.slice(0, 5).map((item: BudgetHistoryItem, idx: number) => (
+                      {budgetHistory.history.slice(0, 5).map((item: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                           <div>
                             <p className="font-medium">{new Date(item.date).toLocaleDateString()}</p>

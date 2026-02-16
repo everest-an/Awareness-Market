@@ -119,7 +119,7 @@ export default function VectorDetail() {
     );
   }
 
-  const rating = parseFloat(vector.averageRating || "0");
+  const rating = parseFloat((vector.averageRating || "0").toString());
   const isOwner = user?.id === vector.creatorId;
 
   return (
@@ -228,7 +228,7 @@ export default function VectorDetail() {
                   vectorId={vector.id}
                   hasAccess={!isOwner && isAuthenticated}
                   pricingModel={vector.pricingModel}
-                  basePrice={vector.basePrice}
+                  basePrice={vector.basePrice.toString()}
                 />
               </TabsContent>
 
@@ -355,7 +355,7 @@ export default function VectorDetail() {
                 <div className="flex items-baseline gap-2">
                   <DollarSign className="h-6 w-6 text-primary" />
                   <span className="text-4xl font-bold">
-                    {parseFloat(vector.basePrice).toFixed(2)}
+                    {parseFloat(vector.basePrice.toString()).toFixed(2)}
                   </span>
                   <span className="text-muted-foreground">
                     /{vector.pricingModel === "per-call" ? "call" : "month"}
@@ -484,14 +484,14 @@ export default function VectorDetail() {
       {vector && (
         <>
           <PurchaseDialog
-            vector={vector}
+            vector={{...vector, basePrice: vector.basePrice.toString()}}
             open={purchaseDialogOpen}
             onOpenChange={setPurchaseDialogOpen}
             onSuccess={handlePurchaseSuccess}
             onSwitchToCrypto={() => setStablecoinDialogOpen(true)}
           />
           <StablecoinPaymentDialog
-            vector={vector}
+            vector={{...vector, basePrice: vector.basePrice.toString()}}
             open={stablecoinDialogOpen}
             onOpenChange={setStablecoinDialogOpen}
             onSuccess={handlePurchaseSuccess}
