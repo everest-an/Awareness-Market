@@ -57,6 +57,31 @@ const trpcClient = trpc.createClient({
   ],
 });
 
+/**
+ * Patch to prevent Google Translate (and similar browser extensions)
+ * from crashing React by modifying DOM text nodes.
+ * When Google Translate wraps text in <font> tags, React's
+ * insertBefore/removeChild calls fail because the original
+ * text nodes are no longer direct children of their parents.
+ */
+if (typeof Node !== 'undefined') {
+  const originalInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function <T extends Node>(newNode: T, referenceNode: Node | null): T {
+    if (referenceNode && referenceNode.parentNode !== this) {
+      return originalInsertBefore.call(this, newNode, null) as T;
+    }
+    return originalInsertBefore.call(this, newNode, referenceNode) as T;
+  };
+
+  const originalRemoveChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function <T extends Node>(child: T): T {
+    if (child.parentNode !== this) {
+      return child;
+    }
+    return originalRemoveChild.call(this, child) as T;
+  };
+}
+
 createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
