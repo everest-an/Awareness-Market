@@ -58,6 +58,9 @@ model User {
   agentWallet           AgentWallet?
   agentWalletTxs        AgentWalletTransaction[]
   orgMemberships        OrgMembership[]
+  ipWhitelists          IpWhitelist[]
+  ipAccessLogs          IpAccessLog[]
+  createdWhitelists     IpWhitelist[] @relation("WhitelistCreator")
 
   // Ensure no duplicate emails (allows multiple NULLs for wallet-only users)
   @@unique([email], map: "unique_email_non_null")
@@ -553,6 +556,54 @@ model ApiKeyRotationHistory {
   @@index([apiKeyId])
   @@index([createdAt])
   @@map("api_key_rotation_history")
+}
+
+// P2 Security: IP Whitelist Control
+model IpWhitelist {
+  id              Int       @id @default(autoincrement())
+  organizationId  Int?      @map("organization_id") // Null for user-level whitelist
+  userId          Int?      @map("user_id") // Null for org-level whitelist
+  ipAddress       String?   @map("ip_address") @db.VarChar(45) // IPv4/IPv6 single address
+  ipRangeStart    String?   @map("ip_range_start") @db.VarChar(45) // Range start
+  ipRangeEnd      String?   @map("ip_range_end") @db.VarChar(45) // Range end
+  cidrNotation    String?   @map("cidr_notation") @db.VarChar(50) // CIDR (e.g., 192.168.1.0/24)
+  description     String?   @db.VarChar(255)
+  isActive        Boolean   @default(true) @map("is_active")
+  createdBy       Int       @map("created_by") // User who created the whitelist
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creator         User          @relation("WhitelistCreator", fields: [createdBy], references: [id])
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([createdBy])
+  @@map("ip_whitelists")
+}
+
+model IpAccessLog {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  ipAddress       String    @map("ip_address") @db.VarChar(45)
+  endpoint        String    @db.VarChar(255)
+  method          String    @db.VarChar(10)
+  allowed         Boolean   // true if whitelisted, false if blocked
+  whitelistId     Int?      @map("whitelist_id") // Which whitelist rule allowed/blocked
+  userAgent       String?   @map("user_agent") @db.Text
+  timestamp       DateTime  @default(now())
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+  whitelist       IpWhitelist? @relation(fields: [whitelistId], references: [id])
+
+  @@index([userId])
+  @@index([ipAddress])
+  @@index([timestamp])
+  @@index([allowed])
+  @@map("ip_access_logs")
 }
 
 model McpToken {
@@ -1327,6 +1378,7 @@ model Organization {
   verificationRequests VerificationRequest[]
   evidence          Evidence[]
   memoryDependencies MemoryDependency[]
+  ipWhitelists      IpWhitelist[]
 
   @@index([planTier])
   @@index([slug])

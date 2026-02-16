@@ -55,6 +55,7 @@ import { decisionRouter } from './routers/decision';
 import { verificationRouter } from './routers/verification';
 import { orgAnalyticsRouter } from './routers/org-analytics';
 import { apiKeyRouter } from './routers/api-key';
+import { ipWhitelistRouter } from './routers/ip-whitelist';
 import { prisma } from './db-prisma';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
@@ -471,6 +472,9 @@ export const appRouter = router({
 
   // API Key Management (P2 Security: Auto-Rotation + Expiration Tracking)
   apiKeys: apiKeyRouter,
+
+  // IP Whitelist Control (P2 Security: Organization & User Level IP Restrictions)
+  ipWhitelist: ipWhitelistRouter,
 
   // Latent Vectors Management
   vectors: router({
