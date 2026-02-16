@@ -1,9 +1,10 @@
-name: Deploy
+name: Deploy (Disabled)
 
+# Disabled: replaced by deploy-backend.yml and ci-cd-unified.yml
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  # push:
+  #   branches: [main]
 
 jobs:
   deploy:
