@@ -4,11 +4,15 @@
  * Intercepts agent query responses, snapshots the memory state at decision time.
  * Decisions are insert-only (immutable audit trail).
  *
+ * ✅ P1 Security: Encrypts inputQuery and output fields to prevent data leakage
+ * if the database is compromised. Uses AES-256-GCM encryption.
+ *
  * Reuses: memory-pool-router.ts (for pool breakdown capture)
  */
 
 import type { PrismaClient } from '@prisma/client';
 import { createLogger } from '../utils/logger';
+import { encryptField, decryptField, isEncryptionConfigured } from '../utils/encryption';
 
 const logger = createLogger('DecisionRecorder');
 
@@ -49,15 +53,37 @@ export class DecisionRecorder {
 
   /**
    * Record a new decision with full memory context snapshot
+   * ✅ P1 Security: Encrypts inputQuery and output before storage
    */
   async record(input: RecordDecisionInput): Promise<{ decisionId: string }> {
+    // ✅ P1 Security: Encrypt sensitive fields if encryption is configured
+    const shouldEncrypt = isEncryptionConfigured();
+    const encryptedInputQuery = shouldEncrypt
+      ? encryptField(input.inputQuery, 'inputQuery')
+      : input.inputQuery;
+    const encryptedOutput = shouldEncrypt
+      ? encryptField(input.output, 'output')
+      : input.output;
+
+    if (shouldEncrypt) {
+      logger.debug('Decision fields encrypted', {
+        agentId: input.agentId,
+        encryptionEnabled: true,
+      });
+    } else {
+      logger.warn('Encryption not configured - storing decision data in plaintext', {
+        agentId: input.agentId,
+        hint: 'Set ENCRYPTION_KEY environment variable to enable encryption',
+      });
+    }
+
     const decision = await this.prisma.decision.create({
       data: {
         organizationId: input.organizationId,
         agentId: input.agentId,
         departmentId: input.departmentId,
-        inputQuery: input.inputQuery,
-        output: input.output,
+        inputQuery: encryptedInputQuery || '',
+        output: encryptedOutput || '',
         confidence: input.confidence,
         retrievedMemoryIds: input.retrievedMemoryIds || [],
         memoryScoresSnapshot: input.memoryScoresSnapshot || {},
@@ -74,6 +100,7 @@ export class DecisionRecorder {
       agentId: input.agentId,
       orgId: input.organizationId,
       memoriesUsed: input.retrievedMemoryIds?.length || 0,
+      encrypted: shouldEncrypt,
     });
 
     return { decisionId: decision.id };

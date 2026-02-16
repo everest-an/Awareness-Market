@@ -6,12 +6,15 @@
  * - What scores those memories had
  * - Whether the decision would change with current memory state
  *
+ * ✅ P1 Security: Decrypts inputQuery and output fields on replay
+ *
  * Uses immutable decision snapshots + current memory state comparison
  */
 
 import type { PrismaClient } from '@prisma/client';
 import { calculateFinalScore } from '../memory-core/scoring-engine';
 import type { MemoryEntry as ScoringMemoryEntry } from '../memory-core/schema';
+import { decryptField } from '../utils/encryption';
 
 export interface ReplayResult {
   decisionId: string;
@@ -158,11 +161,15 @@ export class DecisionReplay {
       : 0;
     const contextDriftScore = Math.min(1, driftFromRemoval * 0.6 + driftFromScores * 0.4);
 
+    // ✅ P1 Security: Decrypt sensitive fields before returning
+    const decryptedInputQuery = decryptField(decision.inputQuery, 'inputQuery') || decision.inputQuery;
+    const decryptedOutput = decryptField(decision.output, 'output') || decision.output;
+
     return {
       decisionId,
       decision: {
-        inputQuery: decision.inputQuery,
-        output: decision.output,
+        inputQuery: decryptedInputQuery,
+        output: decryptedOutput,
         confidence: Number(decision.confidence),
         agentId: decision.agentId,
         createdAt: decision.createdAt,
