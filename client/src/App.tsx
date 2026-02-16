@@ -83,6 +83,7 @@ import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
 import { Redirect } from "wouter";
 import LandingPage from "./pages/LandingPage";
 import RoboticsPage from "./pages/robotics";
+import { DocsLayout } from "./pages/Docs";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -90,6 +91,9 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/robotics"} component={RoboticsPage} />
+      {/* Documentation System */}
+      <Route path="/documentation/:rest*" component={DocsLayout} />
+      <Route path="/documentation" component={DocsLayout} />
       <Route path={"/auth"} component={AuthPage} />
       <Route path={"/auth/verify"} component={EmailVerification} />
       <Route path={"/auth/agent"} component={AgentAuth} />
