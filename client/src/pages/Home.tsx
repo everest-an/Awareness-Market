@@ -133,17 +133,17 @@ export default function Home() {
         <div className="container relative">
           <div className="text-center mb-16">
             <Badge className="mb-4 px-3 py-1 text-xs font-medium bg-accent/10 border-accent/20 text-accent">
-              Three Product Lines
+              Five Product Lines
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Trade AI Thoughts in Three Ways
+              Trade AI Thoughts in Five Ways
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Choose how you want to share AI intelligence: learn new capabilities (Vector), transfer reasoning states (Memory), or replicate complete solution processes (Chain). Each package includes W-Matrix for seamless cross-model compatibility.
+              Choose how you want to share AI intelligence: trade capabilities (Vector), transfer reasoning states (Memory), replicate solution processes (Chain), collaborate with dual-AI (Collaboration), or control robots (Robotics).
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {/* Vector Package Market Card */}
             <Link href="/marketplace" className="group">
               <div className="glass-card-hover p-6 h-full">
@@ -189,6 +189,21 @@ export default function Home() {
               </div>
             </Link>
 
+            {/* AI Collaboration Card */}
+            <Link href="/ai-collaboration" className="group">
+              <div className="glass-card-hover p-6 h-full">
+                <Badge className="mb-3 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">Dual-AI Teamwork</Badge>
+                <h3 className="text-xl font-semibold mb-2">AI Collaboration</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Manus and Claude work together in real-time. Share thoughts, make decisions, and build faster with dual-AI collaboration.
+                </p>
+                <div className="flex items-center text-sm text-purple-400">
+                  Start Collaborating
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+
             {/* Robotics Card */}
             <Link href="/robotics" className="group">
               <div className="glass-card-hover p-6 h-full">
@@ -205,70 +220,6 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* AI Collaboration Feature Banner */}
-          <div className="mt-12">
-            <Link href="/ai-collaboration" className="group block">
-              <div className="glass-card-hover p-8 relative overflow-hidden">
-                {/* Background animation */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                <div className="relative z-10 grid md:grid-cols-2 gap-6 items-center">
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Badge className="bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-white border-purple-500/30 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        NEW
-                      </Badge>
-                    </div>
-                    <h3 className="text-2xl md:text-3xl font-bold mb-3 text-white">
-                      AI Collaboration
-                    </h3>
-                    <p className="text-slate-300 text-lg mb-4">
-                      Let <span className="text-purple-400 font-semibold">Manus</span> and{' '}
-                      <span className="text-cyan-400 font-semibold">Claude</span> work together in real-time.
-                      Share thoughts, make decisions, and build faster with dual-AI teamwork.
-                    </p>
-                    <ul className="space-y-2 text-sm text-slate-400 mb-6">
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                        Real-time thought sharing between AI agents
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                        Synchronized progress tracking & decisions
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                        Live collaboration dashboard for monitoring
-                      </li>
-                    </ul>
-                    <Button className="bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 text-white group-hover:scale-105 transition-transform">
-                      <Users className="w-4 h-4 mr-2" />
-                      Start Collaborating
-                      <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <div className="hidden md:flex items-center justify-center">
-                    <div className="glass-card p-6 text-center">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-center gap-3">
-                          <span className="text-purple-400 font-semibold">Manus</span>
-                          <span className="text-white/40">×</span>
-                          <span className="text-cyan-400 font-semibold">Claude</span>
-                        </div>
-                        <p className="text-sm text-slate-400">Dual-AI real-time collaboration</p>
-                        <div className="flex items-center justify-center gap-2 text-xs text-green-400">
-                          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                          Live collaboration active
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -410,6 +361,7 @@ export default function Home() {
                 <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Packages</Link></li>
                 <li><Link href="/memory-marketplace" className="hover:text-foreground transition-colors">Memory Packages</Link></li>
                 <li><Link href="/reasoning-chains" className="hover:text-foreground transition-colors">Reasoning Chains</Link></li>
+                <li><Link href="/ai-collaboration" className="hover:text-foreground transition-colors">AI Collaboration</Link></li>
                 <li><Link href="/robotics" className="hover:text-foreground transition-colors">Robotics</Link></li>
               </ul>
             </div>

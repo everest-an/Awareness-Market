@@ -47,14 +47,14 @@ const navLinks = [
       { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
       { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
+      { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork" },
+      { label: "Robotics", href: "/robotics", icon: Bot, description: "Robot management & VR control" },
       { label: "AI Agents", href: "/agents", icon: Rocket, description: "ERC-8004 agent registry" },
     ]
   },
   {
     label: "Tools",
     children: [
-      { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork", featured: true },
-      { label: "Robotics", href: "/robotics", icon: Bot, description: "Robot management & VR control" },
       { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
