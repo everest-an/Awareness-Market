@@ -9,22 +9,22 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Check if EC2_SSH_KEY is set
+      - name: Check if AWARENESS secret is set
         env:
-          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          SSH_KEY: ${{ secrets.AWARENESS }}
         run: |
           if [ -z "$SSH_KEY" ]; then
-            echo "❌ ERROR: EC2_SSH_KEY secret is NOT set!"
+            echo "❌ ERROR: AWARENESS secret is NOT set!"
             echo "Please add it in: Repository Settings → Secrets and Variables → Actions"
             exit 1
           else
-            echo "✅ EC2_SSH_KEY secret is configured"
+            echo "✅ AWARENESS secret is configured"
             echo "Key length: ${#SSH_KEY} characters"
           fi
       
       - name: Test SSH key format
         env:
-          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          SSH_KEY: ${{ secrets.AWARENESS }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/test-key.pem
