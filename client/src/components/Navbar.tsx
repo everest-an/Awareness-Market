@@ -37,6 +37,7 @@ import {
   Wallet,
   Database,
   AlertTriangle,
+  Bot,
 } from "lucide-react";
 
 const navLinks = [
@@ -53,6 +54,7 @@ const navLinks = [
     label: "Tools",
     children: [
       { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork", featured: true },
+      { label: "Robotics", href: "/robotics", icon: Bot, description: "Robot management & VR control" },
       { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },

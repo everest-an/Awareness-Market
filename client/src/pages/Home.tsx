@@ -21,7 +21,8 @@ import {
   ChevronRight,
   ExternalLink,
   Users,
-  MessageSquare
+  MessageSquare,
+  Bot
 } from "lucide-react";
 
 export default function Home() {
@@ -142,7 +143,7 @@ export default function Home() {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Vector Package Market Card */}
             <Link href="/marketplace" className="group">
               <div className="glass-card-hover p-6 h-full">
@@ -183,6 +184,21 @@ export default function Home() {
                 </p>
                 <div className="flex items-center text-sm text-green-400">
                   Browse Chains
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+
+            {/* Robotics Card */}
+            <Link href="/robotics" className="group">
+              <div className="glass-card-hover p-6 h-full">
+                <Badge className="mb-3 text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/20">Robot Control</Badge>
+                <h3 className="text-xl font-semibold mb-2">Robotics</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Production-ready robot management middleware with VR control, multi-robot coordination, and 125x Redis-cached performance.
+                </p>
+                <div className="flex items-center text-sm text-cyan-400">
+                  Open Dashboard
                   <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -394,6 +410,7 @@ export default function Home() {
                 <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Packages</Link></li>
                 <li><Link href="/memory-marketplace" className="hover:text-foreground transition-colors">Memory Packages</Link></li>
                 <li><Link href="/reasoning-chains" className="hover:text-foreground transition-colors">Reasoning Chains</Link></li>
+                <li><Link href="/robotics" className="hover:text-foreground transition-colors">Robotics</Link></li>
               </ul>
             </div>
             
