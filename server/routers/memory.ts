@@ -14,6 +14,8 @@ import {
   createConflictResolver,
   createVersionTreeManager,
   createSemanticConflictDetector,
+  createMemoryPoolRouter,
+  createMemoryPromoter,
 } from '../memory-core';
 import { createLogger } from '../utils/logger';
 
@@ -24,6 +26,8 @@ let memoryRouterInstance: ReturnType<typeof createMemoryRouter> | null = null;
 let conflictResolver: ReturnType<typeof createConflictResolver> | null = null;
 let versionTreeManager: ReturnType<typeof createVersionTreeManager> | null = null;
 let semanticDetector: ReturnType<typeof createSemanticConflictDetector> | null = null;
+let poolRouter: ReturnType<typeof createMemoryPoolRouter> | null = null;
+let memoryPromoter: ReturnType<typeof createMemoryPromoter> | null = null;
 
 function getMemoryRouter() {
   if (!memoryRouterInstance) {
@@ -55,6 +59,22 @@ function getSemanticDetector() {
     logger.info('[Memory:API] Semantic detector initialized');
   }
   return semanticDetector;
+}
+
+function getPoolRouter() {
+  if (!poolRouter) {
+    poolRouter = createMemoryPoolRouter(prisma);
+    logger.info('[Memory:API] Pool router initialized');
+  }
+  return poolRouter;
+}
+
+function getMemoryPromoter() {
+  if (!memoryPromoter) {
+    memoryPromoter = createMemoryPromoter(prisma);
+    logger.info('[Memory:API] Memory promoter initialized');
+  }
+  return memoryPromoter;
 }
 
 // ============================================================================
@@ -504,7 +524,7 @@ export const memoryRouter = router({
 
       try {
         const conflicts = await resolver.listConflicts({
-          org_id: `org-${ctx.user.id}`,
+          orgId: `org-${ctx.user.id}`,
           status: input.status,
           conflict_type: input.conflict_type,
           limit: input.limit,
@@ -518,13 +538,13 @@ export const memoryRouter = router({
               id: c.memory1.id,
               content: c.memory1.content.substring(0, 200),
               confidence: c.memory1.confidence,
-              created_at: c.memory1.created_at,
+              createdAt: c.memory1.createdAt,
             },
             memory2: {
               id: c.memory2.id,
               content: c.memory2.content.substring(0, 200),
               confidence: c.memory2.confidence,
-              created_at: c.memory2.created_at,
+              createdAt: c.memory2.createdAt,
             },
             conflict_type: c.conflictType,
             status: c.status,
@@ -620,6 +640,44 @@ export const memoryRouter = router({
     }),
 
   /**
+   * Auto-resolve a conflict (higher-scoring memory wins)
+   */
+  autoResolveConflict: protectedProcedure
+    .input(z.object({ conflict_id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const resolver = getConflictResolver();
+      try {
+        const result = await resolver.autoResolve(input.conflict_id, ctx.user.id.toString());
+        logger.info(`[Memory:API] Auto-resolved conflict ${input.conflict_id}`);
+        return { success: true, conflictId: result.id };
+      } catch (error: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to auto-resolve conflict',
+        });
+      }
+    }),
+
+  /**
+   * Request LLM arbitration for a high-severity conflict
+   */
+  requestArbitration: protectedProcedure
+    .input(z.object({ conflict_id: z.string() }))
+    .mutation(async ({ input }) => {
+      const resolver = getConflictResolver();
+      try {
+        const result = await resolver.requestArbitration(input.conflict_id);
+        logger.info(`[Memory:API] Arbitration requested for conflict ${input.conflict_id}, queued: ${result.queued}`);
+        return result;
+      } catch (error: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to request arbitration',
+        });
+      }
+    }),
+
+  /**
    * Run semantic conflict detection (LLM-based)
    */
   runSemanticDetection: protectedProcedure
@@ -675,8 +733,8 @@ export const memoryRouter = router({
             content: v.content,
             confidence: v.confidence,
             version: v.version,
-            created_by: v.created_by,
-            created_at: v.created_at,
+            createdBy: v.createdBy,
+            createdAt: v.createdAt,
             parent_id: v.parentId,
           })),
           root: {
@@ -883,16 +941,43 @@ export const memoryRouter = router({
     .input(
       z.object({
         memory_id: z.string().uuid(),
+        orgId: z.number(),
         depth: z.number().min(1).max(3).default(1),
       })
     )
     .query(async ({ input, ctx }) => {
       try {
+        // ✅ Verify user is member of organization
+        const membership = await prisma.orgMembership.findUnique({
+          where: {
+            userId_organizationId: { userId: ctx.user.id, organizationId: input.orgId }
+          }
+        });
+        if (!membership) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Not a member of this organization' });
+        }
+
+        // ✅ Verify center memory belongs to organization
+        const centerMemory = await prisma.memoryEntry.findUnique({
+          where: { id: input.memory_id },
+          select: { organizationId: true }
+        });
+        if (!centerMemory || centerMemory.organizationId !== input.orgId) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Memory not found in your organization' });
+        }
+
+        // ✅ Query relations with organizationId filter
         const relations = await prisma.memoryRelation.findMany({
           where: {
-            OR: [
-              { sourceMemoryId: input.memory_id },
-              { targetMemoryId: input.memory_id },
+            AND: [
+              {
+                OR: [
+                  { sourceMemoryId: input.memory_id },
+                  { targetMemoryId: input.memory_id },
+                ],
+              },
+              { sourceMemory: { organizationId: input.orgId } },
+              { targetMemory: { organizationId: input.orgId } },
             ],
           },
           include: {
@@ -980,21 +1065,37 @@ export const memoryRouter = router({
     .input(
       z.object({
         entity_name: z.string().min(1),
+        orgId: z.number(),
         entity_type: z.string().optional(),
         limit: z.number().min(1).max(100).default(10),
       })
     )
     .query(async ({ input, ctx }) => {
       try {
+        // ✅ Verify user is member of organization
+        const membership = await prisma.orgMembership.findUnique({
+          where: {
+            userId_organizationId: { userId: ctx.user.id, organizationId: input.orgId }
+          }
+        });
+        if (!membership) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Not a member of this organization' });
+        }
+
         const normalizedName = input.entity_name.toLowerCase().replace(/\s+/g, '_');
 
+        // ✅ Filter by organizationId through memories relation
         const entityTag = await prisma.entityTag.findFirst({
           where: {
             normalizedName: { contains: normalizedName },
             ...(input.entity_type && { type: input.entity_type }),
+            memories: {
+              some: { organizationId: input.orgId }
+            }
           },
           include: {
             memories: {
+              where: { organizationId: input.orgId },
               take: input.limit,
               orderBy: { createdAt: 'desc' },
             },
@@ -1038,14 +1139,31 @@ export const memoryRouter = router({
   getHotEntities: protectedProcedure
     .input(
       z.object({
+        orgId: z.number(),
         entity_type: z.string().optional(),
         limit: z.number().min(1).max(50).default(10),
       })
     )
     .query(async ({ input, ctx }) => {
       try {
+        // ✅ Verify user is member of organization
+        const membership = await prisma.orgMembership.findUnique({
+          where: {
+            userId_organizationId: { userId: ctx.user.id, organizationId: input.orgId }
+          }
+        });
+        if (!membership) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Not a member of this organization' });
+        }
+
+        // ✅ Filter entities that have memories in this organization
         const entities = await prisma.entityTag.findMany({
-          where: input.entity_type ? { type: input.entity_type } : undefined,
+          where: {
+            ...(input.entity_type && { type: input.entity_type }),
+            memories: {
+              some: { organizationId: input.orgId }
+            }
+          },
           orderBy: { mentionCount: 'desc' },
           take: input.limit,
         });
@@ -1064,6 +1182,79 @@ export const memoryRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: error.message || 'Failed to get hot entities',
+        });
+      }
+    }),
+
+  // ============================================================================
+  // v3 Phase 2: Memory Pool Endpoints
+  // ============================================================================
+
+  /** Get pool stats for an organization */
+  getPoolStats: protectedProcedure
+    .input(z.object({ orgId: z.number() }))
+    .query(async ({ input }) => {
+      try {
+        return await getPoolRouter().getPoolStats(input.orgId);
+      } catch (error: any) {
+        logger.error('[Memory:API] Failed to get pool stats:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to get pool stats',
+        });
+      }
+    }),
+
+  /** Pool-aware retrieval (Private → Domain → Global) */
+  poolRetrieve: protectedProcedure
+    .input(z.object({
+      orgId: z.number(),
+      query: z.string().min(1).max(1000),
+      pools: z.array(z.enum(['private', 'domain', 'global'])).optional(),
+      agentId: z.string().optional(),
+      departmentId: z.number().optional(),
+      maxTokens: z.number().min(100).max(32000).default(4096),
+      maxResults: z.number().min(1).max(50).default(10),
+      minScore: z.number().min(0).max(100).default(0),
+    }))
+    .query(async ({ input }) => {
+      try {
+        return await getPoolRouter().retrieve(input);
+      } catch (error: any) {
+        logger.error('[Memory:API] Pool retrieval failed:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Pool retrieval failed',
+        });
+      }
+    }),
+
+  /** Promote a memory from domain → global */
+  promoteMemory: protectedProcedure
+    .input(z.object({ memoryId: z.string().uuid() }))
+    .mutation(async ({ input }) => {
+      try {
+        return await getMemoryPromoter().tryPromote(input.memoryId);
+      } catch (error: any) {
+        logger.error('[Memory:API] Memory promotion failed:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Memory promotion failed',
+        });
+      }
+    }),
+
+  /** Scan and auto-promote eligible memories for an org */
+  scanPromotions: protectedProcedure
+    .input(z.object({ orgId: z.number() }))
+    .mutation(async ({ input }) => {
+      try {
+        return await getMemoryPromoter().scanAndPromote(input.orgId);
+      } catch (error: any) {
+        logger.error('[Memory:API] Promotion scan failed:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Promotion scan failed',
         });
       }
     }),

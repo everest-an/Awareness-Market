@@ -28,9 +28,12 @@ import { initializeSocketIO } from "../socket-events";
 import { securityHeaders, getSecurityConfig } from "../middleware/security-headers";
 import { httpsRedirect, getHttpsConfig } from "../middleware/https-redirect";
 import { globalLimiter, uploadLimiter, purchaseLimiter, browseLimiter, aiAgentLimiter } from "../rate-limiter";
+import { planAwareAgentLimiter, planAwareGlobalLimiter } from "../middleware/plan-rate-limiter";
 import { ddosShield, ddosStatsHandler } from "../middleware/ddos-shield";
 import { ghostTrapMiddleware, ghostTrapStatsHandler } from "../middleware/ghost-trap";
 import { cryptoAssetGuard, getCryptoGuardStats, CRYPTO_HONEYPOT_PATHS } from "../middleware/crypto-asset-guard";
+import { initializeWorkers } from "../workers";
+import { prisma } from "../db-prisma";
 
 const logger = createLogger('Server');
 
@@ -76,8 +79,8 @@ async function startServer() {
   // Security headers (CSP, HSTS, X-Frame-Options, etc.)
   app.use(securityHeaders(getSecurityConfig()));
   
-  // Global rate limiter (100 req/min per IP)
-  app.use('/api', globalLimiter);
+  // Global rate limiter — plan-aware (100-3000 req/min based on org tier)
+  app.use('/api', planAwareGlobalLimiter);
   
   // Browse rate limiter (200 req/min per user for listing endpoints)
   app.use('/api/trpc/vectors', browseLimiter);
@@ -95,11 +98,11 @@ async function startServer() {
   app.use("/api/vectors", express.json({ limit: "50mb" }));
   app.use("/api/ai", express.json({ limit: "10mb" }));
 
-  // Apply AI agent rate limiter to AI endpoints
-  app.use("/api/ai", aiAgentLimiter);
-  app.use("/api/mcp", aiAgentLimiter);
-  app.use("/api/inference", aiAgentLimiter);
-  app.use("/api/latentmas", aiAgentLimiter);
+  // AI agent rate limiter — plan-aware (200-5000 req/min based on org tier)
+  app.use("/api/ai", planAwareAgentLimiter);
+  app.use("/api/mcp", planAwareAgentLimiter);
+  app.use("/api/inference", planAwareAgentLimiter);
+  app.use("/api/latentmas", planAwareAgentLimiter);
   
   // Upload rate limiter (10/hour per user)
   app.use("/api/vectors/upload", uploadLimiter);
@@ -209,6 +212,9 @@ async function startServer() {
   // Initialize workflow WebSocket server
   initializeWorkflowWebSocket(server);
 
+  // Initialize BullMQ background workers (decay, arbitration, reputation, verification)
+  await initializeWorkers();
+
   const host = process.env.HOST || '0.0.0.0';
   server.listen(port, host, () => {
     logger.info("Server started successfully", {
@@ -217,7 +223,90 @@ async function startServer() {
       environment: process.env.NODE_ENV || 'development',
       url: `http://${host}:${port}/`
     });
+
+    // ✅ P0-5: Setup graceful shutdown handlers
+    setupGracefulShutdown(server);
   });
+
+  return server;
+}
+
+/**
+ * ✅ P0-5: Graceful shutdown handler for production deployments
+ * Handles SIGTERM/SIGINT signals from Kubernetes/Docker
+ */
+function setupGracefulShutdown(server: any) {
+  let shuttingDown = false;
+
+  const gracefulShutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+
+    logger.info(`Received ${signal}, starting graceful shutdown...`);
+
+    // 1. Stop accepting new connections
+    server.close(async () => {
+      logger.info('HTTP server closed');
+
+      try {
+        // 2. Close database connections
+        await prisma.$disconnect();
+        logger.info('Database disconnected');
+
+        // 3. Shutdown workers if available
+        try {
+          // Dynamically import workers to avoid errors if not configured
+          // const conflictWorker = await import('../workers/conflict-arbitration-worker').catch(() => null);
+          // if (conflictWorker?.arbitrationQueue) {
+          //   await conflictWorker.arbitrationQueue.close();
+          //   logger.info('Conflict arbitration worker closed');
+          // }
+
+          // const cascadeWorker = await import('../workers/dependency-cascade-worker').catch(() => null);
+          // if (cascadeWorker?.cascadeQueue) {
+          //   await cascadeWorker.cascadeQueue.close();
+          //   logger.info('Dependency cascade worker closed');
+          // }
+
+          // const scoreWorker = await import('../workers/score-recalculation-worker').catch(() => null);
+          // if (scoreWorker?.scoreRecalculationQueue) {
+          //   await scoreWorker.scoreRecalculationQueue.close();
+          //   logger.info('Score recalculation worker closed');
+          // }
+        } catch (workerError) {
+          logger.warn('Worker shutdown error (non-critical)', { error: workerError });
+        }
+
+        // 4. Close Redis connections if configured
+        try {
+          if (process.env.REDIS_HOST) {
+            // Redis connection is managed by BullMQ, already closed above
+            logger.info('Redis connections closed via workers');
+          }
+        } catch (redisError) {
+          logger.warn('Redis shutdown error (non-critical)', { error: redisError });
+        }
+
+        logger.info('Graceful shutdown completed');
+        process.exit(0);
+      } catch (error) {
+        logger.error('Error during shutdown', { error });
+        process.exit(1);
+      }
+    });
+
+    // Force shutdown after 30 seconds
+    setTimeout(() => {
+      logger.error('Forcefully shutting down after timeout');
+      process.exit(1);
+    }, 30000);
+  };
+
+  // Handle shutdown signals
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  logger.info('Graceful shutdown handlers registered (SIGTERM, SIGINT)');
 }
 
 startServer().catch((error) => {

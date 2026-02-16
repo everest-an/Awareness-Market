@@ -22,7 +22,7 @@ import {
   DECAY_FACTORS,
 } from './schema';
 import { VectorStore } from './vector-store';
-import { calculateMemoryScore, rerank, QueryContext } from './scoring-engine';
+import { calculateMemoryScore, rerank, QueryContext, getMemoryTypeDecayFactor } from './scoring-engine';
 import { VersionManager } from './version-manager';
 import { EmbeddingService } from './embedding-service';
 import { createLogger } from '../utils/logger';
@@ -61,48 +61,127 @@ export class MemoryRouter {
       );
     }
 
+    // ✅ P0-2: Check memory quota if organizationId is provided
+    const organizationId = (input as any).organizationId || parseInt(input.org_id.split('-')[1]);
+    if (organizationId) {
+      const org = await this.prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { maxMemories: true, currentMemoryCount: true, planTier: true },
+      });
+
+      if (!org) {
+        throw new Error('Organization not found');
+      }
+
+      if (org.currentMemoryCount >= org.maxMemories) {
+        throw new Error(
+          `Memory limit reached (${org.maxMemories}). Current plan: ${org.planTier}. Upgrade to add more memories.`
+        );
+      }
+    }
+
     // Generate embedding
     let embedding: number[] | undefined;
     if (input.content_type === 'text' || input.content_type === 'code') {
       embedding = await this.embeddingService.generate(input.content);
     }
 
-    // Determine decay factor
-    const decay_factor = input.decay_factor || DECAY_FACTORS[input.content_type];
+    // Determine decay factor — v3: memoryType overrides content_type defaults
+    let decay_factor = input.decay_factor || DECAY_FACTORS[input.content_type];
+    if (input.memoryType) {
+      decay_factor = getMemoryTypeDecayFactor(input.memoryType);
+    }
 
-    // Create memory entry
+    // ✅ P0-2: Create memory entry + increment counter in transaction
     const memoryId = uuidv4();
-    const memory = await this.prisma.memoryEntry.create({
-      data: {
-        id: memoryId,
-        org_id: input.org_id,
-        namespace: input.namespace,
-        content_type: input.content_type,
-        content: input.content,
-        embedding: embedding ? `[${embedding.join(',')}]` : null,
-        metadata: input.metadata || {},
-        confidence: input.confidence,
-        reputation: 50, // Default initial reputation
-        usage_count: 0,
-        validation_count: 0,
-        version: 1,
-        parent_id: null,
-        is_latest: true,
-        created_by: input.created_by,
-        expires_at: input.expires_at,
-        decay_factor,
-        decay_checkpoint: new Date(),
-      },
+    await this.prisma.$transaction(async (tx: any) => {
+      // Create memory
+      const memory = await tx.memoryEntry.create({
+        data: {
+          id: memoryId,
+          org_id: input.org_id,
+          namespace: input.namespace,
+          content_type: input.content_type,
+          content: input.content,
+          embedding: embedding ? `[${embedding.join(',')}]` : null,
+          metadata: input.metadata || {},
+          confidence: input.confidence,
+          reputation: 50, // Default initial reputation
+          usage_count: 0,
+          validation_count: 0,
+          version: 1,
+          parent_id: null,
+          is_latest: true,
+          created_by: input.created_by,
+          expires_at: input.expires_at,
+          decay_factor,
+          decay_checkpoint: new Date(),
+          // v3 fields
+          ...(input.memoryType && { memoryType: input.memoryType }),
+          ...(input.poolType && { poolType: input.poolType }),
+          ...(input.departmentId && { department: String(input.departmentId) }),
+          ...(input.agentId && { agentId: input.agentId }),
+        },
+      });
+
+      // Calculate and store initial score
+      const score = calculateMemoryScore(memory);
+      await tx.memoryScore.create({
+        data: {
+          memory_id: memoryId,
+          ...score,
+        },
+      });
+
+      // ✅ P0-2: Increment organization memory counter
+      if (organizationId) {
+        await tx.organization.update({
+          where: { id: organizationId },
+          data: { currentMemoryCount: { increment: 1 } },
+        });
+      }
     });
 
-    // Calculate and store initial score
-    const score = calculateMemoryScore(memory);
-    await this.prisma.memoryScore.create({
-      data: {
-        memory_id: memoryId,
-        ...score,
-      },
-    });
+    // v3: Attach evidence if provided (outside transaction - non-critical)
+    if (input.evidence && input.evidence.length > 0) {
+      try {
+        for (const ev of input.evidence) {
+          await this.prisma.evidence.create({
+            data: {
+              memoryId,
+              evidenceType: ev.evidenceType,
+              sourceUrl: ev.sourceUrl,
+              sourceDoi: ev.sourceDoi,
+              claimType: ev.claimType,
+              assumptions: ev.assumptions || [],
+              unit: ev.unit,
+              dimension: ev.dimension,
+            },
+          });
+        }
+        logger.info(`[MemoryRouter] Attached ${input.evidence.length} evidence items to ${memoryId}`);
+      } catch (err: unknown) {
+        logger.warn(`[MemoryRouter] Evidence attachment failed for ${memoryId}: ${err}`);
+      }
+    }
+
+    // v3: Create dependencies if provided (outside transaction - non-critical)
+    if (input.dependencies && input.dependencies.length > 0) {
+      try {
+        for (const dep of input.dependencies) {
+          await this.prisma.memoryDependency.create({
+            data: {
+              sourceMemoryId: memoryId,
+              dependsOnMemoryId: dep.dependsOnMemoryId,
+              dependencyType: dep.dependencyType,
+            },
+          });
+        }
+        logger.info(`[MemoryRouter] Created ${input.dependencies.length} dependencies for ${memoryId}`);
+      } catch (err: unknown) {
+        logger.warn(`[MemoryRouter] Dependency creation failed for ${memoryId}: ${err}`);
+      }
+    }
 
     logger.info(`[MemoryRouter] Created memory ${memoryId} in ${input.namespace}`);
 
@@ -123,11 +202,7 @@ export class MemoryRouter {
       const { createEntityExtractor, createRelationBuilder } = await import('./index');
 
       // 1. Extract entities
-      const extractor = createEntityExtractor({
-        enableLLM: process.env.RMC_ENABLE_LLM === 'true',
-        openaiApiKey: process.env.OPENAI_API_KEY,
-        model: process.env.OPENAI_MODEL_ENTITY || 'gpt-4o-mini',
-      });
+      const extractor = createEntityExtractor();
 
       const extractionResult = await extractor.extract(input.content);
 
@@ -172,20 +247,12 @@ export class MemoryRouter {
       }
 
       // 4. Build relations (with coarse filtering)
-      const builder = createRelationBuilder(this.prisma, {
-        enableLLM: process.env.RMC_ENABLE_LLM === 'true',
-        openaiApiKey: process.env.OPENAI_API_KEY,
-        model: process.env.OPENAI_MODEL_RELATION || 'gpt-4o-mini',
-        candidateLimit: 20,
-        minEntityOverlap: 1,
-        minVectorSimilarity: 0.75,
-        maxCandidateAge: 30,
-      });
+      const builder = createRelationBuilder(this.prisma);
 
       const relationsCount = await builder.buildRelations(memoryId);
       logger.info(`[RMC] Created ${relationsCount} relations for memory ${memoryId}`);
     } catch (error) {
-      logger.error(`[RMC] Async processing failed for memory ${memoryId}:`, error);
+      logger.error(`[RMC] Async processing failed for memory ${memoryId}:`, error as any);
       // Don't throw - memory is already created
     }
   }
@@ -241,7 +308,7 @@ export class MemoryRouter {
     });
 
     // Build results with similarity scores
-    const results = memories.map((memory) => {
+    const results = memories.map((memory: any) => {
       const vectorResult = vectorResults.find((r) => r.id === memory.id);
       return {
         memory,
@@ -421,7 +488,7 @@ export class MemoryRouter {
         });
       }
     } catch (error) {
-      logger.error('[MemoryRouter] Failed to recalculate scores:', error);
+      logger.error('[MemoryRouter] Failed to recalculate scores:', error as any);
     }
   }
 

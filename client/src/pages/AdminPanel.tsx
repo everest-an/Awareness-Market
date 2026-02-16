@@ -19,6 +19,11 @@ import {
   Clock,
   BarChart3,
   Settings,
+  Building2,
+  Crown,
+  Shield,
+  Database,
+  Bot,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -146,6 +151,10 @@ function AdminPanelContent() {
             <TabsTrigger value="users">
               <Users className="mr-2 h-4 w-4" />
               Top Users
+            </TabsTrigger>
+            <TabsTrigger value="organizations">
+              <Building2 className="mr-2 h-4 w-4" />
+              Organizations
             </TabsTrigger>
           </TabsList>
 
@@ -346,6 +355,11 @@ function AdminPanelContent() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Organizations Tab */}
+          <TabsContent value="organizations" className="space-y-4">
+            <OrganizationsPanel />
+          </TabsContent>
         </Tabs>
 
         {/* Rate Limit Configuration Dialog */}
@@ -457,5 +471,118 @@ function RateLimitDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const PLAN_TIERS: Record<string, { label: string; color: string; icon: typeof Crown }> = {
+  lite: { label: "Lite", color: "bg-slate-500/20 text-slate-300", icon: Shield },
+  team: { label: "Team", color: "bg-blue-500/20 text-blue-400", icon: Users },
+  enterprise: { label: "Enterprise", color: "bg-purple-500/20 text-purple-400", icon: Crown },
+  scientific: { label: "Scientific", color: "bg-cyan-500/20 text-cyan-400", icon: Database },
+};
+
+function OrganizationsPanel() {
+  const { data: orgs, isLoading } = trpc.organization.listAll.useQuery(
+    undefined,
+    { retry: false }
+  );
+
+  if (isLoading) {
+    return <p className="text-muted-foreground text-center py-8">Loading organizations...</p>;
+  }
+
+  const orgList = orgs ?? [];
+
+  // Aggregate stats
+  const totalOrgs = orgList.length;
+  const byTier = orgList.reduce((acc: Record<string, number>, org: any) => {
+    const tier = org.planTier || "lite";
+    acc[tier] = (acc[tier] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <Building2 className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+            <div className="text-2xl font-bold">{totalOrgs}</div>
+            <div className="text-xs text-muted-foreground">Total Organizations</div>
+          </CardContent>
+        </Card>
+        {Object.entries(PLAN_TIERS).map(([key, tier]) => (
+          <Card key={key}>
+            <CardContent className="pt-6 text-center">
+              <tier.icon className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+              <div className="text-2xl font-bold">{byTier[key] || 0}</div>
+              <div className="text-xs text-muted-foreground">{tier.label} Plan</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Organizations List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            All Organizations
+          </CardTitle>
+          <CardDescription>
+            Platform-wide organization management
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {orgList.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Building2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+              <p>No organizations yet</p>
+              <p className="text-sm mt-1">Organizations will appear here once created.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {orgList.map((org: any) => {
+                const tier = PLAN_TIERS[org.planTier] || PLAN_TIERS.lite;
+                const TierIcon = tier.icon;
+                return (
+                  <div
+                    key={org.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                        <Building2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{org.name}</p>
+                        <p className="text-sm text-muted-foreground font-mono">{org.slug}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right text-sm">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Bot className="h-3 w-3" />
+                          {org._count?.agents ?? org.maxAgents ?? '—'} agents
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Database className="h-3 w-3" />
+                          {org._count?.memories ?? '—'} memories
+                        </div>
+                      </div>
+                      <Badge className={tier.color}>
+                        <TierIcon className="h-3 w-3 mr-1" />
+                        {tier.label}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
