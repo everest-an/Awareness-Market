@@ -276,7 +276,7 @@ jobs:
 
       - name: Configure SSH
         env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_SSH_KEY: ${{ secrets.AWARENESS }}
         run: |
           mkdir -p ~/.ssh
           echo "$EC2_SSH_KEY" > ~/.ssh/awareness-key.pem
