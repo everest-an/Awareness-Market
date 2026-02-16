@@ -7,6 +7,7 @@
  * - Structured logging with context
  * - Timestamp formatting
  * - Optional JSON output for production
+ * - ✅ P1 Security: Automatic sensitive data masking
  *
  * Usage:
  * import { logger } from './utils/logger';
@@ -15,6 +16,8 @@
  * logger.error('Database connection failed', { error });
  * logger.debug('Cache hit', { key: 'user:123' });
  */
+
+import { sanitizeTextContent, maskSensitiveFields } from './data-masking';
 
 export enum LogLevel {
   DEBUG = 0,
@@ -167,7 +170,11 @@ export class Logger {
       return;
     }
 
-    const formatted = this.formatMessage(level, message, context);
+    // ✅ P1 Security: Sanitize message and context to remove sensitive data
+    const sanitizedMessage = sanitizeTextContent(message);
+    const sanitizedContext = context ? maskSensitiveFields(context) : undefined;
+
+    const formatted = this.formatMessage(level, sanitizedMessage, sanitizedContext);
 
     // Output to appropriate stream
     if (level >= LogLevel.ERROR) {
