@@ -17,14 +17,10 @@ import * as db from "./db";
 import { runVector } from "./vector-runtime";
 import { invokeLLM } from "./_core/llm";
 import { validateApiKey, AuthenticatedRequest } from "./ai-auth-api";
-import type { InferSelectModel } from "drizzle-orm";
+import type { LatentVector, AccessPermission } from "@prisma/client";
 import { createLogger } from "./utils/logger";
 
 const logger = createLogger('MCP:API');
-import { latentVectors, accessPermissions } from "../drizzle/schema";
-
-type LatentVector = InferSelectModel<typeof latentVectors>;
-type AccessPermission = InferSelectModel<typeof accessPermissions>;
 
 interface Agent {
   messages?: Array<{ role: string; content: string }>;
@@ -102,14 +98,14 @@ mcpRouter.get("/discover", async (req, res) => {
         performance,
         pricing: {
           model: v.pricingModel,
-          base_price: parseFloat(v.basePrice),
+          base_price: parseFloat(v.basePrice.toString()),
           currency: "USD",
         },
         metadata: {
           creator_id: v.creatorId,
           created_at: v.createdAt,
           total_calls: v.totalCalls,
-          average_rating: parseFloat(v.averageRating || "0"),
+          average_rating: parseFloat((v.averageRating || "0").toString()),
           review_count: v.reviewCount,
         },
       };
@@ -229,7 +225,7 @@ mcpRouter.get("/vectors/:id", async (req, res) => {
         performance_metrics: performance,
         pricing: {
           model: vector.pricingModel,
-          base_price: parseFloat(vector.basePrice),
+          base_price: parseFloat(vector.basePrice.toString()),
         },
         access_requirements: {
           authentication: "token",
@@ -456,7 +452,7 @@ mcpRouter.post("/sync", async (req, res) => {
 
         const llmResult = await invokeLLM({
           messages: agentMessages.length > 0
-            ? agentMessages.filter((m): m is LLMMessage => m !== null)
+            ? agentMessages.filter((m): m is LLMMessage => m !== null) as any
             : [{ role: "user", content: JSON.stringify(agentContext) }],
         });
 
@@ -596,6 +592,383 @@ mcpRouter.get("/health", (req, res) => {
     version: "1.0.0",
     timestamp: new Date().toISOString(),
   });
+});
+
+/**
+ * WebMCP Authentication Endpoints
+ */
+
+// In-memory storage for device codes (should use Redis in production)
+const deviceCodes = new Map<string, {
+  user_code: string;
+  device_code: string;
+  client_id: string;
+  scope: string;
+  expires_at: Date;
+  authorized: boolean;
+  access_token?: string;
+  user_id?: number;
+}>();
+
+/**
+ * POST /api/mcp/auth/verify
+ * Verify MCP token and create session
+ */
+mcpRouter.post("/auth/verify", async (req, res) => {
+  try {
+    const mcpTokenHeader = req.headers["x-mcp-token"] as string | undefined;
+    const bodyToken = req.body?.token;
+    const mcpToken = mcpTokenHeader || bodyToken;
+
+    if (!mcpToken) {
+      return res.status(401).json({ error: "Missing MCP token" });
+    }
+
+    // Verify token
+    const mcpRecord = await db.getMcpTokenByToken(mcpToken);
+    if (!mcpRecord) {
+      return res.status(403).json({ error: "Invalid or expired MCP token" });
+    }
+
+    // Check expiration
+    if (mcpRecord.expiresAt && new Date(mcpRecord.expiresAt) < new Date()) {
+      return res.status(403).json({ error: "MCP token expired" });
+    }
+
+    // Update last used timestamp
+    await (db as any).updateMcpTokenLastUsed?.(mcpRecord.id);
+
+    // Parse permissions
+    let permissions: string[] = [];
+    if (mcpRecord.permissions) {
+      try {
+        permissions = JSON.parse(mcpRecord.permissions);
+      } catch {
+        permissions = ['read', 'write_with_confirmation'];
+      }
+    }
+
+    // Create session
+    const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24); // 24-hour session
+
+    res.json({
+      success: true,
+      sessionId,
+      userId: mcpRecord.userId,
+      capabilities: permissions,
+      expiresAt: expiresAt.toISOString(),
+      tokenPrefix: mcpRecord.tokenPrefix,
+    });
+  } catch (error) {
+    logger.error('Auth verify error:', { error });
+    res.status(500).json({ error: "Authentication failed" });
+  }
+});
+
+/**
+ * POST /api/mcp/auth/device
+ * Start OAuth 2.0 device authorization flow
+ */
+mcpRouter.post("/auth/device", async (req, res) => {
+  try {
+    const { client_id, scope } = req.body;
+
+    if (!client_id) {
+      return res.status(400).json({ error: "Missing client_id" });
+    }
+
+    // Generate device code and user code
+    const device_code = `dc_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    const user_code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // Store device code
+    const expires_at = new Date();
+    expires_at.setMinutes(expires_at.getMinutes() + 10); // 10-minute expiry
+
+    deviceCodes.set(device_code, {
+      user_code,
+      device_code,
+      client_id,
+      scope: scope || 'read:vectors read:memories',
+      expires_at,
+      authorized: false,
+    });
+
+    // Verification URI (adjust based on your deployment)
+    const verification_uri = `${req.protocol}://${req.get('host')}/mcp-authorize`;
+
+    res.json({
+      device_code,
+      user_code,
+      verification_uri,
+      expires_in: 600, // 10 minutes in seconds
+      interval: 5, // Poll every 5 seconds
+    });
+  } catch (error) {
+    logger.error('Device auth error:', { error });
+    res.status(500).json({ error: "Failed to start device flow" });
+  }
+});
+
+/**
+ * POST /api/mcp/auth/token
+ * Poll for device authorization status
+ */
+mcpRouter.post("/auth/token", async (req, res) => {
+  try {
+    const { grant_type, device_code, client_id } = req.body;
+
+    if (grant_type !== 'urn:ietf:params:oauth:grant-type:device_code') {
+      return res.status(400).json({ error: "unsupported_grant_type" });
+    }
+
+    if (!device_code) {
+      return res.status(400).json({ error: "invalid_request", error_description: "Missing device_code" });
+    }
+
+    const deviceAuth = deviceCodes.get(device_code);
+
+    if (!deviceAuth) {
+      return res.status(400).json({ error: "invalid_grant", error_description: "Invalid device_code" });
+    }
+
+    // Check expiration
+    if (new Date() > deviceAuth.expires_at) {
+      deviceCodes.delete(device_code);
+      return res.status(400).json({ error: "expired_token" });
+    }
+
+    // Check if authorized
+    if (!deviceAuth.authorized) {
+      return res.status(400).json({ error: "authorization_pending" });
+    }
+
+    // Return access token
+    if (deviceAuth.access_token) {
+      res.json({
+        access_token: deviceAuth.access_token,
+        token_type: "Bearer",
+        expires_in: 2592000, // 30 days
+        scope: deviceAuth.scope,
+      });
+
+      // Clean up device code
+      deviceCodes.delete(device_code);
+    } else {
+      return res.status(400).json({ error: "authorization_pending" });
+    }
+  } catch (error) {
+    logger.error('Token poll error:', { error });
+    res.status(500).json({ error: "Failed to process token request" });
+  }
+});
+
+/**
+ * POST /api/mcp/auth/authorize
+ * User authorizes device (called from web UI)
+ */
+mcpRouter.post("/auth/authorize", validateApiKey, async (req, res) => {
+  try {
+    const { user_code } = req.body;
+    const userId = (req as AuthenticatedRequest).apiKeyUserId as number;
+
+    if (!user_code) {
+      return res.status(400).json({ error: "Missing user_code" });
+    }
+
+    // Find device code by user code
+    let foundDeviceCode: string | null = null;
+    for (const [dc, data] of deviceCodes.entries()) {
+      if (data.user_code === user_code.toUpperCase()) {
+        foundDeviceCode = dc;
+        break;
+      }
+    }
+
+    if (!foundDeviceCode) {
+      return res.status(404).json({ error: "Invalid user code" });
+    }
+
+    const deviceAuth = deviceCodes.get(foundDeviceCode)!;
+
+    // Check expiration
+    if (new Date() > deviceAuth.expires_at) {
+      deviceCodes.delete(foundDeviceCode);
+      return res.status(400).json({ error: "User code expired" });
+    }
+
+    // Create MCP token for this authorization
+    const mcpTokenData = await db.createMcpToken({
+      userId,
+      name: `OAuth Device Flow (${deviceAuth.client_id})`,
+      permissions: deviceAuth.scope.split(' ').map(s => s.replace('read:', '').replace('write:', '')),
+      expiresInDays: 30,
+    });
+
+    // Mark as authorized
+    deviceAuth.authorized = true;
+    deviceAuth.access_token = mcpTokenData.token;
+    deviceAuth.user_id = userId;
+
+    res.json({
+      success: true,
+      message: "Device authorized successfully",
+      scope: deviceAuth.scope,
+    });
+  } catch (error) {
+    logger.error('Authorize error:', { error });
+    res.status(500).json({ error: "Failed to authorize device" });
+  }
+});
+
+/**
+ * Cleanup expired device codes (run periodically)
+ */
+setInterval(() => {
+  const now = new Date();
+  for (const [device_code, data] of deviceCodes.entries()) {
+    if (now > data.expires_at) {
+      deviceCodes.delete(device_code);
+    }
+  }
+}, 60000); // Every minute
+
+// ============================================================================
+// v3: Organization-scoped MCP endpoints
+// ============================================================================
+
+/**
+ * MCP Organization Memory Query
+ * POST /api/mcp/org/memory/query
+ *
+ * Query memories within an organization scope with pool awareness
+ */
+mcpRouter.post("/org/memory/query", validateApiKey, async (req, res) => {
+  try {
+    const schema = z.object({
+      org_id: z.number(),
+      query: z.string().min(1).max(1000),
+      pools: z.array(z.enum(["private", "domain", "global"])).optional(),
+      agent_id: z.string().optional(),
+      department_id: z.number().optional(),
+      max_results: z.number().min(1).max(50).default(10),
+    });
+
+    const body = schema.parse(req.body);
+    const { prisma } = await import("./db-prisma");
+    const { createMemoryPoolRouter } = await import("./memory-core");
+    const poolRouter = createMemoryPoolRouter(prisma);
+
+    const results = await poolRouter.retrieve({
+      orgId: body.org_id,
+      query: body.query,
+      pools: body.pools,
+      agentId: body.agent_id,
+      departmentId: body.department_id,
+      maxResults: body.max_results,
+      maxTokens: 4096,
+      minScore: 0,
+    });
+
+    res.json({
+      protocol: "MCP/1.0",
+      org_id: body.org_id,
+      ...results,
+    });
+  } catch (error) {
+    logger.error("MCP org memory query error:", { error });
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Invalid request", details: error.issues });
+    }
+    res.status(500).json({ error: "Organization memory query failed" });
+  }
+});
+
+/**
+ * MCP Record Decision
+ * POST /api/mcp/org/decision
+ *
+ * Record an AI decision for the audit trail
+ */
+mcpRouter.post("/org/decision", validateApiKey, async (req, res) => {
+  try {
+    const schema = z.object({
+      org_id: z.number(),
+      agent_id: z.string(),
+      input_query: z.string(),
+      output: z.string(),
+      confidence: z.number().min(0).max(1),
+      retrieved_memory_ids: z.array(z.string()).optional(),
+      department_id: z.number().optional(),
+      model_used: z.string().optional(),
+      latency_ms: z.number().optional(),
+    });
+
+    const body = schema.parse(req.body);
+    const { prisma } = await import("./db-prisma");
+    const { DecisionRecorder } = await import("./decision/decision-recorder");
+    const recorder = new DecisionRecorder(prisma);
+
+    const decision = await recorder.record({
+      organizationId: body.org_id,
+      agentId: body.agent_id,
+      inputQuery: body.input_query,
+      output: body.output,
+      confidence: body.confidence,
+      retrievedMemoryIds: body.retrieved_memory_ids || [],
+      departmentId: body.department_id,
+      modelUsed: body.model_used,
+      latencyMs: body.latency_ms,
+    });
+
+    res.status(201).json({
+      protocol: "MCP/1.0",
+      decision_id: (decision as any).id,
+      org_id: body.org_id,
+      recorded_at: (decision as any).createdAt,
+    });
+  } catch (error) {
+    logger.error("MCP decision record error:", { error });
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Invalid request", details: error.issues });
+    }
+    res.status(500).json({ error: "Decision recording failed" });
+  }
+});
+
+/**
+ * MCP Agent Reputation
+ * GET /api/mcp/org/reputation
+ *
+ * Get agent reputation within an organization
+ */
+mcpRouter.get("/org/reputation", validateApiKey, async (req, res) => {
+  try {
+    const orgId = parseInt(req.query.org_id as string);
+    const agentId = req.query.agent_id as string;
+
+    if (!orgId || !agentId) {
+      return res.status(400).json({ error: "org_id and agent_id are required" });
+    }
+
+    const { prisma } = await import("./db-prisma");
+    const { ReputationEngine } = await import("./reputation/reputation-engine");
+    const engine = new ReputationEngine(prisma);
+
+    const reputation = await engine.getProfile(agentId, orgId);
+
+    res.json({
+      protocol: "MCP/1.0",
+      org_id: orgId,
+      agent_id: agentId,
+      reputation,
+    });
+  } catch (error) {
+    logger.error("MCP reputation query error:", { error });
+    res.status(500).json({ error: "Reputation query failed" });
+  }
 });
 
 export default mcpRouter;

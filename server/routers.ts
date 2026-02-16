@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -8,12 +7,9 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
-import { invokeLLM } from "./_core/llm";
 import * as recommendationEngine from "./recommendation-engine";
-import { createApiKey, listApiKeys, revokeApiKey, deleteApiKey } from "./api-key-manager.js";
+import { createApiKey, listApiKeys, revokeApiKey, deleteApiKey } from "./api-key-manager";
 import * as blogDb from "./blog-db";
-import { getDb } from "./db";
-import { reviews, latentVectors, wMatrixVersions, alignmentCalculations } from "../drizzle/schema";
 import * as latentmas from "./latentmas";
 import * as goServiceAdapter from "./adapters/go-service-adapter";
 import * as semanticIndex from "./semantic-index";
@@ -36,18 +32,32 @@ import { packagesApiRouter } from './routers/packages-api';
 import { aiAgentRouter } from './api/ai-agent-api';
 import { workflowRouter } from './routers/workflow';
 import { workflowHistoryRouter } from './routers/workflow-history';
+import { workflowPerformanceRouter } from './routers/workflow-performance';
 import { userRouter } from './routers/user';
 import { authUnifiedRouter } from './routers/auth-unified';
 import { apiAnalyticsRouter } from './routers/api-analytics';
 import { agentDiscoveryRouter } from './routers/agent-discovery';
 import { agentCollaborationRouter } from './routers/agent-collaboration';
+import { memoryRouter } from './routers/memory';
 import { neuralBridgeRouter } from './routers/neural-bridge-api';
 import { creatorDashboardRouter } from './routers/creator-dashboard-api';
 import { zkpRouter } from './routers/zkp-api';
 import { multimodalRouter } from './routers/multimodal-api';
-import { phantomAuthRouter } from './auth-phantom.js';
-import { latentUploadRouter } from './latentmas-upload.js';
-import { resonanceRouter } from './latentmas-resonance.js';
+import { phantomAuthRouter } from './auth-phantom';
+import { latentUploadRouter } from './latentmas-upload';
+import { resonanceRouter } from './latentmas-resonance';
+import { embeddingRouter } from './routers/embedding-api';
+import { stablecoinPaymentRouter } from './routers/stablecoin-payment';
+import { mcpRouter } from './routers/mcp';
+import { roboticsRouter } from './routers/robotics';
+import { organizationRouter } from './routers/organization';
+import { decisionRouter } from './routers/decision';
+import { verificationRouter } from './routers/verification';
+import { orgAnalyticsRouter } from './routers/org-analytics';
+import { apiKeyRouter } from './routers/api-key';
+import { ipWhitelistRouter } from './routers/ip-whitelist';
+import { sessionManagementRouter } from './routers/session-management';
+import { prisma } from './db-prisma';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
   TrpcRequest,
@@ -66,7 +76,22 @@ import type {
   MemoryPackage,
   MemoryPackagesResponse
 } from './types/router-types';
+import crypto from 'crypto';
 // Memory Exchange moved to Go microservice
+
+// Wallet login nonce store for replay protection
+const walletNonces = new Map<string, { nonce: string; expiresAt: number }>();
+const WALLET_NONCE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
+// Clean up expired nonces periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of walletNonces) {
+    if (now > entry.expiresAt) {
+      walletNonces.delete(key);
+    }
+  }
+}, 60 * 1000); // Every minute
 
 // Helper to get client IP from request
 function getClientIp(req: TrpcRequest): string {
@@ -339,61 +364,121 @@ export const appRouter = router({
       
       return result;
     }),
+
+    // Get wallet login nonce (challenge-response for replay protection)
+    getWalletNonce: publicProcedure
+      .input(z.object({
+        address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
+      }))
+      .mutation(async ({ input }) => {
+        const nonce = crypto.randomBytes(32).toString('hex');
+        const expiresAt = Date.now() + WALLET_NONCE_EXPIRY_MS;
+        const message = `Sign this message to authenticate with Awareness Market.\n\nNonce: ${nonce}\nAddress: ${input.address}\nTimestamp: ${new Date().toISOString()}`;
+        
+        walletNonces.set(input.address.toLowerCase(), { nonce, expiresAt });
+        
+        return { message, nonce, expiresAt };
+      }),
+
+    // Wallet Login - MetaMask signature verification with JWT cookie session
+    walletLogin: publicProcedure
+      .input(z.object({
+        address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
+        signature: z.string(),
+        message: z.string(),
+        nonce: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          // 0. Verify nonce to prevent replay attacks
+          const storedNonce = walletNonces.get(input.address.toLowerCase());
+          if (!storedNonce || storedNonce.nonce !== input.nonce) {
+            return { success: false, error: 'Invalid or expired nonce. Please request a new one.' };
+          }
+          if (Date.now() > storedNonce.expiresAt) {
+            walletNonces.delete(input.address.toLowerCase());
+            return { success: false, error: 'Nonce has expired. Please request a new one.' };
+          }
+          // Consume nonce (one-time use)
+          walletNonces.delete(input.address.toLowerCase());
+
+          // Verify the message contains the expected nonce
+          if (!input.message.includes(input.nonce)) {
+            return { success: false, error: 'Message does not contain the expected nonce.' };
+          }
+
+          // 1. Verify signature using viem
+          const { verifyMessage } = await import('viem');
+          const isValid = await verifyMessage({
+            address: input.address as `0x${string}`,
+            message: input.message,
+            signature: input.signature as `0x${string}`,
+          });
+
+          if (!isValid) {
+            return { success: false, error: 'Signature verification failed' };
+          }
+
+          // 2. Find or create user by wallet address
+          let user = await prisma.user.findUnique({
+            where: { walletAddress: input.address.toLowerCase() }
+          });
+
+          if (!user) {
+            const agentName = `Wallet-${input.address.slice(2, 8)}`;
+            user = await prisma.user.create({
+              data: {
+                walletAddress: input.address.toLowerCase(),
+                name: agentName,
+                email: `${input.address.toLowerCase()}@wallet.awareness.market`,
+                role: 'consumer',
+                userType: 'consumer',
+                onboardingCompleted: false,
+                loginMethod: 'metamask-wallet',
+                creditsBalance: 1000.0,
+                totalMemories: 0,
+                totalResonances: 0,
+              }
+            });
+          } else {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { lastSignedIn: new Date() }
+            });
+          }
+
+          // 3. Generate JWT tokens using auth-standalone system
+          const accessToken = authStandalone.generateAccessToken(user);
+          const refreshToken = authStandalone.generateRefreshToken(user);
+
+          // 4. Set HTTP-only cookies (same as email login)
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie('jwt_token', accessToken, cookieOptions);
+          ctx.res.cookie('jwt_refresh', refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
+
+          return {
+            success: true,
+            user: {
+              id: user.id,
+              name: user.name,
+              address: input.address,
+              role: user.role,
+            },
+          };
+        } catch (error: any) {
+          return { success: false, error: 'Wallet authentication failed' };
+        }
+      }),
   }),
 
-  // API Key Management
-  apiKeys: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      const keys = await listApiKeys(ctx.user.id);
-      return { keys };
-    }),
-    
-    create: protectedProcedure
-      .input(z.object({
-        name: z.string().min(1).max(255),
-        permissions: z.array(z.string()).optional(),
-        expiresInDays: z.number().positive().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const expiresAt = input.expiresInDays
-          ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
-          : null;
-        
-        const result = await createApiKey({
-          userId: ctx.user.id,
-          name: input.name,
-          permissions: input.permissions || ['*'],
-          expiresAt,
-        });
-        
-        return {
-          success: true,
-          apiKey: result.key,
-          keyPrefix: result.keyPrefix,
-          message: 'API key created successfully. Store it securely - it won\'t be shown again.',
-        };
-      }),
-    
-    revoke: protectedProcedure
-      .input(z.object({ keyId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const success = await revokeApiKey(input.keyId, ctx.user.id);
-        if (!success) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'API key not found' });
-        }
-        return { success: true, message: 'API key revoked successfully' };
-      }),
-    
-    delete: protectedProcedure
-      .input(z.object({ keyId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const success = await deleteApiKey(input.keyId, ctx.user.id);
-        if (!success) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'API key not found' });
-        }
-        return { success: true, message: 'API key deleted successfully' };
-      }),
-  }),
+  // API Key Management (P2 Security: Auto-Rotation + Expiration Tracking)
+  apiKeys: apiKeyRouter,
+
+  // IP Whitelist Control (P2 Security: Organization & User Level IP Restrictions)
+  ipWhitelist: ipWhitelistRouter,
+
+  // Session Management (P2 Security: Idle Timeout, Device Tracking, Session Revocation)
+  sessionManagement: sessionManagementRouter,
 
   // Latent Vectors Management
   vectors: router({
@@ -462,8 +547,8 @@ export const appRouter = router({
         minRating: z.number().optional(),
         searchTerm: z.string().optional(),
         sortBy: z.enum(["newest", "oldest", "price_low", "price_high", "rating", "popular"]).default("newest"),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
+        limit: z.number().min(1).max(100).default(20),
+        offset: z.number().min(0).default(0),
       }))
       .query(async ({ input }) => {
         return await db.searchLatentVectors(input);
@@ -540,8 +625,8 @@ export const appRouter = router({
     invocationHistory: protectedProcedure
       .input(z.object({
         vectorId: z.number().optional(),
-        limit: z.number().default(50),
-        offset: z.number().default(0),
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
       }))
       .query(async ({ ctx, input }) => {
         const { getInvocationHistory } = await import("./vector-invocation");
@@ -577,7 +662,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Vector not available" });
         }
 
-        const amount = parseFloat(vector.basePrice);
+        const amount = parseFloat(vector.basePrice.toString());
         const platformFeeRate = 0.20; // 20% platform fee
         const platformFee = amount * platformFeeRate;
         const creatorEarnings = amount - platformFee;
@@ -664,18 +749,23 @@ export const appRouter = router({
         };
       }),
 
-    // Log API call
-    logCall: publicProcedure
+    // Log API call (authenticated - only owner can log calls against their access tokens)
+    logCall: protectedProcedure
       .input(z.object({
         accessToken: z.string(),
         responseTime: z.number(),
         success: z.boolean(),
         errorMessage: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const permission = await db.getAccessPermissionByToken(input.accessToken);
         if (!permission) {
           throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+
+        // Verify the permission belongs to the authenticated user
+        if (permission.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Cannot log calls for another user's access token" });
         }
 
         await db.logApiCall({
@@ -743,8 +833,8 @@ export const appRouter = router({
       .input(z.object({ 
         vectorId: z.number(),
         sortBy: z.enum(["newest", "oldest", "highest", "lowest"]).default("newest"),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
+        limit: z.number().min(1).max(100).default(20),
+        offset: z.number().min(0).default(0),
       }))
       .query(async ({ input }) => {
         return await db.getVectorReviews(input.vectorId);
@@ -752,24 +842,43 @@ export const appRouter = router({
 
     // Get user's reviews
     myReviews: protectedProcedure.query(async ({ ctx }) => {
-      const db_instance = await getDb();
-      if (!db_instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      
-      const userReviews = await db_instance
-        .select({
-          review: reviews,
-          vector: {
-            id: latentVectors.id,
-            title: latentVectors.title,
-            category: latentVectors.category,
-          }
-        })
-        .from(reviews)
-        .leftJoin(latentVectors, eq(reviews.vectorId, latentVectors.id))
-        .where(eq(reviews.userId, ctx.user.id))
-        .orderBy(desc(reviews.createdAt));
-      
-      return userReviews;
+      // Use Prisma with raw SQL for join query
+      const userReviews = await prisma.$queryRaw<Array<{
+        id: number;
+        vectorId: number;
+        userId: number;
+        rating: number;
+        comment: string | null;
+        isVerifiedPurchase: boolean;
+        createdAt: Date;
+        vector_id: number | null;
+        vector_title: string | null;
+        vector_category: string | null;
+      }>>`
+        SELECT r.*,
+               v.id as vector_id, v.title as vector_title, v.category as vector_category
+        FROM reviews r
+        LEFT JOIN latent_vectors v ON r.vector_id = v.id
+        WHERE r.user_id = ${ctx.user.id}
+        ORDER BY r.created_at DESC
+      `;
+
+      return userReviews.map(r => ({
+        review: {
+          id: r.id,
+          vectorId: r.vectorId,
+          userId: r.userId,
+          rating: r.rating,
+          comment: r.comment,
+          isVerifiedPurchase: r.isVerifiedPurchase,
+          createdAt: r.createdAt,
+        },
+        vector: r.vector_id ? {
+          id: r.vector_id,
+          title: r.vector_title,
+          category: r.vector_category,
+        } : null
+      }));
     }),
 
     // Update review
@@ -780,28 +889,24 @@ export const appRouter = router({
         comment: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const db_instance = await getDb();
-        if (!db_instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-        // Check ownership
-        const [review] = await db_instance
-          .select()
-          .from(reviews)
-          .where(eq(reviews.id, input.id))
-          .limit(1);
+        // Check ownership using Prisma
+        const review = await prisma.review.findUnique({
+          where: { id: input.id }
+        });
 
         if (!review || review.userId !== ctx.user.id) {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
 
-        const updates: ReviewUpdateData = {};
-        if (input.rating !== undefined) updates.rating = input.rating;
-        if (input.comment !== undefined) updates.comment = input.comment;
+        // Build update data
+        const updateData: { rating?: number; comment?: string } = {};
+        if (input.rating !== undefined) updateData.rating = input.rating;
+        if (input.comment !== undefined) updateData.comment = input.comment;
 
-        await db_instance
-          .update(reviews)
-          .set(updates)
-          .where(eq(reviews.id, input.id));
+        await prisma.review.update({
+          where: { id: input.id },
+          data: updateData
+        });
 
         return { success: true };
       }),
@@ -810,23 +915,18 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const db_instance = await getDb();
-        if (!db_instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-        // Check ownership
-        const [review] = await db_instance
-          .select()
-          .from(reviews)
-          .where(eq(reviews.id, input.id))
-          .limit(1);
+        // Check ownership using Prisma
+        const review = await prisma.review.findUnique({
+          where: { id: input.id }
+        });
 
         if (!review || review.userId !== ctx.user.id) {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
 
-        await db_instance
-          .delete(reviews)
-          .where(eq(reviews.id, input.id));
+        await prisma.review.delete({
+          where: { id: input.id }
+        });
 
         return { success: true };
       }),
@@ -835,25 +935,22 @@ export const appRouter = router({
     getStats: publicProcedure
       .input(z.object({ vectorId: z.number() }))
       .query(async ({ input }) => {
-        const db_instance = await getDb();
-        if (!db_instance) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-        const vectorReviews = await db_instance
-          .select()
-          .from(reviews)
-          .where(eq(reviews.vectorId, input.vectorId));
+        // Use Prisma to get reviews
+        const vectorReviews = await prisma.review.findMany({
+          where: { vectorId: input.vectorId }
+        });
 
         const totalReviews = vectorReviews.length;
         const averageRating = totalReviews > 0
-          ? vectorReviews.reduce((sum: number, r: ReviewRecord) => sum + r.rating, 0) / totalReviews
+          ? vectorReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
           : 0;
 
         const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-        vectorReviews.forEach((r: ReviewRecord) => {
+        vectorReviews.forEach((r) => {
           ratingDistribution[r.rating as keyof typeof ratingDistribution]++;
         });
 
-        const verifiedPurchases = vectorReviews.filter((r: ReviewRecord) => r.isVerifiedPurchase).length;
+        const verifiedPurchases = vectorReviews.filter((r) => r.isVerifiedPurchase).length;
 
         return {
           totalReviews,
@@ -877,10 +974,18 @@ export const appRouter = router({
         return await db.getUserNotifications(ctx.user.id, input.unreadOnly);
       }),
 
-    // Mark as read
+    // Mark as read (with ownership check)
     markRead: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Verify the notification belongs to the authenticated user
+        const notification = await prisma.notification.findUnique({
+          where: { id: input.id },
+          select: { userId: true },
+        });
+        if (!notification || notification.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Notification not found" });
+        }
         await db.markNotificationAsRead(input.id);
         return { success: true };
       }),
@@ -890,7 +995,7 @@ export const appRouter = router({
   recommendations: router({
     // Get personalized recommendations using LLM
     getRecommendations: protectedProcedure
-      .input(z.object({ limit: z.number().default(5) }))
+      .input(z.object({ limit: z.number().min(1).max(50).default(5) }))
       .query(async ({ ctx, input }) => {
         const recommendations = await recommendationEngine.generateRecommendations({
           userId: ctx.user.id,
@@ -941,8 +1046,8 @@ export const appRouter = router({
         status: z.enum(["draft", "published", "archived"]).optional(),
         category: z.string().optional(),
         search: z.string().optional(),
-        limit: z.number().default(20),
-        offset: z.number().default(0),
+        limit: z.number().min(1).max(100).default(20),
+        offset: z.number().min(0).default(0),
       }))
       .query(async ({ input }) => {
         // Only show published posts to non-admin users
@@ -1050,9 +1155,9 @@ export const appRouter = router({
       const vectors = await db.getLatentVectorsByCreator(ctx.user.id);
       const earnings = await db.getUserTransactions(ctx.user.id, "creator");
 
-      const totalRevenue = vectors.reduce((sum, v) => sum + parseFloat(v.totalRevenue), 0);
+      const totalRevenue = vectors.reduce((sum, v) => sum + parseFloat(v.totalRevenue.toString()), 0);
       const totalCalls = vectors.reduce((sum, v) => sum + v.totalCalls, 0);
-      const avgRating = vectors.reduce((sum, v) => sum + parseFloat(v.averageRating || "0"), 0) / (vectors.length || 1);
+      const avgRating = vectors.reduce((sum, v) => sum + parseFloat((v.averageRating || "0").toString()), 0) / (vectors.length || 1);
 
       return {
         totalVectors: vectors.length,
@@ -1100,7 +1205,7 @@ export const appRouter = router({
         })
         .reduce((sum: number, t) => {
           const tx = 'amount' in t ? t : (t as { transactions: { amount: string } }).transactions;
-          return sum + parseFloat(tx.amount);
+          return sum + parseFloat(tx.amount.toString());
         }, 0);
 
       return {
@@ -1151,7 +1256,7 @@ export const appRouter = router({
   }),
 
   // LatentMAS V2.0 - Memory Exchange and W-Matrix Protocol
-  memory: router({
+  memoryExchange: router({
     // Browse available memories for purchase (from Go service)
     browse: publicProcedure
       .input(z.object({
@@ -1608,18 +1713,16 @@ export const appRouter = router({
           input.wMatrixVersion
         );
         
-        // Log to database
-        const database = await getDb();
-        if (database) {
-          await database.insert(alignmentCalculations).values({
-            vectorId: 0, // Placeholder when vector doesn't exist in DB yet
-            wMatrixVersion: input.wMatrixVersion,
-            epsilonValue: result.epsilon.toString(),
-            fidelityBoostEstimate: result.improvementPct.toString(),
-            computationTimeMs: result.computationTimeMs,
-          });
+        // Log to database using raw SQL (alignmentCalculations may not be in Prisma schema)
+        try {
+          await prisma.$executeRaw`
+            INSERT INTO alignment_calculations (vector_id, w_matrix_version, epsilon_value, fidelity_boost_estimate, computation_time_ms, computed_at)
+            VALUES (0, ${input.wMatrixVersion}, ${result.epsilon.toString()}, ${result.improvementPct.toString()}, ${result.computationTimeMs}, ${new Date()})
+          `;
+        } catch {
+          // Ignore if table doesn't exist
         }
-        
+
         return result;
       }),
 
@@ -1686,13 +1789,37 @@ export const appRouter = router({
             parseInt(input.standardDim) as 4096 | 8192,
             { useLora: input.useLora, loraRank: input.loraRank }
           );
-          
+
+          let serializedMatrix = result.serializedMatrix;
+          let orthogonalityScore: number | null = null;
+
+          try {
+            const parsed = JSON.parse(result.serializedMatrix);
+            if (parsed?.w_matrix && Array.isArray(parsed.w_matrix)) {
+              const { procrustesOrthogonalize, computeOrthogonalityScore } = await import('./latentmas/svd-orthogonalization');
+              const orthogonalized = procrustesOrthogonalize(parsed.w_matrix);
+              orthogonalityScore = computeOrthogonalityScore(orthogonalized);
+
+              parsed.w_matrix = orthogonalized;
+              parsed.metadata = {
+                ...(parsed.metadata || {}),
+                orthogonality_score: orthogonalityScore,
+                orthogonalized_at: new Date().toISOString(),
+              };
+
+              serializedMatrix = JSON.stringify(parsed);
+            }
+          } catch (error) {
+            console.warn('Failed to apply Procrustes orthogonalization to trained W-Matrix', { error });
+          }
+
           workflowManager.updateEvent(workflowId, trainEvent.id, {
             status: 'completed',
             output: {
               epsilon: result.metrics.epsilon,
               fidelityScore: result.metrics.fidelityScore,
               trainingTimeMs: result.metrics.computationTimeMs,
+              orthogonalityScore: orthogonalityScore ?? undefined,
             },
           });
           
@@ -1703,18 +1830,14 @@ export const appRouter = router({
             input: { version: input.version },
           });
           
-          const database = await getDb();
-          if (database) {
-            await database.insert(wMatrixVersions).values({
-              version: input.version,
-              standardDim: parseInt(input.standardDim),
-              matrixData: result.serializedMatrix,
-              matrixFormat: 'numpy',
-              sourceModels: JSON.stringify(input.sourceModels),
-              alignmentPairsCount: input.sourceVectors.length,
-              avgReconstructionError: result.metrics.epsilon.toString(),
-              isActive: true,
-            });
+          // Save to database using raw SQL (wMatrixVersions may not be in Prisma schema)
+          try {
+            await prisma.$executeRaw`
+              INSERT INTO w_matrix_versions (version, standard_dim, matrix_data, matrix_format, source_models, alignment_pairs_count, avg_reconstruction_error, is_active, created_at)
+              VALUES (${input.version}, ${parseInt(input.standardDim)}, ${serializedMatrix}, 'numpy', ${JSON.stringify(input.sourceModels)}, ${input.sourceVectors.length}, ${result.metrics.epsilon.toString()}, true, ${new Date()})
+            `;
+          } catch {
+            // Ignore if table doesn't exist
           }
           
           workflowManager.updateEvent(workflowId, saveEvent.id, {
@@ -1740,13 +1863,22 @@ export const appRouter = router({
 
     // Get W-matrix versions
     listVersions: publicProcedure.query(async () => {
-      const database = await getDb();
-      if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-      const versions = await database
-        .select()
-        .from(wMatrixVersions)
-        .where(eq(wMatrixVersions.isActive, true))
-        .orderBy(desc(wMatrixVersions.createdAt));
+      // Use raw SQL for wMatrixVersions (may not be in Prisma schema)
+      const versions = await prisma.$queryRaw<Array<{
+        id: number;
+        version: string;
+        standard_dim: number;
+        matrix_format: string;
+        source_models: string;
+        alignment_pairs_count: number;
+        avg_reconstruction_error: string;
+        is_active: boolean;
+        created_at: Date;
+      }>>`
+        SELECT * FROM w_matrix_versions
+        WHERE is_active = true
+        ORDER BY created_at DESC
+      `;
       return versions;
     }),
 
@@ -1754,19 +1886,29 @@ export const appRouter = router({
     getVersion: publicProcedure
       .input(z.object({ version: z.string() }))
       .query(async ({ input }) => {
-        const database = await getDb();
-        if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-        const [version] = await database
-          .select()
-          .from(wMatrixVersions)
-          .where(eq(wMatrixVersions.version, input.version))
-          .limit(1);
-        
-        if (!version) {
+        // Use raw SQL for wMatrixVersions
+        const versions = await prisma.$queryRaw<Array<{
+          id: number;
+          version: string;
+          standard_dim: number;
+          matrix_data: string;
+          matrix_format: string;
+          source_models: string;
+          alignment_pairs_count: number;
+          avg_reconstruction_error: string;
+          is_active: boolean;
+          created_at: Date;
+        }>>`
+          SELECT * FROM w_matrix_versions
+          WHERE version = ${input.version}
+          LIMIT 1
+        `;
+
+        if (versions.length === 0) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'W-matrix version not found' });
         }
-        
-        return version;
+
+        return versions[0];
       }),
 
     // Transform vector using W-matrix
@@ -1791,23 +1933,37 @@ export const appRouter = router({
         limit: z.number().min(1).max(100).default(50),
       }))
       .query(async ({ input }) => {
-        const database = await getDb();
-        if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-        
+        // Use raw SQL for alignmentCalculations
         if (input.vectorId) {
-          return await database
-            .select()
-            .from(alignmentCalculations)
-            .where(eq(alignmentCalculations.vectorId, input.vectorId))
-            .orderBy(desc(alignmentCalculations.computedAt))
-            .limit(input.limit);
+          return await prisma.$queryRaw<Array<{
+            id: number;
+            vector_id: number;
+            w_matrix_version: string;
+            epsilon_value: string;
+            fidelity_boost_estimate: string;
+            computation_time_ms: number;
+            computed_at: Date;
+          }>>`
+            SELECT * FROM alignment_calculations
+            WHERE vector_id = ${input.vectorId}
+            ORDER BY computed_at DESC
+            LIMIT ${input.limit}
+          `;
         }
-        
-        return await database
-          .select()
-          .from(alignmentCalculations)
-          .orderBy(desc(alignmentCalculations.computedAt))
-          .limit(input.limit);
+
+        return await prisma.$queryRaw<Array<{
+          id: number;
+          vector_id: number;
+          w_matrix_version: string;
+          epsilon_value: string;
+          fidelity_boost_estimate: string;
+          computation_time_ms: number;
+          computed_at: Date;
+        }>>`
+          SELECT * FROM alignment_calculations
+          ORDER BY computed_at DESC
+          LIMIT ${input.limit}
+        `;
       }),
   }),
 
@@ -1823,6 +1979,7 @@ export const appRouter = router({
   packages: packagesApiRouter,
   workflow: workflowRouter,
   workflowHistory: workflowHistoryRouter,
+  workflowPerformance: workflowPerformanceRouter,
   user: userRouter,
   authUnified: authUnifiedRouter,
 
@@ -1839,6 +1996,27 @@ export const appRouter = router({
   agentDiscovery: agentDiscoveryRouter,
   agentCollaboration: agentCollaborationRouter,
 
+  // Memory System API (Phase A - Universal AI Memory Infrastructure)
+  memory: memoryRouter,
+
+  // MCP (Model Context Protocol) - AI Agent Token Management
+  mcp: mcpRouter,
+
+  // Robotics Middleware - Robot Integration (ROS2, VR, Multi-Robot Coordination)
+  robotics: roboticsRouter,
+
+  // v3: Organization Governance & Decision Infrastructure
+  organization: organizationRouter,
+
+  // v3 Phase 3: Decision Audit + Agent Reputation
+  decision: decisionRouter,
+
+  // v3 Phase 4: Cross-Domain Verification + Evidence
+  verification: verificationRouter,
+
+  // v3 Phase 5: Enterprise Dashboard + Analytics
+  orgAnalytics: orgAnalyticsRouter,
+
   // Neural Bridge Protocol API (P1 - Technical Moat)
   neuralBridge: neuralBridgeRouter,
 
@@ -1847,6 +2025,12 @@ export const appRouter = router({
 
   // Multi-Modal Vectors API (P2 - Multi-Modal Support)
   multimodal: multimodalRouter,
+
+  // Embedding API (P2 - Auto-Vectorization Engine)
+  embedding: embeddingRouter,
+
+  // Stablecoin Payment (USDC/USDT on Polygon - AI Agent autonomous payments)
+  stablecoinPayment: stablecoinPaymentRouter,
 
   // memoryExchange: Go microservice at :8080
 

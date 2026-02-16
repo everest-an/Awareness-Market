@@ -1,60 +1,44 @@
-import { getDb } from "./db";
-import { blogPosts, type BlogPost, type InsertBlogPost } from "../drizzle/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { prisma } from "./db-prisma";
+import type { BlogPost, Prisma } from "@prisma/client";
+
+type InsertBlogPost = Prisma.BlogPostCreateInput;
 
 /**
  * Create a new blog post
  */
 export async function createBlogPost(data: InsertBlogPost): Promise<BlogPost> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const result = await db.insert(blogPosts).values(data);
-  const insertId = Number((result as unknown as { insertId: number }[])[0]?.insertId || (result as unknown as { insertId: number }).insertId);
-  return await getBlogPostById(insertId) as BlogPost;
+  return await prisma.blogPost.create({ data });
 }
 
 /**
  * Update an existing blog post
  */
-export async function updateBlogPost(id: number, data: Partial<InsertBlogPost>): Promise<BlogPost | undefined> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  await db.update(blogPosts).set(data).where(eq(blogPosts.id, id));
-  return await getBlogPostById(id);
+export async function updateBlogPost(id: number, data: Partial<InsertBlogPost>): Promise<BlogPost | null> {
+  return await prisma.blogPost.update({
+    where: { id },
+    data
+  });
 }
 
 /**
  * Delete a blog post
  */
 export async function deleteBlogPost(id: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  await db.delete(blogPosts).where(eq(blogPosts.id, id));
+  await prisma.blogPost.delete({ where: { id } });
 }
 
 /**
  * Get a blog post by ID
  */
-export async function getBlogPostById(id: number): Promise<BlogPost | undefined> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
-  return post;
+export async function getBlogPostById(id: number): Promise<BlogPost | null> {
+  return await prisma.blogPost.findUnique({ where: { id } });
 }
 
 /**
  * Get a blog post by slug
  */
-export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
-  return post;
+export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+  return await prisma.blogPost.findFirst({ where: { slug } });
 }
 
 /**
@@ -68,82 +52,69 @@ export async function listBlogPosts(options: {
   limit?: number;
   offset?: number;
 }): Promise<BlogPost[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
   const { status, category, authorId, search, limit = 20, offset = 0 } = options;
 
-  let query = db.select().from(blogPosts);
+  const where: Prisma.BlogPostWhereInput = {};
 
-  const conditions = [];
   if (status) {
-    conditions.push(eq(blogPosts.status, status));
+    where.status = status;
   }
   if (category) {
-    conditions.push(eq(blogPosts.category, category));
+    where.category = category;
   }
   if (authorId) {
-    conditions.push(eq(blogPosts.authorId, authorId));
+    where.authorId = authorId;
   }
   if (search) {
-    conditions.push(
-      sql`(${blogPosts.title} LIKE ${`%${search}%`} OR ${blogPosts.excerpt} LIKE ${`%${search}%`})`
-    );
+    where.OR = [
+      { title: { contains: search, mode: 'insensitive' } },
+      { excerpt: { contains: search, mode: 'insensitive' } }
+    ];
   }
 
-  if (conditions.length > 0) {
-    query = query.where(and(...conditions)) as typeof query;
-  }
-
-  const posts = await query
-    .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt))
-    .limit(limit)
-    .offset(offset);
-
-  return posts;
+  return await prisma.blogPost.findMany({
+    where,
+    orderBy: [
+      { publishedAt: 'desc' },
+      { createdAt: 'desc' }
+    ],
+    take: limit,
+    skip: offset
+  });
 }
 
 /**
  * Increment view count for a blog post
  */
 export async function incrementBlogPostViews(id: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  await db
-    .update(blogPosts)
-    .set({ viewCount: sql`${blogPosts.viewCount} + 1` })
-    .where(eq(blogPosts.id, id));
+  await prisma.blogPost.update({
+    where: { id },
+    data: { viewCount: { increment: 1 } }
+  });
 }
 
 /**
  * Get all blog categories
  */
 export async function getBlogCategories(): Promise<string[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const results = await db
-    .selectDistinct({ category: blogPosts.category })
-    .from(blogPosts)
-    .where(eq(blogPosts.status, "published"));
-  
-  return results.map((r: { category: string | null }) => r.category).filter(Boolean) as string[];
+  const results = await prisma.blogPost.findMany({
+    where: { status: "published" },
+    select: { category: true },
+    distinct: ['category']
+  });
+
+  return results.map(r => r.category).filter(Boolean) as string[];
 }
 
 /**
  * Get blog post count by status
  */
 export async function getBlogPostCount(status?: "draft" | "published" | "archived"): Promise<number> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  let query = db.select({ count: sql<number>`count(*)` }).from(blogPosts);
+  const where: Prisma.BlogPostWhereInput = {};
 
   if (status) {
-    query = query.where(eq(blogPosts.status, status)) as typeof query;
+    where.status = status;
   }
-  
-  const [result] = await query;
-  return result?.count || 0;
+
+  return await prisma.blogPost.count({ where });
 }

@@ -95,7 +95,7 @@ export default function MemoryNFTDetail() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <Navbar />
-        <div className="container mx-auto px-4 py-16">
+        <div className="pt-20 container mx-auto px-4 py-16">
           <div className="text-center text-white">Loading...</div>
         </div>
       </div>
@@ -274,7 +274,7 @@ export default function MemoryNFTDetail() {
                               </Button>
                             </Link>
                             <div className="mt-2 text-sm text-slate-400">
-                              Contribution: {edge.contributionPercent}% â€?Royalty: {edge.royaltyPercent}%
+                              Contribution: {edge.contributionPercent}% ï¿½?Royalty: {edge.royaltyPercent}%
                             </div>
                           </div>
                         </div>
@@ -331,7 +331,7 @@ export default function MemoryNFTDetail() {
                   {nft.price ? `$${nft.price}` : 'Not for sale'}
                 </div>
                 {nft.price && (
-                  <div className="text-sm text-slate-400">â‰?0.5 ETH</div>
+                  <div className="text-sm text-slate-400">ï¿½?0.5 ETH</div>
                 )}
               </div>
 

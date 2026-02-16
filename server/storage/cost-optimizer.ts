@@ -1,12 +1,11 @@
 /**
  * Cost Optimizer
- * 
+ *
  * Analyzes storage costs and provides optimization recommendations
  */
 
-import { getDb } from '../db';
-import { storageCostMetrics, packageStorageTier } from '../../drizzle/schema-storage-tiers';
-import { sql, eq, gte, and } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
+const prismaAny = prisma as any;
 import type { DataTier } from './access-tracker';
 import { createLogger } from '../utils/logger';
 
@@ -58,21 +57,22 @@ export class CostOptimizer {
    */
   async recordDailyCosts(): Promise<void> {
     try {
-      const db = await getDb();
-      if (!db) throw new Error('Database unavailable');
-      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Get storage distribution by tier
-      const tierStats = await db
-        .select({
-          tier: packageStorageTier.currentTier,
-          backend: packageStorageTier.currentBackend,
-          count: sql<number>`COUNT(*)`,
-        })
-        .from(packageStorageTier)
-        .groupBy(packageStorageTier.currentTier, packageStorageTier.currentBackend);
+      // Get storage distribution by tier using raw SQL for grouping
+      const tierStats = await prisma.$queryRaw<Array<{
+        tier: string;
+        backend: string;
+        count: bigint;
+      }>>`
+        SELECT
+          current_tier as tier,
+          current_backend as backend,
+          COUNT(*) as count
+        FROM package_storage_tiers
+        GROUP BY current_tier, current_backend
+      `;
 
       // Backend costs
       const costs: Record<string, { storage: number; egress: number }> = {
@@ -95,28 +95,36 @@ export class CostOptimizer {
       for (const stat of tierStats) {
         const backend = stat.backend;
         const tier = stat.tier as DataTier;
-        const fileCount = stat.count;
+        const fileCount = Number(stat.count);
 
         const storageGB = fileCount * avgFileSizeGB;
-        const downloadGB = storageGB * tierDownloads[tier];
+        const downloadGB = storageGB * (tierDownloads[tier] || 1);
 
         const backendCost = costs[backend] || costs.s3;
         const storageCost = storageGB * backendCost.storage;
         const bandwidthCost = downloadGB * backendCost.egress;
         const totalCost = storageCost + bandwidthCost;
 
-        // Insert or update metrics
-        await db.insert(storageCostMetrics).values({
-          date: today,
-          tier,
-          backend,
-          storageGB: storageGB.toString(),
-          downloadGB: downloadGB.toString(),
-          storageCost: storageCost.toFixed(4),
-          bandwidthCost: bandwidthCost.toFixed(4),
-          totalCost: totalCost.toFixed(4),
-        }).onDuplicateKeyUpdate({
-          set: {
+        // Upsert metrics
+        await prismaAny.storageCostMetric.upsert({
+          where: {
+            date_tier_backend: {
+              date: today,
+              tier,
+              backend,
+            },
+          },
+          create: {
+            date: today,
+            tier,
+            backend,
+            storageGB: storageGB.toString(),
+            downloadGB: downloadGB.toString(),
+            storageCost: storageCost.toFixed(4),
+            bandwidthCost: bandwidthCost.toFixed(4),
+            totalCost: totalCost.toFixed(4),
+          },
+          update: {
             storageGB: storageGB.toString(),
             downloadGB: downloadGB.toString(),
             storageCost: storageCost.toFixed(4),
@@ -137,16 +145,12 @@ export class CostOptimizer {
    */
   async getCostComparison(): Promise<CostComparison> {
     try {
-      const db = await getDb();
-      if (!db) throw new Error('Database unavailable');
-      
       // Get current month's costs
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      
-      const currentCosts = await db
-        .select()
-        .from(storageCostMetrics)
-        .where(gte(storageCostMetrics.date, thirtyDaysAgo));
+
+      const currentCosts = await prismaAny.storageCostMetric.findMany({
+        where: { date: { gte: thirtyDaysAgo } },
+      });
 
       // Aggregate by tier and backend
       const breakdown: Map<string, CostBreakdown> = new Map();
@@ -252,13 +256,10 @@ export class CostOptimizer {
    */
   async generateRecommendations(): Promise<OptimizationRecommendation[]> {
     try {
-      const db = await getDb();
-      if (!db) return [];
-      
       const recommendations: OptimizationRecommendation[] = [];
 
       // Get all packages with tier info
-      const packages = await db.select().from(packageStorageTier);
+      const packages = await prismaAny.packageStorageTier.findMany();
 
       for (const pkg of packages) {
         const daysSinceAccess = (Date.now() - pkg.lastAccessAt.getTime()) / (1000 * 60 * 60 * 24);
@@ -379,16 +380,12 @@ export class CostOptimizer {
     bandwidthCost: number;
   }>> {
     try {
-      const db = await getDb();
-      if (!db) return [];
-      
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-      
-      const metrics = await db
-        .select()
-        .from(storageCostMetrics)
-        .where(gte(storageCostMetrics.date, since))
-        .orderBy(storageCostMetrics.date);
+
+      const metrics = await prismaAny.storageCostMetric.findMany({
+        where: { date: { gte: since } },
+        orderBy: { date: 'asc' },
+      });
 
       // Aggregate by date
       const trendMap: Map<string, { totalCost: number; storageCost: number; bandwidthCost: number }> = new Map();
@@ -431,26 +428,27 @@ export class CostOptimizer {
     monthlyCost: number;
   }>> {
     try {
-      const db = await getDb();
-      if (!db) return [];
-      
-      const distribution = await db
-        .select({
-          tier: packageStorageTier.currentTier,
-          backend: packageStorageTier.currentBackend,
-          count: sql<number>`COUNT(*)`,
-        })
-        .from(packageStorageTier)
-        .groupBy(packageStorageTier.currentTier, packageStorageTier.currentBackend);
+      const distribution = await prisma.$queryRaw<Array<{
+        tier: string;
+        backend: string;
+        count: bigint;
+      }>>`
+        SELECT
+          current_tier as tier,
+          current_backend as backend,
+          COUNT(*) as count
+        FROM package_storage_tiers
+        GROUP BY current_tier, current_backend
+      `;
 
       const avgFileSizeGB = 0.1;
 
-      return distribution.map((d: typeof distribution[0]) => ({
+      return distribution.map((d) => ({
         tier: d.tier as DataTier,
         backend: d.backend,
-        fileCount: d.count,
-        totalSizeGB: d.count * avgFileSizeGB,
-        monthlyCost: d.count * avgFileSizeGB * this.getBackendCost(d.backend),
+        fileCount: Number(d.count),
+        totalSizeGB: Number(d.count) * avgFileSizeGB,
+        monthlyCost: Number(d.count) * avgFileSizeGB * this.getBackendCost(d.backend),
       }));
     } catch (error) {
       logger.error('[CostOptimizer] Failed to get storage distribution:', { error });

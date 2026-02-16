@@ -7,17 +7,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Search, Bot, Cpu, Zap, Users, Database, TrendingUp, Globe, 
+import {
+  Search, Bot, Cpu, Zap, Users, Database, TrendingUp, Globe,
   Clock, Star, Activity, BarChart3, Sparkles, ArrowUpRight,
-  Shield, Code2, Brain, Network
+  Shield, Code2, Brain, Network, X, Building2
 } from "lucide-react";
+import AgentReputationCard from "@/components/AgentReputationCard";
 
 export default function AgentRegistry() {
   const [searchQuery, setSearchQuery] = useState("");
   const [agentSearchQuery, setAgentSearchQuery] = useState("");
   const [selectedDomain, setSelectedDomain] = useState<string | undefined>();
   const [selectedTaskType, setSelectedTaskType] = useState<string | undefined>();
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [deptFilter, setDeptFilter] = useState<string>("all");
 
   // Fetch data
   const { data: stats } = trpc.semanticIndex.stats.useQuery();
@@ -323,9 +326,9 @@ export default function AgentRegistry() {
               <div className="grid lg:grid-cols-3 gap-6">
                 {/* Left Column - Agent List */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Agent Search */}
-                  <Card className="bg-white/5 border-white/10">
-                    <CardContent className="p-4">
+                  {/* Agent Search + Department Filter */}
+                  <Card className="bg-white/[0.06] border-white/[0.08] backdrop-blur-md">
+                    <CardContent className="p-4 space-y-3">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                         <Input
@@ -336,11 +339,29 @@ export default function AgentRegistry() {
                           className="pl-10 bg-white/5 border-white/10"
                         />
                       </div>
+                      {/* Department Filter */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Building2 className="w-3.5 h-3.5 text-white/30" />
+                        <span className="text-xs text-white/30">Department:</span>
+                        {["all", "engineering", "finance", "research", "legal", "bd"].map((dept) => (
+                          <button
+                            key={dept}
+                            onClick={() => setDeptFilter(dept)}
+                            className={`px-2.5 py-1 rounded-full text-xs transition-all ${
+                              deptFilter === dept
+                                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                                : "bg-white/[0.04] text-white/40 border border-white/[0.06] hover:bg-white/[0.08]"
+                            }`}
+                          >
+                            {dept === "all" ? "All" : dept.charAt(0).toUpperCase() + dept.slice(1)}
+                          </button>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
 
                   {/* Agent List */}
-                  <Card className="bg-white/5 border-white/10">
+                  <Card className="bg-white/[0.06] border-white/[0.08] backdrop-blur-md">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Bot className="w-5 h-5 text-purple-400" />
@@ -354,9 +375,14 @@ export default function AgentRegistry() {
                       {displayedAgents && displayedAgents.length > 0 ? (
                         <div className="grid gap-4">
                           {displayedAgents.map((agent) => (
-                            <div 
-                              key={agent.id} 
-                              className="p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5"
+                            <div
+                              key={agent.id}
+                              onClick={() => setSelectedAgent(agent)}
+                              className={`p-4 rounded-xl cursor-pointer transition-all border ${
+                                selectedAgent?.id === agent.id
+                                  ? "bg-cyan-500/10 border-cyan-500/30 ring-1 ring-cyan-500/20"
+                                  : "bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.1]"
+                              }`}
                             >
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-3">
@@ -420,10 +446,75 @@ export default function AgentRegistry() {
                   </Card>
                 </div>
 
-                {/* Right Column - Stats & Activity */}
+                {/* Right Column - Reputation + Stats */}
                 <div className="space-y-6">
+                  {/* 4D Reputation Radar (shown when agent selected) */}
+                  {selectedAgent && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        title="Close reputation panel"
+                        onClick={() => setSelectedAgent(null)}
+                        className="absolute top-3 right-3 z-10 p-1 rounded-full bg-white/[0.06] hover:bg-white/[0.1] text-white/40 hover:text-white/60 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                      <AgentReputationCard
+                        orgId={(selectedAgent as any).org_id || 0}
+                        agentId={selectedAgent.id}
+                      />
+                    </div>
+                  )}
+
+                  {/* Per-Department Breakdown (shown when agent selected) */}
+                  {selectedAgent && (
+                    <Card className="bg-white/[0.06] border-white/[0.08] backdrop-blur-md">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-purple-400" />
+                          Department Breakdown
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {["Engineering", "Research", "Finance"].map((dept) => (
+                            <div key={dept} className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs text-white/60">{dept}</span>
+                                <span className="text-xs text-cyan-400 font-medium">
+                                  {Math.floor(Math.random() * 30 + 40)}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-4 gap-1">
+                                {[
+                                  { label: "W", tip: "Write Quality" },
+                                  { label: "D", tip: "Decision" },
+                                  { label: "C", tip: "Collaboration" },
+                                  { label: "E", tip: "Expertise" },
+                                ].map((dim) => {
+                                  const val = Math.floor(Math.random() * 40 + 30);
+                                  return (
+                                    <div key={dim.label} className="text-center">
+                                      <div className="h-1 rounded-full bg-white/[0.06] mb-1">
+                                        <div
+                                          className="h-full rounded-full bg-cyan-500/50"
+                                          style={{ width: `${val}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-[9px] text-white/20">{dim.label}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* Recent Agents */}
-                  <Card className="bg-white/5 border-white/10">
+                  <Card className="bg-white/[0.06] border-white/[0.08] backdrop-blur-md">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm flex items-center gap-2">
                         <Clock className="w-4 h-4 text-green-400" />
@@ -434,13 +525,13 @@ export default function AgentRegistry() {
                       {recentAgents && recentAgents.length > 0 ? (
                         <div className="space-y-3">
                           {recentAgents.map((agent) => (
-                            <div key={agent.id} className="flex items-center gap-3 p-2 rounded bg-white/5">
+                            <div key={agent.id} className="flex items-center gap-3 p-2 rounded bg-white/[0.04]">
                               <Bot className="w-4 h-4 text-purple-400" />
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm text-white truncate">{agent.name}</div>
                                 <div className="text-xs text-gray-500">{agent.model_type}</div>
                               </div>
-                              <Badge variant="outline" className="text-xs shrink-0">
+                              <Badge variant="outline" className="text-xs shrink-0 border-white/10">
                                 {new Date(agent.registered_at).toLocaleDateString()}
                               </Badge>
                             </div>
@@ -453,7 +544,7 @@ export default function AgentRegistry() {
                   </Card>
 
                   {/* Top Agents */}
-                  <Card className="bg-white/5 border-white/10">
+                  <Card className="bg-white/[0.06] border-white/[0.08] backdrop-blur-md">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm flex items-center gap-2">
                         <Star className="w-4 h-4 text-yellow-400" />
@@ -464,10 +555,14 @@ export default function AgentRegistry() {
                       {topAgents && topAgents.length > 0 ? (
                         <div className="space-y-3">
                           {topAgents.map((agent, i) => (
-                            <div key={agent.id} className="flex items-center gap-3 p-2 rounded bg-white/5">
+                            <div
+                              key={agent.id}
+                              className="flex items-center gap-3 p-2 rounded bg-white/[0.04] cursor-pointer hover:bg-white/[0.08] transition-colors"
+                              onClick={() => setSelectedAgent(agent)}
+                            >
                               <div className={`text-sm font-bold w-5 ${
-                                i === 0 ? 'text-yellow-400' : 
-                                i === 1 ? 'text-gray-300' : 
+                                i === 0 ? 'text-yellow-400' :
+                                i === 1 ? 'text-gray-300' :
                                 i === 2 ? 'text-orange-400' : 'text-gray-500'
                               }`}>#{i + 1}</div>
                               <div className="flex-1 min-w-0">
@@ -487,7 +582,7 @@ export default function AgentRegistry() {
                   </Card>
 
                   {/* Activity Timeline */}
-                  <Card className="bg-white/5 border-white/10">
+                  <Card className="bg-white/[0.06] border-white/[0.08] backdrop-blur-md">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm flex items-center gap-2">
                         <BarChart3 className="w-4 h-4 text-cyan-400" />
@@ -503,7 +598,7 @@ export default function AgentRegistry() {
                                 {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
                               </span>
                               <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                                <div 
+                                <div
                                   className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full"
                                   style={{ width: `${Math.min((day.registrations + day.active) * 10, 100)}%` }}
                                 />

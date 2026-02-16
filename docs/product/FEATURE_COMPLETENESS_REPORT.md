@@ -191,7 +191,7 @@
 | 深度限制 | ✅ | 最大 10 层 |
 
 ### 数据库 Schema
-**文件**: `drizzle/schema-memory-nft.ts`
+**文件**: `prisma/schema.prisma`
 
 | 字段 | 状态 | 说明 |
 |------|------|------|
@@ -224,7 +224,7 @@
 - ⚠️ **数据库迁移未应用**
   - 新字段未创建
   - 当前使用 Mock 数据
-  - 需要运行 `pnpm db:push`
+  - 需要运行 `pnpm prisma migrate deploy`
 
 - ⚠️ **真实测试数据未生成**
   - 脚本已创建 (`scripts/generate-provenance-test-data.ts`)
@@ -388,7 +388,7 @@
    - `parent_nft_id`, `derivation_type`, `royalty_percent` 字段未创建
    - Memory Provenance 当前使用 Mock 数据
    - **预计时间**: 10 分钟
-   - **依赖**: 运行 `pnpm db:push`
+   - **依赖**: 运行 `pnpm prisma migrate deploy`
 
 3. **实时支付集成** ⚠️
    - 购买流程使用模拟支付
@@ -432,7 +432,7 @@
 
 1. **应用数据库迁移** (10 分钟)
    ```bash
-   pnpm db:push
+   pnpm prisma migrate deploy
    ```
 
 2. **生成 Memory Provenance 测试数据** (10 分钟)

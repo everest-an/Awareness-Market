@@ -77,7 +77,7 @@ export function WorkflowPlayback() {
     if (currentEventIndex < allEvents.length - 1) {
       const currentEvent = allEvents[currentEventIndex];
       const nextEvent = allEvents[currentEventIndex + 1];
-      const actualDelay = new Date(nextEvent.timestamp).getTime() - new Date(currentEvent.timestamp).getTime();
+      const actualDelay = new Date((nextEvent as any).createdAt).getTime() - new Date((currentEvent as any).createdAt).getTime();
       
       // Use actual delay if reasonable (between 100ms and 5s), otherwise use default
       if (actualDelay > 100 && actualDelay < 5000) {
@@ -88,8 +88,8 @@ export function WorkflowPlayback() {
     playbackTimerRef.current = setTimeout(() => {
       const nextIndex = currentEventIndex + 1;
       setCurrentEventIndex(nextIndex);
-      setVisibleEvents(allEvents.slice(0, nextIndex + 1) as WorkflowEvent[]);
-      setSelectedEvent(allEvents[nextIndex] as WorkflowEvent);
+      setVisibleEvents(allEvents.slice(0, nextIndex + 1) as unknown as WorkflowEvent[]);
+      setSelectedEvent(allEvents[nextIndex] as unknown as WorkflowEvent);
     }, delay);
 
     return () => {
@@ -115,24 +115,24 @@ export function WorkflowPlayback() {
     if (!allEvents || currentEventIndex >= allEvents.length - 1) return;
     const nextIndex = currentEventIndex + 1;
     setCurrentEventIndex(nextIndex);
-    setVisibleEvents(allEvents.slice(0, nextIndex + 1) as WorkflowEvent[]);
-    setSelectedEvent(allEvents[nextIndex] as WorkflowEvent);
+    setVisibleEvents(allEvents.slice(0, nextIndex + 1) as unknown as WorkflowEvent[]);
+    setSelectedEvent(allEvents[nextIndex] as unknown as WorkflowEvent);
   };
 
   const handleStepBackward = () => {
     if (currentEventIndex <= 0) return;
     const prevIndex = currentEventIndex - 1;
     setCurrentEventIndex(prevIndex);
-    setVisibleEvents(allEvents!.slice(0, prevIndex + 1) as WorkflowEvent[]);
-    setSelectedEvent(allEvents![prevIndex] as WorkflowEvent);
+    setVisibleEvents(allEvents!.slice(0, prevIndex + 1) as unknown as WorkflowEvent[]);
+    setSelectedEvent(allEvents![prevIndex] as unknown as WorkflowEvent);
   };
 
   const handleReset = () => {
     setIsPlaying(false);
     setCurrentEventIndex(0);
     if (allEvents && allEvents.length > 0) {
-      setVisibleEvents([allEvents[0]] as WorkflowEvent[]);
-      setSelectedEvent(allEvents[0] as WorkflowEvent);
+      setVisibleEvents([allEvents[0]] as unknown as WorkflowEvent[]);
+      setSelectedEvent(allEvents[0] as unknown as WorkflowEvent);
     }
   };
 
@@ -140,8 +140,8 @@ export function WorkflowPlayback() {
     const newIndex = value[0];
     setCurrentEventIndex(newIndex);
     if (allEvents) {
-      setVisibleEvents(allEvents.slice(0, newIndex + 1) as WorkflowEvent[]);
-      setSelectedEvent(allEvents[newIndex] as WorkflowEvent);
+      setVisibleEvents(allEvents.slice(0, newIndex + 1) as unknown as WorkflowEvent[]);
+      setSelectedEvent(allEvents[newIndex] as unknown as WorkflowEvent);
     }
   };
 
@@ -179,7 +179,7 @@ export function WorkflowPlayback() {
     return (
       <div className="min-h-screen bg-black text-white">
         <Navbar />
-        <div className="container mx-auto px-4 py-8 mt-20">
+        <div className="pt-20 container mx-auto px-4 py-8 mt-20">
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             <p className="mt-4 text-gray-400">Loading playback...</p>
@@ -302,7 +302,7 @@ export function WorkflowPlayback() {
 
               {/* Info */}
               <div className="text-center text-sm text-gray-400">
-                {isPlaying ? "Playing..." : "Paused"} â€?{formatDuration((session as any).duration || 0)} total duration
+                {isPlaying ? "Playing..." : "Paused"} ï¿½?{formatDuration((session as any).duration || 0)} total duration
               </div>
             </div>
           </CardContent>

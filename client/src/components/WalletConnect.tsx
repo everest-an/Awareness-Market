@@ -1,6 +1,6 @@
 /**
- * MetaMask 钱包连接组件
- * 提供连接、断开连接和网络切换的 UI
+ * MetaMask Wallet Connection Component
+ * Provides UI for connection, disconnection and network switching
  */
 
 import { useWeb3 } from '../contexts/Web3Context';
@@ -12,7 +12,7 @@ export function WalletConnect() {
   const [showMenu, setShowMenu] = useState(false);
   const [balanceDisplay, setBalanceDisplay] = useState<string>('0');
 
-  // 格式化余额显�?
+  // Format balance display
   useEffect(() => {
     if (state.balance) {
       const balance = parseFloat(state.balance);
@@ -62,7 +62,7 @@ export function WalletConnect() {
     }
   };
 
-  // 未连接状�?- 显示连接按钮
+  // Disconnected state - Show connect button
   if (!state.isConnected) {
     return (
       <div className="wallet-connect">
@@ -77,7 +77,7 @@ export function WalletConnect() {
     );
   }
 
-  // 连接状�?- 显示地址和菜�?
+  // Connected state - Show address and menu
   return (
     <div className="wallet-connect">
       <div className="wallet-info">
@@ -133,7 +133,7 @@ export function WalletConnect() {
 
             {state.isOnAmoy && (
               <div className="network-ok">
-                �?Connected to Polygon Amoy
+                ✓ Connected to Polygon Amoy
               </div>
             )}
 

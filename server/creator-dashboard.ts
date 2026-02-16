@@ -3,9 +3,10 @@
  * Revenue analysis, performance monitoring, and user feedback management
  */
 
-import { getDb } from "./db";
-import { latentVectors, vectorInvocations, transactions, reviews, users } from "../drizzle/schema";
-import { eq, and, gte, desc, sql } from "drizzle-orm";
+import { prisma } from "./db-prisma";
+
+// Cast prisma for models not yet in schema (legacy v1/v2)
+const prismaAny = prisma as any;
 
 export interface RevenueAnalytics {
   totalRevenue: number;
@@ -56,9 +57,6 @@ export interface UserFeedback {
  * Get revenue analytics for creator
  */
 export async function getCreatorRevenueAnalytics(creatorId: number, days: number = 30): Promise<RevenueAnalytics> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   const now = new Date();
   const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -66,10 +64,9 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
   // Get creator's vectors
-  const creatorVectors = await db
-    .select()
-    .from(latentVectors)
-    .where(eq(latentVectors.creatorId, creatorId));
+  const creatorVectors = await prisma.latentVector.findMany({
+    where: { creatorId },
+  });
 
   const vectorIds = creatorVectors.map(v => v.id);
 
@@ -85,26 +82,27 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
   }
 
   // Get all invocations for creator's vectors
-  const allInvocations = await db
-    .select()
-    .from(vectorInvocations)
-    .where(sql`${vectorInvocations.vectorId} IN (${sql.join(vectorIds.map(id => sql`${id}`), sql`, `)})`);
+  const allInvocations = await prismaAny.vectorInvocation.findMany({
+    where: {
+      vectorId: { in: vectorIds },
+    },
+  });
 
   // Calculate total revenue
-  const totalRevenue = allInvocations.reduce((sum, inv) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
+  const totalRevenue = allInvocations.reduce((sum: number, inv: any) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
 
   // Revenue this month
   const revenueThisMonth = allInvocations
-    .filter(inv => new Date(inv.createdAt) >= monthStart)
-    .reduce((sum, inv) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
+    .filter((inv: any) => new Date(inv.createdAt) >= monthStart)
+    .reduce((sum: number, inv: any) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
 
   // Revenue last month
   const revenueLastMonth = allInvocations
-    .filter(inv => {
+    .filter((inv: any) => {
       const date = new Date(inv.createdAt);
       return date >= lastMonthStart && date <= lastMonthEnd;
     })
-    .reduce((sum, inv) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
+    .reduce((sum: number, inv: any) => sum + parseFloat(inv.cost?.toString() || '0'), 0);
 
   // Calculate growth
   const revenueGrowth = revenueLastMonth > 0
@@ -114,8 +112,8 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
   // Daily revenue for the period
   const dailyRevenueMap = new Map<string, number>();
   allInvocations
-    .filter(inv => new Date(inv.createdAt) >= startDate)
-    .forEach(inv => {
+    .filter((inv: any) => new Date(inv.createdAt) >= startDate)
+    .forEach((inv: any) => {
       const date = new Date(inv.createdAt).toISOString().split('T')[0];
       const current = dailyRevenueMap.get(date) || 0;
       dailyRevenueMap.set(date, current + parseFloat(inv.cost?.toString() || '0'));
@@ -127,7 +125,7 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
 
   // Revenue by vector
   const revenueByVectorMap = new Map<number, number>();
-  allInvocations.forEach(inv => {
+  allInvocations.forEach((inv: any) => {
     const current = revenueByVectorMap.get(inv.vectorId) || 0;
     revenueByVectorMap.set(inv.vectorId, current + parseFloat(inv.cost?.toString() || '0'));
   });
@@ -158,19 +156,15 @@ export async function getCreatorRevenueAnalytics(creatorId: number, days: number
  * Get performance metrics for creator
  */
 export async function getCreatorPerformanceMetrics(creatorId: number): Promise<PerformanceMetrics> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
   // Get creator's vectors
-  const creatorVectors = await db
-    .select()
-    .from(latentVectors)
-    .where(eq(latentVectors.creatorId, creatorId));
+  const creatorVectors = await prisma.latentVector.findMany({
+    where: { creatorId },
+  });
 
   const vectorIds = creatorVectors.map(v => v.id);
 
@@ -187,34 +181,35 @@ export async function getCreatorPerformanceMetrics(creatorId: number): Promise<P
   }
 
   // Get all invocations
-  const allInvocations = await db
-    .select()
-    .from(vectorInvocations)
-    .where(sql`${vectorInvocations.vectorId} IN (${sql.join(vectorIds.map(id => sql`${id}`), sql`, `)})`);
+  const allInvocations = await prismaAny.vectorInvocation.findMany({
+    where: {
+      vectorId: { in: vectorIds },
+    },
+  });
 
   const totalInvocations = allInvocations.length;
-  const successfulInvocations = allInvocations.filter(inv => inv.status === 'success').length;
+  const successfulInvocations = allInvocations.filter((inv: any) => inv.status === 'success').length;
   const successRate = totalInvocations > 0 ? (successfulInvocations / totalInvocations) * 100 : 0;
 
   const avgExecutionTime = totalInvocations > 0
-    ? allInvocations.reduce((sum, inv) => sum + (inv.executionTime || 0), 0) / totalInvocations
+    ? allInvocations.reduce((sum: number, inv: any) => sum + (inv.executionTime || 0), 0) / totalInvocations
     : 0;
 
-  const totalTokensUsed = allInvocations.reduce((sum, inv) => sum + (inv.tokensUsed || 0), 0);
+  const totalTokensUsed = allInvocations.reduce((sum: number, inv: any) => sum + (inv.tokensUsed || 0), 0);
 
-  const invocationsThisMonth = allInvocations.filter(inv => new Date(inv.createdAt) >= monthStart).length;
-  const invocationsLastMonth = allInvocations.filter(inv => {
+  const invocationsThisMonth = allInvocations.filter((inv: any) => new Date(inv.createdAt) >= monthStart).length;
+  const invocationsLastMonth = allInvocations.filter((inv: any) => {
     const date = new Date(inv.createdAt);
     return date >= lastMonthStart && date <= lastMonthEnd;
   }).length;
 
   // Performance by vector
   const performanceByVector = vectorIds.map(vectorId => {
-    const vectorInvs = allInvocations.filter(inv => inv.vectorId === vectorId);
+    const vectorInvs = allInvocations.filter((inv: any) => inv.vectorId === vectorId);
     const vector = creatorVectors.find(v => v.id === vectorId);
-    const successful = vectorInvs.filter(inv => inv.status === 'success').length;
+    const successful = vectorInvs.filter((inv: any) => inv.status === 'success').length;
     const avgExecTime = vectorInvs.length > 0
-      ? vectorInvs.reduce((sum, inv) => sum + (inv.executionTime || 0), 0) / vectorInvs.length
+      ? vectorInvs.reduce((sum: number, inv: any) => sum + (inv.executionTime || 0), 0) / vectorInvs.length
       : 0;
 
     return {
@@ -241,14 +236,10 @@ export async function getCreatorPerformanceMetrics(creatorId: number): Promise<P
  * Get user feedback for creator
  */
 export async function getCreatorUserFeedback(creatorId: number, limit: number = 10): Promise<UserFeedback> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   // Get creator's vectors
-  const creatorVectors = await db
-    .select()
-    .from(latentVectors)
-    .where(eq(latentVectors.creatorId, creatorId));
+  const creatorVectors = await prisma.latentVector.findMany({
+    where: { creatorId },
+  });
 
   const vectorIds = creatorVectors.map(v => v.id);
 
@@ -261,44 +252,49 @@ export async function getCreatorUserFeedback(creatorId: number, limit: number = 
     };
   }
 
-  // Get all reviews for creator's vectors
-  const allReviews = await db
-    .select({
-      review: reviews,
+  // Get all reviews for creator's vectors with joins
+  const allReviews = await prisma.review.findMany({
+    where: {
+      vectorId: { in: vectorIds },
+    },
+    include: {
       vector: {
-        id: latentVectors.id,
-        title: latentVectors.title,
+        select: {
+          id: true,
+          title: true,
+        },
       },
       user: {
-        name: users.name,
-      }
-    })
-    .from(reviews)
-    .leftJoin(latentVectors, eq(reviews.vectorId, latentVectors.id))
-    .leftJoin(users, eq(reviews.userId, users.id))
-    .where(sql`${reviews.vectorId} IN (${sql.join(vectorIds.map(id => sql`${id}`), sql`, `)})`)
-    .orderBy(desc(reviews.createdAt))
-    .limit(limit);
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: limit,
+  });
 
   const totalReviews = allReviews.length;
   const averageRating = totalReviews > 0
-    ? allReviews.reduce((sum, r) => sum + r.review.rating, 0) / totalReviews
+    ? allReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
     : 0;
 
   // Rating distribution
   const ratingDistribution: { [key: number]: number } = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   allReviews.forEach(r => {
-    ratingDistribution[r.review.rating] = (ratingDistribution[r.review.rating] || 0) + 1;
+    ratingDistribution[r.rating] = (ratingDistribution[r.rating] || 0) + 1;
   });
 
   const recentReviews = allReviews.map(r => ({
-    id: r.review.id,
-    vectorId: r.review.vectorId,
+    id: r.id,
+    vectorId: r.vectorId,
     vectorTitle: r.vector?.title || 'Unknown',
-    rating: r.review.rating,
-    comment: r.review.comment,
+    rating: r.rating,
+    comment: r.comment,
     userName: r.user?.name || 'Anonymous',
-    createdAt: r.review.createdAt,
+    createdAt: r.createdAt,
   }));
 
   return {

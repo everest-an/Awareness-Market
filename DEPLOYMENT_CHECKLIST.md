@@ -1,462 +1,346 @@
-# 部署前检查清单 ✅
+# ✅ 自部署 LLM 部署检查清单
 
-## 概述
-
-本检查清单确保Awareness Market在部署前已正确配置所有必要组件。
-
-**自动检查**: 运行 `pnpm run check:deploy`
+> 使用本清单确保部署步骤完整无遗漏
 
 ---
 
-## ✅ 1. 环境配置
+## 📋 部署前准备
 
-### 1.1 环境变量
+### 1. 账号注册
 
-**检查命令**: `pnpm run check:env`
+- [ ] RunPod 账号已注册
+  - [ ] 访问 https://runpod.io/ 注册
+  - [ ] 完成邮箱验证
+  - [ ] 添加支付方式（信用卡/借记卡）
+  - [ ] 充值 $25（赠送 $25 = $50 总额）
 
-- [ ] `NODE_ENV=production`
-- [ ] `DATABASE_URL` 已配置并可连接
-- [ ] `JWT_SECRET` 已生成（>=32字符）
-- [ ] AWS S3 凭证已配置
-  - [ ] `AWS_REGION`
-  - [ ] `AWS_ACCESS_KEY_ID`
-  - [ ] `AWS_SECRET_ACCESS_KEY`
-  - [ ] `S3_BUCKET_NAME`
-- [ ] 邮件服务已配置
-  - [ ] `RESEND_API_KEY`
-  - [ ] `EMAIL_FROM`
+- [ ] HuggingFace 账号已注册
+  - [ ] 访问 https://huggingface.co/ 注册
+  - [ ] 访问 https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
+  - [ ] 接受 Meta 的许可协议
+  - [ ] 生成 Access Token: https://huggingface.co/settings/tokens
+  - [ ] 记录 Token: `hf_____________________`
 
-**文档**: [ENV_SETUP_GUIDE.md](ENV_SETUP_GUIDE.md)
+### 2. 本地环境
 
-### 1.2 PostgreSQL数据库
+- [ ] Node.js 已安装 (v18+)
+  - [ ] 运行 `node --version` 验证
 
-- [ ] RDS PostgreSQL实例已创建
-- [ ] 安全组配置正确（允许EC2访问）
-- [ ] DATABASE_URL格式正确
-- [ ] 数据库可连接
+- [ ] Git 已安装
+  - [ ] 运行 `git --version` 验证
 
-**测试连接**:
-```bash
-psql "$DATABASE_URL" -c "SELECT version();"
-```
-
-**文档**: [AWS_RDS_POSTGRESQL_SETUP.md](AWS_RDS_POSTGRESQL_SETUP.md)
-
-### 1.3 AWS S3存储
-
-- [ ] S3存储桶已创建
-- [ ] IAM用户有S3访问权限
-- [ ] 测试上传/下载成功
-
-**测试S3**:
-```bash
-aws s3 ls s3://$S3_BUCKET_NAME --region $AWS_REGION
-```
+- [ ] 项目依赖已安装
+  - [ ] 运行 `npm install`
 
 ---
 
-## ✅ 2. 代码和构建
-
-### 2.1 代码准备
-
-- [ ] 代码已提交到Git
-- [ ] 所有TypeScript错误已修复 (`pnpm run check`)
-- [ ] 所有测试通过 (`pnpm test`) - 97+ tests, 100% pass rate
-- [ ] 生产环境构建成功 (`pnpm run build`)
-- [ ] 依赖已更新 (`pnpm update`)
-
-### 2.2 依赖安装
-
-- [ ] Node.js >= 18.x 已安装
-- [ ] pnpm 已安装
-- [ ] PM2 已安装 (`npm install -g pm2`)
-- [ ] 生产依赖已安装 (`pnpm install --prod`)
-
----
-
-## ✅ 3. 数据库迁移
-
-### 3.1 Schema部署
-
-- [ ] PostgreSQL schema已转换
-- [ ] Migration文件已生成
-- [ ] Migrations已应用到数据库
-
-**运行迁移**:
-```bash
-pnpm run db:push
-```
-
-### 3.2 种子数据（可选）
-
-- [ ] 示例数据已填充（用于测试）
-
-**填充数据**:
-```bash
-npx tsx scripts/seed-three-product-lines.ts
-```
-
----
-
-## ✅ 4. PM2配置
-
-### 4.1 配置检查
-
-- [ ] `ecosystem.config.js` 存在
-- [ ] 实例数量配置合理
-- [ ] 内存限制已设置
-- [ ] 日志路径正确
-
-### 4.2 PM2启动
-
-- [ ] PM2服务已启动
-- [ ] 应用状态为 `online`
-- [ ] 无频繁重启
-- [ ] 日志无错误
-
-**启动和检查**:
-```bash
-pnpm run pm2:start
-pm2 status
-pm2 logs --lines 50
-```
-
-### 4.3 开机自启
-
-- [ ] PM2 startup配置完成
-- [ ] 当前配置已保存 (`pm2 save`)
-
-**配置自启动**:
-```bash
-pm2 startup
-pm2 save
-```
-
-**文档**: [PM2_GUIDE.md](PM2_GUIDE.md)
-
----
-
-## ✅ 5. 监控和日志
-
-### 5.1 日志配置
-
-- [ ] `logs/` 目录存在并有写权限
-- [ ] PM2日志轮转已配置
-- [ ] 日志级别适当（生产环境应为 `info` 或 `warn`）
-
-**安装日志轮转**:
-```bash
-pm2 install pm2-logrotate
-pm2 set pm2-logrotate:max_size 10M
-pm2 set pm2-logrotate:retain 30
-```
-
-### 5.2 资源监控
-
-- [ ] 资源监控脚本可运行
-- [ ] CPU使用率正常 (<80%)
-- [ ] 内存使用率正常 (<85%)
-- [ ] 磁盘空间充足 (>10GB可用)
-
-**监控资源**:
-```bash
-pnpm run monitor:watch
-```
-
----
-
-## ✅ 6. 安全配置
-
-### 6.1 访问控制
-
-- [ ] EC2安全组仅开放必要端口
-  - SSH (22): 仅特定IP
-  - HTTP (80): 公开或通过CDN
-  - HTTPS (443): 公开或通过CDN
-  - 应用端口 (3001): 仅内部访问
-- [ ] RDS安全组仅允许EC2访问
-- [ ] S3存储桶禁用公共访问
-
-### 6.2 密钥管理
-
-- [ ] `.env` 文件未提交到Git
-- [ ] JWT_SECRET使用强随机值
-- [ ] AWS密钥定期轮换
-- [ ] 数据库密码强度足够
-
-### 6.3 HTTPS配置（生产环境）
-
-- [ ] SSL证书已安装
-- [ ] Nginx/CloudFront配置HTTPS
-- [ ] HTTP自动重定向到HTTPS
-
----
-
-## ✅ 7. 网络和DNS
-
-### 7.1 域名配置
-
-- [ ] 域名已注册
-- [ ] DNS记录已配置
-  - A记录指向EC2/负载均衡器
-  - MX记录配置邮件服务
-- [ ] DNS传播完成
-
-### 7.2 反向代理（推荐）
-
-- [ ] Nginx已安装并配置
-- [ ] 反向代理到应用端口
-- [ ] 静态文件服务配置
-- [ ] Gzip压缩已启用
-
-**文档**: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) (步骤6)
-
----
-
-## ✅ 8. 备份和恢复
-
-### 8.1 数据库备份
-
-- [ ] RDS自动备份已启用（7-30天）
-- [ ] 手动快照已创建（部署前）
-- [ ] 备份恢复流程已测试
-
-### 8.2 代码备份
-
-- [ ] 代码已推送到GitHub
-- [ ] 生产分支（main）受保护
-- [ ] Tag标记当前版本
-
----
-
-## ✅ 9. 性能优化
-
-### 9.1 应用优化
-
-- [ ] 生产构建启用压缩
-- [ ] 静态资源启用缓存
-- [ ] 数据库连接池配置
-- [ ] Redis缓存已配置（可选）
-
-### 9.2 基础设施优化
-
-- [ ] CDN已配置（CloudFront）
-- [ ] 数据库索引优化
-- [ ] 图片压缩和优化
-- [ ] API响应缓存
-
----
-
-## ✅ 10. 测试验证
-
-### 10.1 功能测试
-
-- [ ] 用户注册/登录正常
-- [ ] 三大市场显示数据
-- [ ] 向量包上传/下载正常
-- [ ] 支付流程正常（如启用）
-- [ ] 邮件发送正常
-
-### 10.2 性能测试
-
-- [ ] 页面加载时间 <3秒
-- [ ] API响应时间 <500ms
-- [ ] 并发处理能力测试
-- [ ] 压力测试通过
-
-### 10.3 安全测试
-
-- [ ] SQL注入测试通过
-- [ ] XSS防护测试通过
-- [ ] CSRF防护测试通过
-- [ ] 权限控制测试通过
-
----
-
-## 🚀 部署流程
-
-### 首次部署
+## 🚀 部署步骤
+
+### Phase 1: 创建 GPU Pod (5 分钟)
+
+- [ ] 登录 RunPod 控制台
+- [ ] 点击 "Deploy" → "GPU Instance"
+- [ ] 选择配置：
+  - [ ] GPU Type: **RTX 4090** (24GB VRAM)
+  - [ ] Pricing: **Spot** (最便宜)
+  - [ ] Template: **PyTorch 2.1**
+  - [ ] Volume Size: **50GB**
+- [ ] 点击 "Deploy On-Demand"
+- [ ] 等待 Pod 启动（30-60 秒）
+- [ ] 记录 Pod 信息：
+  - [ ] Pod ID: `_________________`
+  - [ ] 公网地址: `https://_______________-8000.proxy.runpod.net`
+
+### Phase 2: 部署 vLLM 服务器 (10 分钟)
+
+#### 2.1 连接到 Pod
+
+- [ ] 点击 Pod 的 "Connect" 按钮
+- [ ] 选择 "Start Web Terminal" 或使用 SSH
+- [ ] 确认在 `/workspace` 目录
+
+#### 2.2 下载部署脚本
 
 ```bash
-# 1. 检查配置
-pnpm run check:deploy
-
-# 2. 检查环境变量
-pnpm run check:env
-
-# 3. 运行测试
-pnpm test
-
-# 4. 构建生产版本
-pnpm run build
-
-# 5. 运行数据库迁移
-pnpm run db:push
-
-# 6. 填充示例数据（可选）
-npx tsx scripts/seed-three-product-lines.ts
-
-# 7. 启动PM2
-pnpm run pm2:start
-
-# 8. 验证状态
-pm2 status
-pm2 logs --lines 50
-
-# 9. 监控资源
-pnpm run monitor
-
-# 10. 测试应用
-curl http://localhost:3001/health
+# 方法 1: 直接运行（推荐）
+export HF_TOKEN=hf_your_token_here
+bash <(curl -sSL https://raw.githubusercontent.com/your-repo/scripts/deploy-vllm.sh)
 ```
 
-### 更新部署
+或手动执行：
 
-```bash
-# 1. 拉取最新代码
-git pull origin main
+- [ ] 安装依赖
+  ```bash
+  pip install vllm==0.6.0 fastapi uvicorn python-multipart
+  ```
 
-# 2. 安装依赖
-pnpm install
+- [ ] 登录 HuggingFace
+  ```bash
+  huggingface-cli login --token hf_your_token_here
+  ```
 
-# 3. 构建
-pnpm run build
+- [ ] 下载模型（需要 5-10 分钟）
+  ```bash
+  huggingface-cli download meta-llama/Llama-3.1-8B-Instruct \
+    --local-dir /workspace/models/llama-3.1-8b \
+    --local-dir-use-symlinks False
+  ```
 
-# 4. 运行迁移（如有）
-pnpm run db:push
+- [ ] 创建服务器代码
+  ```bash
+  # 从 QUICK_START_LLAMA.md 复制 vllm_server.py 代码
+  nano /workspace/vllm_server.py
+  # 粘贴代码并保存 (Ctrl+X, Y, Enter)
+  ```
 
-# 5. 零停机重载
-pm2 reload ecosystem.config.js
+- [ ] 启动服务器
+  ```bash
+  nohup python /workspace/vllm_server.py > /workspace/vllm.log 2>&1 &
+  ```
 
-# 6. 验证
-pm2 status
-```
+- [ ] 等待服务器启动（30 秒）
+  ```bash
+  sleep 30
+  ```
+
+#### 2.3 验证部署
+
+- [ ] 测试健康检查
+  ```bash
+  curl http://localhost:8000/health
+  ```
+  预期输出：
+  ```json
+  {
+    "status": "healthy",
+    "model": "Llama-3.1-8B",
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "memory": "7.84GB"
+  }
+  ```
+
+- [ ] 测试隐藏状态提取
+  ```bash
+  curl -X POST http://localhost:8000/v1/hidden_states \
+    -H "Content-Type: application/json" \
+    -d '{"prompts": ["Hello, world!"], "layer": -2}'
+  ```
+
+- [ ] 测试公网访问
+  ```bash
+  curl https://your-pod-id-8000.proxy.runpod.net/health
+  ```
+
+### Phase 3: 配置 Awareness Network (5 分钟)
+
+#### 3.1 配置环境变量
+
+**方法 1: 自动配置（推荐）**
+
+- [ ] 在本地运行配置脚本
+  ```bash
+  cd "e:/Awareness Market/Awareness-Network"
+  bash scripts/setup-env.sh
+  ```
+
+- [ ] 按提示输入信息
+
+**方法 2: 手动配置**
+
+- [ ] 复制 `.env.example` 到 `.env`
+  ```bash
+  copy .env.example .env
+  ```
+
+- [ ] 编辑 `.env` 文件，添加/修改以下配置：
+  ```env
+  USE_SELF_HOSTED_LLM=true
+  VLLM_BASE_URL=https://your-pod-id-8000.proxy.runpod.net
+  VLLM_MODEL_NAME=llama-3.1-8b
+  LLM_COST_PROVIDER=runpod-rtx-4090-spot
+
+  # 可选：RunPod 自动管理
+  RUNPOD_API_KEY=your_runpod_api_key
+  RUNPOD_POD_ID=your_pod_id
+  ```
+
+#### 3.2 启动服务
+
+- [ ] 安装依赖（如果还没有）
+  ```bash
+  npm install
+  ```
+
+- [ ] 启动开发服务器
+  ```bash
+  npm run dev
+  ```
+
+- [ ] 等待服务器启动（监听 3000 端口）
+
+### Phase 4: 测试集成 (2 分钟)
+
+#### 4.1 手动测试
+
+- [ ] 测试健康检查
+  ```bash
+  curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.testSelfHostedHealth
+  ```
+
+- [ ] 测试隐藏状态提取
+  ```bash
+  curl -X POST http://localhost:3000/api/trpc/latentmas.trueLatentMAS.testHiddenStateExtraction \
+    -H "Content-Type: application/json" \
+    -d '{"prompts": ["Test prompt"]}'
+  ```
+
+#### 4.2 自动化测试
+
+- [ ] 运行测试脚本
+  ```bash
+  bash scripts/test-integration.sh
+  ```
+
+- [ ] 确认所有测试通过 ✓
+
+### Phase 5: 训练第一个 W-Matrix (5 分钟)
+
+#### 5.1 使用 API
+
+- [ ] 编译文本到潜空间
+  ```bash
+  curl -X POST http://localhost:3000/api/trpc/latentmas.trueLatentMAS.compileTextToLatent \
+    -H "Content-Type: application/json" \
+    -d '{
+      "text": "Machine learning is a subset of artificial intelligence.",
+      "sourceModel": "llama-3.1-8b",
+      "latentSteps": 20
+    }'
+  ```
+
+- [ ] 记录 `packageId`
+- [ ] 检查 `quality.informationRetention` > 0.9
+
+#### 5.2 使用前端 UI
+
+- [ ] 访问 http://localhost:3000/latent-test
+- [ ] 进入 "论文实现" 标签页
+- [ ] 输入测试文本
+- [ ] 点击 "编译到潜空间"
+- [ ] 查看结果
 
 ---
 
-## 🆘 故障排查
+## 🎯 验收标准
 
-### 应用无法启动
+### 必须通过的检查
 
-```bash
-# 检查日志
-pm2 logs --err --lines 100
+- [ ] vLLM 服务器健康检查返回 `status: healthy`
+- [ ] 隐藏状态提取返回 4096 维向量
+- [ ] 成本统计正常显示
+- [ ] 编译到潜空间成功，信息保留率 > 0.9
+- [ ] 前端 UI 可以正常使用
 
-# 检查环境变量
-pnpm run check:env
+### 性能基准
 
-# 手动运行（调试）
-NODE_ENV=production node dist/index.js
-```
+- [ ] 单个 prompt 隐藏状态提取 < 200ms
+- [ ] 100 prompts 批量处理 < 10s
+- [ ] W-Matrix 训练（200 prompts）< 30s
 
-### 数据库连接失败
+### 成本验证
 
-```bash
-# 测试连接
-psql "$DATABASE_URL"
-
-# 检查安全组
-# AWS Console → EC2 → Security Groups
-# AWS Console → RDS → 数据库 → Connectivity
-```
-
-### S3上传失败
-
-```bash
-# 测试AWS凭证
-aws sts get-caller-identity
-
-# 测试S3访问
-aws s3 ls s3://$S3_BUCKET_NAME
-```
+- [ ] 单次训练成本 < $0.01
+- [ ] 每日成本 < $0.50（轻度使用）
+- [ ] 月度预测成本 < $20
 
 ---
 
-## 📊 监控指标
+## 🔧 故障排查
 
-### 应该监控的关键指标
+### 常见问题
 
-- **应用**
-  - PM2进程状态
-  - 应用重启次数
-  - API响应时间
-  - 错误率
+#### 1. 模型下载失败
 
-- **服务器**
-  - CPU使用率 (目标: <70%)
-  - 内存使用率 (目标: <80%)
-  - 磁盘使用率 (目标: <80%)
-  - 网络I/O
+- [ ] 检查 HF_TOKEN 是否正确
+- [ ] 检查网络连接
+- [ ] 检查磁盘空间（需要 ~20GB）
+- [ ] 尝试使用镜像站点
 
-- **数据库**
-  - 连接数
-  - 查询性能
-  - 慢查询
-  - 存储空间
+#### 2. vLLM 服务器启动失败
 
-- **业务**
-  - 用户活跃数
-  - 向量包下载量
-  - 交易成功率
-  - 错误日志数量
+- [ ] 查看日志：`tail -f /workspace/vllm.log`
+- [ ] 检查 GPU 内存使用：`nvidia-smi`
+- [ ] 降低 `GPU_MEMORY_UTILIZATION` 到 0.7
+- [ ] 重启 Pod
 
----
+#### 3. 连接超时
 
-## 📞 紧急联系
+- [ ] 检查 VLLM_BASE_URL 是否正确
+- [ ] 测试公网访问：`curl https://...`
+- [ ] 检查 Pod 是否在运行
+- [ ] 检查防火墙设置
 
-### 服务提供商支持
+#### 4. 成本超预算
 
-- **AWS**: https://console.aws.amazon.com/support/home
-- **Resend**: https://resend.com/support
-- **Stripe**: https://support.stripe.com/
-
-### 快速回滚
-
-```bash
-# 方法1: Git回滚
-git revert HEAD
-pnpm run build
-pm2 reload ecosystem.config.js
-
-# 方法2: PM2部署回滚
-pm2 deploy ecosystem.config.js production revert 1
-
-# 方法3: RDS恢复
-# AWS Console → RDS → Automated backups → Restore to point in time
-```
+- [ ] 检查 Pod 是否忘记停止
+- [ ] 启用智能启停：使用 `RunPodManager.withAutoManage()`
+- [ ] 查看成本统计：`getCostStats`
+- [ ] 调整使用频率
 
 ---
 
-## ✅ 最终检查
+## 📊 部署完成报告
 
-部署到生产环境前，确认：
+部署完成后，填写以下信息：
 
-- [ ] 所有上述检查项已完成
-- [ ] 自动检查脚本全部通过
-- [ ] 在staging环境测试成功
-- [ ] 团队成员已通知
-- [ ] 备份已创建
-- [ ] 回滚方案已准备
-- [ ] 监控已配置
-- [ ] 文档已更新
+### 环境信息
 
-**运行最终检查**:
-```bash
-pnpm run check:deploy
-```
+- **部署日期**: _______________
+- **Pod ID**: _______________
+- **GPU 型号**: RTX 4090 / A100 / 其他
+- **模型**: Llama 3.1 8B / 其他
+- **公网地址**: _______________
 
-如果所有检查通过，您已准备好部署到生产环境！🚀
+### 性能数据
+
+- **首次隐藏状态提取耗时**: _____ ms
+- **100 prompts 批量处理耗时**: _____ s
+- **W-Matrix 训练耗时**: _____ s
+- **信息保留率**: _____ %
+
+### 成本数据
+
+- **首次训练成本**: $_____
+- **预估日成本**: $_____
+- **预估月成本**: $_____
+
+### 测试结果
+
+- [ ] 所有自动化测试通过
+- [ ] 手动验证通过
+- [ ] 前端 UI 正常工作
+- [ ] 成本在预算内
 
 ---
 
-**相关文档**:
-- [ENV_SETUP_GUIDE.md](ENV_SETUP_GUIDE.md) - 环境变量配置
-- [AWS_RDS_POSTGRESQL_SETUP.md](AWS_RDS_POSTGRESQL_SETUP.md) - 数据库设置
-- [PM2_GUIDE.md](PM2_GUIDE.md) - PM2进程管理
-- [POSTGRESQL_SETUP.md](POSTGRESQL_SETUP.md) - PostgreSQL本地设置
-- [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - 完整部署指南
+## 🎉 恭喜！
+
+如果所有检查项都已完成，你已经成功部署了自部署 LLM 系统！
+
+### 下一步
+
+1. [ ] 集成到三大市场（记忆、推理链、W-Matrix）
+2. [ ] 设置成本监控告警
+3. [ ] 优化批量处理流程
+4. [ ] 添加更多模型支持
+
+### 记得
+
+- ⏸️ 不用时停止 Pod 节省成本
+- 📊 定期检查成本统计
+- 🔄 定期更新模型和依赖
+- 📝 记录使用经验和优化措施
 
 ---
 
-**维护者**: Claude Opus 4.5
-**最后更新**: 2026-02-01
+**部署成功！🚀 成本节省 99.4%！💰**

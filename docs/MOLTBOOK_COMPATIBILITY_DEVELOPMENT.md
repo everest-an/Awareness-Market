@@ -59,9 +59,9 @@ CREATE INDEX IF NOT EXISTS latent_vectors_user_embedding_idx
   INCLUDE (embedding_vector);
 ```
 
-### 1.3 更新 Drizzle Schema
+### 1.3 更新 Prisma Schema
 
-修改 [drizzle/schema-pg.ts](../drizzle/schema-pg.ts):
+修改 [prisma/schema.prisma](../prisma/schema.prisma):
 
 ```typescript
 // 在 latentVectors 表定义中添加
@@ -104,10 +104,10 @@ export const memoryUsageLog = pgTable("memory_usage_log", {
 cd Awareness-Network
 
 # 生成迁移文件
-pnpm run db:generate
+pnpm prisma migrate dev --name add_pgvector_support
 
 # 应用到数据库
-pnpm run db:push
+pnpm prisma migrate deploy
 ```
 
 ---
@@ -1099,7 +1099,7 @@ cd Awareness-Network
 pnpm run check:deploy
 
 # 应用数据库迁移
-pnpm run db:push
+pnpm prisma migrate deploy
 
 # 启动 PM2
 pnpm run pm2:start

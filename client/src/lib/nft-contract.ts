@@ -1,12 +1,12 @@
 /**
- * NFT 合约交互模块
- * 处理�?MemoryNFT 合约的所有交�?
+ * NFT Contract Interaction Module
+ * Handles all interactions with the MemoryNFT contract
  */
 
 import { Contract, parseEther } from 'ethers';
 import { getWeb3Provider } from './web3-provider';
 
-// MemoryNFT 合约 ABI (核心方法)
+// MemoryNFT Contract ABI (Core Methods)
 const MEMORY_NFT_ABI = [
   {
     type: 'function',
@@ -133,7 +133,7 @@ export class MemoryNFTManager {
   }
 
   /**
-   * 设置合约地址
+   * Set contract address
    */
   setContractAddress(address: string) {
     this.contractAddress = address;
@@ -141,14 +141,14 @@ export class MemoryNFTManager {
   }
 
   /**
-   * 获取当前合约地址
+   * Get current contract address
    */
   getContractAddress(): string | null {
     return this.contractAddress;
   }
 
   /**
-   * 检查是否已连接合约
+   * Check if contract is connected
    */
   private ensureContractConnected() {
     if (!this.contract || !this.contractAddress) {
@@ -157,7 +157,7 @@ export class MemoryNFTManager {
   }
 
   /**
-   * 获取账户�?NFT 余额
+   * Get account NFT balance
    */
   async getBalance(address: string): Promise<number> {
     this.ensureContractConnected();
@@ -171,7 +171,7 @@ export class MemoryNFTManager {
   }
 
   /**
-   * 获取 NFT 信息
+   * Get NFT info
    */
   async getNFTInfo(tokenId: number): Promise<NFTInfo> {
     this.ensureContractConnected();
@@ -199,7 +199,7 @@ export class MemoryNFTManager {
   }
 
   /**
-   * 购买 NFT 许可�?
+   * Buy NFT license
    */
   async buyLicense(tokenId: number): Promise<string> {
     this.ensureContractConnected();
@@ -222,7 +222,7 @@ export class MemoryNFTManager {
   }
 
   /**
-   * 铸造新 NFT
+   * Mint new NFT
    */
   async mintNFT(
     to: string,
@@ -231,7 +231,7 @@ export class MemoryNFTManager {
   ): Promise<string> {
     this.ensureContractConnected();
     try {
-      // 将元数据转换�?JSON URI (在实际场景中应该上传�?IPFS)
+      // Convert metadata to JSON URI (In real scenario, should upload to IPFS)
       const uri = JSON.stringify(metadata);
       const price = parseEther(priceInMatic.toString());
 
@@ -249,7 +249,7 @@ export class MemoryNFTManager {
   }
 
   /**
-   * 获取 NFT 总供应量
+   * Get total NFT supply
    */
   async getTotalSupply(): Promise<number> {
     this.ensureContractConnected();
@@ -263,7 +263,7 @@ export class MemoryNFTManager {
   }
 
   /**
-   * 获取用户的所�?NFT
+   * Get user's NFTs
    */
   async getUserNFTs(address: string): Promise<NFTInfo[]> {
     this.ensureContractConnected();
@@ -271,8 +271,8 @@ export class MemoryNFTManager {
       const balance = await this.getBalance(address);
       const nfts: NFTInfo[] = [];
 
-      // 注意: 这是一个简化的实现
-      // 实际应该通过事件或子图来查询
+      // Note: This is a simplified implementation
+      // In reality, should query via events or subgraph
       const totalSupply = await this.getTotalSupply();
 
       for (let tokenId = 1; tokenId <= totalSupply; tokenId++) {
@@ -296,7 +296,7 @@ export class MemoryNFTManager {
   }
 
   /**
-   * 监听 NFT 传输事件
+   * Listen for NFT Transfer events
    */
   onNFTTransfer(
     callback: (from: string, to: string, tokenId: number) => void
@@ -309,14 +309,14 @@ export class MemoryNFTManager {
 
     this.contract!.on('Transfer', listener);
 
-    // 返回取消监听函数
+    /** Return unsubscribe function */
     return () => {
       this.contract!.off('Transfer', listener);
     };
   }
 
   /**
-   * 监听许可证购买事�?
+   * Listen for LicensePurchased events
    */
   onLicensePurchased(
     callback: (tokenId: number, buyer: string, price: string) => void
@@ -329,14 +329,14 @@ export class MemoryNFTManager {
 
     this.contract!.on('LicensePurchased', listener);
 
-    // 返回取消监听函数
+    /** Return unsubscribe function */
     return () => {
       this.contract!.off('LicensePurchased', listener);
     };
   }
 
   /**
-   * 签名消息 (用于验证)
+   * Sign message (for verification)
    */
   async signMessage(message: string): Promise<string> {
     try {
@@ -348,7 +348,7 @@ export class MemoryNFTManager {
   }
 }
 
-// 创建全局实例
+// Create global instance
 let nftManager: MemoryNFTManager | null = null;
 
 export function getMemoryNFTManager(contractAddress?: string): MemoryNFTManager {

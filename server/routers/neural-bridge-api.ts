@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Neural Bridge Protocol - Backend API Router
  *
  * Provides backend API endpoints for Neural Bridge Protocol operations:
@@ -16,10 +16,11 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router } from "../_core/trpc";
 import { createLogger } from "../utils/logger";
 import { ProductionKVCacheCompressor } from "../latentmas/kv-cache-compressor-production";
 import { SemanticAnchorDB } from "../latentmas/semantic-anchors";
+import { embeddingService } from "../latentmas/embedding-service";
 import { inferenceTracker } from "../inference-tracker";
 import { getGPUEngine, benchmarkBackends, getRecommendedBatchSize, type ComputeBackend } from "../latentmas/gpu-acceleration";
 
@@ -27,6 +28,33 @@ const logger = createLogger('NeuralBridge:API');
 
 // Initialize semantic anchor database
 const semanticAnchors = new SemanticAnchorDB();
+
+async function ensureSemanticAnchorsLoaded(): Promise<void> {
+  const stats = semanticAnchors.getStatistics();
+  if (stats.vectorsCached > 0) return;
+
+  const sampleSize = Math.max(
+    32,
+    Math.min(parseInt(process.env.SEMANTIC_ANCHOR_SAMPLE_SIZE || "128", 10), 1024)
+  );
+
+  const anchors = semanticAnchors.getAllAnchors().slice(0, sampleSize);
+  const prompts = anchors.map(anchor => anchor.prompt);
+
+  const batch = await embeddingService.embedBatch({
+    texts: prompts,
+    model: "text-embedding-3-small",
+  });
+
+  batch.embeddings.forEach((embedding, index) => {
+    const anchor = anchors[index];
+    if (anchor) {
+      semanticAnchors.storeAnchorVector(anchor.id, embedding.vector);
+    }
+  });
+}
+
+void ensureSemanticAnchorsLoaded();
 
 // Initialize GPU engine (lazy initialization on first use)
 const gpuEngine = getGPUEngine({ enableFallback: true });
@@ -40,8 +68,8 @@ const gpuEngine = getGPUEngine({ enableFallback: true });
  */
 const KVCacheSchema = z.object({
   sourceModel: z.string().describe("Source model identifier (e.g., 'gpt-4', 'llama-3.1-70b')"),
-  keys: z.array(z.array(z.array(z.array(z.number())))).describe("[layers][heads][sequence × key_dim]"),
-  values: z.array(z.array(z.array(z.array(z.number())))).describe("[layers][heads][sequence × value_dim]"),
+  keys: z.array(z.array(z.array(z.array(z.number())))).describe("[layers][heads][sequence 脳 key_dim]"),
+  values: z.array(z.array(z.array(z.array(z.number())))).describe("[layers][heads][sequence 脳 value_dim]"),
   metadata: z.object({
     sequenceLength: z.number(),
     contextDescription: z.string().optional(),
@@ -57,7 +85,7 @@ const WMatrixSchema = z.object({
   version: z.string().describe("W-Matrix version identifier"),
   sourceModel: z.string(),
   targetModel: z.string(),
-  matrix: z.array(z.array(z.number())).describe("[d_target × d_source]"),
+  matrix: z.array(z.array(z.number())).describe("[d_target 脳 d_source]"),
   epsilon: z.number().optional().describe("Alignment loss (lower is better)"),
   qualityScore: z.number().min(0).max(1).optional(),
   metadata: z.object({
@@ -107,7 +135,7 @@ class NeuralBridgeBackend {
 
   /**
    * Align KV-Cache from source model to target model
-   * Formula: h_target = W × h_source
+   * Formula: h_target = W 脳 h_source
    *
    * @returns Aligned KV-Cache with quality metrics
    */
@@ -116,7 +144,7 @@ class NeuralBridgeBackend {
     wMatrix: z.infer<typeof WMatrixSchema>,
     targetModel: string
   ) {
-    logger.info(`Aligning KV-Cache: ${kvCache.sourceModel} → ${targetModel}`);
+    logger.info(`Aligning KV-Cache: ${kvCache.sourceModel} 鈫?${targetModel}`);
 
     // Validate compatibility
     if (wMatrix.sourceModel !== kvCache.sourceModel) {
@@ -205,7 +233,7 @@ class NeuralBridgeBackend {
   }
 
   /**
-   * Matrix-vector multiplication: y = W × x
+   * Matrix-vector multiplication: y = W 脳 x
    */
   private matrixVectorMultiply(matrix: number[][], vector: number[]): number[] {
     return matrix.map(row =>
@@ -259,6 +287,14 @@ class NeuralBridgeBackend {
    * TODO: Replace with real semantic anchor comparison when anchors are precomputed
    */
   private fastValidation(vector: number[]): number {
+    const stats = semanticAnchors.getStatistics();
+    if (stats.vectorsCached > 0) {
+      const calibration = semanticAnchors.calibrateAlignment(vector);
+      if (Number.isFinite(calibration.calibrationScore)) {
+        return calibration.calibrationScore;
+      }
+    }
+
     // Check for numerical issues
     if (vector.some(v => !isFinite(v))) {
       return 0.0; // Invalid vector
@@ -335,8 +371,8 @@ class NeuralBridgeBackend {
     let recommendation: string;
 
     if (calibrationScore >= 0.95) {
-      qualityLevel = 'Excellent (≥0.95)';
-      recommendation = '✓ Passes 3% semantic loss threshold. Ready for production.';
+      qualityLevel = 'Excellent (鈮?.95)';
+      recommendation = '鉁?Passes 3% semantic loss threshold. Ready for production.';
     } else if (calibrationScore >= 0.85) {
       qualityLevel = 'Good (0.85-0.95)';
       recommendation = 'Acceptable quality for most use cases. Minor refinements recommended.';
@@ -345,7 +381,7 @@ class NeuralBridgeBackend {
       recommendation = 'Below optimal quality. Consider retraining or adjusting parameters.';
     } else {
       qualityLevel = 'Poor (<0.70)';
-      recommendation = '✗ Reject this vector. Significant quality issues detected.';
+      recommendation = '鉁?Reject this vector. Significant quality issues detected.';
     }
 
     return {
@@ -369,7 +405,7 @@ class NeuralBridgeBackend {
 
   /**
    * Calculate InfoNCE contrastive loss
-   * Formula: L = -log(exp(sim(h, a+)/τ) / Σ exp(sim(h, a-)/τ))
+   * Formula: L = -log(exp(sim(h, a+)/蟿) / 危 exp(sim(h, a-)/蟿))
    *
    * @param alignedVector - Aligned hidden state
    * @param positiveAnchor - Most similar anchor (positive sample)
@@ -435,7 +471,7 @@ export const neuralBridgeRouter = router({
    * Align KV-Cache between models with optional compression
    * Endpoint: POST /api/neural-bridge/align-kv
    */
-  alignKV: publicProcedure
+  alignKV: protectedProcedure
     .input(z.object({
       kvCache: KVCacheSchema,
       wMatrix: WMatrixSchema,
@@ -482,7 +518,7 @@ export const neuralBridgeRouter = router({
       let session = input.sessionId ? inferenceTracker.getSession(input.sessionId) : null;
       if (!session) {
         session = inferenceTracker.createSession({
-          title: `KV-Cache Alignment: ${input.kvCache.sourceModel} → ${input.targetModel}`,
+          title: `KV-Cache Alignment: ${input.kvCache.sourceModel} 鈫?${input.targetModel}`,
           description: `Aligning KV-Cache from ${input.kvCache.sourceModel} to ${input.targetModel} using W-Matrix v${input.wMatrix.version}`,
         });
         logger.info(`Created new inference session: ${session.id}`);
@@ -547,7 +583,7 @@ export const neuralBridgeRouter = router({
           };
 
           logger.info(
-            `Compression complete: ${totalOriginalTokens} → ${totalCompressedTokens} tokens ` +
+            `Compression complete: ${totalOriginalTokens} 鈫?${totalCompressedTokens} tokens ` +
             `(${(compressionStats.compressionRatio * 100).toFixed(1)}% retained, ` +
             `${(compressionStats.bandwidthReduction * 100).toFixed(1)}% bandwidth saved)`
           );
@@ -625,7 +661,7 @@ export const neuralBridgeRouter = router({
    * Validate vector quality using semantic anchors
    * Endpoint: POST /api/neural-bridge/validate-vector
    */
-  validateVector: publicProcedure
+  validateVector: protectedProcedure
     .input(z.object({
       vector: z.array(z.number()),
       sourceModel: z.string().optional(),
@@ -654,6 +690,8 @@ export const neuralBridgeRouter = router({
 
       try {
         logger.info(`Validating vector with semantic anchors (dim: ${input.vector.length})`);
+
+        await ensureSemanticAnchorsLoaded();
 
         // Initialize or get inference session if provided
         let sessionId = input.sessionId;
@@ -703,13 +741,13 @@ export const neuralBridgeRouter = router({
         // Generate recommendation
         let recommendation: string;
         if (passesThreshold) {
-          recommendation = '✓ Excellent quality vector - Ready for marketplace listing';
+          recommendation = '鉁?Excellent quality vector - Ready for marketplace listing';
         } else if (calibrationScore >= 0.90) {
-          recommendation = '⚠ Good quality but below marketplace threshold (0.97). Consider refinement.';
+          recommendation = '鈿?Good quality but below marketplace threshold (0.97). Consider refinement.';
         } else if (calibrationScore >= 0.70) {
-          recommendation = '⚠ Moderate quality. Significant improvement needed for marketplace.';
+          recommendation = '鈿?Moderate quality. Significant improvement needed for marketplace.';
         } else {
-          recommendation = '✗ Poor quality vector. Not recommended for marketplace listing.';
+          recommendation = '鉁?Poor quality vector. Not recommended for marketplace listing.';
         }
 
         // Add calibration recommendations
@@ -809,7 +847,7 @@ export const neuralBridgeRouter = router({
       let recommendation: string;
 
       if (loss < 0.5) {
-        interpretation = '✓ Excellent alignment - strong separation between positive and negative';
+        interpretation = '鉁?Excellent alignment - strong separation between positive and negative';
         recommendation = 'High-quality alignment. Suitable for production use.';
       } else if (loss < 1.0) {
         interpretation = 'Good alignment - clear preference for positive anchor';
@@ -818,7 +856,7 @@ export const neuralBridgeRouter = router({
         interpretation = 'Moderate alignment - some confusion with negatives';
         recommendation = 'Consider additional training or parameter tuning.';
       } else {
-        interpretation = '✗ Poor alignment - cannot distinguish positive from negatives';
+        interpretation = '鉁?Poor alignment - cannot distinguish positive from negatives';
         recommendation = 'Reject this W-Matrix. Significant retraining required.';
       }
 
@@ -834,13 +872,14 @@ export const neuralBridgeRouter = router({
    * Get semantic anchor statistics
    * Endpoint: GET /api/neural-bridge/anchor-stats
    */
-  getAnchorStats: publicProcedure
+  getAnchorStats: protectedProcedure
     .query(async () => {
-      // TODO: Query from database
+      await ensureSemanticAnchorsLoaded();
+      const stats = semanticAnchors.getStatistics();
       return {
-        totalAnchors: 1024,
-        categories: 16,
-        vectorsCached: 0, // Will be updated after precomputation
+        totalAnchors: stats.totalAnchors,
+        categories: Object.keys(stats.categoryCounts).length,
+        vectorsCached: stats.vectorsCached,
         averageWeight: 0.5,
         lastUpdated: new Date().toISOString(),
       };
@@ -854,7 +893,7 @@ export const neuralBridgeRouter = router({
    * Create a new inference session for tracking
    * Endpoint: POST /api/neural-bridge/inference-session/create
    */
-  createInferenceSession: publicProcedure
+  createInferenceSession: protectedProcedure
     .input(z.object({
       title: z.string(),
       description: z.string().optional(),
@@ -885,7 +924,7 @@ export const neuralBridgeRouter = router({
    * Get inference session by ID
    * Endpoint: GET /api/neural-bridge/inference-session/:id
    */
-  getInferenceSession: publicProcedure
+  getInferenceSession: protectedProcedure
     .input(z.object({
       sessionId: z.string(),
     }))
@@ -909,7 +948,7 @@ export const neuralBridgeRouter = router({
    * Get all active inference sessions
    * Endpoint: GET /api/neural-bridge/inference-sessions/active
    */
-  getActiveSessions: publicProcedure
+  getActiveSessions: protectedProcedure
     .query(async () => {
       const sessions = inferenceTracker.getActiveSessions();
 
@@ -932,7 +971,7 @@ export const neuralBridgeRouter = router({
    * Complete an inference session
    * Endpoint: POST /api/neural-bridge/inference-session/complete
    */
-  completeInferenceSession: publicProcedure
+  completeInferenceSession: protectedProcedure
     .input(z.object({
       sessionId: z.string(),
       status: z.enum(['completed', 'failed']).default('completed'),
@@ -968,7 +1007,7 @@ export const neuralBridgeRouter = router({
    * Batch align multiple vectors using GPU acceleration
    * Provides 5-20x speedup for large batches
    */
-  batchAlignVectors: publicProcedure
+  batchAlignVectors: protectedProcedure
     .input(z.object({
       vectors: z.array(z.array(z.number())).min(1).max(1000).describe('Batch of vectors to align'),
       wMatrix: z.object({
@@ -994,7 +1033,7 @@ export const neuralBridgeRouter = router({
         // Track in inference session if provided
         if (input.sessionId) {
           const session = inferenceTracker.getSession(input.sessionId) || inferenceTracker.createSession({
-            title: `Batch Alignment: ${input.wMatrix.sourceModel} → ${input.wMatrix.targetModel}`,
+            title: `Batch Alignment: ${input.wMatrix.sourceModel} 鈫?${input.wMatrix.targetModel}`,
             description: `GPU-accelerated batch alignment of ${input.vectors.length} vectors`,
           });
 
@@ -1036,7 +1075,7 @@ export const neuralBridgeRouter = router({
   /**
    * Get GPU status and availability
    */
-  getGPUStatus: publicProcedure
+  getGPUStatus: protectedProcedure
     .query(async () => {
       try {
         await gpuEngine.initialize();
@@ -1077,7 +1116,7 @@ export const neuralBridgeRouter = router({
   /**
    * Benchmark GPU vs CPU performance
    */
-  benchmarkGPUPerformance: publicProcedure
+  benchmarkGPUPerformance: protectedProcedure
     .input(z.object({
       vectorDimension: z.number().int().min(64).max(4096).default(1024),
       batchSize: z.number().int().min(1).max(100).default(10),
@@ -1140,7 +1179,7 @@ export const neuralBridgeRouter = router({
   /**
    * Get recommended batch size for optimal GPU performance
    */
-  getRecommendedBatchSize: publicProcedure
+  getRecommendedBatchSize: protectedProcedure
     .input(z.object({
       vectorDimension: z.number().int().min(1).max(10000),
     }))

@@ -7,6 +7,7 @@
 
 import { invokeLLM } from "../_core/llm";
 import { createLogger } from "../utils/logger";
+import { embeddingService } from "./embedding-service";
 
 const logger = createLogger('LatentMAS:LLMAdapters');
 
@@ -113,15 +114,32 @@ export class OpenAIAdapter implements LLMAdapter {
    * Get embedding vector (approximation of hidden state)
    */
   private async getEmbedding(text: string, model: string): Promise<number[]> {
-    // Use OpenAI embeddings API
+    // Use OpenAI embeddings API via embeddingService
     // Note: This returns the final embedding, not intermediate hidden states
     // For true hidden states, need access to model internals
-    
-    // Placeholder: Generate deterministic embedding for testing
-    // In production, call: openai.embeddings.create({ model: "text-embedding-3-large", input: text })
-    
-    const dimension = this.getModelDimension(model);
-    return this.generateDeterministicEmbedding(text, dimension);
+
+    try {
+      // Use real OpenAI embeddings API
+      const embeddingModel = model.includes("gpt-4") ? "text-embedding-3-large" : "text-embedding-3-small";
+      const result = await embeddingService.embed({
+        text,
+        model: embeddingModel,
+      });
+
+      logger.info('Successfully generated embedding via OpenAI API', {
+        model: embeddingModel,
+        dimensions: result.dimensions,
+        tokenCount: result.tokenCount,
+      });
+
+      return result.vector;
+    } catch (error) {
+      logger.warn('Failed to get real embedding, using deterministic fallback', { error });
+
+      // Fallback to deterministic embedding
+      const dimension = this.getModelDimension(model);
+      return this.generateDeterministicEmbedding(text, dimension);
+    }
   }
 
   private getModelDimension(model: string): number {
@@ -281,21 +299,76 @@ export class AnthropicAdapter implements LLMAdapter {
 // Self-Hosted Adapter (vLLM / TGI / Ollama)
 // ============================================================================
 
+import { getGlobalSelfHostedClient, isSelfHostedEnabled } from "./clients/self-hosted-llm";
+
 export class SelfHostedAdapter implements LLMAdapter {
   name = "SelfHosted";
   supportedModels = [
     "llama-3.1-8b",
     "llama-3.1-70b",
+    "llama-3.2-3b",
     "mistral-7b",
     "mixtral-8x7b",
     "qwen-2.5-7b",
+    "qwen-2.5-14b",
     "deepseek-v2",
+    "phi-3-mini",
   ];
 
   constructor(private baseUrl: string = "http://localhost:8000") {}
 
   async extractHiddenStates(config: HiddenStateExtractionConfig): Promise<HiddenStateResult[]> {
     const startTime = Date.now();
+
+    // Check if self-hosted LLM is enabled
+    if (isSelfHostedEnabled()) {
+      try {
+        logger.info('Using enhanced self-hosted LLM client', {
+          model: config.modelName,
+          promptCount: config.prompts.length,
+        });
+
+        const client = getGlobalSelfHostedClient();
+
+        // Check server availability first
+        const isAvailable = await client.isAvailable();
+        if (!isAvailable) {
+          throw new Error('Self-hosted LLM server is not available');
+        }
+
+        // Extract hidden states using the new client
+        const results = await client.extractHiddenStates(config.prompts, config.layer);
+
+        // Convert to HiddenStateResult format
+        return results.map(result => ({
+          prompt: result.prompt,
+          hiddenState: result.hiddenState,
+          layer: result.layer,
+          tokenCount: Math.ceil(result.prompt.length / 4),
+          metadata: {
+            model: result.metadata.model,
+            provider: result.metadata.provider,
+            timestamp: result.metadata.timestamp,
+            processingTime: result.metadata.processingTime,
+          },
+        }));
+      } catch (error) {
+        logger.warn('Enhanced self-hosted client failed, falling back to legacy method', { error });
+        // Continue to legacy fallback below
+      }
+    }
+
+    // Legacy fallback or when self-hosted is not enabled
+    return this.extractWithLegacyMethod(config, startTime);
+  }
+
+  /**
+   * Legacy extraction method (for backward compatibility)
+   */
+  private async extractWithLegacyMethod(
+    config: HiddenStateExtractionConfig,
+    startTime: number
+  ): Promise<HiddenStateResult[]> {
     const results: HiddenStateResult[] = [];
 
     for (const prompt of config.prompts) {
@@ -327,7 +400,7 @@ export class SelfHostedAdapter implements LLMAdapter {
           tokenCount: data.usage.prompt_tokens,
           metadata: {
             model: config.modelName,
-            provider: "SelfHosted",
+            provider: "SelfHosted (Legacy)",
             timestamp: new Date(),
             processingTime: Date.now() - startTime,
           },
@@ -343,7 +416,7 @@ export class SelfHostedAdapter implements LLMAdapter {
           tokenCount: Math.ceil(prompt.length / 4),
           metadata: {
             model: config.modelName,
-            provider: "SelfHosted (Fallback)",
+            provider: "SelfHosted (Deterministic Fallback)",
             timestamp: new Date(),
             processingTime: Date.now() - startTime,
           },
@@ -357,11 +430,11 @@ export class SelfHostedAdapter implements LLMAdapter {
   private generateFallbackState(text: string, dimension: number): number[] {
     const hash = this.hashString(text);
     const state: number[] = [];
-    
+
     for (let i = 0; i < dimension; i++) {
       state.push(Math.sin(hash + i * 0.1) * 0.5);
     }
-    
+
     const norm = Math.sqrt(state.reduce((sum, val) => sum + val * val, 0));
     return state.map(val => val / norm);
   }
@@ -376,7 +449,7 @@ export class SelfHostedAdapter implements LLMAdapter {
   }
 
   estimateCost(config: HiddenStateExtractionConfig): number {
-    // Self-hosted models have no API cost
+    // Self-hosted models have no API cost (only infrastructure cost)
     return 0;
   }
 }

@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx vite build",
+  "buildCommand": "cp -r gitbook client/public/gitbook && npx vite build",
   "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
   "framework": null,

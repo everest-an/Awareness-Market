@@ -3,12 +3,42 @@
  */
 
 import { Router } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { inferenceTracker } from './inference-tracker';
 import { alignVector, transformDimension } from './latentmas-core';
 import { z } from 'zod';
 import { getErrorMessage } from './utils/error-handling';
+import { validateApiKey } from './api-key-manager';
 
 const inferenceRouter = Router();
+
+/**
+ * Authentication middleware for inference API
+ * Validates API key from Authorization header or x-api-key header
+ * Skips auth for /health endpoint
+ */
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  // Skip auth for health check
+  if (req.path === '/health') return next();
+
+  const apiKey = req.headers['x-api-key'] as string || 
+                 (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+
+  if (!apiKey) {
+    return res.status(401).json({ error: 'Authentication required. Provide API key via x-api-key header or Bearer token.' });
+  }
+
+  const result = await validateApiKey(apiKey);
+  if (!result.valid) {
+    return res.status(401).json({ error: result.error || 'Invalid API key' });
+  }
+
+  (req as any).userId = result.userId;
+  next();
+}
+
+// Apply auth middleware to all routes
+inferenceRouter.use(requireAuth);
 
 /**
  * Start a new inference session

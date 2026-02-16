@@ -43,12 +43,11 @@ router.post("/nonce", (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
-    res.status(500).json({ error: getErrorMessage(error) });
+    res.status(500).json({ error: 'Failed to generate nonce' });
   }
 });
 
 /**
- * POST /api/erc8004/authenticate
  * Authenticate with wallet signature
  */
 router.post("/authenticate", async (req, res) => {
@@ -83,7 +82,7 @@ router.post("/authenticate", async (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
-    res.status(500).json({ error: getErrorMessage(error) });
+    res.status(500).json({ error: 'Authentication failed' });
   }
 });
 
@@ -102,12 +101,11 @@ router.get("/agent/:agentId", async (req, res) => {
     
     res.json(agent);
   } catch (error: unknown) {
-    res.status(500).json({ error: getErrorMessage(error) });
+    res.status(500).json({ error: 'Failed to retrieve agent info' });
   }
 });
 
 /**
- * GET /api/erc8004/agent/:agentId/capability/:capability
  * Check if agent has a verified capability
  */
 router.get("/agent/:agentId/capability/:capability", async (req, res) => {
@@ -121,12 +119,11 @@ router.get("/agent/:agentId/capability/:capability", async (req, res) => {
       isVerified
     });
   } catch (error: unknown) {
-    res.status(500).json({ error: getErrorMessage(error) });
+    res.status(500).json({ error: 'Failed to check capability' });
   }
 });
 
 /**
- * POST /api/erc8004/register/prepare
  * Prepare registration data for on-chain registration
  */
 router.post("/register/prepare", (req, res) => {
@@ -154,12 +151,11 @@ router.post("/register/prepare", (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
-    res.status(500).json({ error: getErrorMessage(error) });
+    res.status(500).json({ error: 'Failed to prepare registration' });
   }
 });
 
 /**
- * GET /api/erc8004/capabilities
  * List standard capability claims
  */
 router.get("/capabilities", (req, res) => {
@@ -191,7 +187,7 @@ router.post("/verify", (req, res) => {
     const result = erc8004.verifyERC8004Token(token);
     res.json(result);
   } catch (error: unknown) {
-    res.status(500).json({ valid: false, error: getErrorMessage(error) });
+    res.status(500).json({ valid: false, error: 'Token verification failed' });
   }
 });
 

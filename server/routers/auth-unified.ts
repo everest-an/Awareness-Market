@@ -11,8 +11,10 @@ import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import * as authStandalone from '../auth-standalone';
 import * as authAIAgent from '../auth-ai-agent';
+import * as authERC8004 from '../auth-erc8004';
 import { COOKIE_NAME } from '@shared/const';
 import { getSessionCookieOptions } from '../_core/cookies';
+import { prisma } from '../db-prisma';
 
 export const authUnifiedRouter = router({
   /**
@@ -210,6 +212,123 @@ export const authUnifiedRouter = router({
       }
       
       return { success: true };
+    }),
+
+  /**
+   * Send email verification code
+   */
+  sendVerificationEmail: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      if (!ctx.user.email) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'No email associated with this account',
+        });
+      }
+
+      const result = await authStandalone.sendEmailVerificationCode(
+        ctx.user.id,
+        ctx.user.email
+      );
+
+      if (!result.success) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: result.error || 'Failed to send verification email',
+        });
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Verify email with code
+   */
+  verifyEmail: publicProcedure
+    .input(z.object({
+      email: z.string().email(),
+      code: z.string().length(6),
+    }))
+    .mutation(async ({ input }) => {
+      const result = await authStandalone.verifyEmailWithCode(
+        input.email,
+        input.code
+      );
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Verification failed',
+        };
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Get verification status
+   */
+  verificationStatus: publicProcedure
+    .input(z.object({
+      email: z.string().email(),
+    }))
+    .query(async ({ input }) => {
+      const status = await authStandalone.getVerificationStatus(input.email);
+      return status;
+    }),
+
+  /**
+   * Convert ERC-8004 token to JWT session
+   * Allows AI agents authenticated via ERC-8004 to use standard JWT authentication
+   */
+  convertAgentToken: publicProcedure
+    .input(z.object({
+      erc8004Token: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // Verify ERC-8004 token
+      const verification = authERC8004.verifyERC8004Token(input.erc8004Token);
+
+      if (!verification.valid || !verification.payload) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: verification.error || 'Invalid ERC-8004 token',
+        });
+      }
+
+      // Get user from database
+      const user = await prisma.user.findUnique({
+        where: { id: verification.payload.userId }
+      });
+
+      if (!user) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found',
+        });
+      }
+
+      // Generate standard JWT tokens
+      const accessToken = authStandalone.generateAccessToken(user);
+      const refreshToken = authStandalone.generateRefreshToken(user);
+
+      // Set HTTP-only cookies
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie('jwt_token', accessToken, cookieOptions);
+      ctx.res.cookie('jwt_refresh', refreshToken, {
+        ...cookieOptions,
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+
+      return {
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        }
+      };
     }),
 
   /**

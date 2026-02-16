@@ -19,6 +19,7 @@ import {
   Mic,
   Image as ImageIcon,
   Globe,
+  Upload,
 } from 'lucide-react';
 
 interface VectorPackage {
@@ -131,7 +132,7 @@ export default function VectorPackageMarket() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="pt-20 container mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -156,6 +157,15 @@ export default function VectorPackageMarket() {
               <Award className="h-3 w-3 mr-1" />
               Quality Certified
             </Badge>
+          </div>
+          {/* Upload Button - Always Visible */}
+          <div className="mt-8">
+            <Button className="bg-cyan-500 hover:bg-cyan-600" asChild>
+              <Link href="/upload-vector-package">
+                <Upload className="h-4 w-4 mr-2" />
+                Publish Vector Package
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -270,8 +280,8 @@ export default function VectorPackageMarket() {
                       </h3>
                       <p className="text-sm text-slate-400 line-clamp-2">{pkg.description}</p>
                     </div>
-                    <Badge className={`${getCategoryColor(pkg.category)} text-white ml-2`}>
-                      {getCategoryIcon(pkg.category)}
+                    <Badge className={`${getCategoryColor(pkg.category || '')} text-white ml-2`}>
+                      {getCategoryIcon(pkg.category || '')}
                       <span className="ml-1">{pkg.category?.toUpperCase()}</span>
                     </Badge>
                   </div>

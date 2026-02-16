@@ -1,12 +1,9 @@
 import { storageGet } from "./storage";
 import { invokeLLM, type Message } from "./_core/llm";
-import type { InferSelectModel } from "drizzle-orm";
-import { latentVectors } from "../drizzle/schema";
+import type { LatentVector } from "@prisma/client";
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('VectorRuntime');
-
-type LatentVector = InferSelectModel<typeof latentVectors>;
 
 const buildSystemPrompt = (vector: LatentVector, prompt?: string) => {
   const base = `You are executing the AI capability "${vector.title}" (category: ${vector.category}).\n` +

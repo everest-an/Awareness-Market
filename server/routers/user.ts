@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
-import { getDb } from "../db";
-import { assertDatabaseAvailable } from "../utils/error-handling";
-import { users } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { prisma } from "../db-prisma";
 import { TRPCError } from "@trpc/server";
 import type { PrivacyLevel, PrivacyConfig } from "../latentmas/differential-privacy";
 import { getDPEngine, createPrivacyDisclosure } from "../latentmas/differential-privacy";
@@ -11,16 +8,11 @@ import { getDPEngine, createPrivacyDisclosure } from "../latentmas/differential-
 export const userRouter = router({
   // Get current user profile
   me: protectedProcedure.query(async ({ ctx }) => {
-    const db = await getDb();
-    assertDatabaseAvailable(db);
-    
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, ctx.user.id))
-      .limit(1);
+    const user = await prisma.user.findUnique({
+      where: { id: ctx.user.id }
+    });
 
-    if (!user[0]) {
+    if (!user) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "User not found",
@@ -28,15 +20,15 @@ export const userRouter = router({
     }
 
     return {
-      id: user[0].id,
-      name: user[0].name,
-      email: user[0].email,
-      role: user[0].role,
-      userType: user[0].userType,
-      onboardingCompleted: user[0].onboardingCompleted,
-      bio: user[0].bio,
-      avatar: user[0].avatar,
-      createdAt: user[0].createdAt,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      userType: user.userType,
+      onboardingCompleted: user.onboardingCompleted,
+      bio: user.bio,
+      avatar: user.avatar,
+      createdAt: user.createdAt,
     };
   }),
 
@@ -48,16 +40,13 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      
-      await db
-        .update(users)
-        .set({
+      await prisma.user.update({
+        where: { id: ctx.user.id },
+        data: {
           userType: input.userType,
           onboardingCompleted: true,
-        })
-        .where(eq(users.id, ctx.user.id));
+        }
+      });
 
       return {
         success: true,
@@ -75,17 +64,14 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
-      await db
-        .update(users)
-        .set({
+      await prisma.user.update({
+        where: { id: ctx.user.id },
+        data: {
           name: input.name,
           bio: input.bio,
           avatar: input.avatar,
-        })
-        .where(eq(users.id, ctx.user.id));
+        }
+      });
 
       return {
         success: true,
@@ -148,15 +134,53 @@ export const userRouter = router({
    */
   getPrivacyBudgetHistory: protectedProcedure
     .query(async ({ ctx }) => {
-      // In production, fetch from database
-      // Return mock history showing privacy budget usage over time
+      // Aggregate privacy budget usage from package records
+      const totalBudget = 10.0;
+
+      const [vectorPackages, memoryPackages, chainPackages] = await Promise.all([
+        prisma.vectorPackage.findMany({
+          where: { userId: ctx.user.id },
+          select: { packageId: true, epsilon: true, createdAt: true },
+        }),
+        prisma.memoryPackage.findMany({
+          where: { userId: ctx.user.id },
+          select: { packageId: true, epsilon: true, createdAt: true },
+        }),
+        prisma.chainPackage.findMany({
+          where: { userId: ctx.user.id },
+          select: { packageId: true, epsilon: true, createdAt: true },
+        }),
+      ]);
+
+      const history = [
+        ...vectorPackages.map((pkg) => ({
+          timestamp: pkg.createdAt.toISOString(),
+          operation: 'vector_upload',
+          epsilon: Number(pkg.epsilon || 0),
+          packageId: pkg.packageId,
+        })),
+        ...memoryPackages.map((pkg) => ({
+          timestamp: pkg.createdAt.toISOString(),
+          operation: 'memory_upload',
+          epsilon: Number(pkg.epsilon || 0),
+          packageId: pkg.packageId,
+        })),
+        ...chainPackages.map((pkg) => ({
+          timestamp: pkg.createdAt.toISOString(),
+          operation: 'chain_upload',
+          epsilon: Number(pkg.epsilon || 0),
+          packageId: pkg.packageId,
+        })),
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      const usedBudget = history.reduce((sum, item) => sum + item.epsilon, 0);
+      const remainingPrivacyBudget = Math.max(totalBudget - usedBudget, 0);
+
       return {
-        totalBudget: 10.0,
-        usedBudget: 0.0,
-        remainingBudget: 10.0,
-        history: [
-          // Example: { timestamp: '2026-01-15', operation: 'vector_upload', epsilon: 1.0, packageId: 'vpkg_xxx' }
-        ],
+        totalBudget,
+        usedBudget,
+        remainingPrivacyBudget,
+        history,
       };
     }),
 
@@ -166,16 +190,23 @@ export const userRouter = router({
   simulatePrivacy: protectedProcedure
     .input(z.object({
       vectorDimension: z.number().int().min(1).max(10000),
+      vector: z.array(z.number()).optional(),
       privacyLevel: z.enum(['low', 'medium', 'high', 'custom']),
       customEpsilon: z.number().positive().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const dpEngine = getDPEngine();
 
-      // Create a mock normalized vector
-      const mockVector = Array.from({ length: input.vectorDimension }, () => Math.random() - 0.5);
-      const norm = Math.sqrt(mockVector.reduce((sum, v) => sum + v * v, 0));
-      const normalizedVector = mockVector.map(v => v / norm);
+      let normalizedVector: number[];
+      if (input.vector && input.vector.length > 0) {
+        const norm = Math.sqrt(input.vector.reduce((sum, v) => sum + v * v, 0));
+        normalizedVector = norm === 0 ? input.vector : input.vector.map(v => v / norm);
+      } else {
+        // Create a mock normalized vector
+        const mockVector = Array.from({ length: input.vectorDimension }, () => Math.random() - 0.5);
+        const norm = Math.sqrt(mockVector.reduce((sum, v) => sum + v * v, 0));
+        normalizedVector = mockVector.map(v => v / norm);
+      }
 
       // Apply privacy noise
       const config: PrivacyConfig | PrivacyLevel = input.privacyLevel === 'custom' && input.customEpsilon

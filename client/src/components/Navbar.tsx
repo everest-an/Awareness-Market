@@ -11,9 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Menu, 
-  X, 
+import {
+  Menu,
+  X,
   ChevronDown,
   Brain,
   Network,
@@ -21,6 +21,7 @@ import {
   FileCode,
   BookOpen,
   User,
+  Users,
   LogOut,
   LayoutDashboard,
   Key,
@@ -32,7 +33,11 @@ import {
   Code,
   Github,
   Search,
-  History
+  History,
+  Wallet,
+  Database,
+  AlertTriangle,
+  Bot,
 } from "lucide-react";
 
 const navLinks = [
@@ -42,6 +47,9 @@ const navLinks = [
       { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
       { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
+      { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork" },
+      { label: "Robotics", href: "/robotics", icon: Bot, description: "Robot management & VR control" },
+      { label: "AI Agents", href: "/agents", icon: Rocket, description: "ERC-8004 agent registry" },
     ]
   },
   {
@@ -50,14 +58,19 @@ const navLinks = [
       { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
+      { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
+      { label: "Conflict Resolution", href: "/conflicts", icon: AlertTriangle, description: "Resolve memory conflicts" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
       { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
+      { label: "Agent Login", href: "/auth/agent", icon: Server, description: "AI agent authentication" },
     ]
   },
   {
     label: "Resources",
     children: [
-      { label: "Documentation", href: "/docs", icon: FileCode, description: "API & SDK guides" },
+      { label: "Documentation", href: "/documentation", icon: BookOpen, description: "Complete guides & references" },
+      { label: "AI Collaboration Docs", href: "/docs/collaboration", icon: Network, description: "Manus + Claude MCP Guide" },
+      { label: "API Reference", href: "/docs", icon: FileCode, description: "API & SDK quick reference" },
       { label: "Python SDK", href: "/sdk", icon: Code, description: "Python integration" },
       { label: "MCP Integration", href: "/sdk#mcp", icon: Cpu, description: "Model Context Protocol" },
       { label: "GitHub", href: "https://github.com/everest-an/Awareness-Market", icon: Github, description: "View source code", external: true },
@@ -98,8 +111,8 @@ export default function Navbar() {
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? "bg-background/80 backdrop-blur-xl border-b border-white/5"
-          : "bg-transparent"
+          ? "bg-background/95 backdrop-blur-xl border-b border-white/5 shadow-lg"
+          : "bg-background/60 backdrop-blur-md"
       }`}
     >
       <div className="container">
@@ -151,6 +164,7 @@ export default function Navbar() {
                 <span className="text-cyan-400 font-medium">Reasoning Chains</span>
               </>
             )}
+
             {location === '/latent-test' && (
               <>
                 <span className="text-white/30 mx-1">/</span>
@@ -169,6 +183,18 @@ export default function Navbar() {
                 <span className="text-cyan-400 font-medium">Performance</span>
               </>
             )}
+            {location === '/memory-management' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Memory Management</span>
+              </>
+            )}
+            {location === '/conflicts' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Conflicts</span>
+              </>
+            )}
             {location === '/dashboard' && (
               <>
                 <span className="text-white/30 mx-1">/</span>
@@ -176,6 +202,12 @@ export default function Navbar() {
               </>
             )}
             {location === '/docs' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">API Reference</span>
+              </>
+            )}
+            {location.startsWith('/documentation') && (
               <>
                 <span className="text-white/30 mx-1">/</span>
                 <span className="text-cyan-400 font-medium">Documentation</span>
@@ -258,6 +290,17 @@ export default function Navbar() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
+            {/* AI Collaboration CTA Button - Glass Style */}
+            <Link href="/ai-collaboration/new">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="hidden md:flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.1] text-white/80 hover:bg-white/[0.12] hover:text-white hover:border-white/[0.18] transition-all"
+              >
+                AI Collab
+              </Button>
+            </Link>
+
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -295,6 +338,31 @@ export default function Navbar() {
                       Usage Analytics
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/wallet" className="flex items-center gap-2 cursor-pointer">
+                      <Wallet className="w-4 h-4" />
+                      Agent Wallet
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem asChild>
+                    <Link href="/upload-vector-package" className="flex items-center gap-2 cursor-pointer">
+                      <Upload className="w-4 h-4" />
+                      Upload Vector Package
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/upload-memory-package" className="flex items-center gap-2 cursor-pointer">
+                      <Upload className="w-4 h-4" />
+                      Upload Memory Package
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/upload-chain-package" className="flex items-center gap-2 cursor-pointer">
+                      <Upload className="w-4 h-4" />
+                      Upload Chain Package
+                    </Link>
+                  </DropdownMenuItem>
                   {user?.role === "admin" && (
                     <>
                       <DropdownMenuItem asChild>
@@ -322,17 +390,11 @@ export default function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <>
-                <Link
-                  href="/auth"
-                  className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Button asChild size="sm" className="rounded-full px-4">
-                  <Link href="/auth">Get Started</Link>
-                </Button>
-              </>
+              <Button asChild size="sm" variant="ghost"
+                className="rounded-full px-4 py-1.5 bg-white/[0.06] backdrop-blur-md border border-white/[0.1] text-white/80 hover:bg-white/[0.12] hover:text-white hover:border-white/[0.18] transition-all"
+              >
+                <Link href="/auth">Sign In</Link>
+              </Button>
             )}
 
             {/* Mobile Menu Toggle */}

@@ -697,7 +697,7 @@ cp .env.example .env
 # Edit .env with your credentials
 
 # Run database migrations
-pnpm db:push
+pnpm prisma migrate deploy
 
 # Start development server
 pnpm dev

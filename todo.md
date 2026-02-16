@@ -310,15 +310,14 @@
 ## 9. Deployment
 
 ### 9.1 Local Development
-- [x] MySQL database setup
 - [x] PostgreSQL database setup (primary)
 - [x] Environment variables configuration
-- [x] npm run dev working
+- [x] pnpm run dev working
 - [x] pnpm support added
 
 ### 9.2 AWS Production
 - [x] EC2 instance configuration (documented)
-- [x] Database migration scripts (drizzle-kit)
+- [x] Database migration scripts (Prisma Migrate)
 - [x] PM2 process management (ecosystem.config.js)
 - [x] Nginx reverse proxy (nginx.conf)
 - [x] Deployment checklist (DEPLOYMENT_CHECKLIST.md)
@@ -370,7 +369,7 @@
   - GPU benchmarks validated (10-50x speedup)
   - PM2 configuration complete
   - GitHub Actions CI/CD workflows added
-  - PostgreSQL/Drizzle migration setup
+  - PostgreSQL/Prisma migration setup
 
 ### 2026-01-26
 - Cleaned up Golem Visualizer technical debt:

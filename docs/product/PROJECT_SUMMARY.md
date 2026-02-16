@@ -14,7 +14,7 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 
 ### Key Achievements
 
-✅ **Full-Stack Implementation** - React 19 + tRPC 11 + Express 4 + MySQL  
+✅ **Full-Stack Implementation** - React 19 + tRPC 11 + Express 4 + PostgreSQL  
 ✅ **LatentMAS Protocol** - 95% paper compliance with real W-Matrix training  
 ✅ **Smart Contracts** - ERC-721 NFT + ERC-6551 TBA integration  
 ✅ **MCP Server** - AI Agent integration for Claude Desktop  
@@ -66,8 +66,8 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 
 ### Backend
 - **Framework**: Express 4 + tRPC 11
-- **Database**: MySQL (TiDB Cloud)
-- **ORM**: Drizzle ORM
+- **Database**: PostgreSQL (AWS RDS)
+- **ORM**: Prisma ORM
 - **Authentication**: JWT + OAuth (Manus Auth)
 - **Storage**: S3 (AWS-compatible)
 - **LLM Integration**: OpenAI + Anthropic APIs
@@ -539,7 +539,7 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 LatentMAS Marketplace represents a breakthrough in AI collaboration infrastructure. By implementing the LatentMAS research paper at 95% compliance, we've created the world's first decentralized marketplace for latent space vectors and reasoning chains.
 
 The platform is **production-ready** with:
-- ✅ Full-stack implementation (React + tRPC + Express + MySQL)
+- ✅ Full-stack implementation (React + tRPC + Express + PostgreSQL)
 - ✅ Real W-Matrix training (ε < 5% alignment loss)
 - ✅ Smart contracts (ERC-721 + ERC-6551)
 - ✅ MCP Server (AI agent integration)

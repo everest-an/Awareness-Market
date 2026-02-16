@@ -1,0 +1,165 @@
+==========================================
+MANUS 任务指令 - 导航栏更新
+==========================================
+
+【任务目标】
+在导航栏添加2个缺失的菜单项，让用户能访问AI Agents和Agent Login功能。
+
+【文件位置】
+client/src/components/Navbar.tsx
+
+【重要限制】
+✅ 只修改 navLinks 数组和 import 语句
+❌ 不要修改其他任何代码
+❌ 不要删除现有内容
+❌ 不要修改样式或布局
+
+==========================================
+修改步骤
+==========================================
+
+步骤1: 检查imports
+-------------------
+确认第14-36行的import语句包含以下icon:
+- Rocket
+- Server
+
+如果缺失，添加到import列表：
+
+import {
+  Menu, X, ChevronDown, Brain, Network, Cpu,
+  FileCode, BookOpen, User, LogOut, LayoutDashboard,
+  Key, Upload, Settings,
+  Server,    // ← 需要这个
+  Rocket,    // ← 需要这个
+  BarChart3, Code, Github, Search, History
+} from "lucide-react";
+
+
+步骤2: 修改 Products 菜单
+-------------------
+找到 navLinks 数组中的 "Products" 部分（约第40行）
+
+在 children 数组的 Reasoning Chains 后面添加一行：
+
+BEFORE (当前代码):
+```
+{
+  label: "Products",
+  children: [
+    { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
+    { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
+    { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
+  ]
+},
+```
+
+AFTER (修改后):
+```
+{
+  label: "Products",
+  children: [
+    { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
+    { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
+    { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
+    { label: "AI Agents", href: "/agents", icon: Rocket, description: "ERC-8004 agent registry" },
+  ]
+},
+```
+
+添加的内容：
+    { label: "AI Agents", href: "/agents", icon: Rocket, description: "ERC-8004 agent registry" },
+
+
+步骤3: 修改 Tools 菜单
+-------------------
+找到 navLinks 数组中的 "Tools" 部分（约第48行）
+
+在 children 数组的 API Keys 后面添加一行：
+
+BEFORE (当前代码):
+```
+{
+  label: "Tools",
+  children: [
+    { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
+    { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
+    { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
+    { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
+    { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
+  ]
+},
+```
+
+AFTER (修改后):
+```
+{
+  label: "Tools",
+  children: [
+    { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
+    { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
+    { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
+    { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
+    { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
+    { label: "Agent Login", href: "/auth/agent", icon: Server, description: "AI agent authentication" },
+  ]
+},
+```
+
+添加的内容：
+    { label: "Agent Login", href: "/auth/agent", icon: Server, description: "AI agent authentication" },
+
+
+步骤4: 验证
+-------------------
+cd client
+pnpm run type-check
+
+
+步骤5: 提交
+-------------------
+git add client/src/components/Navbar.tsx
+git commit -m "feat: Add AI Agents and Agent Login to navigation menu"
+git push origin main
+
+
+==========================================
+验证清单
+==========================================
+□ import中包含 Rocket 和 Server
+□ Products菜单中添加了 "AI Agents"
+□ Tools菜单中添加了 "Agent Login"
+□ 没有修改其他内容
+□ pnpm run type-check 通过
+□ 代码已提交并推送
+
+
+==========================================
+预期结果
+==========================================
+修改后，导航栏将显示：
+
+Products 下拉菜单:
+- Vector Packages
+- Memory Packages
+- Reasoning Chains
+- AI Agents ← 新增
+
+Tools 下拉菜单:
+- Latent Test
+- Workflow History
+- Performance Dashboard
+- Neural Cortex
+- API Keys
+- Agent Login ← 新增
+
+
+==========================================
+如果遇到问题
+==========================================
+1. TypeScript错误 → 检查 import 语句
+2. 构建失败 → 运行 pnpm build --verbose 查看详情
+3. 语法错误 → 检查逗号、括号是否匹配
+
+
+详细文档: MANUS_NAVBAR_UPDATE.md

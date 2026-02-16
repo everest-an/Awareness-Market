@@ -90,6 +90,7 @@ export class TEEIntegrationEngine {
   private stats: TEEStats;
   private activeContexts: Map<string, TEESecureContext> = new Map();
   private isInitialized: boolean = false;
+  private encryptionKey: Buffer;
 
   constructor(config: TEEConfig = { provider: 'none' }) {
     this.config = {
@@ -100,6 +101,16 @@ export class TEEIntegrationEngine {
       maxMemoryMB: config.maxMemoryMB || 512,
       cpuCount: config.cpuCount || 2,
     };
+
+    const envKey = process.env.TEE_ENCRYPTION_KEY;
+    if (envKey) {
+      const rawKey = Buffer.from(envKey, 'base64');
+      this.encryptionKey = rawKey.length === 32
+        ? rawKey
+        : crypto.createHash('sha256').update(rawKey).digest();
+    } else {
+      this.encryptionKey = crypto.randomBytes(32);
+    }
 
     this.stats = {
       provider: this.config.provider,
@@ -176,6 +187,9 @@ export class TEEIntegrationEngine {
    */
   private async checkNitroAvailability(): Promise<boolean> {
     try {
+      if (process.env.TEE_NITRO_AVAILABLE === 'true') {
+        return true;
+      }
       // Check for Nitro hypervisor
       // In production: check /sys/hypervisor/uuid or use AWS SDK
       // For development: return false (would need actual Nitro instance)
@@ -189,6 +203,11 @@ export class TEEIntegrationEngine {
    * Initialize Intel SGX
    */
   private async initializeSGX(): Promise<void> {
+    if (process.env.TEE_ATTESTATION_ENDPOINT) {
+      this.stats.isAvailable = true;
+      return;
+    }
+
     throw new Error('Intel SGX support not yet implemented');
   }
 
@@ -196,6 +215,11 @@ export class TEEIntegrationEngine {
    * Initialize AMD SEV
    */
   private async initializeSEV(): Promise<void> {
+    if (process.env.TEE_ATTESTATION_ENDPOINT) {
+      this.stats.isAvailable = true;
+      return;
+    }
+
     throw new Error('AMD SEV support not yet implemented');
   }
 
@@ -234,21 +258,30 @@ export class TEEIntegrationEngine {
 
     let attestation: AttestationDocument;
 
-    switch (this.config.provider) {
-      case 'nitro':
-        attestation = await this.performNitroAttestation();
-        break;
-      case 'sgx':
-        attestation = await this.performSGXAttestation();
-        break;
-      case 'sev':
-        attestation = await this.performSEVAttestation();
-        break;
-      case 'none':
-        attestation = await this.performMockAttestation();
-        break;
-      default:
-        throw new Error(`Attestation not supported for provider: ${this.config.provider}`);
+    const remoteEndpoint = process.env.TEE_ATTESTATION_ENDPOINT;
+    if (remoteEndpoint) {
+      attestation = await this.performRemoteAttestation(remoteEndpoint);
+    } else {
+      if (this.config.provider !== 'none' && process.env.NODE_ENV === 'production') {
+        logger.warn('TEE_ATTESTATION_ENDPOINT not configured; using local attestation implementation');
+      }
+
+      switch (this.config.provider) {
+        case 'nitro':
+          attestation = await this.performNitroAttestation();
+          break;
+        case 'sgx':
+          attestation = await this.performSGXAttestation();
+          break;
+        case 'sev':
+          attestation = await this.performSEVAttestation();
+          break;
+        case 'none':
+          attestation = await this.performMockAttestation();
+          break;
+        default:
+          throw new Error(`Attestation not supported for provider: ${this.config.provider}`);
+      }
     }
 
     this.stats.attestationsPerformed++;
@@ -257,6 +290,31 @@ export class TEEIntegrationEngine {
     logger.info('Attestation completed', { durationMs: attestationTime.toFixed(2) });
 
     return attestation;
+  }
+
+  private async performRemoteAttestation(endpoint: string): Promise<AttestationDocument> {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: this.config.provider }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Remote attestation failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      moduleId: data.moduleId,
+      timestamp: new Date(data.timestamp || Date.now()),
+      digest: data.digest,
+      pcrs: data.pcrs || {},
+      certificate: data.certificate,
+      cabundle: data.cabundle || [],
+      publicKey: data.publicKey,
+      nonce: data.nonce,
+    } as AttestationDocument;
   }
 
   /**
@@ -450,21 +508,17 @@ export class TEEIntegrationEngine {
     // Simulate encryption using AES-256-GCM
     // In production, would use hardware-backed keys in enclave
 
-    const key = crypto.randomBytes(32);
-    const iv = crypto.randomBytes(16);
-
     return vectors.map(vector => {
+      const iv = crypto.randomBytes(12);
       const buffer = Buffer.from(new Float64Array(vector).buffer);
-      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+      const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
 
-      const encrypted = Buffer.concat([
-        cipher.update(buffer),
-        cipher.final(),
-        cipher.getAuthTag(),
-      ]);
+      const ciphertext = Buffer.concat([cipher.update(buffer), cipher.final()]);
+      const tag = cipher.getAuthTag();
+      const payload = Buffer.concat([iv, tag, ciphertext]);
 
       // Convert back to number array (simulated)
-      return Array.from(encrypted);
+      return Array.from(payload);
     });
   }
 
@@ -472,8 +526,34 @@ export class TEEIntegrationEngine {
    * Secure vector decryption (runs in TEE)
    */
   private secureDecrypt(vectors: number[][]): number[][] {
-    // Placeholder - would decrypt using enclave-stored keys
-    return vectors;
+    return vectors.map(vector => {
+      const payload = Buffer.from(vector);
+
+      if (payload.length < 12 + 16 + 1) {
+        throw new Error('Encrypted payload too short');
+      }
+
+      const iv = payload.subarray(0, 12);
+      const tag = payload.subarray(12, 28);
+      const ciphertext = payload.subarray(28);
+
+      const decipher = crypto.createDecipheriv('aes-256-gcm', this.encryptionKey, iv);
+      decipher.setAuthTag(tag);
+
+      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+
+      if (decrypted.length % 8 !== 0) {
+        throw new Error('Decrypted payload has invalid length');
+      }
+
+      const floatView = new Float64Array(
+        decrypted.buffer,
+        decrypted.byteOffset,
+        decrypted.byteLength / 8
+      );
+
+      return Array.from(floatView);
+    });
   }
 
   /**

@@ -25,6 +25,16 @@ import { storagePut, storageGet } from '../storage';
 import { nanoid } from 'nanoid';
 import * as wMatrixDb from '../db-wmatrix';
 
+function extractStorageKey(storageUrl: string): string | null {
+  try {
+    const url = new URL(storageUrl);
+    const key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+    return key || null;
+  } catch {
+    return null;
+  }
+}
+
 // ============================================================================
 // Input Schemas
 // ============================================================================
@@ -89,6 +99,29 @@ export const wMatrixMarketplaceV2Router = router({
     .input(CreateListingInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        // ✅ P0-2: Check user listing quota before proceeding
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient();
+
+        const user = await prisma.user.findUnique({
+          where: { id: ctx.user.id },
+          select: { maxListings: true, currentListingCount: true },
+        });
+
+        if (!user) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'User not found',
+          });
+        }
+
+        if (user.currentListingCount >= user.maxListings) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Listing limit reached (${user.maxListings}). Please contact support to increase your limit.`,
+          });
+        }
+
         // Create quality certification
         const certification = QualityCertifier.createCertification(
           input.epsilon,
@@ -96,7 +129,7 @@ export const wMatrixMarketplaceV2Router = router({
           input.euclideanDistance,
           input.testSamples
         );
-        
+
         // Build W-Matrix protocol
         const protocol = new WMatrixProtocolBuilder()
           .setVersion(input.version)
@@ -115,12 +148,12 @@ export const wMatrixMarketplaceV2Router = router({
             tags: input.tags || [],
           })
           .build();
-        
+
         // Upload to S3
         const fileKey = `w-matrix/${ctx.user.id}/${nanoid()}-${Date.now()}.json`;
         const protocolJson = JSON.stringify(protocol);
         const { url: storageUrl } = await storagePut(fileKey, protocolJson, 'application/json');
-        
+
         // Update protocol with CDN URLs
         protocol.metadata.downloadUrl = storageUrl;
         protocol.metadata.cdnUrls = [storageUrl];
@@ -166,6 +199,14 @@ export const wMatrixMarketplaceV2Router = router({
           sizeBytes: protocol.metadata.sizeBytes,
           tags: input.tags,
         });
+
+        // ✅ P0-2: Increment user listing counter
+        await prisma.user.update({
+          where: { id: ctx.user.id },
+          data: { currentListingCount: { increment: 1 } },
+        });
+
+        await prisma.$disconnect();
 
         return {
           success: true,
@@ -337,12 +378,33 @@ export const wMatrixMarketplaceV2Router = router({
           };
         }
 
-        // Fetch W-Matrix data from storage
-        // In production, get the actual storage URL from database
-        // For now, generate a mock verification report
-        const mockData = JSON.stringify({ listingId, timestamp: Date.now() });
+        const listing = await wMatrixDb.getWMatrixListingById(listingId);
+        if (!listing || !listing.storageUrl) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Listing not found or missing storage URL: ${listingId}`,
+          });
+        }
 
-        const report = IntegrityVerifier.generateIntegrityReport(mockData, expectedChecksum);
+        const storageKey = extractStorageKey(listing.storageUrl);
+        if (!storageKey) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Invalid storage URL for listing',
+          });
+        }
+
+        const { url: signedUrl } = await storageGet(storageKey, 300);
+        const response = await fetch(signedUrl);
+        if (!response.ok) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Failed to fetch W-Matrix data: ${response.status}`,
+          });
+        }
+
+        const dataBuffer = Buffer.from(await response.arrayBuffer());
+        const report = IntegrityVerifier.generateIntegrityReport(dataBuffer, expectedChecksum);
 
         // Store verification result in database
         await wMatrixDb.storeIntegrityVerification({

@@ -8,6 +8,7 @@ import { Server as SocketIOServer } from "socket.io";
 import { workflowManager } from "./workflow-manager";
 import type { WorkflowStreamMessage } from "../shared/workflow-types";
 import { createLogger } from "./utils/logger";
+import { verifyToken } from "./auth-standalone";
 
 const logger = createLogger('WorkflowWebSocket');
 
@@ -19,14 +20,29 @@ let io: SocketIOServer | null = null;
 export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: "*", // Configure appropriately for production
+      origin: process.env.CLIENT_URL || 'http://localhost:5173',
       methods: ["GET", "POST"],
+      credentials: true,
     },
     path: "/api/workflow/stream",
   });
 
+  // Authentication middleware — require valid JWT to connect
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return next(new Error('Authentication required'));
+    }
+    const payload = verifyToken(token, 'access');
+    if (!payload) {
+      return next(new Error('Invalid or expired token'));
+    }
+    socket.data.userId = payload.userId;
+    next();
+  });
+
   io.on("connection", (socket) => {
-    logger.info(`Client connected: ${socket.id}`);
+    logger.info(`Client connected: ${socket.id} (user: ${socket.data.userId})`);
 
     // Handle workflow subscription
     socket.on("subscribe", (workflowId: string) => {

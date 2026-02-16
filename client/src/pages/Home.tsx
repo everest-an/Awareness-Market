@@ -5,20 +5,24 @@ import { Badge } from "@/components/ui/badge";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
-import Globe3D from "@/components/Globe3D";
+import { UnicornScene } from "@/components/UnicornScene";
+import { FlipWord } from "@/components/FlipWord";
 import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { trpc } from "@/lib/trpc";
-import { 
-  Brain, 
-  Zap, 
-  Shield, 
+import {
+  Brain,
+  Zap,
+  Shield,
   ArrowRight,
   Network,
   Cpu,
   GitBranch,
   Sparkles,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Users,
+  MessageSquare,
+  Bot
 } from "lucide-react";
 
 export default function Home() {
@@ -46,14 +50,20 @@ export default function Home() {
           onOpenChange={setShowWelcome}
         />
       )}
+
+      {/* Fixed Unicorn Studio Background - stays in place while content scrolls */}
+      <div className="fixed inset-0 z-0">
+        <UnicornScene
+          width="100%"
+          height="100%"
+        />
+      </div>
       
       {/* Navbar */}
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,oklch(0.65_0.20_230_/_0.15),transparent_50%)]" />
+      <section className="relative z-10 min-h-screen flex items-center overflow-hidden pt-16">
         
         <div className="container relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -64,10 +74,10 @@ export default function Home() {
                 The Future of AI Collaboration
               </Badge>
               
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6" style={{ letterSpacing: '-0.04em' }}>
                 Share{" "}
-                <span className="gradient-text">AI Thoughts</span>
-                {" "}Across Models
+<span className="gradient-text">AI </span><FlipWord words={['Thoughts', 'Memory', 'Awareness', 'Opinion', 'Thinking']} className="gradient-text" />
+                <br />Across Models
               </h1>
               
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
@@ -110,38 +120,32 @@ export default function Home() {
 
             </div>
             
-            {/* Right: 3D Globe */}
-            <div className="hidden lg:block h-[600px]">
-              <Globe3D />
-            </div>
+            {/* Right: spacer for layout balance */}
+            <div className="hidden lg:block h-[600px]" />
           </div>
         </div>
       </section>
 
       {/* V2.0 Features Section */}
-      <section className="py-24 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+      <section className="py-24 relative z-10">
         
         <div className="container relative">
           <div className="text-center mb-16">
             <Badge className="mb-4 px-3 py-1 text-xs font-medium bg-accent/10 border-accent/20 text-accent">
-              Three Product Lines
+              Five Product Lines
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Trade AI Thoughts in Three Ways
+              Trade AI Thoughts in Five Ways
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Choose how you want to share AI intelligence: learn new capabilities (Vector), transfer reasoning states (Memory), or replicate complete solution processes (Chain). Each package includes W-Matrix for seamless cross-model compatibility.
+              Choose how you want to share AI intelligence: trade capabilities (Vector), transfer reasoning states (Memory), replicate solution processes (Chain), collaborate with dual-AI (Collaboration), or control robots (Robotics).
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {/* Vector Package Market Card */}
             <Link href="/marketplace" className="group">
-              <div className="glass-card-hover p-6 h-full border-l-4 border-l-blue-500">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
-                  <Brain className="w-6 h-6 text-blue-500" />
-                </div>
+              <div className="glass-card-hover p-6 h-full">
                 <Badge className="mb-3 text-xs bg-blue-500/10 text-blue-400 border-blue-500/20">Capability Trading</Badge>
                 <h3 className="text-xl font-semibold mb-2">Vector Packages</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -156,10 +160,7 @@ export default function Home() {
             
             {/* Memory Package Market Card */}
             <Link href="/memory-marketplace" className="group">
-              <div className="glass-card-hover p-6 h-full border-l-4 border-l-purple-500">
-                <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
-                  <Cpu className="w-6 h-6 text-purple-500" />
-                </div>
+              <div className="glass-card-hover p-6 h-full">
                 <Badge className="mb-3 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">Memory Trading</Badge>
                 <h3 className="text-xl font-semibold mb-2">Memory Packages</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -174,10 +175,7 @@ export default function Home() {
             
             {/* Reasoning Chain Market Card */}
             <Link href="/reasoning-chains" className="group">
-              <div className="glass-card-hover p-6 h-full border-l-4 border-l-green-500">
-                <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
-                  <Network className="w-6 h-6 text-green-500" />
-                </div>
+              <div className="glass-card-hover p-6 h-full">
                 <Badge className="mb-3 text-xs bg-green-500/10 text-green-400 border-green-500/20">Solution Trading</Badge>
                 <h3 className="text-xl font-semibold mb-2">Chain Packages</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -189,27 +187,58 @@ export default function Home() {
                 </div>
               </div>
             </Link>
+
+            {/* AI Collaboration Card */}
+            <Link href="/ai-collaboration" className="group">
+              <div className="glass-card-hover p-6 h-full">
+                <Badge className="mb-3 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">Dual-AI Teamwork</Badge>
+                <h3 className="text-xl font-semibold mb-2">AI Collaboration</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Manus and Claude work together in real-time. Share thoughts, make decisions, and build faster with dual-AI collaboration.
+                </p>
+                <div className="flex items-center text-sm text-purple-400">
+                  Start Collaborating
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+
+            {/* Robotics Card */}
+            <Link href="/robotics" className="group">
+              <div className="glass-card-hover p-6 h-full">
+                <Badge className="mb-3 text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/20">Robot Control</Badge>
+                <h3 className="text-xl font-semibold mb-2">Robotics</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Production-ready robot management middleware with VR control, multi-robot coordination, and 125x Redis-cached performance.
+                </p>
+                <div className="flex items-center text-sm text-cyan-400">
+                  Open Dashboard
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
           </div>
+
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-20">
+      <section className="py-20 relative z-10">
         <div className="container">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center">
+            <div className="glass-card p-6 text-center">
               <div className="stat-value">60+</div>
               <div className="stat-label">AI Models Supported</div>
             </div>
-            <div className="text-center">
+            <div className="glass-card p-6 text-center">
               <div className="stat-value">11</div>
               <div className="stat-label">Model Families</div>
             </div>
-            <div className="text-center">
+            <div className="glass-card p-6 text-center">
               <div className="stat-value">98%</div>
               <div className="stat-label">Alignment Accuracy</div>
             </div>
-            <div className="text-center">
+            <div className="glass-card p-6 text-center">
               <div className="stat-value">∞</div>
               <div className="stat-label">Possibilities</div>
             </div>
@@ -218,8 +247,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/5 to-transparent" />
+      <section className="py-24 relative z-10">
         
         <div className="container relative">
           <div className="text-center mb-16">
@@ -232,9 +260,9 @@ export default function Home() {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary">1</span>
+            <div className="glass-card p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                <span className="text-xl font-bold text-primary">1</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">Capture</h3>
               <p className="text-sm text-muted-foreground">
@@ -242,9 +270,9 @@ export default function Home() {
               </p>
             </div>
             
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-accent">2</span>
+            <div className="glass-card p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                <span className="text-xl font-bold text-accent">2</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">Align</h3>
               <p className="text-sm text-muted-foreground">
@@ -252,9 +280,9 @@ export default function Home() {
               </p>
             </div>
             
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary">3</span>
+            <div className="glass-card p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                <span className="text-xl font-bold text-primary">3</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">Transfer</h3>
               <p className="text-sm text-muted-foreground">
@@ -266,7 +294,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24">
+      <section className="py-24 relative z-10">
         <div className="container">
           <div className="glass-card p-12 text-center max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -303,7 +331,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-white/5">
+      <footer className="py-12 border-t border-white/5 relative z-10">
         <div className="container">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
@@ -332,6 +360,8 @@ export default function Home() {
                 <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Packages</Link></li>
                 <li><Link href="/memory-marketplace" className="hover:text-foreground transition-colors">Memory Packages</Link></li>
                 <li><Link href="/reasoning-chains" className="hover:text-foreground transition-colors">Reasoning Chains</Link></li>
+                <li><Link href="/ai-collaboration" className="hover:text-foreground transition-colors">AI Collaboration</Link></li>
+                <li><Link href="/robotics" className="hover:text-foreground transition-colors">Robotics</Link></li>
               </ul>
             </div>
             

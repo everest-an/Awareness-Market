@@ -248,38 +248,90 @@
   background-image: linear-gradient(135deg, oklch(0.75 0.18 195), oklch(0.70 0.20 230));
 }
 
-/* Glass card effect */
+/* ============================================
+   iOS-Inspired Glassmorphism System
+   Enhanced blur and transparency effects
+   ============================================ */
+
+/* Base glass card - iOS-style frosted glass */
 .glass-card {
-  background-color: oklch(0.16 0.015 250 / 50%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid oklch(1 0 0 / 10%);
-  border-radius: 0.75rem;
+  background-color: oklch(0.16 0.015 250 / 40%);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid oklch(1 0 0 / 12%);
+  border-radius: 0.875rem;
+  box-shadow:
+    0 1px 2px 0 oklch(0 0 0 / 5%),
+    0 0 0 1px oklch(1 0 0 / 3%) inset;
 }
 
+/* Interactive glass card with hover state */
 .glass-card-hover {
-  background-color: oklch(0.16 0.015 250 / 50%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid oklch(1 0 0 / 10%);
-  border-radius: 0.75rem;
-  transition: all 0.3s ease;
+  background-color: oklch(0.16 0.015 250 / 40%);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid oklch(1 0 0 / 12%);
+  border-radius: 0.875rem;
+  box-shadow:
+    0 1px 2px 0 oklch(0 0 0 / 5%),
+    0 0 0 1px oklch(1 0 0 / 3%) inset;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card-hover:hover {
-  background-color: oklch(0.16 0.015 250 / 70%);
-  border-color: oklch(1 0 0 / 20%);
-  box-shadow: 0 10px 15px -3px oklch(0.65 0.20 230 / 5%);
-  transform: translateY(-2px);
+  background-color: oklch(0.18 0.015 250 / 55%);
+  border-color: oklch(1 0 0 / 18%);
+  box-shadow:
+    0 4px 12px 0 oklch(0 0 0 / 8%),
+    0 0 0 1px oklch(1 0 0 / 5%) inset,
+    0 0 24px -8px oklch(0.65 0.20 230 / 12%);
+  transform: translateY(-1px);
 }
 
-/* Glow effects */
+/* Glass panel - lighter background for overlays */
+.glass-panel {
+  background-color: oklch(0.18 0.015 250 / 50%);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid oklch(1 0 0 / 15%);
+  border-radius: 0.875rem;
+  box-shadow:
+    0 2px 8px 0 oklch(0 0 0 / 8%),
+    0 0 0 1px oklch(1 0 0 / 5%) inset;
+}
+
+/* Glass overlay - for modals and dialogs */
+.glass-overlay {
+  background-color: oklch(0.12 0.015 250 / 60%);
+  backdrop-filter: blur(48px) saturate(180%);
+  -webkit-backdrop-filter: blur(48px) saturate(180%);
+}
+
+/* Subtle glass - for nested components */
+.glass-subtle {
+  background-color: oklch(0.18 0.015 250 / 30%);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid oklch(1 0 0 / 8%);
+  border-radius: 0.625rem;
+}
+
+/* Glow effects - refined for glass aesthetic */
 .glow-primary {
-  box-shadow: 0 0 40px -10px oklch(0.65 0.20 230 / 40%);
+  box-shadow: 0 0 32px -8px oklch(0.65 0.20 230 / 35%);
 }
 
 .glow-accent {
-  box-shadow: 0 0 40px -10px oklch(0.75 0.18 195 / 40%);
+  box-shadow: 0 0 32px -8px oklch(0.75 0.18 195 / 35%);
+}
+
+/* Glow on hover - interactive elements */
+.glow-primary-hover {
+  transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-primary-hover:hover {
+  box-shadow: 0 0 40px -6px oklch(0.65 0.20 230 / 50%);
 }
 
 /* Animated gradient background */
@@ -596,4 +648,15 @@
 
 .animate-float {
   animation: float 4s ease-in-out infinite;
+}
+
+/* Hide Unicorn Studio watermark */
+a[href*="unicorn.studio"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }

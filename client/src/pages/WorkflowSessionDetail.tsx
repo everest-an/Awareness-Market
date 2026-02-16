@@ -102,7 +102,7 @@ export function WorkflowSessionDetail() {
     return (
       <div className="min-h-screen bg-black text-white">
         <Navbar />
-        <div className="container mx-auto px-4 py-8 mt-20">
+        <div className="pt-20 container mx-auto px-4 py-8 mt-20">
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             <p className="mt-4 text-gray-400">Loading session details...</p>
@@ -205,7 +205,7 @@ export function WorkflowSessionDetail() {
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader className="pb-2">
               <CardDescription>Type</CardDescription>
-              <CardTitle className="text-lg">{getSessionTypeLabel(session.type)}</CardTitle>
+              <CardTitle className="text-lg">{getSessionTypeLabel((session as any).type)}</CardTitle>
             </CardHeader>
           </Card>
           
@@ -243,7 +243,7 @@ export function WorkflowSessionDetail() {
               </CardHeader>
               <CardContent>
                 <EventTimeline
-                  events={events as WorkflowEvent[]}
+                  events={events as unknown as WorkflowEvent[]}
                   onEventClick={setSelectedEvent}
                   selectedEventId={selectedEvent?.id}
                 />

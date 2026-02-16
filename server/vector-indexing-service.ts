@@ -285,7 +285,7 @@ export class VectorIndexingService {
     const results = await this.vectorDB.searchSimilar(collectionType, queryVector, {
       limit: options.limit || 10,
       minScore: options.minScore || 0.5,
-      filter: filter.must.length > 0 ? filter : undefined,
+      filter: filter.must.length > 0 ? (filter as any) : undefined,
     });
 
     return results;
@@ -320,7 +320,7 @@ export class VectorIndexingService {
       dislikedPackageIds,
       {
         limit: options.limit || 10,
-        filter,
+        filter: filter as any,
       }
     );
 
@@ -386,10 +386,10 @@ export class VectorIndexingService {
         return this.createAverageEmbedding(data);
       }
 
-      console.warn(`Unknown vector data format for package ${pkg.id}`);
+      logger.warn(`Unknown vector data format for package ${pkg.id}`);
       return null;
     } catch (error) {
-      console.error(`Failed to parse vector data for ${pkg.id}:`, error);
+      logger.error(`Failed to parse vector data for ${pkg.id}`, { error });
       return null;
     }
   }
@@ -399,16 +399,59 @@ export class VectorIndexingService {
    */
   private createAverageEmbedding(kvCache: unknown): number[] | null {
     try {
-      // This is a placeholder - actual implementation would:
-      // 1. Extract key/value tensors
-      // 2. Compute mean pooling
-      // 3. Normalize to unit vector
+      const keys = (kvCache as { keys?: unknown }).keys;
+      if (!Array.isArray(keys) || keys.length === 0) {
+        logger.warn('KV-Cache average embedding: missing keys');
+        return null;
+      }
 
-      // For now, return null to indicate this needs proper implementation
-      console.warn('KV-Cache average embedding not yet implemented');
-      return null;
+      const vectors: number[][] = [];
+
+      const first = keys[0] as unknown;
+      const is4D = Array.isArray(first)
+        && Array.isArray((first as unknown[])[0])
+        && Array.isArray((first as unknown[])[0] as unknown[])
+        && Array.isArray(((first as unknown[])[0] as unknown[])[0]);
+
+      if (is4D) {
+        for (const layer of keys as unknown[][][][]) {
+          for (const head of layer) {
+            for (const token of head) {
+              if (Array.isArray(token)) {
+                vectors.push(token as number[]);
+              }
+            }
+          }
+        }
+      } else {
+        for (const layer of keys as unknown[][][]) {
+          for (const token of layer) {
+            if (Array.isArray(token)) {
+              vectors.push(token as number[]);
+            }
+          }
+        }
+      }
+
+      if (vectors.length === 0) {
+        logger.warn('KV-Cache average embedding: empty vectors');
+        return null;
+      }
+
+      const dimension = vectors[0].length;
+      const meanVector = new Array(dimension).fill(0);
+
+      for (const vec of vectors) {
+        for (let i = 0; i < dimension; i++) {
+          meanVector[i] += vec[i] / vectors.length;
+        }
+      }
+
+      const norm = Math.sqrt(meanVector.reduce((sum, v) => sum + v * v, 0));
+      if (norm === 0) return meanVector;
+      return meanVector.map((v) => v / norm);
     } catch (error) {
-      console.error('Failed to create average embedding:', error);
+      logger.error('Failed to create average embedding', { error });
       return null;
     }
   }
@@ -438,7 +481,7 @@ export async function onPackageUploaded(pkg: IndexablePackage): Promise<void> {
   const result = await service.indexPackage(pkg);
 
   if (!result.indexed && result.error) {
-    console.error(`Package ${pkg.id} was not indexed: ${result.error}`);
+    logger.error(`Package ${pkg.id} was not indexed`, { error: result.error });
     // Don't throw - indexing failures shouldn't block package upload
   }
 }

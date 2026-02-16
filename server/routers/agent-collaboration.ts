@@ -9,13 +9,12 @@
  */
 
 import { z } from 'zod';
+import { randomUUID } from 'crypto';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { getDb } from '../db';
-import { users } from '../../drizzle/schema';
-import { eq } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
 import { ethers } from 'ethers';
-import { getErrorMessage, assertDatabaseAvailable } from '../utils/error-handling';
+import { getErrorMessage } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
 import * as workflowDb from '../db-workflows';
 
@@ -132,17 +131,12 @@ async function executeStep(
     // 2. Pass shared memory context
     // 3. Collect output
 
-    const db = await getDb();
-    assertDatabaseAvailable(db);
-
     // Get agent info
-    const agentRecords = await db
-      .select()
-      .from(users)
-      .where(eq(users.openId, step.agentId))
-      .limit(1);
+    const agent = await prisma.user.findFirst({
+      where: { openId: step.agentId },
+    });
 
-    if (agentRecords.length === 0) {
+    if (!agent) {
       throw new Error(`Agent ${step.agentId} not found`);
     }
 
@@ -160,17 +154,68 @@ async function executeStep(
       ...(typeof step.input === 'object' && step.input !== null ? step.input : {}),
     };
 
-    // Simulated execution (replace with actual API call)
+    // Execute agent via MCP/HTTP endpoint if provided
     logger.info(`[Collaboration] Executing step: ${step.agentName} for task: ${task}`);
 
-    // Mock output
-    const output = {
-      agent: step.agentName,
-      status: 'success',
-      result: `Completed ${task} analysis`,
-      timestamp: new Date().toISOString(),
-      confidence: 0.85 + Math.random() * 0.15,
-    };
+    const endpoints = typeof sharedMemory.agentEndpoints === 'object' && sharedMemory.agentEndpoints !== null
+      ? (sharedMemory.agentEndpoints as Record<string, string>)
+      : {};
+    const endpoint = endpoints[step.agentId];
+
+    let output: Record<string, unknown>;
+
+    if (endpoint) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+
+      try {
+        const authTokens = typeof sharedMemory.agentAuthTokens === 'object' && sharedMemory.agentAuthTokens !== null
+          ? (sharedMemory.agentAuthTokens as Record<string, string>)
+          : {};
+        const authToken = authTokens[step.agentId];
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          },
+          body: JSON.stringify({
+            task,
+            context: sharedMemory,
+            previousSteps: workflow.steps
+              .filter(s => s.status === 'completed')
+              .map(s => ({ agent: s.agentName, output: s.output })),
+            input: typeof step.input === 'object' && step.input !== null ? step.input : undefined,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Agent endpoint returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        output = {
+          agent: step.agentName,
+          status: 'success',
+          result: data,
+          timestamp: new Date().toISOString(),
+        };
+      } finally {
+        clearTimeout(timeout);
+      }
+    } else {
+      // Fallback simulation when no endpoint is configured
+      output = {
+        agent: step.agentName,
+        status: 'success',
+        result: `Completed ${task} analysis`,
+        timestamp: new Date().toISOString(),
+        confidence: 0.85,
+        note: 'No agent endpoint configured; used fallback output',
+      };
+    }
 
     // Store output in shared memory
     const memoryKeys: string[] = [];
@@ -314,19 +359,14 @@ export const agentCollaborationRouter = router({
   collaborate: protectedProcedure
     .input(collaborateSchema)
     .mutation(async ({ input, ctx }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       // Validate agents exist
       const steps: Array<{ agentId: string; agentName: string }> = [];
       for (const agentId of input.agents) {
-        const agentRecords = await db
-          .select()
-          .from(users)
-          .where(eq(users.openId, agentId))
-          .limit(1);
+        const agent = await prisma.user.findFirst({
+          where: { openId: agentId },
+        });
 
-        if (agentRecords.length === 0) {
+        if (!agent) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: `Agent ${agentId} not found`,
@@ -335,12 +375,12 @@ export const agentCollaborationRouter = router({
 
         steps.push({
           agentId,
-          agentName: agentRecords[0].name || 'Unknown Agent',
+          agentName: agent.name || 'Unknown Agent',
         });
       }
 
       // Create workflow in database
-      const workflowId = `wf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const workflowId = `wf_${Date.now()}_${randomUUID().replace(/-/g, '').substring(0, 9)}`;
 
       await workflowDb.createWorkflow({
         id: workflowId,

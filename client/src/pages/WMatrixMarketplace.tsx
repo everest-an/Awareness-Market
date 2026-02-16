@@ -96,7 +96,7 @@ export default function WMatrixMarketplace() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="pt-20 container mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
@@ -126,7 +126,7 @@ export default function WMatrixMarketplace() {
                   }}
                   className="text-sm"
                 >
-                  {pair.sourceModel} â†?{pair.targetModel}
+                  {pair.sourceModel} ï¿½?{pair.targetModel}
                   <Badge variant="secondary" className="ml-2">{pair.count}</Badge>
                 </Button>
               ))}
@@ -206,31 +206,31 @@ export default function WMatrixMarketplace() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Model Pair:</span>
                     <span className="text-cyan-400 font-mono text-xs">
-                      {listing.sourceModel} â†?{listing.targetModel}
+                      {listing.sourceModel} ï¿½?{listing.targetModel}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Dimensions:</span>
-                    <span className="text-white">{listing.sourceDim} â†?{listing.targetDim}</span>
+                    <span className="text-white">{listing.sourceDimension} ï¿½?{listing.targetDimension}</span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Alignment Loss:</span>
                     <Badge variant="secondary" className="bg-green-900/30 text-green-400">
-                      {parseFloat(listing.alignmentLoss).toFixed(4)}
+                      {parseFloat(listing.epsilon.toString()).toFixed(4)}
                     </Badge>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Sales:</span>
-                    <span className="text-white">{listing.totalSales}</span>
+                    <span className="text-white">{listing.downloads}</span>
                   </div>
 
-                  {listing.averageRating && parseFloat(listing.averageRating) > 0 && (
+                  {listing.avgRating && parseFloat(listing.avgRating.toString()) > 0 && (
                     <div className="flex items-center gap-2">
                       <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                      <span className="text-white">{parseFloat(listing.averageRating).toFixed(1)}</span>
+                      <span className="text-white">{parseFloat(listing.avgRating.toString()).toFixed(1)}</span>
                       <span className="text-slate-400 text-sm">({listing.reviewCount} reviews)</span>
                     </div>
                   )}
@@ -238,7 +238,7 @@ export default function WMatrixMarketplace() {
 
                 <div className="flex items-center justify-between pt-4 border-t border-slate-800">
                   <div>
-                    <div className="text-2xl font-bold text-white">${parseFloat(listing.price).toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-white">${parseFloat(listing.price.toString()).toFixed(2)}</div>
                     <div className="text-xs text-slate-400">One-time purchase</div>
                   </div>
                   <Button

@@ -5,9 +5,7 @@
 
 import express from "express";
 import { z } from "zod";
-import { getDb } from "./db";
-import { aiMemory } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 import { createLogger } from "./utils/logger";
 
 const logger = createLogger('AI:MemoryAPI');
@@ -24,21 +22,16 @@ router.use(validateApiKey);
  */
 router.get("/memory/:key", async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const memoryKey = req.params.key;
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
+    const userId = authReq.apiKeyUserId;
 
-    const [memory] = await db
-      .select()
-      .from(aiMemory)
-      .where(and(
-        eq(aiMemory.userId, userId),
-        eq(aiMemory.memoryKey, memoryKey)
-      ))
-      .limit(1);
+    const memory = await prisma.aiMemory.findFirst({
+      where: {
+        userId,
+        memoryKey,
+      },
+    });
 
     if (!memory) {
       return res.status(404).json({ error: "Memory not found" });
@@ -69,24 +62,29 @@ router.get("/memory/:key", async (req, res) => {
  */
 router.get("/memory", async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
+    const authReq = req as unknown as AuthenticatedRequest;
+    const userId = authReq.apiKeyUserId;
 
-    const memories = await db
-      .select({
-        key: aiMemory.memoryKey,
-        version: aiMemory.version,
-        createdAt: aiMemory.createdAt,
-        updatedAt: aiMemory.updatedAt,
-        expiresAt: aiMemory.expiresAt,
-      })
-      .from(aiMemory)
-      .where(eq(aiMemory.userId, userId));
+    const memories = await prisma.aiMemory.findMany({
+      where: { userId },
+      select: {
+        memoryKey: true,
+        version: true,
+        createdAt: true,
+        updatedAt: true,
+        expiresAt: true,
+      },
+    });
 
-    return res.json({ memories });
+    return res.json({
+      memories: memories.map(m => ({
+        key: m.memoryKey,
+        version: m.version,
+        createdAt: m.createdAt,
+        updatedAt: m.updatedAt,
+        expiresAt: m.expiresAt,
+      })),
+    });
   } catch (error) {
     logger.error(" List error:", { error });
     return res.status(500).json({ error: "Failed to list memories" });
@@ -99,6 +97,7 @@ router.get("/memory", async (req, res) => {
  */
 router.put("/memory/:key", async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const schema = z.object({
       data: z.record(z.string(), z.unknown()),
       version: z.number().optional(),
@@ -107,21 +106,15 @@ router.put("/memory/:key", async (req, res) => {
 
     const body = schema.parse(req.body);
     const memoryKey = req.params.key;
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
+    const userId = authReq.apiKeyUserId;
 
     // Check if memory exists
-    const [existing] = await db
-      .select()
-      .from(aiMemory)
-      .where(and(
-        eq(aiMemory.userId, userId),
-        eq(aiMemory.memoryKey, memoryKey)
-      ))
-      .limit(1);
+    const existing = await prisma.aiMemory.findFirst({
+      where: {
+        userId,
+        memoryKey,
+      },
+    });
 
     const expiresAt = body.ttlDays
       ? new Date(Date.now() + body.ttlDays * 24 * 60 * 60 * 1000)
@@ -138,15 +131,15 @@ router.put("/memory/:key", async (req, res) => {
         });
       }
 
-      await db
-        .update(aiMemory)
-        .set({
+      await prisma.aiMemory.update({
+        where: { id: existing.id },
+        data: {
           memoryData: JSON.stringify(body.data),
           version: existing.version + 1,
           expiresAt,
           updatedAt: new Date(),
-        })
-        .where(eq(aiMemory.id, existing.id));
+        },
+      });
 
       return res.json({
         success: true,
@@ -156,12 +149,14 @@ router.put("/memory/:key", async (req, res) => {
       });
     } else {
       // Create new memory
-      await db.insert(aiMemory).values({
-        userId,
-        memoryKey,
-        memoryData: JSON.stringify(body.data),
-        version: 1,
-        expiresAt,
+      await prisma.aiMemory.create({
+        data: {
+          userId,
+          memoryKey,
+          memoryData: JSON.stringify(body.data),
+          version: 1,
+          expiresAt,
+        },
       });
 
       return res.status(201).json({
@@ -186,19 +181,16 @@ router.put("/memory/:key", async (req, res) => {
  */
 router.delete("/memory/:key", async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const memoryKey = req.params.key;
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: "Database unavailable" });
-    }
+    const userId = authReq.apiKeyUserId;
 
-    await db
-      .delete(aiMemory)
-      .where(and(
-        eq(aiMemory.userId, userId),
-        eq(aiMemory.memoryKey, memoryKey)
-      ));
+    await prisma.aiMemory.deleteMany({
+      where: {
+        userId,
+        memoryKey,
+      },
+    });
 
     return res.json({ success: true, message: "Memory deleted" });
   } catch (error) {
