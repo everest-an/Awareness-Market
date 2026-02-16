@@ -1,10 +1,12 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline (Disabled)
 
+# Disabled: replaced by ci-cd-unified.yml
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  workflow_dispatch:
+  # push:
+  #   branches: [main, develop]
+  # pull_request:
+  #   branches: [main, develop]
 
 env:
   NODE_VERSION: '18.x'

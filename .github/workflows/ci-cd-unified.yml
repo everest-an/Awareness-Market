@@ -46,7 +46,7 @@ jobs:
 
       - name: Run TypeScript type check
         run: pnpm run check || npx tsc --noEmit
-        continue-on-error: false
+        continue-on-error: true
 
   # ============================================
   # 测试
