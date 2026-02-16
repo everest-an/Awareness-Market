@@ -46,11 +46,23 @@ export interface SemanticConflictDetectorConfig {
   max_age_days?: number;
 }
 
+export type ConflictSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface StructuredClaim {
+  claim_key: string;
+  claim_value: string;
+  domain: string;
+  assumptions: string[];
+  evidence: string[];
+}
+
 interface ConflictDetectionResult {
   has_conflict: boolean;
   confidence: number; // 0-1, how confident the LLM is about the conflict
   explanation: string;
   conflicting_claims?: string[];
+  severity?: ConflictSeverity;
+  structured_claims?: StructuredClaim[];
 }
 
 export class SemanticConflictDetector {
@@ -81,7 +93,7 @@ export class SemanticConflictDetector {
     const pool = await this.prisma.memoryEntry.findMany({
       where: {
         orgId,
-        is_latest: true,
+        isLatest: true,
         confidence: {
           gte: this.config.min_confidence,
         },
@@ -140,8 +152,24 @@ Respond in JSON format:
   "has_conflict": boolean,
   "confidence": number (0-1),
   "explanation": string,
-  "conflicting_claims": [string] (optional, array of specific contradictory statements)
-}`;
+  "conflicting_claims": [string] (optional, array of specific contradictory statements),
+  "severity": "low" | "medium" | "high" | "critical" (based on impact scope and confidence),
+  "structured_claims": [
+    {
+      "claim_key": string (the subject/topic),
+      "claim_value": string (the assertion),
+      "domain": string (knowledge domain),
+      "assumptions": [string] (underlying assumptions),
+      "evidence": [string] (supporting evidence if any)
+    }
+  ] (optional, structured extraction of conflicting claims)
+}
+
+Severity guidelines:
+- low: minor disagreement, limited impact, low usage memories
+- medium: clear disagreement but limited scope
+- high: significant contradiction in well-used memories
+- critical: contradicts strategic/high-confidence knowledge`;
 
     try {
       const response = await invokeLLM({
@@ -174,8 +202,26 @@ Respond in JSON format:
                   type: 'array',
                   items: { type: 'string' },
                 },
+                severity: {
+                  type: 'string',
+                  enum: ['low', 'medium', 'high', 'critical'],
+                },
+                structured_claims: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      claim_key: { type: 'string' },
+                      claim_value: { type: 'string' },
+                      domain: { type: 'string' },
+                      assumptions: { type: 'array', items: { type: 'string' } },
+                      evidence: { type: 'array', items: { type: 'string' } },
+                    },
+                    required: ['claim_key', 'claim_value', 'domain'],
+                  },
+                },
               },
-              required: ['has_conflict', 'confidence', 'explanation'],
+              required: ['has_conflict', 'confidence', 'explanation', 'severity'],
               additionalProperties: false,
             },
           },
@@ -307,12 +353,9 @@ Respond in JSON format:
                     conflictType: 'semantic_contradiction',
                     status: 'pending',
                     detectedAt: new Date(),
-                    // Store LLM explanation in metadata (if Prisma supports JSON)
-                    // metadata: {
-                    //   llm_confidence: result.confidence,
-                    //   explanation: result.explanation,
-                    //   conflicting_claims: result.conflicting_claims,
-                    // },
+                    severity: result.severity || 'medium',
+                    explanation: result.explanation,
+                    autoResolvable: result.severity === 'low',
                   },
                 });
 

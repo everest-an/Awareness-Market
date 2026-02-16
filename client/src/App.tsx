@@ -59,7 +59,7 @@ import PrivacySettings from "./pages/PrivacySettings";
 import ZKPDashboard from "./pages/ZKPDashboard";
 import UploadMultimodalPackage from "./pages/UploadMultimodalPackage";
 import CrossModalSearch from "./pages/CrossModalSearch";
-import AudioToText from "./pages/AudioToText"; // Assuming this might be used later or needed import
+// import AudioToText from "./pages/AudioToText";
 import AiCollaborationDocs from "./pages/AiCollaborationDocs";
 import AiCollaborationHub from "./pages/AiCollaboration";
 import NewCollaborationSession from "./pages/AiCollaboration/NewSession";
@@ -68,7 +68,18 @@ import SessionsList from "./pages/AiCollaboration/SessionsList";
 // HiveMind removed - redirects to NeuralCortex
 import WalletDashboard from "./pages/WalletDashboard";
 import MemoryManagement from "./pages/MemoryManagement";
+// v3: Organization Governance
+import OrganizationSetup from "./pages/OrganizationSetup";
+import OrgDashboard from "./pages/OrgDashboard";
+// v3 Phase 3: Decision Audit + Agent Reputation
+import DecisionAudit from "./pages/DecisionAudit";
+// v3 Phase 4: Verification + Evidence
+import VerificationDashboard from "./pages/VerificationDashboard";
+// v3 Phase 5: Analytics + Billing
+import OrgAnalytics from "./pages/OrgAnalytics";
+import BillingDashboard from "./pages/BillingDashboard";
 import ConflictResolution from "./pages/ConflictResolution";
+import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
 import { Redirect } from "wouter";
 import LandingPage from "./pages/LandingPage";
 import RoboticsPage from "./pages/robotics";
@@ -146,6 +157,14 @@ function Router() {
       <Route path="/docs" component={SDKPage} />
       <Route path="/api-keys" component={ApiKeys} />
       <Route path="/wallet" component={WalletDashboard} />
+
+      {/* v3: Organization Governance */}
+      <Route path="/org/setup">{() => <FeatureErrorBoundary feature="Organization Setup"><OrganizationSetup /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/dashboard">{() => <FeatureErrorBoundary feature="Organization Dashboard"><OrgDashboard /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/decisions">{() => <FeatureErrorBoundary feature="Decision Audit"><DecisionAudit /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/verification">{() => <FeatureErrorBoundary feature="Verification"><VerificationDashboard /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/analytics">{() => <FeatureErrorBoundary feature="Analytics"><OrgAnalytics /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/billing">{() => <FeatureErrorBoundary feature="Billing"><BillingDashboard /></FeatureErrorBoundary>}</Route>
 
       <Route path="/admin" component={AdminPanel} />
       <Route path="/service-health" component={ServiceHealth} />

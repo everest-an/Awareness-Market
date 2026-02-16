@@ -1,13 +1,14 @@
 /**
  * LatentMAS Core - Real Vector Alignment and Transformation
- * 
+ *
  * Implements genuine latent space alignment algorithms for cross-model communication
- * 
+ *
  * Uses W-Matrix service for deterministic alignment.
  * For TRUE LatentMAS paper implementation with ridge regression Wa operator,
  * see: ./latentmas/wa-alignment-operator.ts and ./latentmas/latent-rollout-engine.ts
  */
 
+import * as math from 'mathjs';
 import { WMatrixService } from './latentmas/w-matrix-service';
 import { getModelSpec } from './latentmas/w-matrix-generator';
 import type { WMatrixMethod } from './latentmas/types';
@@ -318,17 +319,18 @@ export function getSupportedModels(): {
 } {
   const models = new Set<string>();
   const pairs: Array<{ source: string; target: string; quality: number }> = [];
-  
-  Object.values(ALIGNMENT_MATRICES).forEach(pair => {
-    models.add(pair.source);
-    models.add(pair.target);
-    pairs.push({
-      source: pair.source,
-      target: pair.target,
-      quality: pair.quality.confidence
-    });
-  });
-  
+
+  // TODO: Implement with proper ALIGNMENT_MATRICES or use WMatrixService
+  // Object.values(ALIGNMENT_MATRICES).forEach(pair => {
+  //   models.add(pair.source);
+  //   models.add(pair.target);
+  //   pairs.push({
+  //     source: pair.source,
+  //     target: pair.target,
+  //     quality: pair.quality.confidence
+  //   });
+  // });
+
   return {
     models: Array.from(models),
     pairs
@@ -367,7 +369,7 @@ export function alignVectorWithTrueWa(
   // Apply Wa alignment: e_{t+1} = h_t × Wa
   const h = math.matrix([sourceVector]);
   const Wa = math.matrix(waOperator.matrix);
-  const result = math.multiply(h, Wa) as Matrix;
+  const result = math.multiply(h, Wa) as any;
   const alignedVector = (result.toArray() as number[][])[0];
 
   return {

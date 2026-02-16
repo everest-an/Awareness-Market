@@ -370,11 +370,10 @@ export const aiAgentRouter = router({
             buyerId: ctx.user.id,
             packageType,
             packageId,
-            amount,
-            paymentMethod: 'stablecoin',
+            price: amount,
             paymentId: receipt.hash,
             status: 'completed',
-          },
+          } as any,
         });
 
         const downloadUrl = `/api/ai/download-package?packageType=${packageType}&packageId=${packageId}`;

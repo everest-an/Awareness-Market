@@ -1,4 +1,5 @@
 import { prisma } from "./db-prisma";
+const prismaAny = prisma as any;
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('CollaborativeFiltering');
@@ -50,7 +51,7 @@ function cosineSimilarity(userA: Map<number, number>, userB: Map<number, number>
  */
 async function getUserItemMatrix(): Promise<Map<number, Map<number, number>>> {
   // Fetch all user behaviors
-  const behaviors = await prisma.userBehavior.findMany({
+  const behaviors = await prismaAny.userBehavior.findMany({
     select: {
       userId: true,
       vectorId: true,
@@ -69,7 +70,7 @@ async function getUserItemMatrix(): Promise<Map<number, Map<number, number>>> {
     review: 4,
   };
 
-  behaviors.forEach(({ userId, vectorId, actionType }) => {
+  behaviors.forEach(({ userId, vectorId, actionType }: any) => {
     if (!matrix.has(userId)) {
       matrix.set(userId, new Map());
     }
@@ -175,7 +176,7 @@ export async function trackUserBehavior(
   metadata?: Record<string, unknown>
 ) {
   try {
-    await prisma.userBehavior.create({
+    await prismaAny.userBehavior.create({
       data: {
         userId,
         vectorId,

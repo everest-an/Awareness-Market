@@ -41,15 +41,15 @@ export const packageModeEnum = pgEnum('package_mode', ['static', 'latent']);
  */
 export const latentmasVectorPackages = pgTable('latentmas_vector_packages', {
   id: serial('id').primaryKey(),
-  
+
   // Reference to base vector package
   vectorPackageId: integer('vector_package_id').notNull().unique(),
-  
+
   // LatentMAS/2.1 Protocol Version
   protocolVersion: varchar('protocol_version', { length: 20 }).default('LatentMAS/2.1').notNull(),
-  
+
   // Package Mode: static embedding or latent working memory
-  packageMode: pgEnum('package_mode', ['static', 'latent']).default('static').notNull(),
+  packageMode: packageModeEnum('package_mode').$default(() => 'static'),
   
   // Latent Rollout Configuration
   latentSteps: integer('latent_steps').default(0).notNull(), // 0-80 steps
@@ -89,15 +89,15 @@ export const latentmasVectorPackages = pgTable('latentmas_vector_packages', {
  */
 export const latentmasMemoryPackages = pgTable('latentmas_memory_packages', {
   id: serial('id').primaryKey(),
-  
+
   // Reference to base memory package
   memoryPackageId: integer('memory_package_id').notNull().unique(),
-  
+
   // LatentMAS/2.1 Protocol Version
   protocolVersion: varchar('protocol_version', { length: 20 }).default('LatentMAS/2.1').notNull(),
-  
+
   // Package Mode: static embedding or latent working memory
-  packageMode: pgEnum('package_mode', ['static', 'latent']).default('static').notNull(),
+  packageMode: packageModeEnum('package_mode').$default(() => 'static'),
   
   // Latent Rollout Configuration
   latentSteps: integer('latent_steps').default(0).notNull(),
@@ -137,15 +137,15 @@ export const latentmasMemoryPackages = pgTable('latentmas_memory_packages', {
  */
 export const latentmasChainPackages = pgTable('latentmas_chain_packages', {
   id: serial('id').primaryKey(),
-  
+
   // Reference to base chain package
   chainPackageId: integer('chain_package_id').notNull().unique(),
-  
+
   // LatentMAS/2.1 Protocol Version
   protocolVersion: varchar('protocol_version', { length: 20 }).default('LatentMAS/2.1').notNull(),
-  
+
   // Package Mode: static embedding or latent working memory
-  packageMode: pgEnum('package_mode', ['static', 'latent']).default('static').notNull(),
+  packageMode: packageModeEnum('package_mode').$default(() => 'static'),
   
   // Latent Rollout Configuration
   latentSteps: integer('latent_steps').default(0).notNull(),
@@ -219,9 +219,9 @@ export const userLatentSpaces = pgTable('user_latent_spaces', {
   
   // Unique space identifier (UUID for the latent space)
   spaceId: varchar('space_id', { length: 64 }).notNull().unique(),
-  
+
   // Lifecycle status
-  status: pgEnum('status', ['active', 'archived', 'deleted']).default('active').notNull(),
+  status: latentSpaceStatusEnum('status').$default(() => 'active'),
   
   // Last access tracking for auto-archival
   lastAccessedAt: timestamp('last_accessed_at').defaultNow().notNull(),
@@ -246,6 +246,59 @@ export const userLatentSpaces = pgTable('user_latent_spaces', {
 // Type exports for User Latent Spaces
 export type UserLatentSpace = typeof userLatentSpaces.$inferSelect;
 export type InsertUserLatentSpace = typeof userLatentSpaces.$inferInsert;
+
+// ============================================================================
+// Package Access Grants Table
+// ============================================================================
+
+/**
+ * Package Type Enum for access grants
+ * Defines which type of package the access grant applies to
+ */
+export const packageTypeEnum = pgEnum('package_type', ['vector', 'memory', 'chain']);
+
+/**
+ * Package Access Grants Table
+ *
+ * Manages access permissions for purchased packages.
+ * When a user purchases a package, an access grant is created allowing them
+ * to use the package's latent working memory.
+ *
+ * Requirements implemented:
+ * - 9.3: Create a copy of the latent space in the buyer's isolated namespace
+ * - 9.4: Prevent cross-user latent space access without explicit purchase
+ */
+export const packageAccessGrants = pgTable('package_access_grants', {
+  // Primary key
+  id: serial('id').primaryKey(),
+
+  // Package reference
+  packageType: packageTypeEnum('package_type').notNull(),
+  packageId: varchar('package_id', { length: 64 }).notNull(),
+
+  // Owner and grantee
+  ownerId: integer('owner_id').notNull(), // Package creator
+  granteeId: integer('grantee_id').notNull(), // Package buyer
+
+  // Grant metadata
+  grantedAt: timestamp('granted_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at'), // Optional expiration
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  // Composite index for package lookup
+  packageIdx: index('idx_package').on(table.packageType, table.packageId),
+  // Index for grantee lookup (find all packages a user has access to)
+  granteeIdx: index('idx_grantee').on(table.granteeId),
+  // Index for owner lookup (find all grants for packages owned by a user)
+  ownerIdx: index('idx_owner').on(table.ownerId),
+}));
+
+// Type exports for Package Access Grants
+export type PackageAccessGrant = typeof packageAccessGrants.$inferSelect;
+export type InsertPackageAccessGrant = typeof packageAccessGrants.$inferInsert;
 
 // ============================================================================
 // Shared Types for LatentMAS Protocol

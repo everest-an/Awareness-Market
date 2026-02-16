@@ -515,7 +515,7 @@ export class GhostTrapEngine {
   private logEvent(event: ThreatEvent): void {
     this.eventLog.push(event);
     if (event.threatLevel >= ThreatLevel.HOSTILE) {
-      logger.warn('Threat escalated', event);
+      logger.warn('Threat escalated', event as any);
     }
   }
 
@@ -620,7 +620,7 @@ export function ghostTrapMiddleware() {
       if (res.statusCode === 401 || res.statusCode === 403) {
         ghostTrap.recordAuthFailure(ip);
       }
-      return originalEnd.apply(this, args);
+      return originalEnd.apply(this, args as any);
     } as any;
 
     // ── 6. Action based on threat level ──

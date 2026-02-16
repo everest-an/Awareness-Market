@@ -28,7 +28,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       {showAnimation && (
         <div className="absolute inset-0 z-0">
           <UnicornScene
-            projectId="DHrYV5fcnlpS1Vj341CH"
             width="100%"
             height="100vh"
           />

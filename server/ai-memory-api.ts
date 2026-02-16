@@ -22,8 +22,9 @@ router.use(validateApiKey);
  */
 router.get("/memory/:key", async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const memoryKey = req.params.key;
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
+    const userId = authReq.apiKeyUserId;
 
     const memory = await prisma.aiMemory.findFirst({
       where: {
@@ -61,7 +62,8 @@ router.get("/memory/:key", async (req, res) => {
  */
 router.get("/memory", async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
+    const authReq = req as unknown as AuthenticatedRequest;
+    const userId = authReq.apiKeyUserId;
 
     const memories = await prisma.aiMemory.findMany({
       where: { userId },
@@ -95,6 +97,7 @@ router.get("/memory", async (req, res) => {
  */
 router.put("/memory/:key", async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const schema = z.object({
       data: z.record(z.string(), z.unknown()),
       version: z.number().optional(),
@@ -103,7 +106,7 @@ router.put("/memory/:key", async (req, res) => {
 
     const body = schema.parse(req.body);
     const memoryKey = req.params.key;
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
+    const userId = authReq.apiKeyUserId;
 
     // Check if memory exists
     const existing = await prisma.aiMemory.findFirst({
@@ -178,8 +181,9 @@ router.put("/memory/:key", async (req, res) => {
  */
 router.delete("/memory/:key", async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const memoryKey = req.params.key;
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
+    const userId = authReq.apiKeyUserId;
 
     await prisma.aiMemory.deleteMany({
       where: {

@@ -285,7 +285,7 @@ export class VectorIndexingService {
     const results = await this.vectorDB.searchSimilar(collectionType, queryVector, {
       limit: options.limit || 10,
       minScore: options.minScore || 0.5,
-      filter: filter.must.length > 0 ? filter : undefined,
+      filter: filter.must.length > 0 ? (filter as any) : undefined,
     });
 
     return results;
@@ -320,7 +320,7 @@ export class VectorIndexingService {
       dislikedPackageIds,
       {
         limit: options.limit || 10,
-        filter,
+        filter: filter as any,
       }
     );
 

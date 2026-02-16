@@ -8,6 +8,9 @@ import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../db-prisma';
 import { createLogger } from '../utils/logger';
 
+// Cast prisma for models not yet in schema (legacy v1/v2)
+const prismaAny = prisma as any;
+
 const logger = createLogger('Middleware:APIUsageLogger');
 
 // Type extensions for request/response with attached user and body
@@ -51,7 +54,7 @@ async function flushLogBuffer(): Promise<void> {
   const logsToInsert = logBuffer.splice(0, logBuffer.length);
 
   try {
-    await prisma.apiUsageLog.createMany({
+    await prismaAny.apiUsageLog.createMany({
       data: logsToInsert,
     });
   } catch (error) {
@@ -198,22 +201,22 @@ export async function getUserApiStats(userId: number, days: number = 30): Promis
   startDate.setDate(startDate.getDate() - days);
 
   // Get raw logs for the period
-  const logs = await prisma.apiUsageLog.findMany({
+  const logs = await prismaAny.apiUsageLog.findMany({
     where: { userId },
     take: 10000,
   });
 
   // Calculate stats
   const totalRequests = logs.length;
-  const successfulRequests = logs.filter(l => l.statusCode < 400).length;
+  const successfulRequests = logs.filter((l: any) => l.statusCode < 400).length;
   const failedRequests = totalRequests - successfulRequests;
   const avgResponseTime = logs.length > 0
-    ? Math.round(logs.reduce((sum, l) => sum + l.responseTimeMs, 0) / logs.length)
+    ? Math.round(logs.reduce((sum: number, l: any) => sum + l.responseTimeMs, 0) / logs.length)
     : 0;
 
   // Top endpoints
   const endpointCounts = new Map<string, number>();
-  logs.forEach(l => {
+  logs.forEach((l: any) => {
     endpointCounts.set(l.endpoint, (endpointCounts.get(l.endpoint) || 0) + 1);
   });
   const topEndpoints = Array.from(endpointCounts.entries())
@@ -223,7 +226,7 @@ export async function getUserApiStats(userId: number, days: number = 30): Promis
 
   // Daily usage
   const dailyCounts = new Map<string, number>();
-  logs.forEach(l => {
+  logs.forEach((l: any) => {
     const date = new Date(l.createdAt).toISOString().split('T')[0];
     dailyCounts.set(date, (dailyCounts.get(date) || 0) + 1);
   });
@@ -253,22 +256,22 @@ export async function getGlobalApiStats(days: number = 7): Promise<{
   statusCodeDistribution: Record<string, number>;
 }> {
   // Get recent logs
-  const logs = await prisma.apiUsageLog.findMany({
+  const logs = await prismaAny.apiUsageLog.findMany({
     orderBy: { createdAt: 'asc' },
     take: 50000,
   });
 
   const totalRequests = logs.length;
-  const uniqueUsers = new Set(logs.map(l => l.userId).filter(Boolean)).size;
+  const uniqueUsers = new Set(logs.map((l: any) => l.userId).filter(Boolean)).size;
   const avgResponseTime = logs.length > 0
-    ? Math.round(logs.reduce((sum, l) => sum + l.responseTimeMs, 0) / logs.length)
+    ? Math.round(logs.reduce((sum: number, l: any) => sum + l.responseTimeMs, 0) / logs.length)
     : 0;
-  const errorCount = logs.filter(l => l.statusCode >= 400).length;
+  const errorCount = logs.filter((l: any) => l.statusCode >= 400).length;
   const errorRate = totalRequests > 0 ? (errorCount / totalRequests) * 100 : 0;
 
   // Top endpoints with avg time
   const endpointStats = new Map<string, { count: number; totalTime: number }>();
-  logs.forEach(l => {
+  logs.forEach((l: any) => {
     const stats = endpointStats.get(l.endpoint) || { count: 0, totalTime: 0 };
     stats.count++;
     stats.totalTime += l.responseTimeMs;
@@ -285,7 +288,7 @@ export async function getGlobalApiStats(days: number = 7): Promise<{
 
   // Status code distribution
   const statusCodeDistribution: Record<string, number> = {};
-  logs.forEach(l => {
+  logs.forEach((l: any) => {
     const category = `${Math.floor(l.statusCode / 100)}xx`;
     statusCodeDistribution[category] = (statusCodeDistribution[category] || 0) + 1;
   });

@@ -33,6 +33,21 @@ import { getErrorMessage } from "./utils/error-handling";
 import type { User } from "@prisma/client";
 import { createLogger } from './utils/logger';
 
+// User type for API responses (without password)
+interface SafeUser {
+  id: number;
+  openId: string;
+  name: string | null;
+  email: string | null;
+  avatar: string | null;
+  role: string;
+  loginMethod: string | null;
+  emailVerified: boolean | null;
+  lastSignedIn: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 const logger = createLogger('OAuth');
 
 // OAuth Configuration
@@ -294,7 +309,7 @@ export async function handleOAuthCallback(
 
     return {
       success: true,
-      user: result.user,
+      user: result.user as unknown as User,
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
     };

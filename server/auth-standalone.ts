@@ -51,7 +51,7 @@ export function generateAccessToken(user: { id: number; email: string | null; ro
     role: user.role,
     type: "access",
   };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN, algorithm: 'HS256' });
+  return jwt.sign(payload, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: JWT_EXPIRES_IN, algorithm: 'HS256' });
 }
 
 /**
@@ -64,7 +64,7 @@ export function generateRefreshToken(user: { id: number; email: string | null; r
     role: user.role,
     type: "refresh",
   };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN, algorithm: 'HS256' });
+  return jwt.sign(payload, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: JWT_REFRESH_EXPIRES_IN, algorithm: 'HS256' });
 }
 
 /**
@@ -74,7 +74,7 @@ export function generateRefreshToken(user: { id: number; email: string | null; r
  */
 export function verifyToken(token: string, expectedType?: "access" | "refresh"): JWTPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret', { algorithms: ['HS256'] }) as unknown as JWTPayload;
     if (expectedType && decoded.type !== expectedType) {
       return null;
     }
@@ -186,7 +186,7 @@ export async function loginWithEmail(params: {
 
   // Return user without password
   const { password: _, ...userWithoutPassword } = user;
-  return { success: true, user: userWithoutPassword, accessToken, refreshToken };
+  return { success: true, user: userWithoutPassword as unknown as SafeUser, accessToken, refreshToken };
 }
 
 /**
@@ -242,7 +242,7 @@ export async function findOrCreateOAuthUser(params: {
     const refreshToken = generateRefreshToken(user);
 
     const { password: _, ...userWithoutPassword } = user;
-    return { user: userWithoutPassword, accessToken, refreshToken };
+    return { user: userWithoutPassword as unknown as SafeUser, accessToken, refreshToken };
   }
 
   // Create new user
@@ -263,7 +263,7 @@ export async function findOrCreateOAuthUser(params: {
   const refreshToken = generateRefreshToken(user);
 
   const { password: _, ...userWithoutPassword } = user;
-  return { user: userWithoutPassword, accessToken, refreshToken };
+  return { user: userWithoutPassword as unknown as SafeUser, accessToken, refreshToken };
 }
 
 /**
@@ -285,7 +285,7 @@ export async function getUserFromToken(token: string): Promise<{ success: boolea
   }
 
   const { password: _, ...userWithoutPassword } = user;
-  return { success: true, user: userWithoutPassword };
+  return { success: true, user: userWithoutPassword as unknown as SafeUser };
 }
 
 /**

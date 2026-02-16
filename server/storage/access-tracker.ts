@@ -8,6 +8,9 @@
 import { prisma } from '../db-prisma';
 import { createLogger } from '../utils/logger';
 
+// Cast prisma for models not yet in schema (legacy v1/v2)
+const prismaAny = prisma as any;
+
 const logger = createLogger('Storage:AccessTracker');
 
 export type PackageType = 'vector' | 'memory' | 'chain';
@@ -36,7 +39,7 @@ export interface TierInfo {
 export async function recordPackageAccess(record: AccessRecord): Promise<void> {
   try {
     // Insert access log
-    await prisma.packageAccessLog.create({
+    await prismaAny.packageAccessLog.create({
       data: {
         packageId: record.packageId,
         packageType: record.packageType,
@@ -47,7 +50,7 @@ export async function recordPackageAccess(record: AccessRecord): Promise<void> {
     });
 
     // Update or create storage tier record
-    const existing = await prisma.packageStorageTier.findFirst({
+    const existing = await prismaAny.packageStorageTier.findFirst({
       where: {
         packageId: record.packageId,
         packageType: record.packageType,
@@ -56,7 +59,7 @@ export async function recordPackageAccess(record: AccessRecord): Promise<void> {
 
     if (existing) {
       // Update existing record
-      await prisma.packageStorageTier.update({
+      await prismaAny.packageStorageTier.update({
         where: { id: existing.id },
         data: {
           lastAccessAt: new Date(),
@@ -66,7 +69,7 @@ export async function recordPackageAccess(record: AccessRecord): Promise<void> {
       });
     } else {
       // Create new record (default to hot tier on first access)
-      await prisma.packageStorageTier.create({
+      await prismaAny.packageStorageTier.create({
         data: {
           packageId: record.packageId,
           packageType: record.packageType,
@@ -98,7 +101,7 @@ export async function getAccessFrequency(
   try {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    const count = await prisma.packageAccessLog.count({
+    const count = await prismaAny.packageAccessLog.count({
       where: {
         packageId,
         packageType,
@@ -121,7 +124,7 @@ export async function determineDataTemperature(
   packageType: PackageType
 ): Promise<DataTier> {
   try {
-    const tierInfo = await prisma.packageStorageTier.findFirst({
+    const tierInfo = await prismaAny.packageStorageTier.findFirst({
       where: {
         packageId,
         packageType,
@@ -164,7 +167,7 @@ export async function getTierInfo(
   packageType: PackageType
 ): Promise<TierInfo | null> {
   try {
-    const result = await prisma.packageStorageTier.findFirst({
+    const result = await prismaAny.packageStorageTier.findFirst({
       where: {
         packageId,
         packageType,
@@ -199,7 +202,7 @@ export async function updateTierAssignment(
   newBackend: string
 ): Promise<void> {
   try {
-    await prisma.packageStorageTier.updateMany({
+    await prismaAny.packageStorageTier.updateMany({
       where: {
         packageId,
         packageType,
@@ -229,7 +232,7 @@ export async function getPackagesNeedingMigration(): Promise<Array<{
   daysSinceAccess: number;
 }>> {
   try {
-    const allTiers = await prisma.packageStorageTier.findMany();
+    const allTiers = await prismaAny.packageStorageTier.findMany();
 
     const migrations: Array<{
       packageId: number;
@@ -308,13 +311,13 @@ export async function getAccessStats(
  */
 export async function getHotPackages(limit: number = 10): Promise<TierInfo[]> {
   try {
-    const result = await prisma.packageStorageTier.findMany({
+    const result = await prismaAny.packageStorageTier.findMany({
       where: { currentTier: 'hot' },
       orderBy: { accessCount: 'desc' },
       take: limit,
     });
 
-    return result.map((r) => ({
+    return result.map((r: any) => ({
       packageId: r.packageId,
       packageType: r.packageType as PackageType,
       currentTier: r.currentTier as DataTier,
@@ -335,7 +338,7 @@ export async function getColdPackages(limit: number = 10): Promise<TierInfo[]> {
   try {
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-    const result = await prisma.packageStorageTier.findMany({
+    const result = await prismaAny.packageStorageTier.findMany({
       where: {
         currentTier: 'cold',
         lastAccessAt: { lt: ninetyDaysAgo },
@@ -344,7 +347,7 @@ export async function getColdPackages(limit: number = 10): Promise<TierInfo[]> {
       take: limit,
     });
 
-    return result.map((r) => ({
+    return result.map((r: any) => ({
       packageId: r.packageId,
       packageType: r.packageType as PackageType,
       currentTier: r.currentTier as DataTier,

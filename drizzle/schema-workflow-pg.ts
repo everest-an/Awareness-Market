@@ -5,21 +5,42 @@
 
 import { pgTable, integer, varchar, text, timestamp, numeric, json, pgEnum, index, bigint } from "drizzle-orm/pg-core";
 
+// Define enums at the top level
+export const workflowTypeEnum = pgEnum("workflow_type", [
+  "ai_reasoning",
+  "memory_transfer",
+  "package_processing",
+  "w_matrix_training",
+  "vector_invocation",
+  "custom"
+]);
+export const workflowStatusEnum = pgEnum("workflow_status", ["active", "completed", "failed"]);
+export const eventTypeEnum = pgEnum("event_type", [
+  "prompt_llm",
+  "llm_response",
+  "tool_call",
+  "tool_result",
+  "memory_load",
+  "memory_save",
+  "w_matrix_transform",
+  "package_upload",
+  "package_validate",
+  "package_process",
+  "package_complete",
+  "error",
+  "user_input",
+  "system_event"
+]);
+export const eventStatusEnum = pgEnum("event_status", ["pending", "running", "completed", "failed"]);
+
 /**
  * Workflow sessions - top-level workflow executions
  */
 export const workflowSessions = pgTable("workflow_sessions", {
   id: varchar("id", { length: 32 }).primaryKey(), // nanoid
   userId: integer("user_id").notNull(),
-  type: pgEnum("type", [
-    "ai_reasoning",
-    "memory_transfer",
-    "package_processing",
-    "w_matrix_training",
-    "vector_invocation",
-    "custom"
-  ]).notNull(),
-  status: pgEnum("status", ["active", "completed", "failed"]).notNull(),
+  type: workflowTypeEnum("type").notNull(),
+  status: workflowStatusEnum("status").notNull(),
   
   // Metadata
   title: varchar("title", { length: 255 }).notNull(),
@@ -49,25 +70,10 @@ export const workflowSessions = pgTable("workflow_sessions", {
 export const workflowEvents = pgTable("workflow_events", {
   id: varchar("id", { length: 32 }).primaryKey(), // nanoid
   workflowId: varchar("workflow_id", { length: 32 }).notNull(),
-  
+
   // Event type and status
-  type: pgEnum("type", [
-    "prompt_llm",
-    "llm_response",
-    "tool_call",
-    "tool_result",
-    "memory_load",
-    "memory_save",
-    "w_matrix_transform",
-    "package_upload",
-    "package_validate",
-    "package_process",
-    "package_complete",
-    "error",
-    "user_input",
-    "system_event"
-  ]).notNull(),
-  status: pgEnum("status", ["pending", "running", "completed", "failed"]).notNull(),
+  type: eventTypeEnum("type").notNull(),
+  status: eventStatusEnum("status").notNull(),
   
   // Event details
   title: varchar("title", { length: 255 }).notNull(),

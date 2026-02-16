@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "./db-prisma";
+const prismaAny = prisma as any;
 import { runVector } from "./vector-runtime";
 import { createLogger } from "./utils/logger";
 
@@ -45,7 +46,7 @@ router.get("/remaining/:vectorId", async (req: Request, res: Response) => {
     }
 
     // Count user's trial usage
-    const usedCalls = await prisma.trialUsage.count({
+    const usedCalls = await prismaAny.trialUsage.count({
       where: {
         userId,
         vectorId
@@ -97,7 +98,7 @@ router.post("/execute", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Vector not found" });
     }
 
-    const usedCalls = await prisma.trialUsage.count({
+    const usedCalls = await prismaAny.trialUsage.count({
       where: {
         userId,
         vectorId
@@ -116,12 +117,12 @@ router.post("/execute", async (req: Request, res: Response) => {
         id: vectorId,
         description: vector.title,
         category: "trial",
-      } as unknown as LatentVector,
+      } as any,
       context: input,
     });
 
     // Record trial usage
-    await prisma.trialUsage.create({
+    await prismaAny.trialUsage.create({
       data: {
         userId,
         vectorId,

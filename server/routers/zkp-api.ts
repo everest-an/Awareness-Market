@@ -311,7 +311,7 @@ export const zkpRouter = router({
 
         // Verify payment commitment
         // In production: verify blind signature, check ring signature
-        const price = parseFloat(packageData.price || '0');
+        const price = parseFloat((packageData.price || '0').toString());
         const paymentValid = input.blindedPayment.amount >= price;
 
         if (!paymentValid) {

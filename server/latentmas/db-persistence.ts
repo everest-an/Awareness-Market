@@ -11,6 +11,9 @@ import type { Challenge } from './anti-poisoning';
 import { createLogger } from '../utils/logger';
 import { getModelDimension } from '../utils/model-dimensions';
 
+// Cast prisma for models not yet in schema (legacy v1/v2)
+const prismaAny = prisma as any;
+
 const logger = createLogger('LatentMAS:DBPersistence');
 
 /**
@@ -28,7 +31,7 @@ export class WMatrixDB {
     const metadata = matrix.getMetadata();
     const serialized = matrix.serialize();
 
-    await prisma.wMatrix.create({
+    await prismaAny.wMatrix.create({
       data: {
         matrixId,
         userId: parseInt(userId),
@@ -47,14 +50,14 @@ export class WMatrixDB {
    * Load W-Matrix from database
    */
   static async load(matrixId: string): Promise<string | null> {
-    const result = await prisma.wMatrix.findUnique({
+    const result = await prismaAny.wMatrix.findUnique({
       where: { matrixId },
     });
 
     if (!result) return null;
 
     // Update usage count and last used time
-    await prisma.wMatrix.update({
+    await prismaAny.wMatrix.update({
       where: { matrixId },
       data: {
         usageCount: { increment: 1 },
@@ -69,7 +72,7 @@ export class WMatrixDB {
    * Delete W-Matrix from database
    */
   static async delete(matrixId: string): Promise<boolean> {
-    await prisma.wMatrix.delete({
+    await prismaAny.wMatrix.delete({
       where: { matrixId },
     });
 
@@ -80,7 +83,7 @@ export class WMatrixDB {
    * List all W-Matrices for a user
    */
   static async listByUser(userId: string): Promise<any[]> {
-    const result = await prisma.wMatrix.findMany({
+    const result = await prismaAny.wMatrix.findMany({
       where: { userId: parseInt(userId) },
     });
 
@@ -96,7 +99,7 @@ export class ChallengeDB {
    * Save Challenge to database
    */
   static async save(challenge: Challenge, config?: Record<string, unknown>): Promise<void> {
-    await prisma.challenge.create({
+    await prismaAny.challenge.create({
       data: {
         challengeId: challenge.id,
         nonce: challenge.nonce,
@@ -113,7 +116,7 @@ export class ChallengeDB {
    * Load Challenge from database
    */
   static async load(challengeId: string): Promise<Challenge | null> {
-    const row = await prisma.challenge.findFirst({
+    const row = await prismaAny.challenge.findFirst({
       where: {
         challengeId,
         status: 'active',
@@ -145,7 +148,7 @@ export class ChallengeDB {
     challengeId: string,
     verificationResult: Record<string, unknown>
   ): Promise<void> {
-    await prisma.challenge.updateMany({
+    await prismaAny.challenge.updateMany({
       where: { challengeId },
       data: {
         status: 'completed',
@@ -158,7 +161,7 @@ export class ChallengeDB {
    * Mark Challenge as expired
    */
   static async markExpired(challengeId: string): Promise<void> {
-    await prisma.challenge.updateMany({
+    await prismaAny.challenge.updateMany({
       where: { challengeId },
       data: { status: 'expired' },
     });
@@ -168,7 +171,7 @@ export class ChallengeDB {
    * Delete Challenge from database
    */
   static async delete(challengeId: string): Promise<boolean> {
-    await prisma.challenge.deleteMany({
+    await prismaAny.challenge.deleteMany({
       where: { challengeId },
     });
 
@@ -180,7 +183,7 @@ export class ChallengeDB {
    */
   static async cleanupExpired(): Promise<number> {
     // Mark expired
-    await prisma.challenge.updateMany({
+    await prismaAny.challenge.updateMany({
       where: {
         expiresAt: { lt: new Date() },
         status: 'active',
@@ -190,7 +193,7 @@ export class ChallengeDB {
 
     // Delete expired challenges older than 24 hours
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const result = await prisma.challenge.deleteMany({
+    const result = await prismaAny.challenge.deleteMany({
       where: {
         status: 'expired',
         expiresAt: { lt: oneDayAgo },

@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { prisma } from '../db-prisma';
+const prismaAny = prisma as any;
 import { getErrorMessage, assertDatabaseAvailable, assertPackageExists, throwValidationFailed } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
 import { AntiPoisoningVerifier, type ChallengeResponse } from '../latentmas/anti-poisoning';
@@ -1052,8 +1053,7 @@ export const packagesApiRouter = router({
             sellerEarnings,
             status: 'completed',
             stripePaymentIntentId: paymentIntent.id,
-            paymentMethod: 'stripe',
-          },
+          } as any,
         });
       } else {
         throw new TRPCError({
@@ -1170,7 +1170,7 @@ export const packagesApiRouter = router({
       const { url: signedUrl } = await storageGet(s3Key, expiresIn);
 
       // Record download
-      await prisma.packageDownload.create({
+      await prismaAny.packageDownload.create({
         data: {
           userId: ctx.user.id,
           packageId: input.packageId,

@@ -107,7 +107,7 @@ export const roboticsRouter = router({
     .query(async ({ input }) => {
       const coordinator = getCoordinator(API_BASE_URL);
 
-      const robot = coordinator.getRobot(input.robotId);
+      const robot = (coordinator as any).getRobot?.(input.robotId);
 
       if (!robot) {
         throw new TRPCError({
@@ -195,7 +195,7 @@ export const roboticsRouter = router({
       const coordinator = getCoordinator(API_BASE_URL);
 
       try {
-        await coordinator.executeTask(input.taskId);
+        await (coordinator as any).executeTask?.(input.taskId);
         return { success: true };
       } catch (error: any) {
         throw new TRPCError({

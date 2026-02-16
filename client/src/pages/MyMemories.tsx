@@ -58,7 +58,7 @@ export default function MyMemories() {
   // Handle both array and object response formats
   const purchasedPackages = Array.isArray(purchasedPackagesData)
     ? purchasedPackagesData
-    : (purchasedPackagesData as { purchases?: PurchasedPackage[] })?.purchases || [];
+    : (purchasedPackagesData as any)?.purchases || [];
 
   const ownedMemories = purchasedPackages?.map((pkg: PurchasedPackage) => ({
     id: pkg.packageId || pkg.id,
@@ -70,7 +70,7 @@ export default function MyMemories() {
     usageCount: 0,
   })) || [];
 
-  const createdMemories = createdVectors?.map((vector: CreatedVector) => ({
+  const createdMemories = createdVectors?.map((vector: any) => ({
     id: vector.id,
     name: vector.title,
     type: vector.vectorType || 'embedding',
@@ -218,7 +218,7 @@ export default function MyMemories() {
                       </Badge>
                     </div>
                     <CardDescription>
-                      Purchased on {memory.purchasedAt.toLocaleDateString()}
+                      Purchased on {new Date(memory.purchasedAt).toLocaleDateString()}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -282,7 +282,7 @@ export default function MyMemories() {
                       </Badge>
                     </div>
                     <CardDescription>
-                      Created on {memory.createdAt.toLocaleDateString()}
+                      Created on {new Date(memory.createdAt).toLocaleDateString()}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

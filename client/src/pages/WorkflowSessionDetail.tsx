@@ -205,7 +205,7 @@ export function WorkflowSessionDetail() {
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader className="pb-2">
               <CardDescription>Type</CardDescription>
-              <CardTitle className="text-lg">{getSessionTypeLabel(session.type)}</CardTitle>
+              <CardTitle className="text-lg">{getSessionTypeLabel((session as any).type)}</CardTitle>
             </CardHeader>
           </Card>
           
@@ -243,7 +243,7 @@ export function WorkflowSessionDetail() {
               </CardHeader>
               <CardContent>
                 <EventTimeline
-                  events={events as WorkflowEvent[]}
+                  events={events as unknown as WorkflowEvent[]}
                   onEventClick={setSelectedEvent}
                   selectedEventId={selectedEvent?.id}
                 />

@@ -6,6 +6,10 @@
  */
 
 import { prisma } from '../db-prisma';
+
+// Cast prisma for models not yet in schema (legacy v1/v2)
+const prismaAny = prisma as any;
+
 import type { PackageType, DataTier } from './access-tracker';
 import {
   getPackagesNeedingMigration,
@@ -243,7 +247,7 @@ export class TierMigrationService {
    */
   async queueMigration(task: MigrationTask): Promise<number> {
     try {
-      const result = await prisma.migrationQueue.create({
+      const result = await prismaAny.migrationQueue.create({
         data: {
           packageId: task.packageId,
           packageType: task.packageType,
@@ -279,7 +283,7 @@ export class TierMigrationService {
 
     try {
       // Get pending tasks
-      const pendingTasks = await prisma.migrationQueue.findMany({
+      const pendingTasks = await prismaAny.migrationQueue.findMany({
         where: { status: 'pending' },
         orderBy: { priority: 'desc' },
         take: this.maxConcurrent,
@@ -294,11 +298,11 @@ export class TierMigrationService {
 
       // Process tasks in parallel
       const results = await Promise.allSettled(
-        pendingTasks.map((task) => this.executeMigration(task.id))
+        pendingTasks.map((task: any) => this.executeMigration(task.id))
       );
 
-      const succeeded = results.filter((r) => r.status === 'fulfilled').length;
-      const failed = results.filter((r) => r.status === 'rejected').length;
+      const succeeded = results.filter((r: any) => r.status === 'fulfilled').length;
+      const failed = results.filter((r: any) => r.status === 'rejected').length;
 
       logger.info(`[TierMigration] Completed: ${succeeded} succeeded, ${failed} failed`);
     } catch (error) {
@@ -316,7 +320,7 @@ export class TierMigrationService {
 
     try {
       // Get task details
-      const task = await prisma.migrationQueue.findUnique({
+      const task = await prismaAny.migrationQueue.findUnique({
         where: { id: taskId },
       });
 
@@ -325,7 +329,7 @@ export class TierMigrationService {
       }
 
       // Mark as processing
-      await prisma.migrationQueue.update({
+      await prismaAny.migrationQueue.update({
         where: { id: taskId },
         data: { status: 'processing' },
       });
@@ -403,7 +407,7 @@ export class TierMigrationService {
       );
 
       // Mark as completed
-      await prisma.migrationQueue.update({
+      await prismaAny.migrationQueue.update({
         where: { id: taskId },
         data: {
           status: 'completed',
@@ -425,7 +429,7 @@ export class TierMigrationService {
       logger.error(`[TierMigration] Task ${taskId} failed:`, { error });
 
       // Mark as failed
-      await prisma.migrationQueue.update({
+      await prismaAny.migrationQueue.update({
         where: { id: taskId },
         data: {
           status: 'failed',
@@ -536,18 +540,18 @@ export class TierMigrationService {
   }> {
     try {
       const [pending, processing, completed, failed, completedTasks] = await Promise.all([
-        prisma.migrationQueue.count({ where: { status: 'pending' } }),
-        prisma.migrationQueue.count({ where: { status: 'processing' } }),
-        prisma.migrationQueue.count({ where: { status: 'completed' } }),
-        prisma.migrationQueue.count({ where: { status: 'failed' } }),
-        prisma.migrationQueue.findMany({
+        prismaAny.migrationQueue.count({ where: { status: 'pending' } }),
+        prismaAny.migrationQueue.count({ where: { status: 'processing' } }),
+        prismaAny.migrationQueue.count({ where: { status: 'completed' } }),
+        prismaAny.migrationQueue.count({ where: { status: 'failed' } }),
+        prismaAny.migrationQueue.findMany({
           where: { status: 'completed' },
           select: { estimatedSavings: true },
         }),
       ]);
 
       // Calculate total savings from completed migrations
-      const totalSavings = completedTasks.reduce((sum, task) => {
+      const totalSavings = completedTasks.reduce((sum: number, task: any) => {
         return sum + (parseFloat(task.estimatedSavings || '0') || 0);
       }, 0);
 

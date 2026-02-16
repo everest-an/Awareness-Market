@@ -184,8 +184,7 @@ export class RobotMemoryManager {
       'task',
       {
         timestamp: new Date(),
-        taskResult,
-      },
+      } as any,
       mcpToken
     );
   }

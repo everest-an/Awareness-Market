@@ -31,13 +31,13 @@ export default function GolemVisualizerPage() {
     if (!vectors) return [];
 
     const maxCalls = Math.max(...vectors.map((v) => v.totalCalls || 0), 1);
-    const maxPrice = Math.max(...vectors.map((v) => parseFloat(v.basePrice)), 1);
-    const maxRating = Math.max(...vectors.map((v) => parseFloat(v.averageRating || "0")), 1);
+    const maxPrice = Math.max(...vectors.map((v) => parseFloat(v.basePrice.toString())), 1);
+    const maxRating = Math.max(...vectors.map((v) => parseFloat((v.averageRating || "0").toString())), 1);
 
     return vectors.map((vector) => {
-      const price = parseFloat(vector.basePrice);
+      const price = parseFloat(vector.basePrice.toString());
       const calls = vector.totalCalls || 0;
-      const rating = parseFloat(vector.averageRating || "0");
+      const rating = parseFloat((vector.averageRating || "0").toString());
 
       const x = (price / maxPrice) * 40 - 20;
       const y = (calls / maxCalls) * 40 - 20;

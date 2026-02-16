@@ -240,7 +240,7 @@ export const multimodalRouter = router({
             description: pkg.description,
             sourceModel: pkg.sourceModel,
             dimension: pkg.dimension,
-            price: parseFloat(pkg.price || '0'),
+            price: parseFloat((pkg.price || '0').toString()),
             category: pkg.category,
             qualityScore: pkg.qualityScore,
             status: pkg.status,
@@ -352,7 +352,7 @@ export const multimodalRouter = router({
                 similarity,
                 queryModality: input.queryModality,
                 targetModality: input.targetModality,
-                price: parseFloat(pkg.price || '0'),
+                price: parseFloat((pkg.price || '0').toString()),
               };
             } catch (error) {
               console.warn('Failed to evaluate multi-modal package', { packageId: pkg.packageId, error });
@@ -487,7 +487,7 @@ export const multimodalRouter = router({
             description: pkg.description,
             sourceModel: pkg.sourceModel,
             dimension: pkg.dimension,
-            price: parseFloat(pkg.price || '0'),
+            price: parseFloat((pkg.price || '0').toString()),
             category: pkg.category,
             qualityScore: pkg.qualityScore,
             status: pkg.status,
@@ -619,7 +619,7 @@ export const multimodalRouter = router({
           success: true,
           statistics: {
             totalPackages: packages.length,
-            averagePrice: packages.reduce((sum, p) => sum + parseFloat(p.price || '0'), 0) / (packages.length || 1),
+            averagePrice: packages.reduce((sum, p) => sum + parseFloat((p.price || '0').toString()), 0) / (packages.length || 1),
             averageQuality: packages.reduce((sum, p) => sum + parseFloat(String(p.qualityScore || '0')), 0) / (packages.length || 1),
             modalityCombinations: {
               'text+image': 0, // In production, count from actual data

@@ -86,7 +86,7 @@ router.get("/invoke/stream", async (req: Request, res: Response) => {
       if (chunk.progress === 1.0 && validation.userId) {
         // Record transaction
         const platformFeeRate = 0.20; // 20% platform fee
-        const amount = parseFloat(vector.basePrice);
+        const amount = parseFloat(vector.basePrice.toString());
         const platformFee = amount * platformFeeRate;
         const creatorEarnings = amount - platformFee;
 
@@ -226,7 +226,7 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
           // Record transaction
           if (validation.userId) {
             const platformFeeRate = 0.20; // 20% platform fee
-            const amount = parseFloat(vector.basePrice);
+            const amount = parseFloat(vector.basePrice.toString());
             const platformFee = amount * platformFeeRate;
             const creatorEarnings = amount - platformFee;
 

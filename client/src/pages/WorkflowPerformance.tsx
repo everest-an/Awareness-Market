@@ -313,15 +313,15 @@ export function WorkflowPerformance() {
                   <div className="space-y-3">
                     {metrics.bottlenecks.map((bottleneck) => (
                       <div
-                        key={bottleneck.sessionId}
+                        key={bottleneck.workflowId}
                         className="border border-red-500/30 rounded-lg p-4 hover:border-red-500/50 transition-all cursor-pointer"
-                        onClick={() => setLocation(`/workflow-history/${bottleneck.sessionId}`)}
+                        onClick={() => setLocation(`/workflow-history/${bottleneck.workflowId}`)}
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-mono text-sm text-gray-400">{bottleneck.sessionId}</p>
+                            <p className="font-mono text-sm text-gray-400">{bottleneck.workflowId}</p>
                             <p className="text-sm text-gray-500 mt-1">
-                              {getSessionTypeLabel(bottleneck.type)} �?{bottleneck.eventCount} events
+                              {getSessionTypeLabel(bottleneck.orchestration)} �?{(bottleneck as any).eventCount} events
                             </p>
                           </div>
                           <div className="text-right">
@@ -343,21 +343,21 @@ export function WorkflowPerformance() {
               <Card className="bg-gray-900/50 border-gray-800">
                 <CardHeader>
                   <CardDescription>Total Sessions</CardDescription>
-                  <CardTitle className="text-2xl">{stats.totalSessions}</CardTitle>
+                  <CardTitle className="text-2xl">{(stats as any).totalSessions}</CardTitle>
                 </CardHeader>
               </Card>
-              
+
               <Card className="bg-gray-900/50 border-gray-800">
                 <CardHeader>
                   <CardDescription>Avg Events per Session</CardDescription>
-                  <CardTitle className="text-2xl">{stats.avgEventCount?.toFixed(1) || "N/A"}</CardTitle>
+                  <CardTitle className="text-2xl">{(stats as any).avgEventCount?.toFixed(1) || "N/A"}</CardTitle>
                 </CardHeader>
               </Card>
-              
+
               <Card className="bg-gray-900/50 border-gray-800">
                 <CardHeader>
                   <CardDescription>Failed Sessions</CardDescription>
-                  <CardTitle className="text-2xl text-red-400">{stats.failedSessions}</CardTitle>
+                  <CardTitle className="text-2xl text-red-400">{(stats as any).failedSessions}</CardTitle>
                 </CardHeader>
               </Card>
             </div>

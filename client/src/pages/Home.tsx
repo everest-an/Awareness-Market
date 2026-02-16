@@ -54,7 +54,6 @@ export default function Home() {
       {/* Fixed Unicorn Studio Background - stays in place while content scrolls */}
       <div className="fixed inset-0 z-0">
         <UnicornScene
-          projectId="DHrYV5fcnlpS1Vj341CH"
           width="100%"
           height="100%"
         />

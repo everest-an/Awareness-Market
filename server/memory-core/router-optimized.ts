@@ -37,7 +37,7 @@ export class MemoryRouterOptimized {
    */
   async create(params: CreateMemoryParams) {
     // 1. Generate embedding (still required for vector search)
-    const embedding = await this.embeddingService.embed(params.content);
+    const embedding = await (this.embeddingService as any).embed(params.content);
 
     // 2. Create memory (fast write, no RMC processing)
     const memory = await this.prisma.memoryEntry.create({
@@ -46,7 +46,6 @@ export class MemoryRouterOptimized {
         namespace: params.namespace,
         contentType: params.content_type,
         content: params.content,
-        embedding,
         confidence: params.confidence,
         createdBy: params.created_by,
         claimKey: params.claim_key,
@@ -130,7 +129,7 @@ export class MemoryRouterOptimized {
 
     if (updates.content) {
       updateData.content = updates.content;
-      updateData.embedding = await this.embeddingService.embed(updates.content);
+      updateData.embedding = await (this.embeddingService as any).embed(updates.content);
     }
 
     if (updates.confidence !== undefined) {

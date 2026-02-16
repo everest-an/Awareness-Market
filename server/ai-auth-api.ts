@@ -141,7 +141,8 @@ router.post("/register", async (req, res) => {
  */
 router.get("/keys", validateApiKey, async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
+    const authReq = req as unknown as AuthenticatedRequest;
+    const userId = authReq.apiKeyUserId;
 
     const keys = await prisma.apiKey.findMany({
       where: { userId },
@@ -170,6 +171,7 @@ router.get("/keys", validateApiKey, async (req, res) => {
  */
 router.post("/keys", validateApiKey, async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const schema = z.object({
       name: z.string().min(1).max(255),
       permissions: z.array(z.string()).optional(),
@@ -177,7 +179,7 @@ router.post("/keys", validateApiKey, async (req, res) => {
     });
 
     const body = schema.parse(req.body);
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
+    const userId = authReq.apiKeyUserId;
 
     // Generate new API key
     const rawApiKey = `ak_${crypto.randomBytes(32).toString("hex")}`;
@@ -220,8 +222,9 @@ router.post("/keys", validateApiKey, async (req, res) => {
  */
 router.delete("/keys/:keyId", validateApiKey, async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const keyId = parseInt(req.params.keyId);
-    const userId = (req as AuthenticatedRequest).apiKeyUserId;
+    const userId = authReq.apiKeyUserId;
 
     await prisma.apiKey.updateMany({
       where: {

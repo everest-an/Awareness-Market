@@ -281,7 +281,7 @@ export default function SessionsList() {
                             <span>Duration</span>
                           </div>
                           <p className="font-mono text-foreground">
-                            {formatDuration(workflow.executionTime)}
+                            {formatDuration(workflow.executionTime ?? null)}
                           </p>
                         </div>
 

@@ -214,7 +214,6 @@ export class RMCRetriever {
             agentId: true,
             confidence: true,
             createdAt: true,
-            entities: true,
           },
         },
       },
@@ -225,12 +224,11 @@ export class RMCRetriever {
         id: r.targetMemory.id,
         content: r.targetMemory.content,
         agentId: r.targetMemory.agentId || 'unknown',
-        confidence: r.targetMemory.confidence,
+        confidence: r.targetMemory.confidence.toNumber(),
         createdAt: r.targetMemory.createdAt,
-        entities: r.targetMemory.entities,
       },
       relationType: r.relationType,
-      strength: r.strength,
+      strength: r.strength.toNumber(),
       reason: r.reason || undefined,
     }));
   }
@@ -458,7 +456,7 @@ export class RMCRetriever {
   private normalizeOptions(options?: RetrievalOptions): Required<RetrievalOptions> {
     return {
       maxDepth: options?.maxDepth ?? 2,
-      relationTypes: options?.relationTypes ?? ['CAUSES', 'SUPPORTS', 'IMPACTS', 'CONTRADICTS'],
+      relationTypes: (options?.relationTypes ?? ['CAUSES', 'SUPPORTS', 'IMPACTS', 'CONTRADICTS']) as any,
       agentFilter: options?.agentFilter ?? [],
       includeInferencePaths: options?.includeInferencePaths ?? true,
       minConfidence: options?.minConfidence ?? 0.5,

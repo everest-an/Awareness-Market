@@ -1,4 +1,5 @@
 import { prisma } from "./db-prisma";
+const prismaAny = prisma as any;
 
 export interface UsageStats {
   totalRequests: number;
@@ -59,12 +60,12 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
   }
 
   // Total requests
-  const totalRequests = await prisma.apiUsageLog.count({
+  const totalRequests = await prismaAny.apiUsageLog.count({
     where: { apiKeyId: { in: keyIds } },
   });
 
   // Success count
-  const successCount = await prisma.apiUsageLog.count({
+  const successCount = await prismaAny.apiUsageLog.count({
     where: {
       apiKeyId: { in: keyIds },
       statusCode: 200,
@@ -74,7 +75,7 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
   const successRate = totalRequests > 0 ? (successCount / totalRequests) * 100 : 100;
 
   // Average response time
-  const avgTimeResult = await prisma.apiUsageLog.aggregate({
+  const avgTimeResult = await prismaAny.apiUsageLog.aggregate({
     where: { apiKeyId: { in: keyIds } },
     _avg: { responseTimeMs: true },
   });
@@ -82,7 +83,7 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
   const avgResponseTime = Math.round(avgTimeResult._avg.responseTimeMs || 0);
 
   // Requests today
-  const requestsToday = await prisma.apiUsageLog.count({
+  const requestsToday = await prismaAny.apiUsageLog.count({
     where: {
       apiKeyId: { in: keyIds },
       createdAt: { gte: today },
@@ -90,7 +91,7 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
   });
 
   // Requests this week
-  const requestsThisWeek = await prisma.apiUsageLog.count({
+  const requestsThisWeek = await prismaAny.apiUsageLog.count({
     where: {
       apiKeyId: { in: keyIds },
       createdAt: { gte: weekAgo },
@@ -98,7 +99,7 @@ export async function getUserUsageStats(userId: string): Promise<UsageStats> {
   });
 
   // Requests this month
-  const requestsThisMonth = await prisma.apiUsageLog.count({
+  const requestsThisMonth = await prismaAny.apiUsageLog.count({
     where: {
       apiKeyId: { in: keyIds },
       createdAt: { gte: monthAgo },
@@ -218,7 +219,7 @@ export async function getApiKeyUsage(userId: string): Promise<ApiKeyUsage[]> {
   });
 
   const usagePromises = userKeys.map(async (key) => {
-    const count = await prisma.apiUsageLog.count({
+    const count = await prismaAny.apiUsageLog.count({
       where: { apiKeyId: key.id },
     });
 

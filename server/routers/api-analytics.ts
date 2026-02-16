@@ -8,7 +8,8 @@ import { z } from 'zod';
 import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import { prisma } from '../db-prisma';
-import type { Prisma } from '@prisma/client';
+const prismaAny = prisma as any;
+import { Prisma } from '@prisma/client';
 import { getUserApiStats, getGlobalApiStats } from '../middleware/api-usage-logger';
 
 export const apiAnalyticsRouter = router({
@@ -37,7 +38,7 @@ export const apiAnalyticsRouter = router({
       statusCode: z.number().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      const where: Prisma.ApiUsageLogWhereInput = {
+      const where: any = {
         userId: ctx.user.id,
       };
 
@@ -49,7 +50,7 @@ export const apiAnalyticsRouter = router({
         where.statusCode = input.statusCode;
       }
 
-      const logs = await prisma.apiUsageLog.findMany({
+      const logs = await prismaAny.apiUsageLog.findMany({
         where,
         select: {
           id: true,

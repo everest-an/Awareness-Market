@@ -264,7 +264,7 @@ export default function SessionConnect() {
               </div>
             </div>
 
-            {workflow.memorySharing === 'enabled' && (
+            {(workflow as any).memorySharing === 'enabled' && (
               <Alert className="bg-blue-500/10 border-blue-500/50">
                 <Brain className="h-4 w-4 text-blue-400" />
                 <AlertDescription className="text-blue-200">
@@ -299,10 +299,10 @@ export default function SessionConnect() {
                       </div>
                       <div>
                         <div className="font-medium text-foreground">
-                          {step.agentName || step.agentId}
+                          {(step as any).agentName || step.agent}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Agent ID: {step.agentId}
+                          Agent ID: {step.agent}
                         </div>
                       </div>
                     </div>

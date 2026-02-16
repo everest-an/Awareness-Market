@@ -16,16 +16,16 @@
  */
 
 import { createLogger } from '../utils/logger';
-import { db } from '../db';
-import { 
-  userLatentSpaces, 
+import { db } from '../db-drizzle';
+import {
+  userLatentSpaces,
   packageAccessGrants,
   type UserLatentSpace,
   type InsertUserLatentSpace,
   type PackageAccessGrant,
   type InsertPackageAccessGrant
-} from '../../drizzle/schema-latentmas-packages';
-import { eq, and, sql } from 'drizzle-orm';
+} from '../../drizzle/schema-latentmas-packages-pg';
+import { eq, and, sql, asc } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 
 const logger = createLogger('LatentMAS:SpaceManager');
@@ -90,15 +90,9 @@ export class LatentSpaceManager {
         totalKvCacheSize: 0,
       };
 
-      const [space] = await db.insert(userLatentSpaces).values(newSpace).$returningId();
+      const [createdSpace] = await db.insert(userLatentSpaces).values(newSpace).returning();
 
       logger.info('Created latent space', { userId, spaceId });
-
-      // Fetch and return the created space
-      const [createdSpace] = await db
-        .select()
-        .from(userLatentSpaces)
-        .where(eq(userLatentSpaces.id, space.id));
 
       return createdSpace;
     } catch (error) {
@@ -374,7 +368,7 @@ export class LatentSpaceManager {
               eq(userLatentSpaces.status, 'active')
             )
           )
-          .orderBy(userLatentSpaces.lastAccessedAt)
+          .orderBy(asc(userLatentSpaces.lastAccessedAt))
           .limit(1);
 
         if (lruSpace) {
@@ -422,9 +416,9 @@ export class LatentSpaceManager {
         .from(userLatentSpaces)
         .where(eq(userLatentSpaces.userId, userId));
 
-      const activeSpaces = spaces.filter(s => s.status === 'active');
-      const archivedSpaces = spaces.filter(s => s.status === 'archived');
-      const totalKvCacheSize = spaces.reduce((sum, s) => sum + Number(s.totalKvCacheSize), 0);
+      const activeSpaces = spaces.filter((s: any) => s.status === 'active');
+      const archivedSpaces = spaces.filter((s: any) => s.status === 'archived');
+      const totalKvCacheSize = spaces.reduce((sum: number, s: any) => sum + Number(s.totalKvCacheSize), 0);
 
       return {
         totalSpaces: spaces.length,

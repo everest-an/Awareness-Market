@@ -290,9 +290,9 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                             {pkg.description}
                           </p>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>{pkg.sourceModel} �?{pkg.targetModel}</span>
-                            <span>ε: {(parseFloat(pkg.epsilon || '0') * 100).toFixed(1)}%</span>
-                            <span className="font-semibold text-primary">${pkg.price}</span>
+                            <span>{pkg.sourceModel} �?{pkg.targetModel}</span>
+                            <span>ε: {(parseFloat((pkg.epsilon || '0').toString()) * 100).toFixed(1)}%</span>
+                            <span className="font-semibold text-primary">${pkg.price.toString()}</span>
                           </div>
                         </div>
                       </div>

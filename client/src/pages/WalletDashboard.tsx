@@ -32,12 +32,12 @@ export default function WalletDashboard() {
     retry: false,
   });
   const balanceQuery = trpc.stablecoinPayment.getBalance.useQuery(undefined, {
-    enabled: !!walletQuery.data?.wallet,
+    enabled: !!walletQuery.data?.data,
     refetchInterval: 30000,
   });
   const txQuery = trpc.stablecoinPayment.agentTransactions.useQuery(
     { limit: 20 },
-    { enabled: !!walletQuery.data?.wallet }
+    { enabled: !!walletQuery.data?.data }
   );
   const infoQuery = trpc.stablecoinPayment.getInfo.useQuery();
 
@@ -45,7 +45,7 @@ export default function WalletDashboard() {
   const withdrawMutation = trpc.stablecoinPayment.agentWithdraw.useMutation({
     onSuccess: (data) => {
       toast.success("Withdrawal initiated", {
-        description: `TX: ${data.txHash.substring(0, 10)}...`,
+        description: `TX: ${data.data.txHash.substring(0, 10)}...`,
       });
       balanceQuery.refetch();
       txQuery.refetch();
@@ -62,9 +62,9 @@ export default function WalletDashboard() {
     toast.success("Address copied");
   };
 
-  const wallet = walletQuery.data?.wallet;
-  const balance = balanceQuery.data;
-  const transactions = txQuery.data?.transactions || [];
+  const wallet = walletQuery.data?.data;
+  const balance = balanceQuery.data?.data;
+  const transactions = txQuery.data?.data || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -145,7 +145,7 @@ export default function WalletDashboard() {
                     <Badge variant="outline">Gas</Badge>
                   </div>
                   <div className="mt-2 text-2xl font-bold">
-                    {balance ? parseFloat(balance.matic).toFixed(4) : "—"}
+                    {balance ? parseFloat(balance.maticBalance).toFixed(4) : "—"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">For transaction fees</div>
                 </CardContent>
@@ -157,7 +157,7 @@ export default function WalletDashboard() {
                     <CircleDollarSign className="h-4 w-4 text-blue-500" />
                   </div>
                   <div className="mt-2 text-2xl font-bold">
-                    ${balance ? parseFloat(balance.usdc).toFixed(2) : "—"}
+                    ${balance ? parseFloat(balance.usdcBalance).toFixed(2) : "—"}
                   </div>
                 </CardContent>
               </Card>
@@ -168,7 +168,7 @@ export default function WalletDashboard() {
                     <CircleDollarSign className="h-4 w-4 text-green-500" />
                   </div>
                   <div className="mt-2 text-2xl font-bold">
-                    ${balance ? parseFloat(balance.usdt).toFixed(2) : "—"}
+                    ${balance ? parseFloat(balance.usdtBalance).toFixed(2) : "—"}
                   </div>
                 </CardContent>
               </Card>
@@ -261,8 +261,7 @@ export default function WalletDashboard() {
                       return;
                     }
                     withdrawMutation.mutate({
-                      toAddress: withdrawAddress,
-                      amount: parseFloat(withdrawAmount),
+                      amount: parseFloat(withdrawAmount).toString(),
                       token: withdrawToken,
                     });
                   }}
@@ -293,11 +292,11 @@ export default function WalletDashboard() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Daily Limit</span>
-                      <div className="text-lg font-semibold">${wallet.dailyLimit?.toFixed(2) || "500.00"}</div>
+                      <div className="text-lg font-semibold">${wallet.dailySpendLimit?.toFixed(2) || "500.00"}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Per Transaction</span>
-                      <div className="text-lg font-semibold">${wallet.perTxLimit?.toFixed(2) || "100.00"}</div>
+                      <div className="text-lg font-semibold">${wallet.perTxSpendLimit?.toFixed(2) || "100.00"}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -383,12 +382,12 @@ export default function WalletDashboard() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Payment Contract</span>
                     <a
-                      href={`https://polygonscan.com/address/${infoQuery.data.contractAddress}`}
+                      href={`https://polygonscan.com/address/${infoQuery.data.data.contractAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-primary hover:underline font-mono text-xs"
                     >
-                      {infoQuery.data.contractAddress.substring(0, 10)}...
+                      {infoQuery.data.data.contractAddress.substring(0, 10)}...
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>

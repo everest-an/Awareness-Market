@@ -109,6 +109,16 @@ export interface MemoryQueryResult {
 /**
  * Input for creating a new memory entry
  */
+/**
+ * v3 memory type classification (affects decay rate)
+ */
+export type MemoryType = 'episodic' | 'semantic' | 'strategic' | 'procedural';
+
+/**
+ * v3 memory pool layer
+ */
+export type PoolType = 'private' | 'domain' | 'global';
+
 export interface CreateMemoryInput {
   org_id: string;
   namespace: string;
@@ -118,7 +128,26 @@ export interface CreateMemoryInput {
   confidence: number;
   created_by: string;
   expires_at?: Date;
-  decay_factor?: number; // Optional, defaults based on content_type
+  decay_factor?: number; // Optional, defaults based on content_type or memoryType
+
+  // v3 additions
+  memoryType?: MemoryType; // Overrides decay_factor with per-type lambda
+  poolType?: PoolType; // Which pool layer (default: domain)
+  departmentId?: number; // Organization department
+  agentId?: string; // Creating agent
+  evidence?: Array<{
+    evidenceType: string;
+    sourceUrl?: string;
+    sourceDoi?: string;
+    claimType?: string;
+    assumptions?: string[];
+    unit?: string;
+    dimension?: string;
+  }>;
+  dependencies?: Array<{
+    dependsOnMemoryId: string;
+    dependencyType: 'assumes' | 'builds_on' | 'requires';
+  }>;
 }
 
 /**

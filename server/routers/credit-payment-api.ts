@@ -28,6 +28,7 @@ import {
   refundCredits,
 } from '../utils/credit-payment-system';
 import { prisma } from '../db-prisma';
+const prismaAny = prisma as any;
 
 const logger = createLogger('CreditPayment:API');
 
@@ -149,7 +150,7 @@ export const creditPaymentRouter = router({
         amount: z.number().positive().max(10000), // Max $10,000 per top-up
         paymentMethod: z.enum(['stripe', 'crypto']),
         paymentId: z.string(), // Stripe payment intent ID or crypto tx hash
-        metadata: z.record(z.unknown()).optional(),
+        metadata: z.record(z.string(), z.any()).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -358,7 +359,7 @@ export const creditPaymentRouter = router({
       })
     )
     .query(async ({ input, ctx }) => {
-      const transactions = await prisma.creditTransaction.findMany({
+      const transactions = await prismaAny.creditTransaction.findMany({
         where: { userId: ctx.user.id },
         orderBy: { createdAt: 'desc' },
         take: input.limit,
@@ -367,7 +368,7 @@ export const creditPaymentRouter = router({
 
       return {
         success: true,
-        transactions: transactions.map((t) => ({
+        transactions: transactions.map((t: any) => ({
           id: t.id,
           type: t.type,
           amount: Number(t.amount),
@@ -400,7 +401,7 @@ export const creditPaymentRouter = router({
       });
 
       // Get transaction details
-      const transaction = await prisma.creditTransaction.findUnique({
+      const transaction = await prismaAny.creditTransaction.findUnique({
         where: { id: input.transactionId },
       });
 
