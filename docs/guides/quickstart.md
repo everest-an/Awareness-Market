@@ -97,7 +97,7 @@ Create `.env.local`:
 
 ```bash
 # Database
-DATABASE_URL=your_mysql_connection_string
+DATABASE_URL=your_postgresql_connection_string
 
 # Authentication
 JWT_SECRET=your_jwt_secret

@@ -3,14 +3,14 @@
  * Handles vector execution, permission verification, and billing
  */
 
-import { getDb } from "./db";
-import { latentVectors, accessPermissions, vectorInvocations, apiCallLogs, transactions } from "../drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { prisma } from "./db-prisma";
+const prismaAny = prisma as any;
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
 import { storageGet } from "./storage";
 import { workflowManager } from "./workflow-manager";
 import { createLogger } from './utils/logger';
+import type { AccessPermission, LatentVector } from "@prisma/client";
 
 const logger = createLogger('VectorInvocation');
 
@@ -38,24 +38,17 @@ export interface InvokeVectorOutput {
  */
 export async function verifyVectorAccess(userId: number, vectorId: number): Promise<{
   hasAccess: boolean;
-  permission?: typeof accessPermissions.$inferSelect;
+  permission?: AccessPermission;
   reason?: string;
 }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   // Check if user has active access permission
-  const [permission] = await db
-    .select()
-    .from(accessPermissions)
-    .where(
-      and(
-        eq(accessPermissions.userId, userId),
-        eq(accessPermissions.vectorId, vectorId),
-        eq(accessPermissions.isActive, true)
-      )
-    )
-    .limit(1);
+  const permission = await prisma.accessPermission.findFirst({
+    where: {
+      userId,
+      vectorId,
+      isActive: true
+    }
+  });
 
   if (!permission) {
     return { hasAccess: false, reason: "No active access permission found" };
@@ -99,7 +92,7 @@ async function fetchVectorData(vectorFileKey: string): Promise<unknown> {
  * Execute the vector with given input
  */
 async function executeVector(
-  vector: typeof latentVectors.$inferSelect,
+  vector: LatentVector,
   vectorData: unknown,
   inputData: unknown,
   options?: InvokeVectorInput['options']
@@ -147,7 +140,7 @@ async function executeVector(
  * Calculate cost for this invocation
  */
 function calculateInvocationCost(
-  vector: typeof latentVectors.$inferSelect,
+  vector: LatentVector,
   tokensUsed: number
 ): number {
   const basePrice = parseFloat(vector.basePrice.toString());
@@ -170,32 +163,29 @@ function calculateInvocationCost(
  * Update statistics after invocation
  */
 async function updateInvocationStats(
-  db: Awaited<ReturnType<typeof getDb>>,
   vectorId: number,
   permissionId: number,
   cost: number,
   success: boolean
 ) {
-  if (!db) return;
-
   // Update vector total calls and revenue
   if (success) {
-    await db
-      .update(latentVectors)
-      .set({
-        totalCalls: sql`total_calls + 1`,
-        totalRevenue: sql`total_revenue + ${cost}`
-      })
-      .where(eq(latentVectors.id, vectorId));
+    await prisma.latentVector.update({
+      where: { id: vectorId },
+      data: {
+        totalCalls: { increment: 1 },
+        totalRevenue: { increment: cost }
+      }
+    });
   }
 
   // Decrement calls remaining if applicable
-  await db
-    .update(accessPermissions)
-    .set({
-      callsRemaining: sql`CASE WHEN calls_remaining IS NOT NULL THEN calls_remaining - 1 ELSE NULL END`
-    })
-    .where(eq(accessPermissions.id, permissionId));
+  // Using raw SQL for conditional update
+  await prisma.$executeRaw`
+    UPDATE access_permissions
+    SET calls_remaining = CASE WHEN calls_remaining IS NOT NULL THEN calls_remaining - 1 ELSE NULL END
+    WHERE id = ${permissionId}
+  `;
 }
 
 /**
@@ -206,8 +196,6 @@ export async function invokeVector(
   input: InvokeVectorInput
 ): Promise<InvokeVectorOutput> {
   const startTime = Date.now();
-  const db = await getDb();
-  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
   // Create workflow session
   const session = workflowManager.createSession({
@@ -251,12 +239,10 @@ export async function invokeVector(
       title: 'Fetch Vector Metadata',
       input: { vectorId: input.vectorId },
     });
-    
-    const [vector] = await db
-      .select()
-      .from(latentVectors)
-      .where(eq(latentVectors.id, input.vectorId))
-      .limit(1);
+
+    const vector = await prisma.latentVector.findUnique({
+      where: { id: input.vectorId }
+    });
 
     if (!vector) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Vector not found" });
@@ -265,7 +251,7 @@ export async function invokeVector(
     if (vector.status !== 'active') {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Vector is not active" });
     }
-    
+
     workflowManager.updateEvent(workflowId, fetchMetaEvent.id, {
       status: 'completed',
       output: { title: vector.title, status: vector.status },
@@ -310,29 +296,33 @@ export async function invokeVector(
     });
 
     // 6. Record invocation
-    await db.insert(vectorInvocations).values({
-      userId,
-      vectorId: input.vectorId,
-      permissionId: permission.id,
-      inputData: JSON.stringify(input.inputData),
-      outputData: JSON.stringify(result),
-      tokensUsed,
-      executionTime,
-      status: 'success',
-      cost: cost.toFixed(4),
+    await prismaAny.vectorInvocation.create({
+      data: {
+        userId,
+        vectorId: input.vectorId,
+        permissionId: permission.id,
+        inputData: JSON.stringify(input.inputData),
+        outputData: JSON.stringify(result),
+        tokensUsed,
+        executionTime,
+        status: 'success',
+        cost: cost.toFixed(4),
+      }
     });
 
     // 7. Log API call
-    await db.insert(apiCallLogs).values({
-      userId,
-      vectorId: input.vectorId,
-      permissionId: permission.id,
-      responseTime: executionTime,
-      success: true,
+    await prisma.apiCallLog.create({
+      data: {
+        userId,
+        vectorId: input.vectorId,
+        permissionId: permission.id,
+        responseTime: executionTime,
+        success: true,
+      }
     });
 
     // 8. Update statistics
-    await updateInvocationStats(db, input.vectorId, permission.id, cost, true);
+    await updateInvocationStats(input.vectorId, permission.id, cost, true);
     
     // End workflow
     workflowManager.completeSession(workflowId, 'completed');
@@ -353,26 +343,30 @@ export async function invokeVector(
     try {
       const accessCheck = await verifyVectorAccess(userId, input.vectorId);
       if (accessCheck.permission) {
-        await db.insert(vectorInvocations).values({
-          userId,
-          vectorId: input.vectorId,
-          permissionId: accessCheck.permission.id,
-          inputData: JSON.stringify(input.inputData),
-          outputData: null,
-          tokensUsed: 0,
-          executionTime,
-          status: 'error',
-          errorMessage,
-          cost: '0.0000',
+        await prismaAny.vectorInvocation.create({
+          data: {
+            userId,
+            vectorId: input.vectorId,
+            permissionId: accessCheck.permission.id,
+            inputData: JSON.stringify(input.inputData),
+            outputData: null,
+            tokensUsed: 0,
+            executionTime,
+            status: 'error',
+            errorMessage,
+            cost: '0.0000',
+          }
         });
 
-        await db.insert(apiCallLogs).values({
-          userId,
-          vectorId: input.vectorId,
-          permissionId: accessCheck.permission.id,
-          responseTime: executionTime,
-          success: false,
-          errorMessage,
+        await prisma.apiCallLog.create({
+          data: {
+            userId,
+            vectorId: input.vectorId,
+            permissionId: accessCheck.permission.id,
+            responseTime: executionTime,
+            success: false,
+            errorMessage,
+          }
         });
       }
     } catch (logError) {
@@ -401,58 +395,46 @@ export async function getInvocationHistory(
     offset?: number;
   } = {}
 ) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
   const { vectorId, limit = 50, offset = 0 } = options;
 
-  const conditions = [eq(vectorInvocations.userId, userId)];
+  const where: { userId: number; vectorId?: number } = { userId };
   if (vectorId) {
-    conditions.push(eq(vectorInvocations.vectorId, vectorId));
+    where.vectorId = vectorId;
   }
 
-  const query = db
-    .select({
-      invocation: vectorInvocations,
+  const results = await prismaAny.vectorInvocation.findMany({
+    where,
+    include: {
       vector: {
-        id: latentVectors.id,
-        title: latentVectors.title,
-        category: latentVectors.category,
+        select: {
+          id: true,
+          title: true,
+          category: true,
+        }
       }
-    })
-    .from(vectorInvocations)
-    .leftJoin(latentVectors, eq(vectorInvocations.vectorId, latentVectors.id))
-    .where(and(...conditions))
-    .orderBy(vectorInvocations.createdAt)
-    .limit(limit)
-    .offset(offset);
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    skip: offset
+  });
 
-  const results = await query;
-
-  return results.map(r => ({
-    ...r.invocation,
-    vector: r.vector
-  }));
+  return results;
 }
 
 /**
  * Get invocation statistics for a vector (creator view)
  */
 export async function getVectorInvocationStats(vectorId: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const invocations = await db
-    .select()
-    .from(vectorInvocations)
-    .where(eq(vectorInvocations.vectorId, vectorId));
+  const invocations = await prismaAny.vectorInvocation.findMany({
+    where: { vectorId }
+  });
 
   const totalInvocations = invocations.length;
-  const successfulInvocations = invocations.filter(i => i.status === 'success').length;
-  const totalTokens = invocations.reduce((sum, i) => sum + (i.tokensUsed || 0), 0);
-  const totalRevenue = invocations.reduce((sum, i) => sum + parseFloat(i.cost?.toString() || '0'), 0);
+  const successfulInvocations = invocations.filter((i: any) => i.status === 'success').length;
+  const totalTokens = invocations.reduce((sum: any, i: any) => sum + (i.tokensUsed || 0), 0);
+  const totalRevenue = invocations.reduce((sum: any, i: any) => sum + parseFloat(i.cost?.toString() || '0'), 0);
   const avgExecutionTime = invocations.length > 0
-    ? invocations.reduce((sum, i) => sum + (i.executionTime || 0), 0) / invocations.length
+    ? invocations.reduce((sum: any, i: any) => sum + (i.executionTime || 0), 0) / invocations.length
     : 0;
 
   return {

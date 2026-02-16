@@ -39,6 +39,15 @@ COPY --from=builder /app/client/dist ./client/dist
 # Copy necessary files
 COPY drizzle ./drizzle
 
+# Create non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set ownership of app files
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
 # Expose port
 EXPOSE 3000
 

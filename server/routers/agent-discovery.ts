@@ -14,10 +14,7 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { getDb } from '../db';
-import { assertDatabaseAvailable } from '../utils/error-handling';
-import { users, latentVectors } from '../../drizzle/schema';
-import { eq, desc, sql, and, inArray, gte } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
 import { getOnChainAgent, checkCapability } from '../auth-erc8004';
 import { createLogger } from '../utils/logger';
 
@@ -102,31 +99,33 @@ export const agentDiscoveryRouter = router({
   discoverAgents: publicProcedure
     .input(discoverAgentsSchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
-      // Get all creators with their statistics
-      const creatorsQuery = db
-        .select({
-          userId: latentVectors.creatorId,
-          totalVectors: sql<number>`COUNT(*)`,
-          totalRevenue: sql<number>`SUM(${latentVectors.totalRevenue})`,
-          avgRating: sql<number>`AVG(${latentVectors.averageRating})`,
-          totalSales: sql<number>`SUM(${latentVectors.totalCalls})`,
-          categories: sql<string>`GROUP_CONCAT(DISTINCT ${latentVectors.category})`,
-        })
-        .from(latentVectors)
-        .where(eq(latentVectors.status, 'active'))
-        .groupBy(latentVectors.creatorId)
-        .orderBy(desc(sql`SUM(${latentVectors.totalRevenue})`));
-
-      const creators = await creatorsQuery;
+      // Get all creators with their statistics using raw SQL
+      const creators = await prisma.$queryRaw<Array<{
+        userId: number;
+        totalVectors: bigint;
+        totalRevenue: number | null;
+        avgRating: number | null;
+        totalSales: bigint | null;
+        categories: string | null;
+      }>>`
+        SELECT
+          creator_id as "userId",
+          COUNT(*) as "totalVectors",
+          SUM(total_revenue) as "totalRevenue",
+          AVG(average_rating) as "avgRating",
+          SUM(total_calls) as "totalSales",
+          STRING_AGG(DISTINCT category, ',') as categories
+        FROM latent_vectors
+        WHERE status = 'active'
+        GROUP BY creator_id
+        ORDER BY SUM(total_revenue) DESC
+      `;
 
       // Apply filters
       let filteredCreators = creators;
 
       if (input.minTotalSales) {
-        filteredCreators = filteredCreators.filter(c => c.totalSales >= input.minTotalSales!);
+        filteredCreators = filteredCreators.filter(c => Number(c.totalSales || 0) >= input.minTotalSales!);
       }
 
       if (input.specialization) {
@@ -140,18 +139,15 @@ export const agentDiscoveryRouter = router({
 
       for (const creator of filteredCreators.slice(input.offset, input.offset + input.limit)) {
         // Fetch user details
-        const userRecords = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, creator.userId))
-          .limit(1);
+        const user = await prisma.user.findUnique({
+          where: { id: creator.userId }
+        });
 
-        const user = userRecords[0];
         if (!user) continue;
 
         // Calculate credit score
         const baseScore = 500;
-        const scoreFromCreations = Math.min(creator.totalVectors * 5, 200);
+        const scoreFromCreations = Math.min(Number(creator.totalVectors) * 5, 200);
         const scoreFromRating = creator.avgRating ? parseFloat(creator.avgRating.toString()) * 20 : 0;
         const scoreFromRevenue = Math.min(parseFloat(creator.totalRevenue?.toString() || '0'), 100);
         const creditScore = Math.round(baseScore + scoreFromCreations + scoreFromRating + scoreFromRevenue);
@@ -226,8 +222,8 @@ export const agentDiscoveryRouter = router({
           specializations,
           creditScore,
           creditGrade,
-          totalMemoriesCreated: creator.totalVectors,
-          totalMemoriesSold: creator.totalSales,
+          totalMemoriesCreated: Number(creator.totalVectors),
+          totalMemoriesSold: Number(creator.totalSales || 0),
           avgRating: creator.avgRating ? parseFloat(creator.avgRating.toString()) : 0,
           totalRevenue: creator.totalRevenue?.toString() || '0',
           capabilities: specializations,
@@ -255,34 +251,27 @@ export const agentDiscoveryRouter = router({
   getAgentProfile: publicProcedure
     .input(getAgentProfileSchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       // Build condition based on input
-      const condition = input.userId
-        ? eq(users.id, input.userId)
-        : input.agentId
-          ? eq(users.openId, input.agentId)
-          : input.walletAddress
-            ? eq(users.openId, input.walletAddress.toLowerCase())
-            : null;
+      let user = null;
 
-      if (!condition) {
+      if (input.userId) {
+        user = await prisma.user.findUnique({ where: { id: input.userId } });
+      } else if (input.agentId) {
+        user = await prisma.user.findFirst({ where: { openId: input.agentId } });
+      } else if (input.walletAddress) {
+        user = await prisma.user.findFirst({ where: { openId: input.walletAddress.toLowerCase() } });
+      } else {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Must provide userId, agentId, or walletAddress' });
       }
-
-      const userRecords = await db.select().from(users).where(condition).limit(1);
-      const user = userRecords[0];
 
       if (!user) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
       }
 
       // Get agent's created vectors
-      const vectors = await db
-        .select()
-        .from(latentVectors)
-        .where(eq(latentVectors.creatorId, user.id));
+      const vectors = await prisma.latentVector.findMany({
+        where: { creatorId: user.id }
+      });
 
       // Calculate stats
       const totalRevenue = vectors.reduce((sum, v) => sum + parseFloat(v.totalRevenue?.toString() || '0'), 0);
@@ -360,37 +349,28 @@ export const agentDiscoveryRouter = router({
   checkCompatibility: publicProcedure
     .input(checkCompatibilitySchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       // For now, return compatibility based on shared categories
       // In production, would check W-Matrix availability for model alignment
 
-      const fromUserRecords = await db
-        .select()
-        .from(users)
-        .where(eq(users.openId, input.fromAgent))
-        .limit(1);
+      const fromUser = await prisma.user.findFirst({
+        where: { openId: input.fromAgent }
+      });
 
-      const toUserRecords = await db
-        .select()
-        .from(users)
-        .where(eq(users.openId, input.toAgent))
-        .limit(1);
+      const toUser = await prisma.user.findFirst({
+        where: { openId: input.toAgent }
+      });
 
-      if (!fromUserRecords[0] || !toUserRecords[0]) {
+      if (!fromUser || !toUser) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'One or both agents not found' });
       }
 
-      const fromVectors = await db
-        .select()
-        .from(latentVectors)
-        .where(eq(latentVectors.creatorId, fromUserRecords[0].id));
+      const fromVectors = await prisma.latentVector.findMany({
+        where: { creatorId: fromUser.id }
+      });
 
-      const toVectors = await db
-        .select()
-        .from(latentVectors)
-        .where(eq(latentVectors.creatorId, toUserRecords[0].id));
+      const toVectors = await prisma.latentVector.findMany({
+        where: { creatorId: toUser.id }
+      });
 
       const fromCategories = new Set(fromVectors.map(v => v.category).filter(Boolean));
       const toCategories = new Set(toVectors.map(v => v.category).filter(Boolean));

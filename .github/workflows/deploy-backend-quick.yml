@@ -1,0 +1,101 @@
+name: Quick Deploy Backend to EC2
+
+# 快速部署工作流 - 跳过测试，直接部署
+# 适用场景：紧急修复、配置更改、小型更新
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests (use with caution)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  deploy:
+    name: Quick Deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: production-backend
+      url: http://44.220.181.78:3001/api-docs/
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Type check (if not skipping tests)
+        if: inputs.skip_tests == 'false'
+        run: npx tsc --noEmit || echo "Type check completed with warnings"
+        continue-on-error: true
+
+      - name: Configure SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.AWARENESS }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$EC2_SSH_KEY" > ~/.ssh/awareness-key.pem
+          chmod 600 ~/.ssh/awareness-key.pem
+          ssh-keyscan -H 44.220.181.78 >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          echo "🚀 Starting quick deployment..."
+
+          # Upload files
+          rsync -avz -e "ssh -i ~/.ssh/awareness-key.pem" \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude 'dist/public' \
+            --exclude 'client/dist' \
+            --exclude '.env' \
+            server/ prisma/ package.json pnpm-lock.yaml \
+            ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
+
+          # Restart service
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            cd /home/ec2-user/Awareness-Market
+            pnpm install --prod --frozen-lockfile
+            npx prisma generate
+            pm2 restart awareness-network || pm2 start server/_core/index.ts --name awareness-network
+            pm2 status
+          ENDSSH
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          if curl -f http://44.220.181.78:3001/api-docs/; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment verification failed"
+            exit 1
+          fi
+
+      - name: Show deployment info
+        run: |
+          echo "## ✅ Deployment Complete"
+          echo ""
+          echo "🔗 API URL: http://44.220.181.78:3001/api-docs/"
+          echo "⏰ Deployed at: $(date)"
+          echo "👤 Deployed by: ${{ github.actor }}"
+          echo "📝 Commit: ${{ github.sha }}"

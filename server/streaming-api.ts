@@ -4,11 +4,11 @@
  */
 
 import { Router, Request, Response } from "express";
-import { getDb } from "./db";
-import { latentVectors, transactions } from "../drizzle/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 import { validateApiKey } from "./api-key-manager";
 import { createLogger } from "./utils/logger";
+import { workflowManager } from "./workflow-manager";
+import { runVector } from "./vector-runtime";
 
 const logger = createLogger('Streaming');
 
@@ -45,23 +45,13 @@ router.get("/invoke/stream", async (req: Request, res: Response) => {
       return;
     }
 
-    const db = await getDb();
-    if (!db) {
-      res.status(500).json({ error: "Database connection failed" });
-      return;
-    }
-
     // Verify vector exists and is active
-    const [vector] = await db
-      .select()
-      .from(latentVectors)
-      .where(
-        and(
-          eq(latentVectors.id, parseInt(vectorId as string)),
-          eq(latentVectors.status, "active")
-        )
-      )
-      .limit(1);
+    const vector = await prisma.latentVector.findFirst({
+      where: {
+        id: parseInt(vectorId as string),
+        status: "active"
+      }
+    });
 
     if (!vector) {
       res.status(404).json({ error: "Vector not found or inactive" });
@@ -96,18 +86,20 @@ router.get("/invoke/stream", async (req: Request, res: Response) => {
       if (chunk.progress === 1.0 && validation.userId) {
         // Record transaction
         const platformFeeRate = 0.20; // 20% platform fee
-        const amount = parseFloat(vector.basePrice);
+        const amount = parseFloat(vector.basePrice.toString());
         const platformFee = amount * platformFeeRate;
         const creatorEarnings = amount - platformFee;
-        
-        await db.insert(transactions).values({
-          buyerId: validation.userId,
-          vectorId: vector.id,
-          amount: vector.basePrice,
-          platformFee: platformFee.toFixed(2),
-          creatorEarnings: creatorEarnings.toFixed(2),
-          status: "completed",
-          transactionType: "one-time",
+
+        await prisma.transaction.create({
+          data: {
+            buyerId: validation.userId,
+            vectorId: vector.id,
+            amount: vector.basePrice,
+            platformFee: platformFee.toFixed(2),
+            creatorEarnings: creatorEarnings.toFixed(2),
+            status: "completed",
+            transactionType: "one-time",
+          }
         });
       }
     }
@@ -157,25 +149,24 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
       return;
     }
 
-    const db = await getDb();
-    if (!db) {
-      res.status(500).json({ error: "Database connection failed" });
-      return;
-    }
-
     // Fetch all requested vectors
     const vectorIds = requests.map((r: BatchVectorRequest) => r.vectorId);
-    const vectors = await db
-      .select()
-      .from(latentVectors)
-      .where(
-        and(
-          inArray(latentVectors.id, vectorIds),
-          eq(latentVectors.status, "active")
-        )
-      );
+    const vectors = await prisma.latentVector.findMany({
+      where: {
+        id: { in: vectorIds },
+        status: "active"
+      }
+    });
 
     const vectorMap = new Map(vectors.map(v => [v.id, v]));
+
+    const session = workflowManager.createSession({
+      userId: validation.userId,
+      type: "vector_invocation",
+      title: "Batch vector invocation",
+      description: `Batch size: ${requests.length}`,
+      tags: ["batch", "vector"],
+    });
 
     // Process each request
     const results = await Promise.all(
@@ -184,6 +175,16 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
         const vector = vectorMap.get(vectorId);
 
         if (!vector) {
+          const event = workflowManager.addEvent(session.id, {
+            type: "tool_result",
+            title: `Vector ${vectorId} not found`,
+            input: { vectorId },
+            output: { error: "Vector not found or inactive" },
+          });
+          workflowManager.updateEvent(session.id, event.id, {
+            status: "failed",
+            output: { error: "Vector not found or inactive" },
+          });
           return {
             vectorId,
             success: false,
@@ -192,30 +193,53 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
         }
 
         try {
-          // Simulate vector invocation (replace with actual logic)
+          const event = workflowManager.addEvent(session.id, {
+            type: "tool_call",
+            title: `Invoke vector ${vectorId}`,
+            input: { vectorId, input },
+          });
+
+          const runtimeResult = await runVector({
+            vector,
+            context: input,
+          });
+
           const output = {
             vectorId,
             input,
-            output: `Batch processed: ${input}`,
-            confidence: 0.92,
-            latency_ms: Math.floor(Math.random() * 100) + 50
+            output: runtimeResult.text,
+            model: runtimeResult.model,
+            usage: runtimeResult.usage,
+            latency_ms: runtimeResult.processingTimeMs,
           };
+
+          workflowManager.updateEvent(session.id, event.id, {
+            status: "completed",
+            output,
+            duration: runtimeResult.processingTimeMs,
+            metadata: {
+              model: runtimeResult.model,
+              latency: runtimeResult.processingTimeMs,
+            },
+          });
 
           // Record transaction
           if (validation.userId) {
             const platformFeeRate = 0.20; // 20% platform fee
-            const amount = parseFloat(vector.basePrice);
+            const amount = parseFloat(vector.basePrice.toString());
             const platformFee = amount * platformFeeRate;
             const creatorEarnings = amount - platformFee;
-            
-            await db.insert(transactions).values({
-              buyerId: validation.userId,
-              vectorId: vector.id,
-              amount: vector.basePrice,
-              platformFee: platformFee.toFixed(2),
-              creatorEarnings: creatorEarnings.toFixed(2),
-              status: "completed",
-              transactionType: "one-time",
+
+            await prisma.transaction.create({
+              data: {
+                buyerId: validation.userId,
+                vectorId: vector.id,
+                amount: vector.basePrice,
+                platformFee: platformFee.toFixed(2),
+                creatorEarnings: creatorEarnings.toFixed(2),
+                status: "completed",
+                transactionType: "one-time",
+              }
             });
           }
 
@@ -225,6 +249,16 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
             result: output
           };
         } catch (error) {
+          const event = workflowManager.addEvent(session.id, {
+            type: "error",
+            title: `Vector ${vectorId} failed`,
+            input: { vectorId, input },
+            output: { error: "Processing failed" },
+          });
+          workflowManager.updateEvent(session.id, event.id, {
+            status: "failed",
+            output: { error: "Processing failed" },
+          });
           return {
             vectorId,
             success: false,
@@ -238,7 +272,10 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
     const successful = results.filter(r => r.success).length;
     const failed = results.length - successful;
 
+    workflowManager.completeSession(session.id, failed > 0 ? "failed" : "completed");
+
     res.json({
+      batchId: session.id,
       summary: {
         total: results.length,
         successful,
@@ -260,20 +297,30 @@ router.post("/batch-invoke", async (req: Request, res: Response) => {
 router.get("/batch-invoke/:batchId", async (req: Request, res: Response) => {
   try {
     const { batchId } = req.params;
-    
-    // In production, store batch status in database
-    // For now, return mock status
+
+      // Use in-memory WorkflowManager instead of missing DB model
+    const { workflowManager } = await import("./workflow-manager");
+    const session = workflowManager.getSession(batchId);
+    if (!session) {
+      res.status(404).json({ error: "Batch not found" });
+      return;
+    }
+    const events = session.events || [];
+    const total = events.length;
+    const successful = events.filter(e => e.status === "completed").length;
+    const failed = events.filter(e => e.status === "failed").length;
+    const progress = total === 0 ? 0 : (successful + failed) / total;
     res.json({
       batchId,
-      status: "completed",
-      progress: 1.0,
+      status: session.status,
+      progress,
       results: {
-        total: 10,
-        successful: 9,
-        failed: 1
+        total,
+        successful,
+        failed
       },
-      createdAt: new Date().toISOString(),
-      completedAt: new Date().toISOString()
+      createdAt: session.startedAt,
+      completedAt: session.completedAt || null,
     });
   } catch (error) {
     logger.error("[Batch Status] Error:", { error });

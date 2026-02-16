@@ -12,12 +12,11 @@
 import { z } from 'zod';
 import { publicProcedure, protectedProcedure, router } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { eq, desc, and, or, like, sql, type SQL, type InferSelectModel } from 'drizzle-orm';
-import { getDb } from '../db';
+import { prisma } from '../db-prisma';
+const prismaAny = prisma as any;
 import { getErrorMessage, assertDatabaseAvailable, assertPackageExists, throwValidationFailed } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
-import { vectorPackages, memoryPackages, chainPackages, packageDownloads, packagePurchases, users } from '../../drizzle/schema';
-import { AntiPoisoningVerifier } from '../latentmas/anti-poisoning';
+import { AntiPoisoningVerifier, type ChallengeResponse } from '../latentmas/anti-poisoning';
 import { pricingEngine } from '../pricing-engine';
 import { SemanticAnchorDB } from '../latentmas/semantic-anchors';
 import { generateRecommendations, trackBrowsingAction } from '../recommendation-engine';
@@ -31,9 +30,7 @@ interface KVCacheStructure {
   keys: number[][][][]; // [layers][heads][keys][dimension]
 }
 
-type VectorPackage = InferSelectModel<typeof vectorPackages>;
-type MemoryPackage = InferSelectModel<typeof memoryPackages>;
-type ChainPackage = InferSelectModel<typeof chainPackages>;
+import type { VectorPackage, MemoryPackage, ChainPackage } from '@prisma/client';
 import {
   createVectorPackage,
   extractVectorPackage,
@@ -48,6 +45,7 @@ import type { KVCache } from '../latentmas/types';
 import type { ReasoningChainData } from '../latentmas/package-builders';
 import { storageGet } from '../storage';
 import { sendPurchaseConfirmationEmail, sendSaleNotificationEmail } from '../email-service';
+import { stripe } from '../stripe-client';
 
 // ============================================================================
 // Input Schemas
@@ -82,6 +80,12 @@ const CreateVectorPackageSchema = z.object({
   price: z.number().positive(),
   trainingDataset: z.string(),
   tags: z.array(z.string()).optional(),
+  polfResponse: z.object({
+    challengeId: z.string(),
+    vectorOutputs: z.array(z.array(z.number())),
+    signature: z.string(),
+    timestamp: z.number(),
+  }).optional(),
 });
 
 // Memory Package
@@ -101,6 +105,12 @@ const CreateMemoryPackageSchema = z.object({
   price: z.number().positive(),
   trainingDataset: z.string(),
   tags: z.array(z.string()).optional(),
+  polfResponse: z.object({
+    challengeId: z.string(),
+    vectorOutputs: z.array(z.array(z.number())),
+    signature: z.string(),
+    timestamp: z.number(),
+  }).optional(),
 });
 
 // Chain Package
@@ -130,6 +140,12 @@ const CreateChainPackageSchema = z.object({
   price: z.number().positive(),
   trainingDataset: z.string(),
   tags: z.array(z.string()).optional(),
+  polfResponse: z.object({
+    challengeId: z.string(),
+    vectorOutputs: z.array(z.array(z.number())),
+    signature: z.string(),
+    timestamp: z.number(),
+  }).optional(),
 });
 
 // Browse Packages
@@ -151,6 +167,8 @@ const BrowsePackagesSchema = z.object({
 const PurchasePackageSchema = z.object({
   packageType: PackageTypeSchema,
   packageId: z.string(),
+  paymentMethod: z.enum(['credits', 'stripe', 'crypto']).default('credits'),
+  paymentMethodId: z.string().optional(),
 });
 
 // Download Package
@@ -163,16 +181,7 @@ const DownloadPackageSchema = z.object({
 // Helper Functions
 // ============================================================================
 
-function getPackageTable(packageType: 'vector' | 'memory' | 'chain') {
-  switch (packageType) {
-    case 'vector':
-      return vectorPackages;
-    case 'memory':
-      return memoryPackages;
-    case 'chain':
-      return chainPackages;
-  }
-}
+// getPackageTable removed - using Prisma models directly
 
 /**
  * Calculate dynamic pricing for a package
@@ -235,6 +244,12 @@ function calculateDynamicPrice(
   };
 }
 
+function computeInformationRetention(epsilon: number): string {
+  if (!Number.isFinite(epsilon)) return '0.0000';
+  const retention = Math.max(0, Math.min(1, 1 - epsilon));
+  return retention.toFixed(4);
+}
+
 /**
  * Extract representative vector from KV-Cache for validation
  * Uses mean pooling across all keys
@@ -274,6 +289,18 @@ function extractRepresentativeVector(kvCache: KVCacheStructure): number[] {
 
 export const packagesApiRouter = router({
   /**
+   * Generate anti-poisoning challenge (PoLF)
+   */
+  getPoisoningChallenge: protectedProcedure
+    .query(async () => {
+      const challenge = poisonValidator.generateChallenge();
+      return {
+        success: true,
+        challenge,
+        expiresAt: challenge.expiresAt,
+      };
+    }),
+  /**
    * Create Vector Package
    */
   createVectorPackage: protectedProcedure
@@ -283,21 +310,36 @@ export const packagesApiRouter = router({
         // ============================================================
         // Step 1 - Anti-Poisoning Verification (PoLF)
         // ============================================================
-        // STATUS: Mock implementation - awaiting production deployment
-        //
-        // Full implementation requires:
-        // 1. Challenge generation: poisonValidator.generateChallenge(vector)
-        // 2. Response verification: poisonValidator.verify(challenge, response)
-        // 3. Semantic anchor validation against known good vectors
-        //
-        // See: server/latentmas/anti-poisoning.ts for full implementation
-        // ============================================================
-        logger.info(`[PoLF] Using mock validation (user: ${ctx.user.id})`);
+        const polfEnabled = process.env.ENABLE_POLF_VERIFICATION === 'true';
+        let polfResult = { isPassed: true, reason: 'Not enforced', score: 1.0, anomalies: [] as string[] };
 
-        // Mock validation - always passes in development
-        const polfResult = { isPassed: true, reason: 'Mock validation', score: 1.0, anomalies: [] as string[] };
+        if (polfEnabled) {
+          if (!input.polfResponse) {
+            throw new TRPCError({
+              code: 'PRECONDITION_FAILED',
+              message: 'PoLF verification required. Please request a challenge and provide a response.',
+            });
+          }
 
-        if (process.env.ENABLE_POLF_VERIFICATION === 'true' && !polfResult.isPassed) {
+          const verification = poisonValidator.verify(input.polfResponse as ChallengeResponse);
+          polfResult = {
+            isPassed: verification.passed,
+            reason: verification.passed ? 'PoLF verification passed' : 'PoLF verification failed',
+            score: Number(verification.fidelityScore.toFixed(3)),
+            anomalies: verification.anomalies,
+          };
+
+          logger.info(`[PoLF] Verification result`, {
+            userId: ctx.user.id,
+            passed: polfResult.isPassed,
+            score: polfResult.score,
+            anomalies: polfResult.anomalies,
+          });
+        } else {
+          logger.info(`[PoLF] Verification not enforced (user: ${ctx.user.id})`);
+        }
+
+        if (polfEnabled && !polfResult.isPassed) {
           logger.warn(`Poisoning detected in vector package upload`, {
             userId: ctx.user.id,
             packageName: input.name,
@@ -365,27 +407,24 @@ export const packagesApiRouter = router({
         );
 
         // Save to database
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-        const insertResult = await db.insert(vectorPackages).values({
-          packageId: result.packageId,
-          userId: ctx.user.id,
-          name: input.name,
-          description: input.description,
-          sourceModel: input.wMatrix.sourceModel,
-          targetModel: input.wMatrix.targetModel,
-          category: input.vector.category,
-          price: String(input.price),
-          packageUrl: result.packageUrl,
-          vectorUrl: result.vectorUrl || '',
-          wMatrixUrl: result.wMatrixUrl || '',
-          epsilon: String(input.wMatrix.epsilon),
-          informationRetention: '0.9500',
-          dimension: input.vector.dimension,
-        }).$returningId();
-
-        const pkgId = insertResult[0]?.id;
-        const [pkg] = pkgId ? await db.select().from(vectorPackages).where(eq(vectorPackages.id, pkgId)).limit(1) : [];
+        const pkg = await prisma.vectorPackage.create({
+          data: {
+            packageId: result.packageId,
+            userId: ctx.user.id,
+            name: input.name,
+            description: input.description,
+            sourceModel: input.wMatrix.sourceModel,
+            targetModel: input.wMatrix.targetModel,
+            category: input.vector.category,
+            price: String(input.price),
+            packageUrl: result.packageUrl,
+            vectorUrl: result.vectorUrl || '',
+            wMatrixUrl: result.wMatrixUrl || '',
+            epsilon: String(input.wMatrix.epsilon),
+            informationRetention: computeInformationRetention(input.wMatrix.epsilon),
+            dimension: input.vector.dimension,
+          },
+        });
 
         return {
           success: true,
@@ -409,19 +448,37 @@ export const packagesApiRouter = router({
       try {
         // ============================================================
         // Step 1 - Anti-Poisoning Verification (PoLF)
-        // STATUS: Mock implementation - see createVectorPackage for details
         // ============================================================
-        logger.info(`[PoLF] Verifying KV-Cache (user: ${ctx.user.id})`);
+        const polfEnabled = process.env.ENABLE_POLF_VERIFICATION === 'true';
+        let polfResult = { isPassed: true, reason: 'Not enforced', score: 1.0, anomalies: [] as string[] };
 
-        // Extract representative vector from KV-Cache using mean pooling
-        // Used for PoLF verification when enabled
-        const _representativeVector = extractRepresentativeVector(input.kvCache);
+        if (polfEnabled) {
+          if (!input.polfResponse) {
+            throw new TRPCError({
+              code: 'PRECONDITION_FAILED',
+              message: 'PoLF verification required. Please request a challenge and provide a response.',
+            });
+          }
 
-        // Mock validation - enable with ENABLE_POLF_VERIFICATION=true
-        // Real implementation: await poisonValidator.proofOfLatentFidelity(_representativeVector)
-        const polfResult = { isPassed: true, reason: 'Mock validation', score: 1.0, anomalies: [] as string[] };
+          const verification = poisonValidator.verify(input.polfResponse as ChallengeResponse);
+          polfResult = {
+            isPassed: verification.passed,
+            reason: verification.passed ? 'PoLF verification passed' : 'PoLF verification failed',
+            score: Number(verification.fidelityScore.toFixed(3)),
+            anomalies: verification.anomalies,
+          };
 
-        if (process.env.ENABLE_POLF_VERIFICATION === 'true' && !polfResult.isPassed) {
+          logger.info(`[PoLF] Verification result`, {
+            userId: ctx.user.id,
+            passed: polfResult.isPassed,
+            score: polfResult.score,
+            anomalies: polfResult.anomalies,
+          });
+        } else {
+          logger.info(`[PoLF] Verification not enforced (user: ${ctx.user.id})`);
+        }
+
+        if (polfEnabled && !polfResult.isPassed) {
           logger.warn(`Poisoning detected in memory package upload`, {
             userId: ctx.user.id,
             packageName: input.name,
@@ -464,27 +521,25 @@ export const packagesApiRouter = router({
         );
 
         // Save to database
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-        const insertResult = await db.insert(memoryPackages).values({
-          packageId: result.packageId,
-          userId: ctx.user.id,
-          name: input.name,
-          description: input.description,
-          sourceModel: input.wMatrix.sourceModel,
-          targetModel: input.wMatrix.targetModel,
-          tokenCount: input.tokenCount,
-          compressionRatio: String(input.compressionRatio),
-          contextDescription: input.contextDescription,
-          price: String(input.price),
-          packageUrl: result.packageUrl,
-          kvCacheUrl: result.kvCacheUrl || '',
-          wMatrixUrl: result.wMatrixUrl || '',
-          epsilon: String(input.wMatrix.epsilon),
-          informationRetention: '0.9500',
-        }).$returningId();
-        const pkgId = insertResult[0]?.id;
-        const [pkg] = pkgId ? await db.select().from(memoryPackages).where(eq(memoryPackages.id, pkgId)).limit(1) : [];
+        const pkg = await prisma.memoryPackage.create({
+          data: {
+            packageId: result.packageId,
+            userId: ctx.user.id,
+            name: input.name,
+            description: input.description,
+            sourceModel: input.wMatrix.sourceModel,
+            targetModel: input.wMatrix.targetModel,
+            tokenCount: input.tokenCount,
+            compressionRatio: String(input.compressionRatio),
+            contextDescription: input.contextDescription,
+            price: String(input.price),
+            packageUrl: result.packageUrl,
+            kvCacheUrl: result.kvCacheUrl || '',
+            wMatrixUrl: result.wMatrixUrl || '',
+            epsilon: String(input.wMatrix.epsilon),
+            informationRetention: computeInformationRetention(input.wMatrix.epsilon),
+          },
+        });
 
         return {
           success: true,
@@ -508,59 +563,61 @@ export const packagesApiRouter = router({
       try {
         // ============================================================
         // Step 1 - Anti-Poisoning Verification (PoLF)
-        // STATUS: Mock implementation - see createVectorPackage for details
         // ============================================================
-        logger.info(`[PoLF] Verifying reasoning chain (user: ${ctx.user.id})`);
+        const polfEnabled = process.env.ENABLE_POLF_VERIFICATION === 'true';
+        let polfResult = { isPassed: true, reason: 'Not enforced', score: 1.0, anomalies: [] as string[] };
 
-        // Validate critical steps: first and last (to balance security and performance)
-        const stepsToValidate = [
-          { index: 0, step: input.chain.steps[0] },
-          { index: input.chain.steps.length - 1, step: input.chain.steps[input.chain.steps.length - 1] },
-        ];
-
-        for (const { index, step } of stepsToValidate) {
-          if (!step) continue; // Skip if step doesn't exist
-
-          logger.info(`[PoLF] Validating step ${index + 1}/${input.chain.steps.length}`);
-
-          // Extract representative vector from step's KV snapshot
-          // Used for PoLF verification when enabled
-          const _representativeVector = extractRepresentativeVector(step.kvSnapshot);
-
-          // Mock validation - enable with ENABLE_POLF_VERIFICATION=true
-          // Real implementation: await poisonValidator.proofOfLatentFidelity(_representativeVector)
-          const polfResult = { isPassed: true, reason: 'Mock validation', score: 1.0, anomalies: [] as string[] };
-
-          if (process.env.ENABLE_POLF_VERIFICATION === 'true' && !polfResult.isPassed) {
-            logger.warn(`Poisoning detected in chain package step ${index + 1}`, {
-              userId: ctx.user.id,
-              packageName: input.name,
-              stepIndex: index,
-              reason: polfResult.reason,
-              anomalies: polfResult.anomalies,
-            });
-
+        if (polfEnabled) {
+          if (!input.polfResponse) {
             throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: `Security check failed at step ${index + 1}: ${polfResult.reason}. Your reasoning chain shows signs of a poisoning attack.`,
-              cause: {
-                type: 'POISONING_DETECTED',
-                score: polfResult.score,
-                stepIndex: index,
-                details: polfResult.anomalies,
-                recommendations: [
-                  'Verify your reasoning steps are from trusted sources',
-                  'Check for adversarial perturbations in the chain',
-                  'Regenerate the reasoning chain from clean data',
-                ],
-              },
+              code: 'PRECONDITION_FAILED',
+              message: 'PoLF verification required. Please request a challenge and provide a response.',
             });
           }
 
-          logger.info(`Step ${index + 1} passed anti-poisoning check (score: ${polfResult.score.toFixed(3)})`);
+          const verification = poisonValidator.verify(input.polfResponse as ChallengeResponse);
+          polfResult = {
+            isPassed: verification.passed,
+            reason: verification.passed ? 'PoLF verification passed' : 'PoLF verification failed',
+            score: Number(verification.fidelityScore.toFixed(3)),
+            anomalies: verification.anomalies,
+          };
+
+          logger.info(`[PoLF] Verification result`, {
+            userId: ctx.user.id,
+            passed: polfResult.isPassed,
+            score: polfResult.score,
+            anomalies: polfResult.anomalies,
+          });
+        } else {
+          logger.info(`[PoLF] Verification not enforced (user: ${ctx.user.id})`);
         }
 
-        logger.info(`All critical steps passed anti-poisoning validation`);
+        if (polfEnabled && !polfResult.isPassed) {
+          logger.warn(`Poisoning detected in chain package upload`, {
+            userId: ctx.user.id,
+            packageName: input.name,
+            reason: polfResult.reason,
+            anomalies: polfResult.anomalies,
+          });
+
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Security check failed: ${polfResult.reason}. Your reasoning chain shows signs of a poisoning attack.`,
+            cause: {
+              type: 'POISONING_DETECTED',
+              score: polfResult.score,
+              details: polfResult.anomalies,
+              recommendations: [
+                'Verify your reasoning steps are from trusted sources',
+                'Check for adversarial perturbations in the chain',
+                'Regenerate the reasoning chain from clean data',
+              ],
+            },
+          });
+        }
+
+        logger.info(`Reasoning chain passed anti-poisoning check (score: ${polfResult.score.toFixed(3)})`);
 
         // Existing: Step 2 - Create Package
         const result = await createChainPackage(
@@ -576,27 +633,25 @@ export const packagesApiRouter = router({
         );
 
         // Save to database
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-        const insertResult = await db.insert(chainPackages).values({
-          packageId: result.packageId,
-          userId: ctx.user.id,
-          name: input.name,
-          description: input.description,
-          sourceModel: input.wMatrix.sourceModel,
-          targetModel: input.wMatrix.targetModel,
-          problemType: input.chain.problemType,
-          solutionQuality: String(input.chain.solutionQuality),
-          stepCount: input.chain.totalSteps,
-          price: String(input.price),
-          packageUrl: result.packageUrl,
-          chainUrl: result.chainUrl || '',
-          wMatrixUrl: result.wMatrixUrl || '',
-          epsilon: String(input.wMatrix.epsilon),
-          informationRetention: '0.9500',
-        }).$returningId();
-        const pkgId = insertResult[0]?.id;
-        const [pkg] = pkgId ? await db.select().from(chainPackages).where(eq(chainPackages.id, pkgId)).limit(1) : [];
+        const pkg = await prisma.chainPackage.create({
+          data: {
+            packageId: result.packageId,
+            userId: ctx.user.id,
+            name: input.name,
+            description: input.description,
+            sourceModel: input.wMatrix.sourceModel,
+            targetModel: input.wMatrix.targetModel,
+            problemType: input.chain.problemType,
+            solutionQuality: String(input.chain.solutionQuality),
+            stepCount: input.chain.totalSteps,
+            price: String(input.price),
+            packageUrl: result.packageUrl,
+            chainUrl: result.chainUrl || '',
+            wMatrixUrl: result.wMatrixUrl || '',
+            epsilon: String(input.wMatrix.epsilon),
+            informationRetention: computeInformationRetention(input.wMatrix.epsilon),
+          },
+        });
 
         return {
           success: true,
@@ -617,51 +672,88 @@ export const packagesApiRouter = router({
   browsePackages: publicProcedure
     .input(BrowsePackagesSchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
 
-      // Build query conditions
-      const conditions: SQL[] = [];
+      // Build Prisma where conditions
+      const where: any = {
+        status: 'active',
+      };
 
       if (input.sourceModel) {
-        conditions.push(eq(table.sourceModel, input.sourceModel));
+        where.sourceModel = input.sourceModel;
       }
 
       if (input.targetModel) {
-        conditions.push(eq(table.targetModel, input.targetModel));
+        where.targetModel = input.targetModel;
       }
 
       if (input.search) {
-        const searchCondition = or(
-          like(table.name, `%${input.search}%`),
-          like(table.description, `%${input.search}%`)
-        );
-        if (searchCondition) conditions.push(searchCondition);
+        where.OR = [
+          { name: { contains: input.search, mode: 'insensitive' } },
+          { description: { contains: input.search, mode: 'insensitive' } },
+        ];
       }
 
-      if (input.minPrice !== undefined) {
-        conditions.push(sql`${table.price} >= ${input.minPrice}`);
+      if (input.minPrice !== undefined || input.maxPrice !== undefined) {
+        where.price = {};
+        if (input.minPrice !== undefined) {
+          where.price.gte = String(input.minPrice);
+        }
+        if (input.maxPrice !== undefined) {
+          where.price.lte = String(input.maxPrice);
+        }
       }
 
-      if (input.maxPrice !== undefined) {
-        conditions.push(sql`${table.price} <= ${input.maxPrice}`);
+      // Determine sort order
+      let orderBy: any = { createdAt: 'desc' };
+      switch (input.sortBy) {
+        case 'recent':
+          orderBy = { createdAt: 'desc' };
+          break;
+        case 'popular':
+          orderBy = { downloads: 'desc' };
+          break;
+        case 'price_asc':
+          orderBy = { price: 'asc' };
+          break;
+        case 'price_desc':
+          orderBy = { price: 'desc' };
+          break;
+        case 'rating':
+          orderBy = { rating: 'desc' };
+          break;
       }
 
-      // Query packages
-      const packages = await db
-        .select()
-        .from(table)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(
-          input.sortBy === 'recent' ? desc(table.createdAt) :
-          input.sortBy === 'popular' ? desc(table.downloads) :
-          input.sortBy === 'price_asc' ? table.price :
-          input.sortBy === 'price_desc' ? desc(table.price) :
-          desc(table.createdAt)
-        )
-        .limit(input.limit)
-        .offset(input.offset);
+      // Query packages based on type
+      let packages: any[] = [];
+      
+      try {
+        if (input.packageType === 'vector') {
+          packages = await prisma.vectorPackage.findMany({
+            where,
+            orderBy,
+            take: input.limit,
+            skip: input.offset,
+          });
+        } else if (input.packageType === 'memory') {
+          packages = await prisma.memoryPackage.findMany({
+            where,
+            orderBy,
+            take: input.limit,
+            skip: input.offset,
+          });
+        } else if (input.packageType === 'chain') {
+          packages = await prisma.chainPackage.findMany({
+            where,
+            orderBy,
+            take: input.limit,
+            skip: input.offset,
+          });
+        }
+      } catch (error) {
+        logger.error('Failed to browse packages', { error, packageType: input.packageType });
+        // Return empty array on error
+        packages = [];
+      }
 
       // Apply dynamic pricing to each package
       const packagesWithDynamicPricing = packages.map(pkg => {
@@ -696,19 +788,44 @@ export const packagesApiRouter = router({
       try {
         logger.info(`[Recommendations] Generating for user ${ctx.user.id}`);
 
-        // Generate recommendations using AI engine
+        if (input.packageType && input.packageType !== 'vector') {
+          const packages = input.packageType === 'memory'
+            ? await prisma.memoryPackage.findMany({
+                where: { status: 'active' },
+                orderBy: { downloads: 'desc' },
+                take: input.limit,
+              })
+            : await prisma.chainPackage.findMany({
+                where: { status: 'active' },
+                orderBy: { downloads: 'desc' },
+                take: input.limit,
+              });
+
+          const recommendations = packages.map((pkg) => {
+            const downloads = Number((pkg as { downloads?: number | string }).downloads || 0);
+            const score = Math.min(100, downloads * 2);
+            return {
+              packageId: pkg.packageId,
+              score,
+              reason: `Popular ${input.packageType} package based on download activity.`,
+              package: pkg,
+            };
+          });
+
+          return {
+            success: true,
+            recommendations,
+            total: recommendations.length,
+          };
+        }
+
+        // Generate recommendations using AI engine (vector packages)
         const recommendations = await generateRecommendations({
           userId: ctx.user.id,
           limit: input.limit,
         });
 
-        // Filter by package type if specified
-        let filtered = recommendations;
-        if (input.packageType) {
-          // Map vector recommendations to package types
-          // (In production, you'd have type metadata in the vectors)
-          filtered = recommendations; // Placeholder
-        }
+        const filtered = recommendations;
 
         return {
           success: true,
@@ -782,15 +899,21 @@ export const packagesApiRouter = router({
       packageId: z.string(),
     }))
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
+      let pkg: any = null;
 
-      const [pkg] = await db
-        .select()
-        .from(table)
-        .where(eq(table.packageId, input.packageId))
-        .limit(1);
+      if (input.packageType === 'vector') {
+        pkg = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'memory') {
+        pkg = await prisma.memoryPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'chain') {
+        pkg = await prisma.chainPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      }
 
       if (!pkg) {
         throw new TRPCError({
@@ -818,16 +941,21 @@ export const packagesApiRouter = router({
   purchasePackage: protectedProcedure
     .input(PurchasePackageSchema)
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
-
       // Get package
-      const [pkg] = await db
-        .select()
-        .from(table)
-        .where(eq(table.packageId, input.packageId))
-        .limit(1);
+      let pkg: any = null;
+      if (input.packageType === 'vector') {
+        pkg = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'memory') {
+        pkg = await prisma.memoryPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'chain') {
+        pkg = await prisma.chainPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      }
 
       if (!pkg) {
         throw new TRPCError({
@@ -837,17 +965,13 @@ export const packagesApiRouter = router({
       }
 
       // Check if already purchased
-      const [existingPurchase] = await db
-        .select()
-        .from(packagePurchases)
-        .where(
-          and(
-            eq(packagePurchases.buyerId, ctx.user.id),
-            eq(packagePurchases.packageId, input.packageId),
-            eq(packagePurchases.packageType, input.packageType)
-          )
-        )
-        .limit(1);
+      const existingPurchase = await prisma.packagePurchase.findFirst({
+        where: {
+          buyerId: ctx.user.id,
+          packageId: input.packageId,
+          packageType: input.packageType,
+        },
+      });
 
       if (existingPurchase) {
         return {
@@ -857,58 +981,127 @@ export const packagesApiRouter = router({
         };
       }
 
-      // Calculate fees (10% platform fee)
       const priceNum = parseFloat(pkg.price.toString());
-      const platformFee = (priceNum * 0.1).toFixed(2);
-      const sellerEarnings = (priceNum * 0.9).toFixed(2);
+      if (!Number.isFinite(priceNum) || priceNum <= 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Invalid package price',
+        });
+      }
 
-      // Create purchase record
-      const insertResult = await db.insert(packagePurchases).values({
-        buyerId: ctx.user.id,
-        sellerId: pkg.userId,
-        packageId: input.packageId,
-        packageType: input.packageType,
-        price: pkg.price,
-        platformFee,
-        sellerEarnings,
-        status: 'completed',
-      }).$returningId();
-      const purchaseId = insertResult[0]?.id;
-      const [purchase] = purchaseId ? await db.select().from(packagePurchases).where(eq(packagePurchases.id, purchaseId)).limit(1) : [];
+      let purchase = null as any;
+      let alreadyPurchased = false;
+
+      if (input.paymentMethod === 'credits') {
+        const { purchaseWithCredits } = await import('../utils/credit-payment-system');
+        const result = await purchaseWithCredits({
+          userId: ctx.user.id,
+          amount: priceNum,
+          packageType: input.packageType,
+          packageId: input.packageId,
+          metadata: {
+            source: 'packages-api',
+          },
+        });
+
+        alreadyPurchased = result.transactionId === 0;
+        purchase = await prisma.packagePurchase.findUnique({
+          where: { id: result.purchaseId },
+        });
+      } else if (input.paymentMethod === 'stripe') {
+        if (!input.paymentMethodId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'paymentMethodId is required for Stripe purchases',
+          });
+        }
+
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(priceNum * 100),
+          currency: 'usd',
+          payment_method: input.paymentMethodId,
+          confirm: true,
+          automatic_payment_methods: {
+            enabled: true,
+            allow_redirects: 'never',
+          },
+          metadata: {
+            userId: ctx.user.id.toString(),
+            packageType: input.packageType,
+            packageId: input.packageId,
+          },
+        });
+
+        if (paymentIntent.status !== 'succeeded') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Payment failed',
+          });
+        }
+
+        const platformFee = (priceNum * 0.1).toFixed(2);
+        const sellerEarnings = (priceNum * 0.9).toFixed(2);
+
+        purchase = await prisma.packagePurchase.create({
+          data: {
+            buyerId: ctx.user.id,
+            sellerId: pkg.userId,
+            packageId: input.packageId,
+            packageType: input.packageType,
+            price: pkg.price,
+            platformFee,
+            sellerEarnings,
+            status: 'completed',
+            stripePaymentIntentId: paymentIntent.id,
+          } as any,
+        });
+      } else {
+        throw new TRPCError({
+          code: 'NOT_IMPLEMENTED',
+          message: 'Crypto purchase is not available here. Please top up credits and use paymentMethod=credits.',
+        });
+      }
 
       // Send email notifications (async, don't block response)
-      try {
-        // Get buyer and seller info
-        const [buyer] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
-        const [seller] = await db.select().from(users).where(eq(users.id, pkg.userId)).limit(1);
+      if (!alreadyPurchased && purchase) {
+        try {
+          // Get buyer and seller info
+          const buyer = await prisma.user.findUnique({
+            where: { id: ctx.user.id },
+          });
+          const seller = await prisma.user.findUnique({
+            where: { id: pkg.userId },
+          });
 
-        // Send purchase confirmation to buyer
-        if (buyer?.email) {
-          sendPurchaseConfirmationEmail(
-            buyer.email,
-            pkg.name,
-            input.packageType,
-            priceNum.toFixed(2)
-          ).catch(err => logger.error('[Email] Failed to send purchase confirmation:', err));
-        }
+          // Send purchase confirmation to buyer
+          if (buyer?.email) {
+            sendPurchaseConfirmationEmail(
+              buyer.email,
+              pkg.name,
+              input.packageType,
+              priceNum.toFixed(2)
+            ).catch(err => logger.error('[Email] Failed to send purchase confirmation:', err));
+          }
 
-        // Send sale notification to seller
-        if (seller?.email) {
-          sendSaleNotificationEmail(
-            seller.email,
-            pkg.name,
-            buyer?.name || 'Anonymous',
-            priceNum.toFixed(2),
-            sellerEarnings
-          ).catch(err => logger.error('[Email] Failed to send sale notification:', err));
+          // Send sale notification to seller
+          if (seller?.email) {
+            const sellerEarnings = (priceNum * 0.9).toFixed(2);
+            sendSaleNotificationEmail(
+              seller.email,
+              pkg.name,
+              buyer?.name || 'Anonymous',
+              priceNum.toFixed(2),
+              sellerEarnings
+            ).catch(err => logger.error('[Email] Failed to send sale notification:', err));
+          }
+        } catch (emailError) {
+          logger.error('[Email] Error sending notifications:', { error: emailError });
         }
-      } catch (emailError) {
-        logger.error('[Email] Error sending notifications:', { error: emailError });
       }
 
       return {
         success: true,
-        alreadyPurchased: false,
+        alreadyPurchased,
         purchase,
       };
     }),
@@ -919,22 +1112,14 @@ export const packagesApiRouter = router({
   downloadPackage: protectedProcedure
     .input(DownloadPackageSchema)
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
-
       // Check if purchased
-      const [purchase] = await db
-        .select()
-        .from(packagePurchases)
-        .where(
-          and(
-            eq(packagePurchases.buyerId, ctx.user.id),
-            eq(packagePurchases.packageId, input.packageId),
-            eq(packagePurchases.packageType, input.packageType)
-          )
-        )
-        .limit(1);
+      const purchase = await prisma.packagePurchase.findFirst({
+        where: {
+          buyerId: ctx.user.id,
+          packageId: input.packageId,
+          packageType: input.packageType,
+        },
+      });
 
       if (!purchase) {
         throw new TRPCError({
@@ -944,11 +1129,20 @@ export const packagesApiRouter = router({
       }
 
       // Get package
-      const [pkg] = await db
-        .select()
-        .from(table)
-        .where(eq(table.packageId, input.packageId))
-        .limit(1);
+      let pkg: any = null;
+      if (input.packageType === 'vector') {
+        pkg = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'memory') {
+        pkg = await prisma.memoryPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      } else if (input.packageType === 'chain') {
+        pkg = await prisma.chainPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+      }
 
       if (!pkg) {
         throw new TRPCError({
@@ -976,19 +1170,33 @@ export const packagesApiRouter = router({
       const { url: signedUrl } = await storageGet(s3Key, expiresIn);
 
       // Record download
-      await db.insert(packageDownloads).values({
-        userId: ctx.user.id,
-        packageId: input.packageId,
-        packageType: input.packageType,
-        downloadUrl: signedUrl,
-        expiresAt,
+      await prismaAny.packageDownload.create({
+        data: {
+          userId: ctx.user.id,
+          packageId: input.packageId,
+          packageType: input.packageType,
+          downloadUrl: signedUrl,
+          expiresAt,
+        },
       });
 
       // Update download count
-      await db
-        .update(table)
-        .set({ downloads: sql`${table.downloads} + 1` })
-        .where(eq(table.packageId, input.packageId));
+      if (input.packageType === 'vector') {
+        await prisma.vectorPackage.update({
+          where: { packageId: input.packageId },
+          data: { downloads: { increment: 1 } },
+        });
+      } else if (input.packageType === 'memory') {
+        await prisma.memoryPackage.update({
+          where: { packageId: input.packageId },
+          data: { downloads: { increment: 1 } },
+        });
+      } else if (input.packageType === 'chain') {
+        await prisma.chainPackage.update({
+          where: { packageId: input.packageId },
+          data: { downloads: { increment: 1 } },
+        });
+      }
 
       return {
         success: true,
@@ -1004,15 +1212,24 @@ export const packagesApiRouter = router({
   myPackages: protectedProcedure
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-      const table = getPackageTable(input.packageType);
+      let packages: any[] = [];
 
-      const packages = await db
-        .select()
-        .from(table)
-        .where(eq(table.userId, ctx.user.id))
-        .orderBy(desc(table.createdAt));
+      if (input.packageType === 'vector') {
+        packages = await prisma.vectorPackage.findMany({
+          where: { userId: ctx.user.id },
+          orderBy: { createdAt: 'desc' },
+        });
+      } else if (input.packageType === 'memory') {
+        packages = await prisma.memoryPackage.findMany({
+          where: { userId: ctx.user.id },
+          orderBy: { createdAt: 'desc' },
+        });
+      } else if (input.packageType === 'chain') {
+        packages = await prisma.chainPackage.findMany({
+          where: { userId: ctx.user.id },
+          orderBy: { createdAt: 'desc' },
+        });
+      }
 
       return {
         success: true,
@@ -1026,19 +1243,13 @@ export const packagesApiRouter = router({
   myPurchases: protectedProcedure
     .input(z.object({ packageType: PackageTypeSchema }))
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
-      const purchases = await db
-        .select()
-        .from(packagePurchases)
-        .where(
-          and(
-            eq(packagePurchases.buyerId, ctx.user.id),
-            eq(packagePurchases.packageType, input.packageType)
-          )
-        )
-        .orderBy(desc(packagePurchases.purchasedAt));
+      const purchases = await prisma.packagePurchase.findMany({
+        where: {
+          buyerId: ctx.user.id,
+          packageType: input.packageType,
+        },
+        orderBy: { purchasedAt: 'desc' },
+      });
 
       return {
         success: true,
@@ -1063,8 +1274,6 @@ export const packagesApiRouter = router({
       limit: z.number().min(1).max(50).default(20),
     }))
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
       const results: Array<{
         type: 'vector' | 'memory' | 'chain';
         package: VectorPackage | MemoryPackage | ChainPackage;
@@ -1072,66 +1281,88 @@ export const packagesApiRouter = router({
 
       // Determine which package types to search
       const typesToSearch = input.packageTypes || ['vector', 'memory', 'chain'];
+      const limitPerType = Math.ceil(input.limit / typesToSearch.length);
 
       // Search each package type
       for (const packageType of typesToSearch) {
-        const table = getPackageTable(packageType);
-        const conditions: SQL[] = [];
+        const where: any = {};
 
         // Text search (name or description)
         if (input.query) {
-          const searchCondition = or(
-            like(table.name, `%${input.query}%`),
-            like(table.description, `%${input.query}%`)
-          );
-          if (searchCondition) conditions.push(searchCondition);
+          where.OR = [
+            { name: { contains: input.query, mode: 'insensitive' } },
+            { description: { contains: input.query, mode: 'insensitive' } },
+          ];
         }
 
         // Model filters
         if (input.sourceModel) {
-          conditions.push(eq(table.sourceModel, input.sourceModel));
+          where.sourceModel = input.sourceModel;
         }
         if (input.targetModel) {
-          conditions.push(eq(table.targetModel, input.targetModel));
+          where.targetModel = input.targetModel;
         }
 
         // Category filter (only for vector packages)
         if (input.category && packageType === 'vector') {
-          // Use vectorPackages directly since we know it's a vector package
-          conditions.push(eq(vectorPackages.category, input.category));
+          where.category = input.category;
         }
 
         // Epsilon range filter
-        if (input.minEpsilon !== undefined) {
-          conditions.push(sql`${table.epsilon} >= ${input.minEpsilon}`);
-        }
-        if (input.maxEpsilon !== undefined) {
-          conditions.push(sql`${table.epsilon} <= ${input.maxEpsilon}`);
+        if (input.minEpsilon !== undefined || input.maxEpsilon !== undefined) {
+          where.epsilon = {};
+          if (input.minEpsilon !== undefined) {
+            where.epsilon.gte = String(input.minEpsilon);
+          }
+          if (input.maxEpsilon !== undefined) {
+            where.epsilon.lte = String(input.maxEpsilon);
+          }
         }
 
         // Price range filter
-        if (input.minPrice !== undefined) {
-          conditions.push(sql`${table.price} >= ${input.minPrice}`);
-        }
-        if (input.maxPrice !== undefined) {
-          conditions.push(sql`${table.price} <= ${input.maxPrice}`);
+        if (input.minPrice !== undefined || input.maxPrice !== undefined) {
+          where.price = {};
+          if (input.minPrice !== undefined) {
+            where.price.gte = String(input.minPrice);
+          }
+          if (input.maxPrice !== undefined) {
+            where.price.lte = String(input.maxPrice);
+          }
         }
 
         // Query packages
-        const packages = await db
-          .select()
-          .from(table)
-          .where(conditions.length > 0 ? and(...conditions) : undefined)
-          .orderBy(desc(table.createdAt))
-          .limit(Math.ceil(input.limit / typesToSearch.length)); // Distribute limit across types
+        let packages: any[] = [];
+        try {
+          if (packageType === 'vector') {
+            packages = await prisma.vectorPackage.findMany({
+              where,
+              orderBy: { createdAt: 'desc' },
+              take: limitPerType,
+            });
+          } else if (packageType === 'memory') {
+            packages = await prisma.memoryPackage.findMany({
+              where,
+              orderBy: { createdAt: 'desc' },
+              take: limitPerType,
+            });
+          } else if (packageType === 'chain') {
+            packages = await prisma.chainPackage.findMany({
+              where,
+              orderBy: { createdAt: 'desc' },
+              take: limitPerType,
+            });
+          }
 
-        // Add to results with type annotation
-        packages.forEach(pkg => {
-          results.push({
-            type: packageType,
-            package: pkg,
+          // Add to results with type annotation
+          packages.forEach(pkg => {
+            results.push({
+              type: packageType,
+              package: pkg,
+            });
           });
-        });
+        } catch (error) {
+          logger.error(`Failed to search ${packageType} packages`, { error });
+        }
       }
 
       // Sort all results by creation date and limit

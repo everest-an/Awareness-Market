@@ -282,8 +282,8 @@ export default function CreatorDashboard() {
                           </p>
                           <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                             <span>{vector.totalCalls} calls</span>
-                            <span>${parseFloat(vector.totalRevenue).toFixed(2)} earned</span>
-                            <span>â­?{parseFloat(vector.averageRating || "0").toFixed(1)}</span>
+                            <span>${parseFloat(vector.totalRevenue.toString()).toFixed(2)} earned</span>
+                            <span>ï¿½?{parseFloat((vector.averageRating || "0").toString()).toFixed(1)}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">

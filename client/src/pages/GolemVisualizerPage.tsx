@@ -37,14 +37,14 @@ export default function GolemVisualizerPage() {
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'rating'>('recent');
   const [dataSource, setDataSource] = useState<'live' | 'live+demo' | 'demo'>('demo');
 
-  // 查询包数�?- 仅在登录后获取真实数�?
+  // Query package data - Get real data only after login
   const { data: packagesData } = trpc.packages.browsePackages.useQuery({
     packageType,
     sortBy,
     search: searchQuery || undefined,
     limit: 50,
   }, {
-    enabled: isAuthenticated, // 仅在登录时获取真实数�?
+    enabled: isAuthenticated, // Get real data only when logged in
   });
 
   const generateDemoVectors = (count: number): VectorData[] => {

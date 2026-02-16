@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebMCP Integration Demo - Awareness Market</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 24px;
+    }
+
+    .section h3 {
+      color: #555;
+      margin: 20px 0 10px;
+      font-size: 18px;
+    }
+
+    .code-block {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .demo-button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-top: 10px;
+      transition: transform 0.2s;
+    }
+
+    .demo-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .demo-button:active {
+      transform: translateY(0);
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .output.active {
+      display: block;
+    }
+
+    .output-line {
+      margin-bottom: 5px;
+    }
+
+    .tools-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .tool-card {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 15px;
+      transition: all 0.2s;
+    }
+
+    .tool-card:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .tool-name {
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+
+    .tool-desc {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .status {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status.connected {
+      background: #00ff00;
+      box-shadow: 0 0 10px #00ff00;
+    }
+
+    .status.disconnected {
+      background: #ff0000;
+    }
+
+    .info-box {
+      background: #e8f4fd;
+      border-left: 4px solid #1890ff;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+    }
+
+    .warning-box {
+      background: #fff7e6;
+      border-left: 4px solid #fa8c16;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 WebMCP Integration Demo</h1>
+    <p class="subtitle">
+      <span class="status disconnected" id="status"></span>
+      <span id="status-text">Not connected</span>
+      <span class="badge">v1.0</span>
+    </p>
+
+    <!-- Quick Start -->
+    <div class="section">
+      <h2>🚀 Quick Start</h2>
+      <p>Test WebMCP integration with Awareness Market. Use the blue widget in the bottom-right to connect your AI agent.</p>
+
+      <div class="info-box">
+        <strong>📝 Note:</strong> You need an MCP token to connect. Create one via:
+        <code>POST /api/mcp/tokens</code> with your API key.
+      </div>
+
+      <h3>Demo Actions</h3>
+      <button class="demo-button" onclick="demo.testConnection()">
+        Test Connection
+      </button>
+      <button class="demo-button" onclick="demo.searchVectors()">
+        Search Vectors
+      </button>
+      <button class="demo-button" onclick="demo.retrieveMemories()">
+        Retrieve Memories (RMC)
+      </button>
+      <button class="demo-button" onclick="demo.getHotEntities()">
+        Get Hot Entities
+      </button>
+      <button class="demo-button" onclick="demo.multiAgentSync()">
+        Multi-Agent Sync
+      </button>
+
+      <div id="output" class="output"></div>
+    </div>
+
+    <!-- Available Tools -->
+    <div class="section">
+      <h2>🛠️ Available Tools</h2>
+      <p>AI agents can use these tools to interact with Awareness Market:</p>
+
+      <div class="tools-list">
+        <div class="tool-card">
+          <div class="tool-name">search_vectors</div>
+          <div class="tool-desc">Search for latent vectors by category, rating, or natural language query.</div>
+        </div>
+
+        <div class="tool-card">
+          <div class="tool-name">retrieve_memories_rmc</div>
+          <div class="tool-desc">Hybrid retrieval with vector search + graph traversal + inference paths.</div>
+        </div>
+
+        <div class="tool-card">
+          <div class="tool-name">create_memory</div>
+          <div class="tool-desc">Create a new memory entry in the shared memory graph.</div>
+        </div>
+
+        <div class="tool-card">
+          <div class="tool-name">get_memory_graph</div>
+          <div class="tool-desc">Get relationship graph for a specific memory.</div>
+        </div>
+
+        <div class="tool-card">
+          <div class="tool-name">multi_agent_sync</div>
+          <div class="tool-desc">Coordinate multiple AI agents for collaborative decision-making.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Resources -->
+    <div class="section">
+      <h2>📦 Available Resources</h2>
+      <div class="code-block">
+memory://graph/{memoryId}           - Memory relationship graph
+vectors://marketplace/trending      - Trending latent vectors
+entities://hot                      - Hot entities (most mentioned)
+memories://search/{query}           - Search memories by query
+vectors://vector/{vectorId}         - Vector details
+rmc://inference-paths/{memoryId}    - Inference paths
+      </div>
+    </div>
+
+    <!-- Prompts -->
+    <div class="section">
+      <h2>💬 Prompt Templates</h2>
+      <div class="code-block">
+search_by_capability       - Search vectors by capability
+analyze_memory_graph       - Analyze memory relationships
+multi_agent_decision       - Collaborative AI decision-making
+optimize_vector_search     - Find optimal vector for use case
+debug_memory_conflicts     - Resolve memory contradictions
+      </div>
+    </div>
+
+    <!-- Integration Guide -->
+    <div class="section">
+      <h2>📚 Integration Guide</h2>
+
+      <h3>1. Initialize WebMCP</h3>
+      <div class="code-block">
+import { initializeWebMCP } from './lib/webmcp';
+
+const webmcp = await initializeWebMCP({
+  apiBaseUrl: 'http://localhost:5000',
+  enableWidget: true,
+  widgetPosition: 'bottom-right',
+  autoConnect: false
+});
+      </div>
+
+      <h3>2. Authenticate</h3>
+      <div class="code-block">
+// Method 1: Direct token
+const mcpToken = 'mcp_your_token_here';
+const session = await webmcp.authenticate(mcpToken);
+
+// Method 2: OAuth device flow
+const deviceAuth = await webmcp.authManager.startDeviceFlow();
+console.log(`Visit: ${deviceAuth.verification_uri}`);
+console.log(`Code: ${deviceAuth.user_code}`);
+      </div>
+
+      <h3>3. Call Tools</h3>
+      <div class="code-block">
+// Search for vectors
+const vectors = await webmcp.callTool('search_vectors', {
+  query: 'vision transformers',
+  category: 'computer_vision',
+  minRating: 4.0,
+  limit: 5
+});
+
+// RMC retrieval
+const memories = await webmcp.callTool('retrieve_memories_rmc', {
+  query: 'SpaceX Starship development',
+  maxDepth: 3,
+  includeInferencePaths: true
+});
+      </div>
+
+      <h3>4. Get Resources</h3>
+      <div class="code-block">
+// Get trending vectors
+const trending = await webmcp.getResource(
+  'vectors://marketplace/trending?limit=20'
+);
+
+// Get hot entities
+const hotEntities = await webmcp.getResource(
+  'entities://hot?type=COMPANY&minMentions=10'
+);
+      </div>
+    </div>
+
+    <!-- Security -->
+    <div class="section">
+      <h2>🔒 Security</h2>
+
+      <div class="warning-box">
+        <strong>⚠️ Important:</strong> Write operations (create_memory, purchase_vector) require user confirmation unless the token has 'write' capability.
+      </div>
+
+      <h3>Permission Levels</h3>
+      <div class="code-block">
+read                      - Read-only access (no confirmation required)
+write_with_confirmation   - Write access with user confirmation
+write                     - Full write access (trusted AI agents only)
+admin                     - Admin operations (always requires confirmation)
+      </div>
+    </div>
+  </div>
+
+  <!-- WebMCP Client Script -->
+  <script type="module">
+    // Demo WebMCP client (simplified for demo purposes)
+    class DemoWebMCP {
+      constructor() {
+        this.apiBaseUrl = window.location.origin;
+        this.mcpToken = null;
+        this.session = null;
+      }
+
+      async testConnection() {
+        this.log('🔍 Testing API connection...');
+        try {
+          const response = await fetch(`${this.apiBaseUrl}/api/mcp/health`);
+          const data = await response.json();
+          this.log(`✅ API is ${data.status} (v${data.version})`);
+          this.updateStatus(true);
+        } catch (error) {
+          this.log(`❌ Connection failed: ${error.message}`);
+          this.updateStatus(false);
+        }
+      }
+
+      async searchVectors() {
+        this.log('🔍 Searching for vision transformer vectors...');
+        try {
+          const response = await fetch(`${this.apiBaseUrl}/api/mcp/discover`);
+          const data = await response.json();
+          this.log(`✅ Found ${data.total} vectors`);
+          if (data.vectors && data.vectors.length > 0) {
+            this.log(`📦 Top result: ${data.vectors[0].name}`);
+            this.log(`⭐ Rating: ${data.vectors[0].metadata.average_rating}/5`);
+          }
+        } catch (error) {
+          this.log(`❌ Search failed: ${error.message}`);
+        }
+      }
+
+      async retrieveMemories() {
+        this.log('🧠 Retrieving memories with RMC...');
+        this.log('ℹ️  Note: This requires authentication and database access');
+        this.log('💡 Use the widget to connect your MCP token first');
+      }
+
+      async getHotEntities() {
+        this.log('🔥 Getting hot entities...');
+        this.log('ℹ️  Note: This requires authentication and database access');
+        this.log('💡 Use the widget to connect your MCP token first');
+      }
+
+      async multiAgentSync() {
+        this.log('🤖 Multi-agent synchronization demo...');
+        this.log('ℹ️  This coordinates multiple AI agents for collaborative decisions');
+        this.log('📝 Example: Financial + Technical + Risk analysis');
+        this.log('💡 Requires authentication - use the widget to connect');
+      }
+
+      log(message) {
+        const output = document.getElementById('output');
+        output.classList.add('active');
+        const line = document.createElement('div');
+        line.className = 'output-line';
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        output.appendChild(line);
+        output.scrollTop = output.scrollHeight;
+      }
+
+      updateStatus(connected) {
+        const status = document.getElementById('status');
+        const statusText = document.getElementById('status-text');
+        if (connected) {
+          status.className = 'status connected';
+          statusText.textContent = 'Connected to Awareness Market API';
+        } else {
+          status.className = 'status disconnected';
+          statusText.textContent = 'Not connected';
+        }
+      }
+    }
+
+    // Initialize demo
+    window.demo = new DemoWebMCP();
+
+    // Auto-test connection on load
+    window.addEventListener('load', () => {
+      demo.testConnection();
+    });
+  </script>
+
+  <!-- TODO: Add actual WebMCP widget script -->
+  <script>
+    // This would load the actual WebMCP library
+    // For now, showing a message
+    console.log('%c🎯 WebMCP Demo Loaded', 'color: #667eea; font-size: 16px; font-weight: bold;');
+    console.log('To use WebMCP in production, import the library:');
+    console.log('import { initializeWebMCP } from "./lib/webmcp"');
+  </script>
+</body>
+</html>

@@ -281,8 +281,8 @@ export const openApiSpec = {
                   },
                   paymentMethod: {
                     type: 'string',
-                    enum: ['stripe', 'crypto'],
-                    default: 'stripe',
+                    enum: ['credits', 'stripe', 'crypto'],
+                    default: 'credits',
                   },
                 },
               },

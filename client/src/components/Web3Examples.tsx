@@ -1,6 +1,6 @@
 /**
- * Web3 集成示例
- * 展示如何在应用中使用钱包和 NFT 合约功能
+ * Web3 Integration Examples
+ * Demonstrates how to use wallet and NFT contract functions in the app
  */
 
 import React, { useEffect, useState } from 'react';
@@ -8,28 +8,28 @@ import { useWeb3 } from '../contexts/Web3Context';
 import { getMemoryNFTManager } from '../lib/nft-contract';
 
 /**
- * 示例 1: 在组件中使用 Web3Context
+ * Example 1: Using Web3Context in components
  */
 export function Web3ExampleComponent() {
   const { state, connect, disconnect, switchToAmoy } = useWeb3();
 
   return (
     <div>
-      <h3>Web3 状态</h3>
-      <p>连接状态: {state.isConnected ? '已连接' : '未连接'}</p>
-      <p>地址: {state.address}</p>
-      <p>余额: {state.balance} MATIC</p>
-      <p>网络: {state.chainName} (ID: {state.chainId})</p>
+      <h3>Web3 Status</h3>
+      <p>Connection Status: {state.isConnected ? 'Connected' : 'Disconnected'}</p>
+      <p>Address: {state.address}</p>
+      <p>Balance: {state.balance} MATIC</p>
+      <p>Network: {state.chainName} (ID: {state.chainId})</p>
 
-      <button onClick={connect}>连接钱包</button>
-      <button onClick={disconnect}>断开连接</button>
-      <button onClick={switchToAmoy}>切换到 Amoy 网络</button>
+      <button onClick={connect}>Connect Wallet</button>
+      <button onClick={disconnect}>Disconnect</button>
+      <button onClick={switchToAmoy}>Switch to Amoy Network</button>
     </div>
   );
 }
 
 /**
- * 示例 2: 购买 NFT 许可证
+ * Example 2: Purchase NFT License
  */
 export function BuyLicenseExample() {
   const { state } = useWeb3();
@@ -45,28 +45,28 @@ export function BuyLicenseExample() {
         process.env.REACT_APP_MEMORY_NFT_ADDRESS
       );
 
-      // 购买 tokenId 为 1 的 NFT 许可证
+      // Purchase NFT license with tokenId 1
       const txHash = await nftManager.buyLicense(1);
-      console.log('许可证购买交易:', txHash);
-      alert('许可证购买成功! 交易 ID: ' + txHash);
+      console.log('License purchase transaction:', txHash);
+      alert('License purchase successful! Transaction ID: ' + txHash);
     } catch (error) {
-      console.error('购买失败:', error);
-      alert('购买失败: ' + (error as Error).message);
+      console.error('Purchase failed:', error);
+      alert('Purchase failed: ' + (error as Error).message);
     }
   };
 
   return (
     <div>
-      <h3>购买 NFT 许可证</h3>
+      <h3>Purchase NFT License</h3>
       <button onClick={handleBuyLicense} disabled={!state.isConnected || !state.isOnAmoy}>
-        购买许可证
+        Purchase License
       </button>
     </div>
   );
 }
 
 /**
- * 示例 3: 获取用户 NFT
+ * Example 3: Get User NFTs
  */
 export function UserNFTsExample() {
   const { state } = useWeb3();
@@ -88,8 +88,8 @@ export function UserNFTsExample() {
       const userNFTs = await nftManager.getUserNFTs(state.address);
       setNfts(userNFTs);
     } catch (error) {
-      console.error('获取 NFT 失败:', error);
-      alert('获取 NFT 失败');
+      console.error('Failed to get NFTs:', error);
+      alert('Failed to get NFTs');
     } finally {
       setLoading(false);
     }
@@ -97,9 +97,9 @@ export function UserNFTsExample() {
 
   return (
     <div>
-      <h3>我的 NFT</h3>
+      <h3>My NFTs</h3>
       <button onClick={handleGetNFTs} disabled={loading || !state.isConnected}>
-        {loading ? '加载中...' : '获取我的 NFT'}
+        {loading ? 'Loading...' : 'Get My NFTs'}
       </button>
 
       <ul>
@@ -116,7 +116,7 @@ export function UserNFTsExample() {
 }
 
 /**
- * 示例 4: 监听合约事件
+ * Example 4: Listen to Contract Events
  */
 export function NFTEventListenerExample() {
   const { state } = useWeb3();
@@ -130,17 +130,17 @@ export function NFTEventListenerExample() {
       process.env.REACT_APP_MEMORY_NFT_ADDRESS
     );
 
-    // 监听 NFT 转移事件
+    // Listen for NFT Transfer events
     const unsubscribeTransfer = nftManager.onNFTTransfer(
       (from, to, tokenId) => {
-        console.log(`NFT ${tokenId} 从 ${from} 转移到 ${to}`);
+        console.log(`NFT ${tokenId} from ${from} transferred to ${to}`);
       }
     );
 
-    // 监听许可证购买事件
+    // Listen for License Purchased events
     const unsubscribeLicense = nftManager.onLicensePurchased(
       (tokenId, buyer, price) => {
-        console.log(`许可证购买: Token ${tokenId}, 购买者 ${buyer}, 价格 ${price} Wei`);
+        console.log(`License Purchased: Token ${tokenId}, Buyer ${buyer}, Price ${price} Wei`);
       }
     );
 
@@ -150,11 +150,11 @@ export function NFTEventListenerExample() {
     };
   }, [state.isConnected]);
 
-  return <div>事件监听已启动 (检查控制台)</div>;
+  return <div>Event listeners started (check console)</div>;
 }
 
 /**
- * 示例 5: 签名验证
+ * Example 5: Signature Verification
  */
 export function SignMessageExample() {
   const { state, signMessage } = useWeb3();
@@ -167,23 +167,23 @@ export function SignMessageExample() {
     }
 
     try {
-      const message = '我同意使用此钱包';
+      const message = 'I agree to use this wallet';
       const sig = await signMessage(message);
       setSignature(sig);
-      console.log('签名:', sig);
+      console.log('Signature:', sig);
     } catch (error) {
-      console.error('签名失败:', error);
-      alert('签名失败');
+      console.error('Signature failed:', error);
+      alert('Signature failed');
     }
   };
 
   return (
     <div>
-      <h3>签名验证</h3>
+      <h3>Signature Verification</h3>
       <button onClick={handleSign} disabled={!state.isConnected}>
-        签名
+        Sign
       </button>
-      {signature && <p>签名: {signature}</p>}
+      {signature && <p>Signature: {signature}</p>}
     </div>
   );
 }

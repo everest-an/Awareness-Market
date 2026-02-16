@@ -5,13 +5,12 @@
 
 import express from 'express';
 import Stripe from 'stripe';
-import { getDb } from './db.js';
-import { latentVectors, transactions, accessPermissions } from '../drizzle/schema.ts';
-import { eq, and } from 'drizzle-orm';
+import { prisma } from './db-prisma';
 import crypto from 'crypto';
-import { validateApiKey as validateKey } from './api-key-manager.js';
+import { validateApiKey as validateKey } from './api-key-manager';
 import { getErrorMessage } from './utils/error-handling';
 import { createLogger } from './utils/logger';
+import { runVector } from './vector-runtime';
 
 const logger = createLogger('Purchase:API');
 const router = express.Router();
@@ -24,10 +23,6 @@ interface PurchaseAuthenticatedRequest extends express.Request {
   permissions: string[];
 }
 
-// MySQL insert result type
-interface InsertResult {
-  insertId: number;
-}
 
 /**
  * Authenticate API requests using real API key validation
@@ -66,22 +61,15 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
       });
     }
 
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: 'Database connection failed' });
-    }
-    
     // Get vector details
-    const [vector] = await db
-      .select()
-      .from(latentVectors)
-      .where(eq(latentVectors.id, vectorId))
-      .limit(1);
-    
+    const vector = await prisma.latentVector.findUnique({
+      where: { id: vectorId }
+    });
+
     if (!vector) {
       return res.status(404).json({ error: 'Vector not found' });
     }
-    
+
     if (vector.status !== 'active') {
       return res.status(400).json({ error: 'Vector is not available for purchase' });
     }
@@ -90,7 +78,7 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
     const buyerId = (req as PurchaseAuthenticatedRequest).userId;
     
     // Calculate fees
-    const amount = parseFloat(vector.basePrice);
+    const amount = parseFloat(vector.basePrice.toString());
     const platformFeeRate = 0.15; // 15%
     const platformFee = amount * platformFeeRate;
     const creatorEarnings = amount - platformFee;
@@ -120,9 +108,8 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
     }
 
     // Create transaction record
-    const [transactionResult] = await db
-      .insert(transactions)
-      .values({
+    const transaction = await prisma.transaction.create({
+      data: {
         buyerId,
         vectorId,
         amount: vector.basePrice,
@@ -131,32 +118,35 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
         stripePaymentIntentId: paymentIntent.id,
         status: 'completed',
         transactionType: 'one-time'
-      });
+      }
+    });
 
-    const transactionId = (transactionResult as unknown as InsertResult).insertId;
+    const transactionId = transaction.id;
 
     // Generate access token
     const accessToken = `vat_${crypto.randomBytes(32).toString('hex')}`;
 
     // Create access permission
-    await db.insert(accessPermissions).values({
-      userId: buyerId,
-      vectorId,
-      transactionId,
-      accessToken,
-      expiresAt: null, // Lifetime access
-      callsRemaining: null, // Unlimited calls
-      isActive: true
+    await prisma.accessPermission.create({
+      data: {
+        userId: buyerId,
+        vectorId,
+        transactionId,
+        accessToken,
+        expiresAt: null, // Lifetime access
+        callsRemaining: null, // Unlimited calls
+        isActive: true
+      }
     });
 
     // Update vector statistics
-    await db
-      .update(latentVectors)
-      .set({
+    await prisma.latentVector.update({
+      where: { id: vectorId },
+      data: {
         totalCalls: vector.totalCalls + 1,
-        totalRevenue: (parseFloat(vector.totalRevenue) + amount).toFixed(2)
-      })
-      .where(eq(latentVectors.id, vectorId));
+        totalRevenue: (parseFloat(vector.totalRevenue.toString()) + amount).toFixed(2)
+      }
+    });
 
     // Return success with access token
     res.json({
@@ -200,22 +190,16 @@ router.post('/purchase', authenticateApiKey, async (req, res) => {
 router.get('/:id/pricing', async (req, res) => {
   try {
     const vectorId = parseInt(req.params.id);
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: 'Database connection failed' });
-    }
-    
-    const [vector] = await db
-      .select()
-      .from(latentVectors)
-      .where(eq(latentVectors.id, vectorId))
-      .limit(1);
-    
+
+    const vector = await prisma.latentVector.findUnique({
+      where: { id: vectorId }
+    });
+
     if (!vector) {
       return res.status(404).json({ error: 'Vector not found' });
     }
 
-    const amount = parseFloat(vector.basePrice);
+    const amount = parseFloat(vector.basePrice.toString());
     const platformFeeRate = 0.15;
     const platformFee = amount * platformFeeRate;
     const creatorEarnings = amount - platformFee;
@@ -256,24 +240,15 @@ router.post('/invoke', authenticateApiKey, async (req, res) => {
       });
     }
 
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: 'Database connection failed' });
-    }
-    
     // Verify access permission
-    const [permission] = await db
-      .select()
-      .from(accessPermissions)
-      .where(
-        and(
-          eq(accessPermissions.accessToken, accessToken),
-          eq(accessPermissions.vectorId, vectorId),
-          eq(accessPermissions.isActive, true)
-        )
-      )
-      .limit(1);
-    
+    const permission = await prisma.accessPermission.findFirst({
+      where: {
+        accessToken,
+        vectorId,
+        isActive: true
+      }
+    });
+
     if (!permission) {
       return res.status(403).json({ error: 'Invalid access token or permission denied' });
     }
@@ -289,60 +264,63 @@ router.post('/invoke', authenticateApiKey, async (req, res) => {
     }
 
     // Get vector details
-    const [vector] = await db
-      .select()
-      .from(latentVectors)
-      .where(eq(latentVectors.id, vectorId))
-      .limit(1);
-    
+    const vector = await prisma.latentVector.findUnique({
+      where: { id: vectorId }
+    });
+
     if (!vector) {
       return res.status(404).json({ error: 'Vector not found' });
     }
 
-    // Simulate vector invocation (in production, load vector and run inference)
-    const mockResult = {
+    const runtimeResult = await runVector({
+      vector,
+      context: inputData,
+    });
+
+    const executionResult = {
       vectorId: vector.id,
       vectorName: vector.title,
       inputData,
       output: {
-        result: 'Simulated vector output',
-        confidence: 0.95,
-        processingTime: 45
+        result: runtimeResult.text,
+        model: runtimeResult.model,
+        usage: runtimeResult.usage,
+        processingTimeMs: runtimeResult.processingTimeMs,
       },
       metadata: {
         modelArchitecture: vector.modelArchitecture,
         vectorDimension: vector.vectorDimension,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
 
     // Update calls remaining
     if (permission.callsRemaining !== null) {
-      await db
-        .update(accessPermissions)
-        .set({ callsRemaining: permission.callsRemaining - 1 })
-        .where(eq(accessPermissions.id, permission.id));
+      await prisma.accessPermission.update({
+        where: { id: permission.id },
+        data: { callsRemaining: permission.callsRemaining - 1 }
+      });
     }
 
     // Update vector usage stats
-    await db
-      .update(latentVectors)
-      .set({ totalCalls: vector.totalCalls + 1 })
-      .where(eq(latentVectors.id, vectorId));
+    await prisma.latentVector.update({
+      where: { id: vectorId },
+      data: { totalCalls: vector.totalCalls + 1 }
+    });
 
     res.json({
       success: true,
-      ...mockResult,
+      ...executionResult,
       callsRemaining: permission.callsRemaining !== null 
         ? permission.callsRemaining - 1 
         : null
     });
 
   } catch (error: unknown) {
-    logger.error('Invocation failed', { error: getErrorMessage(error), accessToken: req.body.accessToken });
+    logger.error('Invocation failed', { error: getErrorMessage(error) });
     res.status(500).json({
       error: 'Invocation failed',
-      message: getErrorMessage(error)
+      message: 'An internal error occurred while processing the invocation'
     });
   }
 });
@@ -353,29 +331,36 @@ router.post('/invoke', authenticateApiKey, async (req, res) => {
  */
 router.get('/my-purchases', authenticateApiKey, async (req, res) => {
   try {
-    const db = await getDb();
-    if (!db) {
-      return res.status(500).json({ error: 'Database connection failed' });
-    }
     const buyerId = (req as PurchaseAuthenticatedRequest).userId;
-    
-    const purchases = await db
-      .select({
-        transactionId: transactions.id,
-        vectorId: latentVectors.id,
-        vectorName: latentVectors.title,
-        category: latentVectors.category,
-        amount: transactions.amount,
-        purchaseDate: transactions.createdAt,
-        accessToken: accessPermissions.accessToken,
-        callsRemaining: accessPermissions.callsRemaining,
-        isActive: accessPermissions.isActive
-      })
-      .from(transactions)
-      .innerJoin(latentVectors, eq(transactions.vectorId, latentVectors.id))
-      .innerJoin(accessPermissions, eq(transactions.id, accessPermissions.transactionId))
-      .where(eq(transactions.buyerId, buyerId))
-      .orderBy(transactions.createdAt);
+
+    // Use raw SQL for complex join query
+    const purchases = await prisma.$queryRaw<Array<{
+      transactionId: number;
+      vectorId: number;
+      vectorName: string;
+      category: string;
+      amount: string;
+      purchaseDate: Date;
+      accessToken: string;
+      callsRemaining: number | null;
+      isActive: boolean;
+    }>>`
+      SELECT
+        t.id as "transactionId",
+        v.id as "vectorId",
+        v.title as "vectorName",
+        v.category,
+        t.amount,
+        t.created_at as "purchaseDate",
+        ap.access_token as "accessToken",
+        ap.calls_remaining as "callsRemaining",
+        ap.is_active as "isActive"
+      FROM transactions t
+      INNER JOIN latent_vectors v ON t.vector_id = v.id
+      INNER JOIN access_permissions ap ON t.id = ap.transaction_id
+      WHERE t.buyer_id = ${buyerId}
+      ORDER BY t.created_at DESC
+    `;
 
     res.json({
       success: true,

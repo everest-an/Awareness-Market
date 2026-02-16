@@ -94,7 +94,7 @@
       ├─ Vector 实现
       ├─ Memory 实现
       ├─ W-Matrix 实现
-      └─ MySQL 数据库
+      └─ PostgreSQL 数据库
    
    ❌ 同时存在 Go 服务
       ├─ Vector Operations
@@ -121,7 +121,7 @@
    └─ Admin Analytics (8082)
    
    ↓
-✅ MySQL 数据库
+✅ PostgreSQL 数据库
    └─ 单一数据源
 
 优势: 

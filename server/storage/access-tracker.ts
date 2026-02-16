@@ -1,14 +1,15 @@
 /**
  * Access Tracker Service
- * 
+ *
  * Records package access patterns to determine data temperature
  * and optimize storage tier placement
  */
 
-import { getDb } from '../db';
-import { packageAccessLog, packageStorageTier } from '../../drizzle/schema-storage-tiers';
-import { eq, and, sql, desc, gte } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
 import { createLogger } from '../utils/logger';
+
+// Cast prisma for models not yet in schema (legacy v1/v2)
+const prismaAny = prisma as any;
 
 const logger = createLogger('Storage:AccessTracker');
 
@@ -37,56 +38,48 @@ export interface TierInfo {
  */
 export async function recordPackageAccess(record: AccessRecord): Promise<void> {
   try {
-    const db = await getDb();
-    if (!db) throw new Error('Database unavailable');
-    
     // Insert access log
-    await db.insert(packageAccessLog).values({
-      packageId: record.packageId,
-      packageType: record.packageType,
-      accessType: record.accessType,
-      userId: record.userId,
-      timestamp: new Date(),
+    await prismaAny.packageAccessLog.create({
+      data: {
+        packageId: record.packageId,
+        packageType: record.packageType,
+        accessType: record.accessType,
+        userId: record.userId,
+        timestamp: new Date(),
+      },
     });
 
     // Update or create storage tier record
-    const existing = await db
-      .select()
-      .from(packageStorageTier)
-      .where(
-        and(
-          eq(packageStorageTier.packageId, record.packageId),
-          eq(packageStorageTier.packageType, record.packageType)
-        )
-      )
-      .limit(1);
-
-    if (existing.length > 0) {
-      // Update existing record
-      await db
-        .update(packageStorageTier)
-        .set({
-          lastAccessAt: new Date(),
-          accessCount: sql`${packageStorageTier.accessCount} + 1`,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(packageStorageTier.packageId, record.packageId),
-            eq(packageStorageTier.packageType, record.packageType)
-          )
-        );
-    } else {
-      // Create new record (default to hot tier on first access)
-      await db.insert(packageStorageTier).values({
+    const existing = await prismaAny.packageStorageTier.findFirst({
+      where: {
         packageId: record.packageId,
         packageType: record.packageType,
-        currentTier: 'hot',
-        currentBackend: 'r2', // Default to R2 for new uploads
-        lastAccessAt: new Date(),
-        accessCount: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      },
+    });
+
+    if (existing) {
+      // Update existing record
+      await prismaAny.packageStorageTier.update({
+        where: { id: existing.id },
+        data: {
+          lastAccessAt: new Date(),
+          accessCount: { increment: 1 },
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      // Create new record (default to hot tier on first access)
+      await prismaAny.packageStorageTier.create({
+        data: {
+          packageId: record.packageId,
+          packageType: record.packageType,
+          currentTier: 'hot',
+          currentBackend: 'r2', // Default to R2 for new uploads
+          lastAccessAt: new Date(),
+          accessCount: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       });
     }
 
@@ -106,23 +99,17 @@ export async function getAccessFrequency(
   days: number = 7
 ): Promise<number> {
   try {
-    const db = await getDb();
-    if (!db) return 0;
-    
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    
-    const result = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(packageAccessLog)
-      .where(
-        and(
-          eq(packageAccessLog.packageId, packageId),
-          eq(packageAccessLog.packageType, packageType),
-          gte(packageAccessLog.timestamp, since)
-        )
-      );
 
-    return result[0]?.count || 0;
+    const count = await prismaAny.packageAccessLog.count({
+      where: {
+        packageId,
+        packageType,
+        timestamp: { gte: since },
+      },
+    });
+
+    return count;
   } catch (error) {
     logger.error('[AccessTracker] Failed to get access frequency:', { error });
     return 0;
@@ -137,26 +124,19 @@ export async function determineDataTemperature(
   packageType: PackageType
 ): Promise<DataTier> {
   try {
-    const db = await getDb();
-    if (!db) return 'warm';
-    
-    const tierInfo = await db
-      .select()
-      .from(packageStorageTier)
-      .where(
-        and(
-          eq(packageStorageTier.packageId, packageId),
-          eq(packageStorageTier.packageType, packageType)
-        )
-      )
-      .limit(1);
+    const tierInfo = await prismaAny.packageStorageTier.findFirst({
+      where: {
+        packageId,
+        packageType,
+      },
+    });
 
-    if (tierInfo.length === 0) {
+    if (!tierInfo) {
       // No tier info yet, default to hot
       return 'hot';
     }
 
-    const lastAccess = tierInfo[0].lastAccessAt;
+    const lastAccess = tierInfo.lastAccessAt;
     const daysSinceAccess = (Date.now() - lastAccess.getTime()) / (1000 * 60 * 60 * 24);
 
     // Get access frequency in last 7 days
@@ -187,31 +167,24 @@ export async function getTierInfo(
   packageType: PackageType
 ): Promise<TierInfo | null> {
   try {
-    const db = await getDb();
-    if (!db) return null;
-    
-    const result = await db
-      .select()
-      .from(packageStorageTier)
-      .where(
-        and(
-          eq(packageStorageTier.packageId, packageId),
-          eq(packageStorageTier.packageType, packageType)
-        )
-      )
-      .limit(1);
+    const result = await prismaAny.packageStorageTier.findFirst({
+      where: {
+        packageId,
+        packageType,
+      },
+    });
 
-    if (result.length === 0) {
+    if (!result) {
       return null;
     }
 
     return {
-      packageId: result[0].packageId,
-      packageType: result[0].packageType as PackageType,
-      currentTier: result[0].currentTier as DataTier,
-      currentBackend: result[0].currentBackend,
-      lastAccessAt: result[0].lastAccessAt,
-      accessCount: result[0].accessCount,
+      packageId: result.packageId,
+      packageType: result.packageType as PackageType,
+      currentTier: result.currentTier as DataTier,
+      currentBackend: result.currentBackend,
+      lastAccessAt: result.lastAccessAt,
+      accessCount: result.accessCount,
     };
   } catch (error) {
     logger.error('[AccessTracker] Failed to get tier info:', { error });
@@ -229,22 +202,17 @@ export async function updateTierAssignment(
   newBackend: string
 ): Promise<void> {
   try {
-    const db = await getDb();
-    if (!db) throw new Error('Database unavailable');
-    
-    await db
-      .update(packageStorageTier)
-      .set({
+    await prismaAny.packageStorageTier.updateMany({
+      where: {
+        packageId,
+        packageType,
+      },
+      data: {
         currentTier: newTier,
         currentBackend: newBackend,
         updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(packageStorageTier.packageId, packageId),
-          eq(packageStorageTier.packageType, packageType)
-        )
-      );
+      },
+    });
 
     logger.info(`[AccessTracker] Updated ${packageType}:${packageId} to ${newTier} (${newBackend})`);
   } catch (error) {
@@ -264,11 +232,8 @@ export async function getPackagesNeedingMigration(): Promise<Array<{
   daysSinceAccess: number;
 }>> {
   try {
-    const db = await getDb();
-    if (!db) return [];
-    
-    const allTiers = await db.select().from(packageStorageTier);
-    
+    const allTiers = await prismaAny.packageStorageTier.findMany();
+
     const migrations: Array<{
       packageId: number;
       packageType: PackageType;
@@ -346,17 +311,13 @@ export async function getAccessStats(
  */
 export async function getHotPackages(limit: number = 10): Promise<TierInfo[]> {
   try {
-    const db = await getDb();
-    if (!db) return [];
-    
-    const result = await db
-      .select()
-      .from(packageStorageTier)
-      .where(eq(packageStorageTier.currentTier, 'hot'))
-      .orderBy(desc(packageStorageTier.accessCount))
-      .limit(limit);
+    const result = await prismaAny.packageStorageTier.findMany({
+      where: { currentTier: 'hot' },
+      orderBy: { accessCount: 'desc' },
+      take: limit,
+    });
 
-    return result.map((r: typeof result[0]) => ({
+    return result.map((r: any) => ({
       packageId: r.packageId,
       packageType: r.packageType as PackageType,
       currentTier: r.currentTier as DataTier,
@@ -375,24 +336,18 @@ export async function getHotPackages(limit: number = 10): Promise<TierInfo[]> {
  */
 export async function getColdPackages(limit: number = 10): Promise<TierInfo[]> {
   try {
-    const db = await getDb();
-    if (!db) return [];
-    
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    
-    const result = await db
-      .select()
-      .from(packageStorageTier)
-      .where(
-        and(
-          eq(packageStorageTier.currentTier, 'cold'),
-          sql`${packageStorageTier.lastAccessAt} < ${ninetyDaysAgo}`
-        )
-      )
-      .orderBy(packageStorageTier.lastAccessAt)
-      .limit(limit);
 
-    return result.map((r: typeof result[0]) => ({
+    const result = await prismaAny.packageStorageTier.findMany({
+      where: {
+        currentTier: 'cold',
+        lastAccessAt: { lt: ninetyDaysAgo },
+      },
+      orderBy: { lastAccessAt: 'asc' },
+      take: limit,
+    });
+
+    return result.map((r: any) => ({
       packageId: r.packageId,
       packageType: r.packageType as PackageType,
       currentTier: r.currentTier as DataTier,

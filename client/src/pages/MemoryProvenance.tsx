@@ -178,7 +178,7 @@ export default function MemoryProvenance() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="pt-20 container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <Link href="/memory-marketplace">

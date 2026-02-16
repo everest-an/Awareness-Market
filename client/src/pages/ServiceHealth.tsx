@@ -13,41 +13,43 @@ interface ServiceStatus {
   swagger?: string;
 }
 
+const GO_SERVICE_BASE = import.meta.env.VITE_GO_SERVICE_BASE || "";
+
 const services: ServiceStatus[] = [
   {
     name: "Memory Exchange",
     port: 8080,
     status: "running",
-    url: "http://localhost:8080",
-    swagger: "http://localhost:8080/swagger/index.html",
+    url: `${GO_SERVICE_BASE || "http://localhost:8080"}`,
+    swagger: `${GO_SERVICE_BASE || "http://localhost:8080"}/swagger/index.html`,
   },
   {
     name: "W-Matrix Marketplace",
     port: 8081,
     status: "running",
-    url: "http://localhost:8081",
-    swagger: "http://localhost:8081/swagger/index.html",
+    url: `${GO_SERVICE_BASE ? GO_SERVICE_BASE.replace(/:\d+$/, ':8081') : "http://localhost:8081"}`,
+    swagger: `${GO_SERVICE_BASE ? GO_SERVICE_BASE.replace(/:\d+$/, ':8081') : "http://localhost:8081"}/swagger/index.html`,
   },
   {
     name: "Admin Analytics",
     port: 8082,
     status: "running",
-    url: "http://localhost:8082",
-    swagger: "http://localhost:8082/swagger/index.html",
+    url: `${GO_SERVICE_BASE ? GO_SERVICE_BASE.replace(/:\d+$/, ':8082') : "http://localhost:8082"}`,
+    swagger: `${GO_SERVICE_BASE ? GO_SERVICE_BASE.replace(/:\d+$/, ':8082') : "http://localhost:8082"}/swagger/index.html`,
   },
   {
     name: "Vector Operations",
     port: 8083,
     status: "running",
-    url: "http://localhost:8083",
-    swagger: "http://localhost:8083/swagger/index.html",
+    url: `${GO_SERVICE_BASE ? GO_SERVICE_BASE.replace(/:\d+$/, ':8083') : "http://localhost:8083"}`,
+    swagger: `${GO_SERVICE_BASE ? GO_SERVICE_BASE.replace(/:\d+$/, ':8083') : "http://localhost:8083"}/swagger/index.html`,
   },
   {
     name: "Recommendation Engine",
     port: 8085,
     status: "running",
-    url: "http://localhost:8085",
-    swagger: "http://localhost:8085/swagger/index.html",
+    url: `${GO_SERVICE_BASE ? GO_SERVICE_BASE.replace(/:\d+$/, ':8085') : "http://localhost:8085"}`,
+    swagger: `${GO_SERVICE_BASE ? GO_SERVICE_BASE.replace(/:\d+$/, ':8085') : "http://localhost:8085"}/swagger/index.html`,
   },
 ];
 
@@ -119,7 +121,7 @@ export default function ServiceHealth() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="container mx-auto py-8 mt-20">
+      <div className="pt-20 container mx-auto py-8 mt-20">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Service Health Monitor</h1>
@@ -160,7 +162,7 @@ export default function ServiceHealth() {
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:underline"
                   >
-                    Service URL â†?
+                    Service URL ï¿½?
                   </a>
                   {service.swagger && (
                     <a
@@ -169,7 +171,7 @@ export default function ServiceHealth() {
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:underline"
                     >
-                      Swagger UI â†?
+                      Swagger UI ï¿½?
                     </a>
                   )}
                 </div>

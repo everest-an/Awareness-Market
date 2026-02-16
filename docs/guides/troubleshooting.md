@@ -43,39 +43,39 @@ lsof -i :8080 | grep LISTEN | awk '{print $2}' | xargs kill -9
 
 **症状**: 
 ```
-Error: connect ECONNREFUSED 127.0.0.1:3306
-Error: Client does not support authentication protocol requested by server
+Error: connect ECONNREFUSED 127.0.0.1:5432
+Error: password authentication failed for user
 ```
 
 **诊断**:
 ```bash
-# 检查 MySQL 是否运行
-netstat -an | findstr :3306  # Windows
-lsof -i :3306                # macOS/Linux
+# 检查 PostgreSQL 是否运行
+netstat -an | findstr :5432  # Windows
+lsof -i :5432                # macOS/Linux
 
 # 或使用 Docker
-docker ps | grep mysql
+docker ps | grep postgres
 
 # 测试连接
-mysql -h localhost -u user -p
+psql -h localhost -U postgres
 ```
 
 **解决方案**:
 
 ```bash
-# 使用 Docker 启动 MySQL
+# 使用 Docker 启动 PostgreSQL
 docker run -d \
-  --name awareness-mysql \
-  -e MYSQL_ROOT_PASSWORD=password \
-  -e MYSQL_DATABASE=awareness \
-  -p 3306:3306 \
-  mysql:8.0
+  --name awareness-postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=awareness \
+  -p 5432:5432 \
+  postgres:16
 
 # 或使用 Docker Compose
-docker-compose up -d mysql
+docker-compose up -d postgres
 
 # 更新 .env 中的连接字符串
-DATABASE_URL=mysql://root:password@localhost:3306/awareness
+DATABASE_URL=postgresql://postgres:password@localhost:5432/awareness
 ```
 
 ---
@@ -466,10 +466,10 @@ cat DIAGNOSTIC_REPORT.txt
 | 问题 | 命令 | 预期输出 |
 |------|------|--------|
 | 检查 Go 服务 | `curl http://localhost:8080/health` | `{"status":"ok"}` |
-| 检查数据库 | `mysql -h 127.0.0.1 -u root -p` | `mysql>` 提示 |
+| 检查数据库 | `psql -h 127.0.0.1 -U postgres` | `postgres=#` 提示 |
 | 检查端口占用 | `netstat -an \| grep 3001` | 空（未占用）或进程信息 |
 | 查看 Node 进程 | `ps aux \| grep node` | 列出所有 Node 进程 |
-| 清理 npm 缓存 | `npm cache clean --force` | 完成消息 |
+| 清理缓存 | `pnpm store prune` | 完成消息 |
 | 重新安装依赖 | `pnpm install --force` | 完成，无错误 |
 
 ---

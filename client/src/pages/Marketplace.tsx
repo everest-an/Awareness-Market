@@ -276,7 +276,7 @@ export default function Marketplace() {
                           <div className="flex items-center gap-1 text-sm">
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                             <span className="font-medium">
-                              {parseFloat(vector.averageRating || "0").toFixed(1)}
+                              {parseFloat((vector.averageRating || "0").toString()).toFixed(1)}
                             </span>
                             <span className="text-muted-foreground">
                               ({vector.reviewCount})
@@ -306,7 +306,7 @@ export default function Marketplace() {
                         <div className="flex items-center gap-1">
                           <DollarSign className="h-5 w-5 text-primary" />
                           <span className="text-2xl font-bold">
-                            {parseFloat(vector.basePrice).toFixed(2)}
+                            {parseFloat(vector.basePrice.toString()).toFixed(2)}
                           </span>
                           <span className="text-sm text-muted-foreground">
                             /{vector.pricingModel === "per-call" ? "call" : "month"}

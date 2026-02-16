@@ -4,18 +4,7 @@
  */
 
 import crypto from 'crypto';
-import { getDb } from './db.js';
-import { apiKeys } from '../drizzle/schema.ts';
-import { eq, and } from 'drizzle-orm';
-
-// MySQL result types
-interface InsertResult {
-  insertId: number;
-}
-
-interface UpdateDeleteResult {
-  affectedRows: number;
-}
+import { prisma } from './db-prisma';
 
 /**
  * Generate a secure API key with prefix and checksum
@@ -51,26 +40,21 @@ export async function createApiKey(params: {
   permissions?: string[];
   expiresAt?: Date | null;
 }): Promise<{ id: number; key: string; keyPrefix: string }> {
-  const db = await getDb();
-  if (!db) {
-    throw new Error('Database connection failed');
-  }
-
   const { key, keyHash, keyPrefix } = generateApiKey();
-  
-  const [result] = await db.insert(apiKeys).values({
-    userId: params.userId,
-    keyHash,
-    keyPrefix,
-    name: params.name || 'Default API Key',
-    permissions: params.permissions ? JSON.stringify(params.permissions) : JSON.stringify(['*']), // '*' = all permissions
-    expiresAt: params.expiresAt || null,
-    isActive: true
+
+  const apiKey = await prisma.apiKey.create({
+    data: {
+      userId: params.userId,
+      keyHash,
+      keyPrefix,
+      name: params.name || 'Default API Key',
+      permissions: params.permissions ? JSON.stringify(params.permissions) : JSON.stringify(['read']), // Default: read-only (least privilege)
+      expiresAt: params.expiresAt || null,
+      isActive: true
+    }
   });
 
-  const id = (result as unknown as InsertResult).insertId;
-
-  return { id, key, keyPrefix };
+  return { id: apiKey.id, key, keyPrefix };
 }
 
 /**
@@ -87,23 +71,14 @@ export async function validateApiKey(key: string): Promise<{
     return { valid: false, error: 'Invalid API key format' };
   }
 
-  const db = await getDb();
-  if (!db) {
-    return { valid: false, error: 'Database connection failed' };
-  }
-
   const keyHash = hashApiKey(key);
 
-  const [apiKey] = await db
-    .select()
-    .from(apiKeys)
-    .where(
-      and(
-        eq(apiKeys.keyHash, keyHash),
-        eq(apiKeys.isActive, true)
-      )
-    )
-    .limit(1);
+  const apiKey = await prisma.apiKey.findFirst({
+    where: {
+      keyHash,
+      isActive: true
+    }
+  });
 
   if (!apiKey) {
     return { valid: false, error: 'API key not found or inactive' };
@@ -115,13 +90,13 @@ export async function validateApiKey(key: string): Promise<{
   }
 
   // Update last used timestamp
-  await db
-    .update(apiKeys)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(apiKeys.id, apiKey.id));
+  await prisma.apiKey.update({
+    where: { id: apiKey.id },
+    data: { lastUsedAt: new Date() }
+  });
 
   // Parse scopes
-  const permissions = apiKey.permissions ? JSON.parse(apiKey.permissions) : ['*'];
+  const permissions = apiKey.permissions ? JSON.parse(apiKey.permissions) : ['read'];
 
   return {
     valid: true,
@@ -170,22 +145,16 @@ export async function listApiKeys(userId: number): Promise<Array<{
   isActive: boolean;
   createdAt: Date;
 }>> {
-  const db = await getDb();
-  if (!db) {
-    throw new Error('Database connection failed');
-  }
-
-  const keys = await db
-    .select()
-    .from(apiKeys)
-    .where(eq(apiKeys.userId, userId))
-    .orderBy(apiKeys.createdAt);
+  const keys = await prisma.apiKey.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'asc' }
+  });
 
   return keys.map(key => ({
     id: key.id,
     name: key.name || 'Unnamed Key',
     keyPrefix: key.keyPrefix,
-    permissions: key.permissions ? JSON.parse(key.permissions) : ['*'],
+    permissions: key.permissions ? JSON.parse(key.permissions) : ['read'],
     lastUsedAt: key.lastUsedAt,
     expiresAt: key.expiresAt,
     isActive: key.isActive,
@@ -197,82 +166,96 @@ export async function listApiKeys(userId: number): Promise<Array<{
  * Revoke (deactivate) an API key
  */
 export async function revokeApiKey(keyId: number, userId: number): Promise<boolean> {
-  const db = await getDb();
-  if (!db) {
-    throw new Error('Database connection failed');
-  }
+  const result = await prisma.apiKey.updateMany({
+    where: {
+      id: keyId,
+      userId
+    },
+    data: { isActive: false }
+  });
 
-  const [result] = await db
-    .update(apiKeys)
-    .set({ isActive: false })
-    .where(
-      and(
-        eq(apiKeys.id, keyId),
-        eq(apiKeys.userId, userId)
-      )
-    );
-
-  return (result as unknown as UpdateDeleteResult).affectedRows > 0;
+  return result.count > 0;
 }
 
 /**
  * Delete an API key permanently
  */
 export async function deleteApiKey(keyId: number, userId: number): Promise<boolean> {
-  const db = await getDb();
-  if (!db) {
-    throw new Error('Database connection failed');
-  }
+  const result = await prisma.apiKey.deleteMany({
+    where: {
+      id: keyId,
+      userId
+    }
+  });
 
-  const [result] = await db
-    .delete(apiKeys)
-    .where(
-      and(
-        eq(apiKeys.id, keyId),
-        eq(apiKeys.userId, userId)
-      )
-    );
-
-  return (result as unknown as UpdateDeleteResult).affectedRows > 0;
+  return result.count > 0;
 }
 
 /**
  * Rotate an API key (create new key, revoke old one)
  */
-export async function rotateApiKey(oldKeyId: number, userId: number): Promise<{
+export async function rotateApiKey(
+  oldKeyId: number,
+  userId: number,
+  options?: {
+    rotationType?: 'manual' | 'automatic' | 'forced';
+    rotatedBy?: number;
+    reason?: string;
+  }
+): Promise<{
   success: boolean;
   newKey?: string;
   newKeyPrefix?: string;
+  newKeyId?: number;
   error?: string;
 }> {
-  const db = await getDb();
-  if (!db) {
-    return { success: false, error: 'Database connection failed' };
-  }
-
   // Get old key details
-  const [oldKey] = await db
-    .select()
-    .from(apiKeys)
-    .where(
-      and(
-        eq(apiKeys.id, oldKeyId),
-        eq(apiKeys.userId, userId)
-      )
-    )
-    .limit(1);
+  const oldKey = await prisma.apiKey.findFirst({
+    where: {
+      id: oldKeyId,
+      userId,
+    },
+  });
 
   if (!oldKey) {
     return { success: false, error: 'API key not found' };
   }
 
-  // Create new key with same permissions
+  // Create new key with same permissions and auto-rotation settings
   const permissions = oldKey.permissions ? JSON.parse(oldKey.permissions) : ['*'];
-  const { key: newKey, keyPrefix: newKeyPrefix } = await createApiKey({
+
+  // Calculate new expiration date based on rotation interval
+  const newExpiresAt = oldKey.rotationIntervalDays
+    ? new Date(Date.now() + oldKey.rotationIntervalDays * 24 * 60 * 60 * 1000)
+    : oldKey.expiresAt;
+
+  const { id: newKeyId, key: newKey, keyPrefix: newKeyPrefix } = await createApiKey({
     userId,
-    name: `${oldKey.name} (Rotated)`,
+    name: oldKey.name, // Keep the same name
     permissions,
-    expiresAt: oldKey.expiresAt
+    expiresAt: newExpiresAt,
+  });
+
+  // Copy auto-rotation settings to new key
+  await prisma.apiKey.update({
+    where: { id: newKeyId },
+    data: {
+      autoRotationEnabled: oldKey.autoRotationEnabled,
+      rotationIntervalDays: oldKey.rotationIntervalDays,
+      rotatedFromId: oldKeyId,
+    },
+  });
+
+  // Record rotation in history
+  await prisma.apiKeyRotationHistory.create({
+    data: {
+      apiKeyId: newKeyId,
+      oldKeyPrefix: oldKey.keyPrefix,
+      newKeyPrefix,
+      rotationType: options?.rotationType || 'manual',
+      rotatedBy: options?.rotatedBy,
+      rotationReason: options?.reason,
+    },
   });
 
   // Revoke old key
@@ -281,6 +264,97 @@ export async function rotateApiKey(oldKeyId: number, userId: number): Promise<{
   return {
     success: true,
     newKey,
-    newKeyPrefix
+    newKeyPrefix,
+    newKeyId,
   };
+}
+
+/**
+ * Enable auto-rotation for an API key
+ */
+export async function enableAutoRotation(
+  keyId: number,
+  userId: number,
+  rotationIntervalDays: number = 90
+): Promise<{ success: boolean; error?: string }> {
+  const key = await prisma.apiKey.findFirst({
+    where: { id: keyId, userId },
+  });
+
+  if (!key) {
+    return { success: false, error: 'API key not found' };
+  }
+
+  // Calculate expiration date if not set
+  let expiresAt = key.expiresAt;
+  if (!expiresAt) {
+    expiresAt = new Date(Date.now() + rotationIntervalDays * 24 * 60 * 60 * 1000);
+  }
+
+  await prisma.apiKey.update({
+    where: { id: keyId },
+    data: {
+      autoRotationEnabled: true,
+      rotationIntervalDays,
+      expiresAt,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Disable auto-rotation for an API key
+ */
+export async function disableAutoRotation(
+  keyId: number,
+  userId: number
+): Promise<{ success: boolean; error?: string }> {
+  const result = await prisma.apiKey.updateMany({
+    where: { id: keyId, userId },
+    data: { autoRotationEnabled: false },
+  });
+
+  if (result.count === 0) {
+    return { success: false, error: 'API key not found' };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Get rotation history for an API key
+ */
+export async function getRotationHistory(keyId: number, userId: number): Promise<
+  Array<{
+    id: number;
+    oldKeyPrefix: string;
+    newKeyPrefix: string;
+    rotationType: string;
+    rotationReason: string | null;
+    createdAt: Date;
+  }>
+> {
+  // Verify key belongs to user
+  const key = await prisma.apiKey.findFirst({
+    where: { id: keyId, userId },
+  });
+
+  if (!key) {
+    return [];
+  }
+
+  const history = await prisma.apiKeyRotationHistory.findMany({
+    where: { apiKeyId: keyId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return history.map((h) => ({
+    id: h.id,
+    oldKeyPrefix: h.oldKeyPrefix,
+    newKeyPrefix: h.newKeyPrefix,
+    rotationType: h.rotationType,
+    rotationReason: h.rotationReason,
+    createdAt: h.createdAt,
+  }));
 }

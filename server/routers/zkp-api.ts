@@ -23,10 +23,7 @@ import {
   type VectorCommitment,
   type ZKPConfig,
 } from "../latentmas/zkp-verification";
-import { getDb } from "../db";
-import { assertDatabaseAvailable } from "../utils/error-handling";
-import { latentVectors, packagePurchases, vectorPackages } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { prisma } from "../db-prisma";
 
 // ============================================================================
 // Input Schemas
@@ -287,9 +284,6 @@ export const zkpRouter = router({
     .input(AnonymousPurchaseInputSchema)
     .mutation(async ({ input, ctx }) => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
         // Verify quality proof first
         const zkpEngine = getZKPEngine();
         await zkpEngine.initialize();
@@ -304,13 +298,11 @@ export const zkpRouter = router({
         }
 
         // Check if package exists
-        const packageData = await db
-          .select()
-          .from(vectorPackages)
-          .where(eq(vectorPackages.packageId, input.packageId))
-          .limit(1);
+        const packageData = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
 
-        if (!packageData[0]) {
+        if (!packageData) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Package not found',
@@ -319,7 +311,7 @@ export const zkpRouter = router({
 
         // Verify payment commitment
         // In production: verify blind signature, check ring signature
-        const price = parseFloat(packageData[0].price || '0');
+        const price = parseFloat((packageData.price || '0').toString());
         const paymentValid = input.blindedPayment.amount >= price;
 
         if (!paymentValid) {
@@ -335,16 +327,19 @@ export const zkpRouter = router({
 
         // Create anonymous purchase record
         // Note: In production, this would be on-chain with ring signatures
-        await db.insert(packagePurchases).values({
-          packageType: 'vector',
-          packageId: input.packageId,
-          buyerId: ctx.user.id, // In true anonymity, this would be a nullifier
-          sellerId: packageData[0].userId,
-          price: price.toFixed(2),
-          platformFee: platformFee.toFixed(2),
-          sellerEarnings: sellerEarnings.toFixed(2),
-          status: 'completed',
+        await prisma.packagePurchase.create({
+          data: {
+            packageType: 'vector',
+            packageId: input.packageId,
+            buyerId: ctx.user.id, // In true anonymity, this would be a nullifier
+            sellerId: packageData.userId,
+            price: price.toFixed(2),
+            platformFee: platformFee.toFixed(2),
+            sellerEarnings: sellerEarnings.toFixed(2),
+            status: 'completed',
+          },
         });
+
 
         return {
           success: true,
@@ -358,7 +353,9 @@ export const zkpRouter = router({
           verification: {
             qualityProofVerified: true,
             paymentVerified: true,
-            anonymityGuarantee: 'ZKP-based (mock implementation)',
+            anonymityGuarantee: zkpEngine.getProofSystem() === 'mock'
+              ? 'ZKP-based (mock)'
+              : 'ZKP-based',
           },
           message: 'Anonymous purchase completed successfully',
           note: 'Production implementation requires ring signatures and on-chain verification',
@@ -476,15 +473,38 @@ export const zkpRouter = router({
       network: z.enum(['polygon-amoy', 'ethereum-sepolia', 'arbitrum-sepolia']),
     }))
     .mutation(async ({ input, ctx }) => {
-      // This is a preparation endpoint for future on-chain verification
-      // Actual implementation requires:
-      // 1. Deploy verifier contract (generated from circom circuit)
-      // 2. Submit proof transaction
-      // 3. Wait for confirmation
+      const endpoint = process.env.ZKP_ONCHAIN_ENDPOINT;
+      if (endpoint) {
+        const response = await fetch(`${endpoint.replace(/\/$/, '')}/submit-proof`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            proof: input.proof,
+            packageId: input.packageId,
+            network: input.network,
+            userId: ctx.user.id,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `On-chain submission failed with status ${response.status}`,
+          });
+        }
+
+        const data = await response.json();
+
+        return {
+          success: true,
+          message: 'Proof submitted on-chain',
+          transaction: data.transaction,
+        };
+      }
 
       return {
         success: false,
-        message: 'On-chain verification not yet implemented',
+        message: 'On-chain verification endpoint not configured',
         preparation: {
           proofReady: true,
           proofSize: JSON.stringify(input.proof).length,
@@ -492,11 +512,11 @@ export const zkpRouter = router({
           requiredSteps: [
             '1. Deploy ZKP verifier contract',
             '2. Register package commitment on-chain',
-            '3. Submit proof transaction',
-            '4. Wait for confirmation',
+            '3. Configure ZKP_ONCHAIN_ENDPOINT',
+            '4. Submit proof transaction',
           ],
         },
-        note: 'This will enable fully decentralized, trustless quality verification',
+        note: 'Provide ZKP_ONCHAIN_ENDPOINT to enable real submissions',
       };
     }),
 });

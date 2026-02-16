@@ -774,7 +774,7 @@ console.error('[Transaction] Rollback', {
 
 ```bash
 # Database
-DATABASE_URL=mysql://user:pass@host:port/db
+DATABASE_URL=postgresql://user:pass@host:5432/db
 
 # API Keys
 AWARENESS_API_KEY=ak_...
@@ -792,7 +792,7 @@ DB_POOL_CONNECTION_TIMEOUT=5000
 
 ### 5.2 Pre-Deployment Tests
 
-- [ ] Run database migration: `pnpm db:push`
+- [ ] Run database migration: `pnpm prisma migrate deploy`
 - [ ] Test connection pool: `pnpm test db-connection`
 - [ ] Test transactions: `pnpm test db-transactions`
 - [ ] Test rate limiting: `pnpm test rate-limiter`

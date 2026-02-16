@@ -59,17 +59,52 @@ import PrivacySettings from "./pages/PrivacySettings";
 import ZKPDashboard from "./pages/ZKPDashboard";
 import UploadMultimodalPackage from "./pages/UploadMultimodalPackage";
 import CrossModalSearch from "./pages/CrossModalSearch";
+// import AudioToText from "./pages/AudioToText";
+import AiCollaborationDocs from "./pages/AiCollaborationDocs";
+import AiCollaborationHub from "./pages/AiCollaboration";
+import NewCollaborationSession from "./pages/AiCollaboration/NewSession";
+import SessionConnect from "./pages/AiCollaboration/SessionConnect";
+import SessionsList from "./pages/AiCollaboration/SessionsList";
+// HiveMind removed - redirects to NeuralCortex
+import WalletDashboard from "./pages/WalletDashboard";
+import MemoryManagement from "./pages/MemoryManagement";
+// v3: Organization Governance
+import OrganizationSetup from "./pages/OrganizationSetup";
+import OrgDashboard from "./pages/OrgDashboard";
+// v3 Phase 3: Decision Audit + Agent Reputation
+import DecisionAudit from "./pages/DecisionAudit";
+// v3 Phase 4: Verification + Evidence
+import VerificationDashboard from "./pages/VerificationDashboard";
+// v3 Phase 5: Analytics + Billing
+import OrgAnalytics from "./pages/OrgAnalytics";
+import BillingDashboard from "./pages/BillingDashboard";
+import ConflictResolution from "./pages/ConflictResolution";
+import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
 import { Redirect } from "wouter";
+import LandingPage from "./pages/LandingPage";
+import RoboticsPage from "./pages/robotics";
+import { DocsLayout } from "./pages/Docs";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/robotics"} component={RoboticsPage} />
+      {/* Documentation System */}
+      <Route path="/documentation/:rest*" component={DocsLayout} />
+      <Route path="/documentation" component={DocsLayout} />
       <Route path={"/auth"} component={AuthPage} />
       <Route path={"/auth/verify"} component={EmailVerification} />
       <Route path={"/auth/agent"} component={AgentAuth} />
       <Route path={"/api/auth/callback/:provider"} component={OAuthCallback} />
+      
+      <Route path="/docs/collaboration" component={AiCollaborationDocs} />
+      <Route path="/ai-collaboration" component={AiCollaborationHub} />
+      <Route path="/ai-collaboration/new" component={NewCollaborationSession} />
+      <Route path="/ai-collaboration/sessions" component={SessionsList} />
+      <Route path="/ai-collaboration/connect/:sessionId" component={SessionConnect} />
+
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
       <Route path={"/purchase/success"} component={PurchaseSuccess} />
@@ -109,6 +144,8 @@ function Router() {
       <Route path="/memory-marketplace" component={MemoryMarketplace} />
       <Route path="/memory-packages" component={MemoryMarketplace} />
       <Route path="/upload-memory-package" component={UploadMemoryPackage} />
+      <Route path="/memory-management" component={MemoryManagement} />
+      <Route path="/conflicts" component={ConflictResolution} />
       <Route path="/chain-packages" component={ChainPackageMarketplace} />
       <Route path="/upload-chain-package" component={UploadChainPackage} />
       <Route path="/upload-multimodal-package" component={UploadMultimodalPackage} />
@@ -116,11 +153,22 @@ function Router() {
       <Route path="/package/:type/:id" component={PackageDetail} />
       <Route path="/memory/:id" component={MemoryNFTDetail} />
 
+      <Route path="/hive-mind">{() => <Redirect to="/neural-cortex" />}</Route>
+      <Route path="/network">{() => <Redirect to="/neural-cortex" />}</Route>
       <Route path="/agents" component={AgentRegistry} />
       <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/sdk" component={SDKPage} />
       <Route path="/docs" component={SDKPage} />
       <Route path="/api-keys" component={ApiKeys} />
+      <Route path="/wallet" component={WalletDashboard} />
+
+      {/* v3: Organization Governance */}
+      <Route path="/org/setup">{() => <FeatureErrorBoundary feature="Organization Setup"><OrganizationSetup /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/dashboard">{() => <FeatureErrorBoundary feature="Organization Dashboard"><OrgDashboard /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/decisions">{() => <FeatureErrorBoundary feature="Decision Audit"><DecisionAudit /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/verification">{() => <FeatureErrorBoundary feature="Verification"><VerificationDashboard /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/analytics">{() => <FeatureErrorBoundary feature="Analytics"><OrgAnalytics /></FeatureErrorBoundary>}</Route>
+      <Route path="/org/billing">{() => <FeatureErrorBoundary feature="Billing"><BillingDashboard /></FeatureErrorBoundary>}</Route>
 
       <Route path="/admin" component={AdminPanel} />
       <Route path="/service-health" component={ServiceHealth} />

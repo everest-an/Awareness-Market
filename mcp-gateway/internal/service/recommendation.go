@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
+	"net/url"
 	"sort"
 
 	"github.com/awareness-market/mcp-gateway/internal/model"
@@ -49,28 +51,102 @@ func (s *RecommendationService) RecommendMemories(ctx context.Context, req *mode
 	}, nil
 }
 
+func (s *RecommendationService) getAgentCreditScore(ctx context.Context, agentAddress string, fallback int) int {
+	if agentAddress == "" {
+		return fallback
+	}
+
+	input := fmt.Sprintf(`{"agentAddress":"%s"}`, agentAddress)
+	endpoint := "/api/trpc/agentCredit.getProfile?input=" + url.QueryEscape(input)
+	var raw interface{}
+
+	if err := s.apiClient.Get(ctx, endpoint, &raw); err != nil {
+		return fallback
+	}
+
+	if score, ok := extractCreditScore(raw); ok {
+		return score
+	}
+
+	return fallback
+}
+
+func extractCreditScore(raw interface{}) (int, bool) {
+	// Handle direct profile object
+	if m, ok := raw.(map[string]interface{}); ok {
+		if score, ok := m["creditScore"]; ok {
+			if val, ok := score.(float64); ok {
+				return int(val), true
+			}
+		}
+		// Handle tRPC response: { result: { data: { json: { creditScore } } } }
+		if result, ok := m["result"].(map[string]interface{}); ok {
+			if data, ok := result["data"].(map[string]interface{}); ok {
+				if jsonData, ok := data["json"].(map[string]interface{}); ok {
+					if score, ok := jsonData["creditScore"].(float64); ok {
+						return int(score), true
+					}
+				}
+			}
+		}
+	}
+
+	return 0, false
+}
+
+func decodeSlice[T any](raw interface{}) ([]T, bool) {
+	bytes, err := json.Marshal(raw)
+	if err != nil {
+		return nil, false
+	}
+
+	var out []T
+	if err := json.Unmarshal(bytes, &out); err != nil {
+		return nil, false
+	}
+
+	return out, true
+}
+
+func unwrapTrpcField(raw interface{}, field string) (interface{}, bool) {
+	// Handle tRPC response: { result: { data: { json: { field: ... } } } }
+	if m, ok := raw.(map[string]interface{}); ok {
+		if result, ok := m["result"].(map[string]interface{}); ok {
+			if data, ok := result["data"].(map[string]interface{}); ok {
+				if jsonData, ok := data["json"].(map[string]interface{}); ok {
+					if value, ok := jsonData[field]; ok {
+						return value, true
+					}
+				}
+			}
+		}
+	}
+
+	return nil, false
+}
+
 // fetchAvailableMemories fetches available memories from the marketplace
 func (s *RecommendationService) fetchAvailableMemories(ctx context.Context, req *model.RecommendationRequest) ([]model.Memory, error) {
 	type PackageResponse struct {
-		ID            int     `json:"id"`
-		PackageID     string  `json:"packageId"`
-		Name          string  `json:"name"`
-		Description   string  `json:"description"`
-		Price         string  `json:"price"`
-		Status        string  `json:"status"`
-		CreatorID     int     `json:"creatorId"`
+		ID                   int    `json:"id"`
+		PackageID            string `json:"packageId"`
+		Name                 string `json:"name"`
+		Description          string `json:"description"`
+		Price                string `json:"price"`
+		Status               string `json:"status"`
+		CreatorID            int    `json:"creatorId"`
 		InformationRetention string `json:"informationRetention"`
 	}
 
 	type WMatrixResponse struct {
-		ID              int     `json:"id"`
-		Title           string  `json:"title"`
-		Description     string  `json:"description"`
-		SourceModel     string  `json:"sourceModel"`
-		TargetModel     string  `json:"targetModel"`
-		Price           float64 `json:"price"`
-		AverageEpsilon  float64 `json:"averageEpsilon"`
-		Status          string  `json:"status"`
+		ID             int     `json:"id"`
+		Title          string  `json:"title"`
+		Description    string  `json:"description"`
+		SourceModel    string  `json:"sourceModel"`
+		TargetModel    string  `json:"targetModel"`
+		Price          float64 `json:"price"`
+		AverageEpsilon float64 `json:"averageEpsilon"`
+		Status         string  `json:"status"`
 	}
 
 	var allMemories []model.Memory
@@ -83,9 +159,16 @@ func (s *RecommendationService) fetchAvailableMemories(ctx context.Context, req 
 
 	// Fetch KV-Cache packages
 	if len(req.PreferredTypes) == 0 || contains(req.PreferredTypes, "kv-cache") {
-		var kvPackages []PackageResponse
+		var raw interface{}
 		kvParams := queryParams + "&packageType=memory"
-		if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+kvParams, &kvPackages); err == nil {
+		if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+kvParams, &raw); err == nil {
+			var kvPackages []PackageResponse
+			if value, ok := unwrapTrpcField(raw, "packages"); ok {
+				kvPackages, _ = decodeSlice[PackageResponse](value)
+			} else if direct, ok := decodeSlice[PackageResponse](raw); ok {
+				kvPackages = direct
+			}
+
 			for _, pkg := range kvPackages {
 				price := 0.0
 				fmt.Sscanf(pkg.Price, "%f", &price)
@@ -93,6 +176,9 @@ func (s *RecommendationService) fetchAvailableMemories(ctx context.Context, req 
 				if ir, err := fmt.Sscanf(pkg.InformationRetention, "%f", &epsilon); err == nil && ir == 1 {
 					epsilon = 1.0 - epsilon
 				}
+
+				agentAddress := fmt.Sprintf("0x%040d", pkg.CreatorID)
+				creditScore := s.getAgentCreditScore(ctx, agentAddress, 700)
 
 				allMemories = append(allMemories, model.Memory{
 					ID:               pkg.PackageID,
@@ -102,8 +188,8 @@ func (s *RecommendationService) fetchAvailableMemories(ctx context.Context, req 
 					Epsilon:          epsilon,
 					Certification:    "gold",
 					Price:            price,
-					AgentAddress:     fmt.Sprintf("0x%040d", pkg.CreatorID),
-					AgentCreditScore: 700, // Would fetch from agent credit API
+					AgentAddress:     agentAddress,
+					AgentCreditScore: creditScore,
 				})
 			}
 		}
@@ -111,9 +197,16 @@ func (s *RecommendationService) fetchAvailableMemories(ctx context.Context, req 
 
 	// Fetch Reasoning Chain packages
 	if len(req.PreferredTypes) == 0 || contains(req.PreferredTypes, "reasoning-chain") {
-		var chainPackages []PackageResponse
+		var raw interface{}
 		chainParams := queryParams + "&packageType=chain"
-		if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+chainParams, &chainPackages); err == nil {
+		if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+chainParams, &raw); err == nil {
+			var chainPackages []PackageResponse
+			if value, ok := unwrapTrpcField(raw, "packages"); ok {
+				chainPackages, _ = decodeSlice[PackageResponse](value)
+			} else if direct, ok := decodeSlice[PackageResponse](raw); ok {
+				chainPackages = direct
+			}
+
 			for _, pkg := range chainPackages {
 				price := 0.0
 				fmt.Sscanf(pkg.Price, "%f", &price)
@@ -121,6 +214,9 @@ func (s *RecommendationService) fetchAvailableMemories(ctx context.Context, req 
 				if ir, err := fmt.Sscanf(pkg.InformationRetention, "%f", &epsilon); err == nil && ir == 1 {
 					epsilon = 1.0 - epsilon
 				}
+
+				agentAddress := fmt.Sprintf("0x%040d", pkg.CreatorID)
+				creditScore := s.getAgentCreditScore(ctx, agentAddress, 650)
 
 				allMemories = append(allMemories, model.Memory{
 					ID:               pkg.PackageID,
@@ -130,8 +226,8 @@ func (s *RecommendationService) fetchAvailableMemories(ctx context.Context, req 
 					Epsilon:          epsilon,
 					Certification:    "silver",
 					Price:            price,
-					AgentAddress:     fmt.Sprintf("0x%040d", pkg.CreatorID),
-					AgentCreditScore: 650,
+					AgentAddress:     agentAddress,
+					AgentCreditScore: creditScore,
 				})
 			}
 		}
@@ -148,9 +244,18 @@ func (s *RecommendationService) fetchAvailableMemories(ctx context.Context, req 
 			wParams += "&targetModel=" + req.TargetModel
 		}
 
-		if err := s.apiClient.Get(ctx, "/api/trpc/wMatrix.browseListings"+wParams, &wMatrices); err == nil {
+		var raw interface{}
+		if err := s.apiClient.Get(ctx, "/api/trpc/wMatrix.browseListings"+wParams, &raw); err == nil {
+			if value, ok := unwrapTrpcField(raw, "listings"); ok {
+				wMatrices, _ = decodeSlice[WMatrixResponse](value)
+			} else if direct, ok := decodeSlice[WMatrixResponse](raw); ok {
+				wMatrices = direct
+			}
+
 			for _, wm := range wMatrices {
 				if wm.Status == "active" {
+					agentAddress := fmt.Sprintf("0x%040d", wm.ID)
+					creditScore := s.getAgentCreditScore(ctx, agentAddress, 750)
 					allMemories = append(allMemories, model.Memory{
 						ID:               fmt.Sprintf("wm-%d", wm.ID),
 						Type:             "w-matrix",
@@ -159,8 +264,8 @@ func (s *RecommendationService) fetchAvailableMemories(ctx context.Context, req 
 						Epsilon:          wm.AverageEpsilon,
 						Certification:    "gold",
 						Price:            wm.Price,
-						AgentAddress:     fmt.Sprintf("0x%040d", wm.ID),
-						AgentCreditScore: 750,
+						AgentAddress:     agentAddress,
+						AgentCreditScore: creditScore,
 					})
 				}
 			}
@@ -194,16 +299,16 @@ func contains(slice []string, item string) bool {
 // scoreMemories calculates recommendation scores for memories
 func (s *RecommendationService) scoreMemories(memories []model.Memory, req *model.RecommendationRequest) []model.ScoredMemory {
 	scored := make([]model.ScoredMemory, len(memories))
-	
+
 	for i, memory := range memories {
 		score := s.calculateRecommendationScore(memory, req)
 		scored[i] = model.ScoredMemory{
-			Memory:             memory,
+			Memory:              memory,
 			RecommendationScore: score,
-			Explanation:        s.generateExplanation(memory, score),
+			Explanation:         s.generateExplanation(memory, score),
 		}
 	}
-	
+
 	return scored
 }
 
@@ -211,18 +316,18 @@ func (s *RecommendationService) scoreMemories(memories []model.Memory, req *mode
 func (s *RecommendationService) calculateRecommendationScore(memory model.Memory, req *model.RecommendationRequest) float64 {
 	// Weights for different factors
 	const (
-		qualityWeight      = 0.35  // Epsilon (lower is better)
-		creditWeight       = 0.25  // Agent credit score
-		priceWeight        = 0.20  // Price (lower is better for budget-conscious)
-		certificationWeight = 0.20  // Certification level
+		qualityWeight       = 0.35 // Epsilon (lower is better)
+		creditWeight        = 0.25 // Agent credit score
+		priceWeight         = 0.20 // Price (lower is better for budget-conscious)
+		certificationWeight = 0.20 // Certification level
 	)
-	
+
 	// Quality score (inverse of epsilon, normalized to 0-1)
 	qualityScore := 1.0 - math.Min(memory.Epsilon/0.1, 1.0)
-	
+
 	// Credit score (normalized to 0-1, assuming max score is 850)
 	creditScore := float64(memory.AgentCreditScore) / 850.0
-	
+
 	// Price score (inverse, normalized)
 	priceScore := 1.0 - math.Min(memory.Price/1000.0, 1.0)
 	if req.MaxBudget > 0 {
@@ -230,16 +335,16 @@ func (s *RecommendationService) calculateRecommendationScore(memory model.Memory
 			priceScore = 0 // Out of budget
 		}
 	}
-	
+
 	// Certification score
 	certScore := getCertificationScore(memory.Certification)
-	
+
 	// Calculate weighted score
 	totalScore := (qualityScore * qualityWeight) +
 		(creditScore * creditWeight) +
 		(priceScore * priceWeight) +
 		(certScore * certificationWeight)
-	
+
 	return totalScore
 }
 

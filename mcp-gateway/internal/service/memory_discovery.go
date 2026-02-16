@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -13,6 +14,36 @@ import (
 	"github.com/awareness-market/mcp-gateway/pkg/client"
 	"golang.org/x/sync/errgroup"
 )
+
+func decodeSlice[T any](raw interface{}) ([]T, bool) {
+	bytes, err := json.Marshal(raw)
+	if err != nil {
+		return nil, false
+	}
+
+	var out []T
+	if err := json.Unmarshal(bytes, &out); err != nil {
+		return nil, false
+	}
+
+	return out, true
+}
+
+func unwrapTrpcField(raw interface{}, field string) (interface{}, bool) {
+	if m, ok := raw.(map[string]interface{}); ok {
+		if result, ok := m["result"].(map[string]interface{}); ok {
+			if data, ok := result["data"].(map[string]interface{}); ok {
+				if jsonData, ok := data["json"].(map[string]interface{}); ok {
+					if value, ok := jsonData[field]; ok {
+						return value, true
+					}
+				}
+			}
+		}
+	}
+
+	return nil, false
+}
 
 // MemoryDiscoveryService handles concurrent memory discovery across multiple sources
 type MemoryDiscoveryService struct {
@@ -32,7 +63,7 @@ func (s *MemoryDiscoveryService) DiscoverMemories(ctx context.Context, req *mode
 
 	// Create error group for concurrent operations
 	g, ctx := errgroup.WithContext(ctx)
-	
+
 	// Results channels
 	kvCacheChan := make(chan []model.Memory, 1)
 	wMatrixChan := make(chan []model.Memory, 1)
@@ -88,9 +119,9 @@ func (s *MemoryDiscoveryService) DiscoverMemories(ctx context.Context, req *mode
 	}
 
 	return &model.DiscoveryResponse{
-		Memories:      allMemories,
-		TotalFound:    len(allMemories),
-		QueryTimeMs:   time.Since(startTime).Milliseconds(),
+		Memories:       allMemories,
+		TotalFound:     len(allMemories),
+		QueryTimeMs:    time.Since(startTime).Milliseconds(),
 		SourcesQueried: []string{"kv-cache", "w-matrix", "reasoning-chain"},
 	}, nil
 }
@@ -99,9 +130,9 @@ func (s *MemoryDiscoveryService) DiscoverMemories(ctx context.Context, req *mode
 func (s *MemoryDiscoveryService) BatchDiscoverMemories(ctx context.Context, requests []*model.DiscoveryRequest) ([]*model.DiscoveryResponse, error) {
 	results := make([]*model.DiscoveryResponse, len(requests))
 	var mu sync.Mutex
-	
+
 	g, ctx := errgroup.WithContext(ctx)
-	
+
 	// Process each request concurrently
 	for i, req := range requests {
 		i, req := i, req // Capture loop variables
@@ -110,32 +141,32 @@ func (s *MemoryDiscoveryService) BatchDiscoverMemories(ctx context.Context, requ
 			if err != nil {
 				return err
 			}
-			
+
 			mu.Lock()
 			results[i] = resp
 			mu.Unlock()
-			
+
 			return nil
 		})
 	}
-	
+
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
-	
+
 	return results, nil
 }
 
 // queryKVCacheMemories queries KV-Cache memories from the API
 func (s *MemoryDiscoveryService) queryKVCacheMemories(ctx context.Context, req *model.DiscoveryRequest) ([]model.Memory, error) {
 	type PackageResponse struct {
-		ID            int     `json:"id"`
-		PackageID     string  `json:"packageId"`
-		Name          string  `json:"name"`
-		Description   string  `json:"description"`
-		Price         string  `json:"price"`
-		Status        string  `json:"status"`
-		CreatorID     int     `json:"creatorId"`
+		ID                   int    `json:"id"`
+		PackageID            string `json:"packageId"`
+		Name                 string `json:"name"`
+		Description          string `json:"description"`
+		Price                string `json:"price"`
+		Status               string `json:"status"`
+		CreatorID            int    `json:"creatorId"`
 		InformationRetention string `json:"informationRetention"`
 	}
 
@@ -145,8 +176,15 @@ func (s *MemoryDiscoveryService) queryKVCacheMemories(ctx context.Context, req *
 		queryParams += fmt.Sprintf("&maxPrice=%.2f", req.MaxPrice)
 	}
 
-	if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+queryParams, &packages); err != nil {
+	var raw interface{}
+	if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+queryParams, &raw); err != nil {
 		return nil, fmt.Errorf("failed to fetch KV-Cache memories: %w", err)
+	}
+
+	if value, ok := unwrapTrpcField(raw, "packages"); ok {
+		packages, _ = decodeSlice[PackageResponse](value)
+	} else if direct, ok := decodeSlice[PackageResponse](raw); ok {
+		packages = direct
 	}
 
 	memories := make([]model.Memory, 0, len(packages))
@@ -177,14 +215,14 @@ func (s *MemoryDiscoveryService) queryKVCacheMemories(ctx context.Context, req *
 // queryWMatrixMemories queries W-Matrix memories from the API
 func (s *MemoryDiscoveryService) queryWMatrixMemories(ctx context.Context, req *model.DiscoveryRequest) ([]model.Memory, error) {
 	type WMatrixResponse struct {
-		ID              int     `json:"id"`
-		Title           string  `json:"title"`
-		Description     string  `json:"description"`
-		SourceModel     string  `json:"sourceModel"`
-		TargetModel     string  `json:"targetModel"`
-		Price           float64 `json:"price"`
-		AverageEpsilon  float64 `json:"averageEpsilon"`
-		Status          string  `json:"status"`
+		ID             int     `json:"id"`
+		Title          string  `json:"title"`
+		Description    string  `json:"description"`
+		SourceModel    string  `json:"sourceModel"`
+		TargetModel    string  `json:"targetModel"`
+		Price          float64 `json:"price"`
+		AverageEpsilon float64 `json:"averageEpsilon"`
+		Status         string  `json:"status"`
 	}
 
 	var wMatrices []WMatrixResponse
@@ -199,8 +237,15 @@ func (s *MemoryDiscoveryService) queryWMatrixMemories(ctx context.Context, req *
 		queryParams += fmt.Sprintf("&maxPrice=%.2f", req.MaxPrice)
 	}
 
-	if err := s.apiClient.Get(ctx, "/api/trpc/wMatrix.browseListings"+queryParams, &wMatrices); err != nil {
+	var raw interface{}
+	if err := s.apiClient.Get(ctx, "/api/trpc/wMatrix.browseListings"+queryParams, &raw); err != nil {
 		return nil, fmt.Errorf("failed to fetch W-Matrix memories: %w", err)
+	}
+
+	if value, ok := unwrapTrpcField(raw, "listings"); ok {
+		wMatrices, _ = decodeSlice[WMatrixResponse](value)
+	} else if direct, ok := decodeSlice[WMatrixResponse](raw); ok {
+		wMatrices = direct
 	}
 
 	memories := make([]model.Memory, 0, len(wMatrices))
@@ -225,12 +270,12 @@ func (s *MemoryDiscoveryService) queryWMatrixMemories(ctx context.Context, req *
 // queryReasoningChainMemories queries Reasoning Chain memories from the API
 func (s *MemoryDiscoveryService) queryReasoningChainMemories(ctx context.Context, req *model.DiscoveryRequest) ([]model.Memory, error) {
 	type ChainPackageResponse struct {
-		ID            int     `json:"id"`
-		PackageID     string  `json:"packageId"`
-		Name          string  `json:"name"`
-		Description   string  `json:"description"`
-		Price         string  `json:"price"`
-		Status        string  `json:"status"`
+		ID                   int    `json:"id"`
+		PackageID            string `json:"packageId"`
+		Name                 string `json:"name"`
+		Description          string `json:"description"`
+		Price                string `json:"price"`
+		Status               string `json:"status"`
 		InformationRetention string `json:"informationRetention"`
 	}
 
@@ -240,8 +285,15 @@ func (s *MemoryDiscoveryService) queryReasoningChainMemories(ctx context.Context
 		queryParams += fmt.Sprintf("&maxPrice=%.2f", req.MaxPrice)
 	}
 
-	if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+queryParams, &packages); err != nil {
+	var raw interface{}
+	if err := s.apiClient.Get(ctx, "/api/trpc/packages.browsePackages"+queryParams, &raw); err != nil {
 		return nil, fmt.Errorf("failed to fetch Reasoning Chain memories: %w", err)
+	}
+
+	if value, ok := unwrapTrpcField(raw, "packages"); ok {
+		packages, _ = decodeSlice[ChainPackageResponse](value)
+	} else if direct, ok := decodeSlice[ChainPackageResponse](raw); ok {
+		packages = direct
 	}
 
 	memories := make([]model.Memory, 0, len(packages))

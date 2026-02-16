@@ -45,15 +45,23 @@ export interface BatchAlignmentResult {
 }
 
 // Minimal TensorFlow.js interface for dynamic import
+interface TFTensor {
+  arraySync(): unknown;
+  shape: number[];
+  add(other: TFTensor | number): TFTensor;
+  mul(other: TFTensor | number): TFTensor;
+}
+
 interface TensorFlowModule {
   tidy<T>(fn: () => T): T;
-  tensor2d(values: number[][]): { arraySync(): unknown };
-  matMul(
-    a: { arraySync(): unknown },
-    b: { arraySync(): unknown },
-    transposeA?: boolean,
-    transposeB?: boolean
-  ): { arraySync(): unknown };
+  tensor2d(values: number[][]): TFTensor;
+  matMul(a: TFTensor, b: TFTensor, transposeA?: boolean, transposeB?: boolean): TFTensor;
+  div(a: TFTensor, b: TFTensor): TFTensor;
+  norm(input: TFTensor, ord?: number, axis?: number, keepDims?: boolean): TFTensor;
+  sum(input: TFTensor, axis?: number): TFTensor;
+  mul(a: TFTensor, b: TFTensor): TFTensor;
+  eye(numRows: number): TFTensor;
+  linalg: { bandPart(input: TFTensor, numLower: number, numUpper: number): TFTensor };
 }
 
 // ============================================================================
@@ -98,7 +106,7 @@ export class GPUAccelerationEngine {
       const tf = await import('@tensorflow/tfjs-node').catch(() => null);
 
       if (tf) {
-        this.tf = tf;
+        this.tf = tf as unknown as TensorFlowModule;
         this.stats.gpuAvailable = this.config.backend === 'gpu';
         this.isInitialized = true;
         logger.info('GPU Acceleration initialized', { backend: this.config.backend });
@@ -164,7 +172,7 @@ export class GPUAccelerationEngine {
     vectors: number[][],
     wMatrix: number[][]
   ): Promise<number[][]> {
-    const tf = this.tf;
+    const tf = this.tf!;
 
     return tf.tidy(() => {
       // Convert to tensors
@@ -221,7 +229,7 @@ export class GPUAccelerationEngine {
    * TensorFlow-based batch normalization
    */
   private normalizeBatchTF(vectors: number[][]): number[][] {
-    const tf = this.tf;
+    const tf = this.tf!;
 
     return tf.tidy(() => {
       const tensor = tf.tensor2d(vectors);
@@ -271,7 +279,7 @@ export class GPUAccelerationEngine {
     vectors1: number[][],
     vectors2: number[][]
   ): number[] {
-    const tf = this.tf;
+    const tf = this.tf!;
 
     return tf.tidy(() => {
       const t1 = tf.tensor2d(vectors1);
@@ -342,7 +350,7 @@ export class GPUAccelerationEngine {
     outputVectors: number[][],
     lambda: number
   ): number[][] {
-    const tf = this.tf;
+    const tf = this.tf!;
 
     return tf.tidy(() => {
       const X = tf.tensor2d(inputVectors);

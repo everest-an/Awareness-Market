@@ -225,7 +225,7 @@ app.use(createHealthCheckRouter());
 └─────────┘  └──────────┘  └──────────┘
      │             │              │
      └─────────────┴──────────────┘
-            MySQL Database
+            PostgreSQL Database
 ```
 
 **数据流**:
@@ -361,7 +361,7 @@ API_GATEWAY_PORT=3001
 API_GATEWAY_PREFIX=/api/v1
 
 # 数据库
-DATABASE_URL=mysql://user:pass@localhost:3306/db
+DATABASE_URL=postgresql://user:pass@localhost:5432/db
 ```
 
 ### 服务端口

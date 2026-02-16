@@ -12,6 +12,7 @@
  */
 
 import { Router } from "express";
+import type { Request, Response, NextFunction } from 'express';
 import { z } from "zod";
 import { createLogger } from "./utils/logger";
 import {
@@ -23,9 +24,39 @@ import {
   euclideanDistance
 } from "./latentmas-core";
 import { getErrorMessage } from "./utils/error-handling";
+import { convertVectorFormat } from "./latentmas-converter";
+import { validateApiKey } from './api-key-manager';
 
 const logger = createLogger('LatentMAS:API');
 const latentmasRouter = Router();
+
+/**
+ * Authentication middleware for LatentMAS API
+ * Validates API key from Authorization header or x-api-key header
+ * Skips auth for /health and /models (read-only) endpoints
+ */
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  // Skip auth for health check and models listing
+  if (req.path === '/health' || req.path === '/models') return next();
+
+  const apiKey = req.headers['x-api-key'] as string || 
+                 (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+
+  if (!apiKey) {
+    return res.status(401).json({ error: 'Authentication required. Provide API key via x-api-key header or Bearer token.' });
+  }
+
+  const result = await validateApiKey(apiKey);
+  if (!result.valid) {
+    return res.status(401).json({ error: result.error || 'Invalid API key' });
+  }
+
+  (req as any).userId = result.userId;
+  next();
+}
+
+// Apply auth middleware to all routes
+latentmasRouter.use(requireAuth);
 
 /**
  * Vector Alignment Endpoint
@@ -152,8 +183,13 @@ latentmasRouter.post("/convert", async (req, res) => {
 
     const data = schema.parse(req.body);
 
-    // Mock conversion
-    const convertedData = data.vector_data; // In reality, would perform actual conversion
+    const startTime = Date.now();
+    const result = await convertVectorFormat({
+      vectorData: data.vector_data,
+      sourceFormat: data.source_format,
+      targetFormat: data.target_format,
+    });
+    const convertedData = result.converted_data;
 
     res.json({
       protocol: "LatentMAS/1.0",
@@ -163,7 +199,7 @@ latentmasRouter.post("/convert", async (req, res) => {
       metadata: {
         original_size_bytes: Buffer.from(data.vector_data, 'base64').length,
         converted_size_bytes: Buffer.from(convertedData, 'base64').length,
-        processing_time_ms: 28,
+        processing_time_ms: Date.now() - startTime,
       },
     });
   } catch (error: unknown) {

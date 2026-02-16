@@ -83,16 +83,16 @@
 
 ```bash
 # 1. 确保数据库连接正常
-npm run db:push
+pnpm prisma migrate deploy
 
 # 2. 运行 seed 脚本填充数据
-npm run seed
+pnpm run seed
 tsx scripts/seed-test-data.ts
 tsx scripts/generate-sample-packages.ts
 tsx scripts/seed/seed-reasoning-chains.ts
 
 # 3. 启动服务
-npm run dev
+pnpm dev
 ```
 
 ---

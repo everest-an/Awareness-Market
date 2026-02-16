@@ -11,17 +11,17 @@
 
 **问题**: 不一致的数据库配置
 - `.env` 配置为 SQLite
-- `drizzle.config.ts` 期望 MySQL
+- 数据库配置期望 PostgreSQL
 
 **解决方案**:
 ```dotenv
-# .env 更新为 AWS RDS MySQL
-DATABASE_URL=mysql://awareness_user:awareness_pass_2024@awareness-db.cluster-cezeeou48sif.us-east-1.rds.amazonaws.com:3306/awareness
+# .env 更新为 AWS RDS PostgreSQL
+DATABASE_URL=postgresql://awareness_user:awareness_pass_2024@awareness-db.cluster-cezeeou48sif.us-east-1.rds.amazonaws.com:5432/awareness
 ```
 
 **现在可以执行**:
 ```bash
-pnpm db:push  # 直接创建数据库表
+pnpm prisma migrate deploy  # 创建数据库表
 ```
 
 ---
@@ -215,7 +215,7 @@ GET  /api/health               # 健康检查
 
 ### 最近完成
 
-✅ 数据库配置修复 (AWS RDS MySQL)  
+✅ 数据库配置修复 (AWS RDS PostgreSQL)  
 ✅ Golem 可视化工具提取与集成  
 ✅ React 组件实现 (350+ 行)  
 ✅ Python 后端实现 (400+ 行)  
@@ -225,7 +225,7 @@ GET  /api/health               # 健康检查
 
 ### 下一步
 
-🔄 执行数据库迁移 (`pnpm db:push`)  
+🔄 执行数据库迁移 (`pnpm prisma migrate deploy`)  
 🔄 集成测试 (前后端端到端)  
 🔄 性能优化  
 🔄 生产部署  
@@ -236,7 +236,7 @@ GET  /api/health               # 健康检查
 
 ### 配置文件
 - `.env` - 数据库连接（AWS RDS）
-- `drizzle.config.ts` - Drizzle ORM 配置
+- `prisma/schema.prisma` - Prisma ORM 配置
 - `docker-compose.yml` - Docker 部署配置
 
 ### 可视化工具
@@ -256,7 +256,7 @@ GET  /api/health               # 健康检查
 ### 1. 修复数据库迁移
 ```bash
 cd "e:\Awareness Market\Awareness-Market - MAIN\Awareness-Market-main"
-pnpm db:push
+pnpm prisma migrate deploy
 ```
 
 ### 2. 测试可视化工具

@@ -72,7 +72,8 @@ export default function S3Tester() {
       }, 200);
 
       // Upload to W-Matrix Marketplace API
-      const response = await fetch("http://localhost:8081/api/v1/listings", {
+      const wMatrixBase = import.meta.env.VITE_GO_SERVICE_BASE?.replace(/:\d+$/, ':8081') || 'http://localhost:8081';
+      const response = await fetch(`${wMatrixBase}/api/v1/listings`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
@@ -130,8 +131,9 @@ export default function S3Tester() {
 
     try {
       // Generate presigned download URL
+      const wMatrixBase = import.meta.env.VITE_GO_SERVICE_BASE?.replace(/:\d+$/, ':8081') || 'http://localhost:8081';
       const response = await fetch(
-        `http://localhost:8081/api/v1/listings/${uploadedFileKey}/download`,
+        `${wMatrixBase}/api/v1/listings/${uploadedFileKey}/download`,
         {
           headers: {
             "Authorization": `Bearer ${apiKey}`,
@@ -163,7 +165,7 @@ export default function S3Tester() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <Navbar />
-      <div className="container max-w-4xl py-8 mt-16">
+      <div className="pt-20 container max-w-4xl py-8 mt-16">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">S3 Storage Tester</h1>
           <p className="text-muted-foreground">

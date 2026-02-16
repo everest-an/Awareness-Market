@@ -1,6 +1,5 @@
-import { getDb } from "./db";
-import { userBehavior, latentVectors, transactions } from "../drizzle/schema";
-import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { prisma } from "./db-prisma";
+const prismaAny = prisma as any;
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('CollaborativeFiltering');
@@ -51,22 +50,19 @@ function cosineSimilarity(userA: Map<number, number>, userB: Map<number, number>
  * Get user-item interaction scores
  */
 async function getUserItemMatrix(): Promise<Map<number, Map<number, number>>> {
-  const db = await getDb();
-  if (!db) throw new Error("Database unavailable");
-
   // Fetch all user behaviors
-  const behaviors = await db
-    .select({
-      userId: userBehavior.userId,
-      vectorId: userBehavior.vectorId,
-      actionType: userBehavior.actionType,
-    })
-    .from(userBehavior);
+  const behaviors = await prismaAny.userBehavior.findMany({
+    select: {
+      userId: true,
+      vectorId: true,
+      actionType: true,
+    }
+  });
 
   // Build user-item matrix with weighted scores
   const matrix = new Map<number, Map<number, number>>();
-  
-  const actionWeights = {
+
+  const actionWeights: Record<string, number> = {
     view: 1,
     click: 2,
     trial: 3,
@@ -74,15 +70,15 @@ async function getUserItemMatrix(): Promise<Map<number, Map<number, number>>> {
     review: 4,
   };
 
-  behaviors.forEach(({ userId, vectorId, actionType }) => {
+  behaviors.forEach(({ userId, vectorId, actionType }: any) => {
     if (!matrix.has(userId)) {
       matrix.set(userId, new Map());
     }
-    
+
     const userScores = matrix.get(userId)!;
     const currentScore = userScores.get(vectorId) || 0;
     const weight = actionWeights[actionType] || 1;
-    
+
     userScores.set(vectorId, currentScore + weight);
   });
 
@@ -124,9 +120,6 @@ export async function generateCollaborativeRecommendations(
   limit: number = 10
 ): Promise<Array<{ vectorId: number; score: number; reason: string }>> {
   try {
-    const db = await getDb();
-    if (!db) throw new Error("Database unavailable");
-
     // Find similar users
     const similarUsers = await findSimilarUsers(userId, 20);
 
@@ -183,15 +176,14 @@ export async function trackUserBehavior(
   metadata?: Record<string, unknown>
 ) {
   try {
-    const db = await getDb();
-    if (!db) return;
-
-    await db.insert(userBehavior).values({
-      userId,
-      vectorId,
-      actionType,
-      duration,
-      metadata: metadata ? JSON.stringify(metadata) : undefined,
+    await prismaAny.userBehavior.create({
+      data: {
+        userId,
+        vectorId,
+        actionType,
+        duration,
+        metadata: metadata ? JSON.stringify(metadata) : undefined,
+      }
     });
   } catch (error) {
     logger.error("[Collaborative Filtering] Error tracking behavior:", { error });

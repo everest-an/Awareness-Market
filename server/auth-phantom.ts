@@ -12,13 +12,11 @@
  */
 
 import { z } from 'zod';
-import { publicProcedure, router } from './trpc.js';
+import { publicProcedure, router } from './_core/trpc';
 import { verifyMessage } from 'viem';
-import { getDb } from './db.js';
-import { users } from '../drizzle/schema-pg.js';
-import { eq } from 'drizzle-orm';
+import { prisma } from './db-prisma';
 import jwt from 'jsonwebtoken';
-import { logger } from './logger.js';
+import { logger } from './utils/logger';
 
 // Redis for nonce storage (5 minute TTL)
 import { createClient } from 'redis';
@@ -100,8 +98,6 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
       message: z.string()
     }))
     .mutation(async ({ input }) => {
-      const db = await getDb();
-
       // 1. Verify signature using viem
       let isValid = false;
       try {
@@ -146,32 +142,32 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
         await redis.del(`phantom-nonce:${input.address}`);
 
       } catch (error) {
-        logger.error('Nonce verification failed', { error, address: input.address });
-        throw new Error(`Nonce verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        logger.error('Nonce verification failed', { address: input.address });
+        throw new Error('Nonce verification failed. Please request a new nonce and try again.');
       }
 
-      // 3. Find or create user
-      let user = await db.query.users.findFirst({
-        where: eq(users.walletAddress, input.address)
+      // 3. Find or create user using Prisma
+      let user = await prisma.user.findUnique({
+        where: { walletAddress: input.address }
       });
 
       if (!user) {
         // Auto-create user account (zero-config experience)
         const agentName = `Agent-${input.address.slice(2, 8)}`;
 
-        const [newUser] = await db.insert(users).values({
-          walletAddress: input.address,
-          name: agentName,
-          role: 'consumer',
-          userType: 'consumer',
-          onboardingCompleted: true, // Skip onboarding for API users
-          loginMethod: 'phantom-wallet',
-          creditsBalance: '1000.0000', // Free credits for new agents
-          totalMemories: 0,
-          totalResonances: 0
-        }).returning();
-
-        user = newUser;
+        user = await prisma.user.create({
+          data: {
+            walletAddress: input.address,
+            name: agentName,
+            role: 'consumer',
+            userType: 'consumer',
+            onboardingCompleted: true, // Skip onboarding for API users
+            loginMethod: 'phantom-wallet',
+            creditsBalance: 1000.0, // Free credits for new agents
+            totalMemories: 0,
+            totalResonances: 0
+          }
+        });
 
         logger.info('New agent registered via Phantom Auth', {
           userId: user.id,
@@ -180,9 +176,10 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
         });
       } else {
         // Update last sign-in
-        await db.update(users)
-          .set({ lastSignedIn: new Date() })
-          .where(eq(users.id, user.id));
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastSignedIn: new Date() }
+        });
 
         logger.info('Agent authenticated via Phantom Auth', {
           userId: user.id,
@@ -205,7 +202,7 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
         },
         JWT_SECRET,
         {
-          expiresIn: '30d', // Long-lived for AI agents
+          expiresIn: '7d', // Wallet sessions use refresh token standard
           issuer: 'awareness-network',
           subject: user.id.toString()
         }
@@ -218,10 +215,10 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
           name: user.name,
           address: input.address,
           role: user.role,
-          creditsBalance: user.creditsBalance,
-          totalMemories: user.totalMemories
+          creditsBalance: user.creditsBalance?.toString() || '0',
+          totalMemories: user.totalMemories || 0
         },
-        expiresIn: 2592000 // 30 days in seconds
+        expiresIn: 604800 // 7 days in seconds (matches JWT expiresIn: '7d')
       };
     }),
 
@@ -245,9 +242,8 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
           role: string;
         };
 
-        const db = await getDb();
-        const user = await db.query.users.findFirst({
-          where: eq(users.id, decoded.userId)
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId }
         });
 
         if (!user) {

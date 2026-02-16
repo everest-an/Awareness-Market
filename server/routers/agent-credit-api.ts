@@ -7,10 +7,32 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
-import { getDb } from '../db';
-import { assertDatabaseAvailable } from '../utils/error-handling';
-import { users, latentVectors } from '../../drizzle/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
+import { Prisma } from '@prisma/client';
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function calculateCreditScore(params: {
+  totalCreated: number;
+  avgRating: number;
+  avgRevenue: number;
+}): { creditScore: number; creditGrade: string } {
+  const baseScore = 500;
+  const scoreFromCreations = Math.min(params.totalCreated * 5, 200);
+  const scoreFromRating = params.avgRating ? params.avgRating * 20 : 0;
+  const scoreFromRevenue = Math.min(params.avgRevenue || 0, 100);
+  const creditScore = Math.round(baseScore + scoreFromCreations + scoreFromRating + scoreFromRevenue);
+
+  let creditGrade = 'D';
+  if (creditScore >= 850) creditGrade = 'S';
+  else if (creditScore >= 750) creditGrade = 'A';
+  else if (creditScore >= 650) creditGrade = 'B';
+  else if (creditScore >= 550) creditGrade = 'C';
+
+  return { creditScore, creditGrade };
+}
 
 // ============================================================================
 // Input Schemas
@@ -40,60 +62,79 @@ export const agentCreditRouter = router({
   getProfile: publicProcedure
     .input(getProfileSchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
+      const normalized = input.agentAddress.toLowerCase();
 
-      // Find user by address (could be in name or bio)
-      // For now, use a simple query - in production, map addresses to user IDs
-      const userResult = await db
-        .select()
-        .from(users)
-        .limit(1);
+      // Find user by wallet address or openId (wallet-based login)
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { walletAddress: normalized },
+            { walletAddress: input.agentAddress },
+            { openId: normalized },
+            { openId: input.agentAddress },
+          ],
+        },
+      });
 
-      const user = userResult[0];
       if (!user) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
       }
 
-      // Calculate statistics from latentVectors
-      const stats = await db
-        .select({
-          totalCreated: sql<number>`COUNT(*)`,
-          avgRevenue: sql<number>`AVG(${latentVectors.totalRevenue})`,
-          avgRating: sql<number>`AVG(${latentVectors.averageRating})`,
-          totalCalls: sql<number>`SUM(${latentVectors.totalCalls})`,
-        })
-        .from(latentVectors)
-        .where(eq(latentVectors.creatorId, user.id));
+      const stats = await prisma.latentVector.aggregate({
+        where: { creatorId: user.id },
+        _count: { _all: true },
+        _avg: { totalRevenue: true, averageRating: true },
+        _sum: { totalCalls: true },
+      });
 
-      const stat = stats[0] || { totalCreated: 0, avgRevenue: 0, avgRating: 0, totalCalls: 0 };
+      const totalCreated = stats._count._all || 0;
+      const avgRevenue = Number(stats._avg.totalRevenue || 0);
+      const avgRating = Number(stats._avg.averageRating || 0);
+      const totalCalls = Number(stats._sum.totalCalls || 0);
 
-      // Calculate credit score based on performance
-      const baseScore = 500;
-      const scoreFromCreations = Math.min(stat.totalCreated * 5, 200);
-      const scoreFromRating = stat.avgRating ? parseFloat(stat.avgRating.toString()) * 20 : 0;
-      const scoreFromRevenue = Math.min(parseFloat(stat.avgRevenue?.toString() || '0'), 100);
-      const creditScore = Math.round(baseScore + scoreFromCreations + scoreFromRating + scoreFromRevenue);
+      const [vectorPackages, memoryPackages, chainPackages] = await Promise.all([
+        prisma.vectorPackage.findMany({
+          where: { userId: user.id },
+          select: { epsilon: true },
+        }),
+        prisma.memoryPackage.findMany({
+          where: { userId: user.id },
+          select: { epsilon: true },
+        }),
+        prisma.chainPackage.findMany({
+          where: { userId: user.id },
+          select: { epsilon: true },
+        }),
+      ]);
 
-      // Determine grade
-      let creditGrade = 'D';
-      if (creditScore >= 850) creditGrade = 'S';
-      else if (creditScore >= 750) creditGrade = 'A';
-      else if (creditScore >= 650) creditGrade = 'B';
-      else if (creditScore >= 550) creditGrade = 'C';
+      const epsilonValues = [
+        ...vectorPackages.map((pkg) => Number(pkg.epsilon || 0)),
+        ...memoryPackages.map((pkg) => Number(pkg.epsilon || 0)),
+        ...chainPackages.map((pkg) => Number(pkg.epsilon || 0)),
+      ].filter((value) => Number.isFinite(value) && value > 0);
+
+      const avgEpsilon = epsilonValues.length > 0
+        ? (epsilonValues.reduce((sum, value) => sum + value, 0) / epsilonValues.length).toFixed(3)
+        : '0.000';
+
+      const { creditScore, creditGrade } = calculateCreditScore({
+        totalCreated,
+        avgRating,
+        avgRevenue,
+      });
 
       return {
         agentAddress: input.agentAddress,
         agentName: user.name || 'Anonymous Agent',
         creditScore,
         creditGrade,
-        avgEpsilon: '0.045', // Placeholder - would need alignment data
-        totalMemoriesCreated: stat.totalCreated,
-        totalMemoriesSold: stat.totalCalls,
-        totalRevenue: (parseFloat(stat.avgRevenue?.toString() || '0') * 1e18).toString(),
-        qualityCoefficient: stat.avgRating ? (parseFloat(stat.avgRating.toString()) / 5).toFixed(2) : '0.00',
-        positiveReviews: Math.round(stat.totalCalls * 0.8),
-        negativeReviews: Math.round(stat.totalCalls * 0.2),
+        avgEpsilon,
+        totalMemoriesCreated: totalCreated,
+        totalMemoriesSold: totalCalls,
+        totalRevenue: (avgRevenue * 1e18).toString(),
+        qualityCoefficient: avgRating ? (avgRating / 5).toFixed(2) : '0.00',
+        positiveReviews: Math.round(totalCalls * 0.8),
+        negativeReviews: Math.round(totalCalls * 0.2),
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         lastActivityAt: user.lastSignedIn || user.updatedAt,
@@ -106,38 +147,41 @@ export const agentCreditRouter = router({
   getLeaderboard: publicProcedure
     .input(getLeaderboardSchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       // Get top creators by total revenue and ratings
-      const topCreators = await db
-        .select({
-          userId: latentVectors.creatorId,
-          totalRevenue: sql<number>`SUM(${latentVectors.totalRevenue})`,
-          totalCalls: sql<number>`SUM(${latentVectors.totalCalls})`,
-          avgRating: sql<number>`AVG(${latentVectors.averageRating})`,
-          totalVectors: sql<number>`COUNT(*)`,
-        })
-        .from(latentVectors)
-        .groupBy(latentVectors.creatorId)
-        .orderBy(desc(sql`SUM(${latentVectors.totalRevenue})`))
-        .limit(input.limit);
+      const topCreators = await prisma.$queryRaw<Array<{
+        userId: number;
+        totalRevenue: number | null;
+        totalCalls: bigint | null;
+        avgRating: number | null;
+        totalVectors: bigint;
+      }>>`
+        SELECT
+          creatorId as userId,
+          SUM(totalRevenue) as totalRevenue,
+          SUM(totalCalls) as totalCalls,
+          AVG(averageRating) as avgRating,
+          COUNT(*) as totalVectors
+        FROM LatentVector
+        GROUP BY creatorId
+        ORDER BY SUM(totalRevenue) DESC
+        LIMIT ${input.limit}
+      `;
 
       // Fetch user details
       const leaderboard = await Promise.all(
         topCreators.map(async (creator, index) => {
-          const userResult = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, creator.userId))
-            .limit(1);
+          const user = await prisma.user.findUnique({
+            where: { id: creator.userId },
+          });
 
-          const user = userResult[0];
+          const totalVectors = Number(creator.totalVectors);
+          const totalCalls = Number(creator.totalCalls || 0n);
+          const totalRevenue = creator.totalRevenue || 0;
 
           const baseScore = 500;
-          const scoreFromCreations = Math.min(creator.totalVectors * 5, 200);
-          const scoreFromRating = creator.avgRating ? parseFloat(creator.avgRating.toString()) * 20 : 0;
-          const scoreFromRevenue = Math.min(parseFloat(creator.totalRevenue?.toString() || '0'), 100);
+          const scoreFromCreations = Math.min(totalVectors * 5, 200);
+          const scoreFromRating = creator.avgRating ? creator.avgRating * 20 : 0;
+          const scoreFromRevenue = Math.min(totalRevenue, 100);
           const creditScore = Math.round(baseScore + scoreFromCreations + scoreFromRating + scoreFromRevenue);
 
           let creditGrade = 'D';
@@ -147,15 +191,15 @@ export const agentCreditRouter = router({
           else if (creditScore >= 550) creditGrade = 'C';
 
           return {
-            agentAddress: `0x${creator.userId.toString().padStart(40, '0')}`,
+            agentAddress: user?.walletAddress || `0x${creator.userId.toString().padStart(40, '0')}`,
             agentName: user?.name || 'Anonymous Agent',
             creditScore,
             creditGrade,
             avgEpsilon: '0.045',
-            totalMemoriesCreated: creator.totalVectors,
-            totalMemoriesSold: creator.totalCalls,
-            totalRevenue: (parseFloat(creator.totalRevenue?.toString() || '0') * 1e18).toString(),
-            qualityCoefficient: creator.avgRating ? (parseFloat(creator.avgRating.toString()) / 5).toFixed(2) : '0.00',
+            totalMemoriesCreated: totalVectors,
+            totalMemoriesSold: totalCalls,
+            totalRevenue: (totalRevenue * 1e18).toString(),
+            qualityCoefficient: creator.avgRating ? (creator.avgRating / 5).toFixed(2) : '0.00',
             rank: index + 1,
           };
         })
@@ -169,27 +213,32 @@ export const agentCreditRouter = router({
    */
   getGradeDistribution: publicProcedure
     .query(async () => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
-
       // Calculate grade distribution based on creators' performance
-      const creators = await db
-        .select({
-          userId: latentVectors.creatorId,
-          totalRevenue: sql<number>`SUM(${latentVectors.totalRevenue})`,
-          avgRating: sql<number>`AVG(${latentVectors.averageRating})`,
-          totalVectors: sql<number>`COUNT(*)`,
-        })
-        .from(latentVectors)
-        .groupBy(latentVectors.creatorId);
+      const creators = await prisma.$queryRaw<Array<{
+        userId: number;
+        totalRevenue: number | null;
+        avgRating: number | null;
+        totalVectors: bigint;
+      }>>`
+        SELECT
+          creatorId as userId,
+          SUM(totalRevenue) as totalRevenue,
+          AVG(averageRating) as avgRating,
+          COUNT(*) as totalVectors
+        FROM LatentVector
+        GROUP BY creatorId
+      `;
 
       const distribution = { S: 0, A: 0, B: 0, C: 0, D: 0 };
 
       creators.forEach((creator) => {
+        const totalVectors = Number(creator.totalVectors);
+        const totalRevenue = creator.totalRevenue || 0;
+
         const baseScore = 500;
-        const scoreFromCreations = Math.min(creator.totalVectors * 5, 200);
-        const scoreFromRating = creator.avgRating ? parseFloat(creator.avgRating.toString()) * 20 : 0;
-        const scoreFromRevenue = Math.min(parseFloat(creator.totalRevenue?.toString() || '0'), 100);
+        const scoreFromCreations = Math.min(totalVectors * 5, 200);
+        const scoreFromRating = creator.avgRating ? creator.avgRating * 20 : 0;
+        const scoreFromRevenue = Math.min(totalRevenue, 100);
         const creditScore = Math.round(baseScore + scoreFromCreations + scoreFromRating + scoreFromRevenue);
 
         if (creditScore >= 850) distribution.S++;
@@ -208,32 +257,66 @@ export const agentCreditRouter = router({
   getHistory: publicProcedure
     .input(getHistorySchema)
     .query(async ({ input }) => {
-      const db = await getDb();
-      assertDatabaseAvailable(db);
+      const normalized = input.agentAddress.toLowerCase();
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { walletAddress: normalized },
+            { walletAddress: input.agentAddress },
+            { openId: normalized },
+            { openId: input.agentAddress },
+          ],
+        },
+      });
 
-      // Get recent activities for the agent
-      // In a real system, this would come from a credit_history table
-      // For now, we'll generate history based on recent vectors created
-      const recentVectors = await db
-        .select()
-        .from(latentVectors)
-        .orderBy(desc(latentVectors.createdAt))
-        .limit(input.limit);
+      if (!user) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
+      }
 
-      const history = recentVectors.map((vector, index) => {
-        const previousScore = 700 - index * 5;
-        const newScore = 705 - index * 5;
+      const vectors = await prisma.latentVector.findMany({
+        where: { creatorId: user.id },
+        orderBy: { createdAt: 'asc' },
+        take: input.limit,
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+          totalRevenue: true,
+          averageRating: true,
+        },
+      });
 
-        return {
+      let totalCreated = 0;
+      let revenueSum = 0;
+      let ratingSum = 0;
+      let ratingCount = 0;
+      let previousScore = 500;
+
+      const history = vectors.map((vector) => {
+        totalCreated += 1;
+        revenueSum += Number(vector.totalRevenue || 0);
+        if (vector.averageRating !== null && vector.averageRating !== undefined) {
+          ratingSum += Number(vector.averageRating);
+          ratingCount += 1;
+        }
+
+        const avgRevenue = totalCreated > 0 ? revenueSum / totalCreated : 0;
+        const avgRating = ratingCount > 0 ? ratingSum / ratingCount : 0;
+        const { creditScore } = calculateCreditScore({ totalCreated, avgRating, avgRevenue });
+
+        const entry = {
           previousScore,
-          newScore,
-          scoreDelta: newScore - previousScore,
+          newScore: creditScore,
+          scoreDelta: creditScore - previousScore,
           reason: vector.status === 'active' ? 'Memory published' : 'Memory created',
           relatedNftId: `vector-${vector.id}`,
           createdAt: vector.createdAt,
         };
+
+        previousScore = creditScore;
+        return entry;
       });
 
-      return history;
+      return history.reverse();
     }),
 });

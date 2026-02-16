@@ -26,12 +26,55 @@ import {
   type ModalityVector,
   type FusionConfig,
 } from "../latentmas/multimodal-vectors";
-import { storagePut } from "../storage";
+import { storagePut, storageGet } from "../storage";
 import { nanoid } from "nanoid";
-import { getDb } from "../db";
-import { assertDatabaseAvailable } from "../utils/error-handling";
-import { vectorPackages } from "../../drizzle/schema";
-import { eq, and, like } from "drizzle-orm";
+import { prisma } from "../db-prisma";
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function extractStorageKey(storageUrl: string): string | null {
+  try {
+    const url = new URL(storageUrl);
+    const key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+    return key || null;
+  } catch {
+    return null;
+  }
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) return 0;
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+async function loadMultiModalData(storageUrl: string): Promise<MultiModalVector & { fusedVector?: number[] }> {
+  const storageKey = extractStorageKey(storageUrl);
+  if (!storageKey) {
+    throw new Error('Invalid storage URL');
+  }
+
+  const { url: signedUrl } = await storageGet(storageKey, 300);
+  const response = await fetch(signedUrl);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch multi-modal data: ${response.status}`);
+  }
+
+  const raw = await response.json();
+
+  return raw as MultiModalVector & { fusedVector?: number[] };
+}
 
 // ============================================================================
 // Input Schemas
@@ -125,9 +168,8 @@ export const multimodalRouter = router({
         );
 
         // Store metadata in database
-        const db = await getDb();
-        if (db) {
-          await db.insert(vectorPackages).values({
+        await prisma.vectorPackage.create({
+          data: {
             packageId,
             userId: ctx.user.id,
             name: input.name,
@@ -144,8 +186,8 @@ export const multimodalRouter = router({
             category: input.category as 'nlp' | 'vision' | 'audio' | 'multimodal' | 'other',
             status: 'active',
             epsilon: '0.0', // Multi-modal doesn't use epsilon
-          });
-        }
+          },
+        });
 
         return {
           success: true,
@@ -177,14 +219,9 @@ export const multimodalRouter = router({
     }))
     .query(async ({ input }) => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
-        const [pkg] = await db
-          .select()
-          .from(vectorPackages)
-          .where(eq(vectorPackages.packageId, input.packageId))
-          .limit(1);
+        const pkg = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
 
         if (!pkg || pkg.targetModel !== 'multimodal') {
           throw new TRPCError({
@@ -203,7 +240,7 @@ export const multimodalRouter = router({
             description: pkg.description,
             sourceModel: pkg.sourceModel,
             dimension: pkg.dimension,
-            price: parseFloat(pkg.price || '0'),
+            price: parseFloat((pkg.price || '0').toString()),
             category: pkg.category,
             qualityScore: pkg.qualityScore,
             status: pkg.status,
@@ -226,7 +263,7 @@ export const multimodalRouter = router({
   /**
    * Fuse multi-modal vectors
    */
-  fuseVectors: publicProcedure
+  fuseVectors: protectedProcedure
     .input(z.object({
       modalityVectors: z.array(ModalityVectorSchema).min(2).max(4),
       fusionConfig: FusionConfigSchema,
@@ -286,36 +323,48 @@ export const multimodalRouter = router({
    * Search for vectors in one modality using a query from another modality
    * E.g., text -> image, image -> audio, etc.
    */
-  crossModalSearch: publicProcedure
+  crossModalSearch: protectedProcedure
     .input(CrossModalSearchSchema)
     .query(async ({ input }) => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
         // Fetch multi-modal packages
-        const packages = await db
-          .select()
-          .from(vectorPackages)
-          .where(eq(vectorPackages.targetModel, 'multimodal'))
-          .limit(100);
+        const packages = await prisma.vectorPackage.findMany({
+          where: { targetModel: 'multimodal' },
+          take: 100,
+        });
 
-        // In production, this would:
-        // 1. Load full multi-modal vectors from S3
-        // 2. Extract target modality vectors
-        // 3. Compute cosine similarity with query
-        // 4. Rank and return top results
+        const results = await Promise.all(
+          packages.map(async (pkg) => {
+            try {
+              const data = await loadMultiModalData(pkg.vectorUrl);
+              const targetVector = extractModality(data, input.targetModality as Modality);
 
-        // For now, return mock results
-        const mockResults = packages.slice(0, input.limit).map((pkg, idx) => ({
-          packageId: pkg.packageId,
-          name: pkg.name,
-          description: pkg.description,
-          similarity: 0.95 - (idx * 0.05),
-          queryModality: input.queryModality,
-          targetModality: input.targetModality,
-          price: parseFloat(pkg.price || '0'),
-        }));
+              if (!targetVector || targetVector.vector.length !== input.queryVector.length) {
+                return null;
+              }
+
+              const similarity = cosineSimilarity(input.queryVector, targetVector.vector);
+
+              return {
+                packageId: pkg.packageId,
+                name: pkg.name,
+                description: pkg.description,
+                similarity,
+                queryModality: input.queryModality,
+                targetModality: input.targetModality,
+                price: parseFloat((pkg.price || '0').toString()),
+              };
+            } catch (error) {
+              console.warn('Failed to evaluate multi-modal package', { packageId: pkg.packageId, error });
+              return null;
+            }
+          })
+        );
+
+        const ranked = results
+          .filter((r): r is NonNullable<typeof r> => Boolean(r))
+          .sort((a, b) => b.similarity - a.similarity)
+          .slice(0, input.limit);
 
         return {
           success: true,
@@ -326,8 +375,8 @@ export const multimodalRouter = router({
           target: {
             modality: input.targetModality,
           },
-          results: mockResults,
-          total: mockResults.length,
+          results: ranked,
+          total: ranked.length,
           info: {
             crossModalSearch: 'Find image vectors using text queries, or audio using images',
             useCases: [
@@ -349,28 +398,53 @@ export const multimodalRouter = router({
   /**
    * Extract specific modality from multi-modal package
    */
-  extractModality: publicProcedure
+  extractModality: protectedProcedure
     .input(z.object({
       packageId: z.string(),
       modality: z.enum(['text', 'image', 'audio', 'video']),
     }))
     .query(async ({ input }) => {
       try {
-        // In production, fetch full multi-modal vector from S3
-        // For now, return mock response
+        const pkg = await prisma.vectorPackage.findUnique({
+          where: { packageId: input.packageId },
+        });
+
+        if (!pkg || pkg.targetModel !== 'multimodal') {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Multi-modal package not found',
+          });
+        }
+
+        const data = await loadMultiModalData(pkg.vectorUrl);
+        const extracted = extractModality(data, input.modality as Modality);
+
+        if (!extracted) {
+          return {
+            success: true,
+            packageId: input.packageId,
+            extractedModality: {
+              modality: input.modality,
+              dimension: 0,
+              model: `${input.modality}-encoder`,
+              confidence: 0,
+              available: false,
+            },
+            message: `${input.modality} modality not available in this package`,
+          };
+        }
 
         return {
           success: true,
           packageId: input.packageId,
           extractedModality: {
-            modality: input.modality,
-            dimension: 512, // Mock dimension
-            model: `${input.modality}-encoder`,
-            confidence: 0.92,
+            modality: extracted.modality,
+            dimension: extracted.dimension,
+            model: extracted.model,
+            confidence: extracted.confidence ?? 0.9,
             available: true,
           },
           message: `${input.modality} modality extracted successfully`,
-          note: 'In production, this returns the actual vector data',
         };
       } catch (error) {
         console.error('Failed to extract modality:', error);
@@ -393,23 +467,17 @@ export const multimodalRouter = router({
     }))
     .query(async ({ input }) => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
         // Build query with conditional where clause
-        const whereClause = input.category
-          ? and(
-              eq(vectorPackages.targetModel, 'multimodal'),
-              eq(vectorPackages.category, input.category as 'nlp' | 'vision' | 'audio' | 'multimodal' | 'other')
-            )
-          : eq(vectorPackages.targetModel, 'multimodal');
-
-        const packages = await db
-          .select()
-          .from(vectorPackages)
-          .where(whereClause)
-          .limit(input.limit)
-          .offset(input.offset);
+        const packages = await prisma.vectorPackage.findMany({
+          where: input.category
+            ? {
+                targetModel: 'multimodal',
+                category: input.category as 'nlp' | 'vision' | 'audio' | 'multimodal' | 'other',
+              }
+            : { targetModel: 'multimodal' },
+          take: input.limit,
+          skip: input.offset,
+        });
 
         return {
           success: true,
@@ -419,7 +487,7 @@ export const multimodalRouter = router({
             description: pkg.description,
             sourceModel: pkg.sourceModel,
             dimension: pkg.dimension,
-            price: parseFloat(pkg.price || '0'),
+            price: parseFloat((pkg.price || '0').toString()),
             category: pkg.category,
             qualityScore: pkg.qualityScore,
             status: pkg.status,
@@ -443,7 +511,7 @@ export const multimodalRouter = router({
   /**
    * Get fusion method recommendations
    */
-  getFusionRecommendation: publicProcedure
+  getFusionRecommendation: protectedProcedure
     .input(z.object({
       modalitiesUsed: z.array(z.enum(['text', 'image', 'audio', 'video'])).min(2),
       useCase: z.enum(['search', 'classification', 'generation', 'retrieval']),
@@ -543,19 +611,15 @@ export const multimodalRouter = router({
   getStatistics: publicProcedure
     .query(async () => {
       try {
-        const db = await getDb();
-        assertDatabaseAvailable(db);
-
-        const packages = await db
-          .select()
-          .from(vectorPackages)
-          .where(eq(vectorPackages.targetModel, 'multimodal'));
+        const packages = await prisma.vectorPackage.findMany({
+          where: { targetModel: 'multimodal' },
+        });
 
         return {
           success: true,
           statistics: {
             totalPackages: packages.length,
-            averagePrice: packages.reduce((sum, p) => sum + parseFloat(p.price || '0'), 0) / (packages.length || 1),
+            averagePrice: packages.reduce((sum, p) => sum + parseFloat((p.price || '0').toString()), 0) / (packages.length || 1),
             averageQuality: packages.reduce((sum, p) => sum + parseFloat(String(p.qualityScore || '0')), 0) / (packages.length || 1),
             modalityCombinations: {
               'text+image': 0, // In production, count from actual data

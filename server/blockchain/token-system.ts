@@ -298,14 +298,14 @@ export class TokenSystemClient {
 
       // Get new balance from event
       const event = receipt.logs
-        .map((log) => {
+        .map((log: any) => {
           try {
             return this.creditSystem.interface.parseLog(log) as ParsedLogEvent | null;
           } catch {
             return null;
           }
         })
-        .find((e): e is ParsedLogEvent => e !== null && e.name === 'Deposited');
+        .find((e: any): e is ParsedLogEvent => e !== null && e.name === 'Deposited');
 
       const newBalance = event
         ? ethers.formatEther(event.args.newBalance)
@@ -348,14 +348,14 @@ export class TokenSystemClient {
 
       // Get purchase ID from event
       const event = receipt.logs
-        .map((log) => {
+        .map((log: any) => {
           try {
             return this.creditSystem.interface.parseLog(log) as ParsedLogEvent | null;
           } catch {
             return null;
           }
         })
-        .find((e): e is ParsedLogEvent => e !== null && e.name === 'Spent');
+        .find((e: any): e is ParsedLogEvent => e !== null && e.name === 'Spent');
 
       return {
         txHash: receipt.hash,

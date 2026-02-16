@@ -5,10 +5,11 @@
  * based on access patterns to optimize costs
  */
 
-import { getDb } from '../db';
-import { migrationQueue } from '../../drizzle/schema-storage-tiers';
-import { vectorPackages, memoryPackages, chainPackages } from '../../drizzle/schema';
-import { eq, and, sql, or } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
+
+// Cast prisma for models not yet in schema (legacy v1/v2)
+const prismaAny = prisma as any;
+
 import type { PackageType, DataTier } from './access-tracker';
 import {
   getPackagesNeedingMigration,
@@ -72,16 +73,14 @@ async function downloadFile(url: string): Promise<Buffer> {
  */
 async function getPackageFiles(packageId: number, packageType: PackageType): Promise<PackageFiles | null> {
   try {
-    const db = await getDb();
-    if (!db) return null;
-
     const files: PackageFiles['files'] = [];
 
     switch (packageType) {
       case 'vector': {
-        const result = await db.select().from(vectorPackages).where(eq(vectorPackages.id, packageId)).limit(1);
-        if (result.length === 0) return null;
-        const pkg = result[0];
+        const pkg = await prisma.vectorPackage.findUnique({
+          where: { id: packageId },
+        });
+        if (!pkg) return null;
 
         if (pkg.vectorUrl) files.push({ fieldName: 'vectorUrl', url: pkg.vectorUrl, key: extractStorageKey(pkg.vectorUrl) });
         if (pkg.wMatrixUrl) files.push({ fieldName: 'wMatrixUrl', url: pkg.wMatrixUrl, key: extractStorageKey(pkg.wMatrixUrl) });
@@ -89,9 +88,10 @@ async function getPackageFiles(packageId: number, packageType: PackageType): Pro
         break;
       }
       case 'memory': {
-        const result = await db.select().from(memoryPackages).where(eq(memoryPackages.id, packageId)).limit(1);
-        if (result.length === 0) return null;
-        const pkg = result[0];
+        const pkg = await prisma.memoryPackage.findUnique({
+          where: { id: packageId },
+        });
+        if (!pkg) return null;
 
         if (pkg.kvCacheUrl) files.push({ fieldName: 'kvCacheUrl', url: pkg.kvCacheUrl, key: extractStorageKey(pkg.kvCacheUrl) });
         if (pkg.wMatrixUrl) files.push({ fieldName: 'wMatrixUrl', url: pkg.wMatrixUrl, key: extractStorageKey(pkg.wMatrixUrl) });
@@ -99,9 +99,10 @@ async function getPackageFiles(packageId: number, packageType: PackageType): Pro
         break;
       }
       case 'chain': {
-        const result = await db.select().from(chainPackages).where(eq(chainPackages.id, packageId)).limit(1);
-        if (result.length === 0) return null;
-        const pkg = result[0];
+        const pkg = await prisma.chainPackage.findUnique({
+          where: { id: packageId },
+        });
+        if (!pkg) return null;
 
         if (pkg.chainUrl) files.push({ fieldName: 'chainUrl', url: pkg.chainUrl, key: extractStorageKey(pkg.chainUrl) });
         if (pkg.wMatrixUrl) files.push({ fieldName: 'wMatrixUrl', url: pkg.wMatrixUrl, key: extractStorageKey(pkg.wMatrixUrl) });
@@ -138,24 +139,24 @@ async function updatePackageFileUrl(
   fieldName: string,
   newUrl: string
 ): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error('数据库不可用');
-
   switch (packageType) {
     case 'vector':
-      await db.update(vectorPackages)
-        .set({ [fieldName]: newUrl })
-        .where(eq(vectorPackages.id, packageId));
+      await prisma.vectorPackage.update({
+        where: { id: packageId },
+        data: { [fieldName]: newUrl },
+      });
       break;
     case 'memory':
-      await db.update(memoryPackages)
-        .set({ [fieldName]: newUrl })
-        .where(eq(memoryPackages.id, packageId));
+      await prisma.memoryPackage.update({
+        where: { id: packageId },
+        data: { [fieldName]: newUrl },
+      });
       break;
     case 'chain':
-      await db.update(chainPackages)
-        .set({ [fieldName]: newUrl })
-        .where(eq(chainPackages.id, packageId));
+      await prisma.chainPackage.update({
+        where: { id: packageId },
+        data: { [fieldName]: newUrl },
+      });
       break;
   }
 }
@@ -246,25 +247,23 @@ export class TierMigrationService {
    */
   async queueMigration(task: MigrationTask): Promise<number> {
     try {
-      const db = await getDb();
-      if (!db) throw new Error('Database unavailable');
-      
-      const result = await db.insert(migrationQueue).values({
-        packageId: task.packageId,
-        packageType: task.packageType,
-        fromBackend: task.fromBackend,
-        toBackend: task.toBackend,
-        fromTier: task.fromTier,
-        toTier: task.toTier,
-        status: 'pending',
-        priority: task.priority,
-        estimatedSavings: task.estimatedSavings.toString(),
-        createdAt: new Date(),
-      }).$returningId();
+      const result = await prismaAny.migrationQueue.create({
+        data: {
+          packageId: task.packageId,
+          packageType: task.packageType,
+          fromBackend: task.fromBackend,
+          toBackend: task.toBackend,
+          fromTier: task.fromTier,
+          toTier: task.toTier,
+          status: 'pending',
+          priority: task.priority,
+          estimatedSavings: task.estimatedSavings.toString(),
+          createdAt: new Date(),
+        },
+      });
 
-      const taskId = result[0]?.id || 0;
-      logger.info(`[TierMigration] Queued migration task ${taskId} for ${task.packageType}:${task.packageId}`);
-      return taskId;
+      logger.info(`[TierMigration] Queued migration task ${result.id} for ${task.packageType}:${task.packageId}`);
+      return result.id;
     } catch (error) {
       logger.error('[TierMigration] Failed to queue migration:', { error });
       throw error;
@@ -283,19 +282,12 @@ export class TierMigrationService {
     this.isProcessing = true;
 
     try {
-      const db = await getDb();
-      if (!db) {
-        logger.info('[TierMigration] Database unavailable');
-        return;
-      }
-      
       // Get pending tasks
-      const pendingTasks = await db
-        .select()
-        .from(migrationQueue)
-        .where(eq(migrationQueue.status, 'pending'))
-        .orderBy(sql`${migrationQueue.priority} DESC`)
-        .limit(this.maxConcurrent);
+      const pendingTasks = await prismaAny.migrationQueue.findMany({
+        where: { status: 'pending' },
+        orderBy: { priority: 'desc' },
+        take: this.maxConcurrent,
+      });
 
       if (pendingTasks.length === 0) {
         logger.info('[TierMigration] No pending tasks');
@@ -306,11 +298,11 @@ export class TierMigrationService {
 
       // Process tasks in parallel
       const results = await Promise.allSettled(
-        pendingTasks.map((task: typeof pendingTasks[0]) => this.executeMigration(task.id))
+        pendingTasks.map((task: any) => this.executeMigration(task.id))
       );
 
-      const succeeded = results.filter((r: PromiseSettledResult<MigrationResult>) => r.status === 'fulfilled').length;
-      const failed = results.filter((r: PromiseSettledResult<MigrationResult>) => r.status === 'rejected').length;
+      const succeeded = results.filter((r: any) => r.status === 'fulfilled').length;
+      const failed = results.filter((r: any) => r.status === 'rejected').length;
 
       logger.info(`[TierMigration] Completed: ${succeeded} succeeded, ${failed} failed`);
     } catch (error) {
@@ -327,27 +319,20 @@ export class TierMigrationService {
     const startTime = Date.now();
 
     try {
-      const db = await getDb();
-      if (!db) throw new Error('Database unavailable');
-      
       // Get task details
-      const tasks = await db
-        .select()
-        .from(migrationQueue)
-        .where(eq(migrationQueue.id, taskId))
-        .limit(1);
+      const task = await prismaAny.migrationQueue.findUnique({
+        where: { id: taskId },
+      });
 
-      if (tasks.length === 0) {
+      if (!task) {
         throw new Error(`Task ${taskId} not found`);
       }
 
-      const task = tasks[0];
-
       // Mark as processing
-      await db
-        .update(migrationQueue)
-        .set({ status: 'processing' })
-        .where(eq(migrationQueue.id, taskId));
+      await prismaAny.migrationQueue.update({
+        where: { id: taskId },
+        data: { status: 'processing' },
+      });
 
       logger.info(`[TierMigration] Executing task ${taskId}: ${task.packageType}:${task.packageId} ${task.fromBackend} → ${task.toBackend}`);
 
@@ -422,13 +407,13 @@ export class TierMigrationService {
       );
 
       // Mark as completed
-      await db
-        .update(migrationQueue)
-        .set({
+      await prismaAny.migrationQueue.update({
+        where: { id: taskId },
+        data: {
           status: 'completed',
           completedAt: new Date(),
-        })
-        .where(eq(migrationQueue.id, taskId));
+        },
+      });
 
       const timeTaken = Date.now() - startTime;
       logger.info(`[TierMigration] Task ${taskId} completed in ${timeTaken}ms, migrated ${totalMigratedBytes} bytes`);
@@ -440,21 +425,18 @@ export class TierMigrationService {
         migratedBytes: totalMigratedBytes,
       };
     } catch (error) {
-      const db = await getDb();
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`[TierMigration] Task ${taskId} failed:`, { error });
 
       // Mark as failed
-      if (db) {
-        await db
-          .update(migrationQueue)
-          .set({
-            status: 'failed',
-            errorMessage,
-            completedAt: new Date(),
-          })
-          .where(eq(migrationQueue.id, taskId));
-      }
+      await prismaAny.migrationQueue.update({
+        where: { id: taskId },
+        data: {
+          status: 'failed',
+          errorMessage,
+          completedAt: new Date(),
+        },
+      });
 
       return {
         success: false,
@@ -557,41 +539,27 @@ export class TierMigrationService {
     totalSavings: number;
   }> {
     try {
-      const db = await getDb();
-      if (!db) {
-        return { pending: 0, processing: 0, completed: 0, failed: 0, totalSavings: 0 };
-      }
-      
-      const [pending, processing, completed, failed] = await Promise.all([
-        db.select({ count: sql<number>`COUNT(*)` })
-          .from(migrationQueue)
-          .where(eq(migrationQueue.status, 'pending')),
-        db.select({ count: sql<number>`COUNT(*)` })
-          .from(migrationQueue)
-          .where(eq(migrationQueue.status, 'processing')),
-        db.select({ count: sql<number>`COUNT(*)` })
-          .from(migrationQueue)
-          .where(eq(migrationQueue.status, 'completed')),
-        db.select({ count: sql<number>`COUNT(*)` })
-          .from(migrationQueue)
-          .where(eq(migrationQueue.status, 'failed')),
+      const [pending, processing, completed, failed, completedTasks] = await Promise.all([
+        prismaAny.migrationQueue.count({ where: { status: 'pending' } }),
+        prismaAny.migrationQueue.count({ where: { status: 'processing' } }),
+        prismaAny.migrationQueue.count({ where: { status: 'completed' } }),
+        prismaAny.migrationQueue.count({ where: { status: 'failed' } }),
+        prismaAny.migrationQueue.findMany({
+          where: { status: 'completed' },
+          select: { estimatedSavings: true },
+        }),
       ]);
 
       // Calculate total savings from completed migrations
-      const completedTasks = await db
-        .select()
-        .from(migrationQueue)
-        .where(eq(migrationQueue.status, 'completed'));
-
-      const totalSavings = completedTasks.reduce((sum: number, task: typeof completedTasks[0]) => {
+      const totalSavings = completedTasks.reduce((sum: number, task: any) => {
         return sum + (parseFloat(task.estimatedSavings || '0') || 0);
       }, 0);
 
       return {
-        pending: pending[0]?.count || 0,
-        processing: processing[0]?.count || 0,
-        completed: completed[0]?.count || 0,
-        failed: failed[0]?.count || 0,
+        pending,
+        processing,
+        completed,
+        failed,
         totalSavings,
       };
     } catch (error) {

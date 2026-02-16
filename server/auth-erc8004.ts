@@ -19,9 +19,7 @@
  */
 
 import { ethers } from "ethers";
-import { getDb } from "./db";
-import { users, apiKeys } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { prisma } from "./db-prisma";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { getErrorMessage } from "./utils/error-handling";
@@ -59,8 +57,11 @@ const ERC8004_ABI = [
   "event AgentRegistered(bytes32 indexed agentId, address indexed owner, string agentType, string metadataUri)"
 ];
 
-// Configuration
-const JWT_SECRET = process.env.JWT_SECRET || "insecure-jwt-secret";
+// Configuration - JWT_SECRET MUST be set via environment variable
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("CRITICAL: JWT_SECRET environment variable is not set. Server cannot start without it.");
+}
 const JWT_EXPIRY = "7d";
 const NONCE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -201,56 +202,53 @@ This signature will not trigger any blockchain transaction.`;
     }
 
     // Find or create user in database
-    const db = await getDb();
-    if (!db) {
-      return { success: false, error: "Database unavailable" };
-    }
-    
     // Look up by wallet address (stored in openId)
-    let userRecords = await db
-      .select()
-      .from(users)
-      .where(eq(users.openId, walletAddress.toLowerCase()))
-      .limit(1);
-    
+    let existingUser = await prisma.user.findFirst({
+      where: { openId: walletAddress.toLowerCase() }
+    });
+
     let userId: number;
-    
-    if (userRecords.length === 0) {
+
+    if (!existingUser) {
       // Create new agent user
-      const result = await db.insert(users).values({
-        openId: walletAddress.toLowerCase(),
-        name: `Agent ${walletAddress.slice(0, 8)}`,
-        email: `${walletAddress.toLowerCase()}@agent.awareness.market`,
-        loginMethod: "erc8004",
-        role: "user",
-        emailVerified: true, // Wallet verification is sufficient
-        bio: onChainAgentId ? `ERC-8004 Agent: ${onChainAgentId.slice(0, 16)}...` : "AI Agent",
+      const newUser = await prisma.user.create({
+        data: {
+          openId: walletAddress.toLowerCase(),
+          name: `Agent ${walletAddress.slice(0, 8)}`,
+          email: `${walletAddress.toLowerCase()}@agent.awareness.market`,
+          loginMethod: "erc8004",
+          role: "user",
+          emailVerified: true, // Wallet verification is sufficient
+          bio: onChainAgentId ? `ERC-8004 Agent: ${onChainAgentId.slice(0, 16)}...` : "AI Agent",
+        }
       });
-      
-      userId = Number((result as unknown as InsertResult).insertId);
-      
+
+      userId = newUser.id;
+
       // Generate API key for the agent
       const rawApiKey = `ak_${crypto.randomBytes(32).toString("hex")}`;
       const keyHash = crypto.createHash("sha256").update(rawApiKey).digest("hex");
-      
-      await db.insert(apiKeys).values({
-        userId,
-        keyHash,
-        keyPrefix: rawApiKey.substring(0, 12),
-        name: "Default Agent Key",
-        permissions: JSON.stringify(["read", "write", "purchase"]),
-        isActive: true,
+
+      await prisma.apiKey.create({
+        data: {
+          userId,
+          keyHash,
+          keyPrefix: rawApiKey.substring(0, 12),
+          name: "Default Agent Key",
+          permissions: JSON.stringify(["read", "write", "purchase"]),
+          isActive: true,
+        }
       });
 
       logger.info('New agent registered', { walletAddress, agentId: onChainAgentId });
     } else {
-      userId = userRecords[0].id;
-      
+      userId = existingUser.id;
+
       // Update last sign in
-      await db
-        .update(users)
-        .set({ lastSignedIn: new Date() })
-        .where(eq(users.id, userId));
+      await prisma.user.update({
+        where: { id: userId },
+        data: { lastSignedIn: new Date() }
+      });
     }
     
     // Generate JWT
@@ -262,8 +260,8 @@ This signature will not trigger any blockchain transaction.`;
         isOnChain,
         type: "erc8004"
       },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRY }
+      process.env.JWT_SECRET || 'fallback-secret',
+      { expiresIn: JWT_EXPIRY, algorithm: 'HS256' }
     );
     
     return {
@@ -279,7 +277,7 @@ This signature will not trigger any blockchain transaction.`;
     };
   } catch (error: unknown) {
     logger.error('Authentication failed', { error: getErrorMessage(error) });
-    return { success: false, error: getErrorMessage(error) };
+    return { success: false, error: 'Authentication failed' };
   }
 }
 
@@ -407,23 +405,23 @@ export function verifyERC8004Token(token: string): {
   error?: string;
 } {
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    
+    const payload = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret', { algorithms: ['HS256'] }) as unknown as JWTPayload;
+
     if (payload.type !== "erc8004") {
       return { valid: false, error: "Invalid token type" };
     }
-    
+
     return {
       valid: true,
       payload: {
         userId: payload.userId,
         walletAddress: payload.walletAddress,
-        agentId: payload.agentId,
+        agentId: payload.agentId || null,
         isOnChain: payload.isOnChain
       }
     };
   } catch (error: unknown) {
-    return { valid: false, error: getErrorMessage(error) };
+    return { valid: false, error: 'Token verification failed' };
   }
 }
 

@@ -1,6 +1,6 @@
 /**
- * Web3 全局状态管�?Context
- * 使用 React Context 在整个应用中管理钱包连接状�?
+ * Web3 Global State Management Context
+ * Manages wallet connection state across the application using React Context
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -34,7 +34,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const provider = getWeb3Provider();
 
-  // 初始化提供商和检查连�?
+  // Initialize provider and check connection
   useEffect(() => {
     const init = async () => {
       try {
@@ -51,7 +51,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     init();
   }, []);
 
-  // 监听钱包事件
+  // Listen for wallet events
   useEffect(() => {
     provider.onAccountsChanged((accounts) => {
       if (accounts.length > 0) {

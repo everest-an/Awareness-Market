@@ -71,7 +71,13 @@ export default function Dashboard() {
   );
   
   // Normalize purchases data to handle both joined and non-joined formats
-  const purchases = purchasesRaw?.map((p: PurchaseData) => p.transactions || p) || [];
+  const recentPurchases = purchasesRaw?.map((p: any) => ({
+    ...p,
+    amount: p.amount.toString(),
+    platformFee: p.platformFee?.toString(),
+    creatorEarnings: p.creatorEarnings?.toString(),
+  })) || [];
+  const purchases = recentPurchases.map((p: any) => p.transactions || p);
 
   // Calculate statistics
   const totalRevenue = myVectors?.reduce((sum, v) => sum + Number(v.totalRevenue || 0), 0) || 0;
@@ -88,7 +94,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
         <Navbar />
-        <div className="container py-8">
+        <div className="pt-20 container py-8">
           <Skeleton className="h-8 w-64 mb-8" />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
@@ -314,7 +320,7 @@ export default function Dashboard() {
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            ${Number(purchase.amount).toFixed(2)} �?{new Date(purchase.createdAt).toLocaleDateString()}
+                            ${Number(purchase.amount).toFixed(2)} • {new Date(purchase.createdAt || new Date()).toLocaleDateString()}
                           </p>
                         </div>
                         <Button
@@ -362,22 +368,20 @@ export default function Dashboard() {
                   </div>
                 ) : transactions && transactions.length > 0 ? (
                   <div className="space-y-2">
-                    {transactions.map((txData: TransactionData) => {
-                      const tx = txData.transactions || txData;
-                      return (
+                    {transactions.map((tx: any) => (
                       <div
                         key={tx.id}
                         className="flex items-center justify-between p-3 border rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          {tx.buyerId === user?.id ? (
+                          {(tx as any).buyerId === user?.id ? (
                             <TrendingDown className="h-4 w-4 text-red-500" />
                           ) : (
                             <TrendingUp className="h-4 w-4 text-green-500" />
                           )}
                           <div>
                             <p className="text-sm font-medium">
-                              {tx.buyerId === user?.id ? "Purchase" : "Sale"}
+                              {(tx as any).buyerId === user?.id ? "Purchase" : "Sale"}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(tx.createdAt).toLocaleString()}
@@ -385,15 +389,15 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className={`text-sm font-semibold ${tx.buyerId === user?.id ? "text-red-500" : "text-green-500"}`}>
-                            {tx.buyerId === user?.id ? "-" : "+"}${Number(tx.amount).toFixed(2)}
+                          <p className={`text-sm font-semibold ${(tx as any).buyerId === user?.id ? "text-red-500" : "text-green-500"}`}>
+                            {(tx as any).buyerId === user?.id ? "-" : "+"}${Number(tx.amount).toFixed(2)}
                           </p>
                           <Badge variant="outline" className="text-xs">
                             {tx.status}
                           </Badge>
                         </div>
                       </div>
-                    )})}
+                    ))}
                   </div>
                 ) : (
                   <div className="text-center py-12">

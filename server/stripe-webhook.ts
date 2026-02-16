@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { stripe } from "./stripe-client";
 import * as db from "./db";
 import { sendEmail } from "./_core/email";
+import { topUpCredits } from "./utils/credit-payment-system";
 import crypto from "crypto";
 import { getErrorMessage } from "./utils/error-handling";
 import type Stripe from "stripe";
@@ -15,6 +16,13 @@ interface StripeSubscriptionWithPeriod extends Stripe.Subscription {
 }
 
 const logger = createLogger('Stripe:Webhook');
+
+function parseTransactionId(metadata?: Stripe.Metadata): number | null {
+  const raw = metadata?.transaction_id;
+  if (!raw) return null;
+  const id = parseInt(raw, 10);
+  return Number.isNaN(id) ? null : id;
+}
 
 export async function handleStripeWebhook(req: Request, res: Response) {
   const sig = req.headers["stripe-signature"];
@@ -47,6 +55,42 @@ export async function handleStripeWebhook(req: Request, res: Response) {
 
   try {
     switch (event.type) {
+            case "payment_intent.payment_failed": {
+              const intent = event.data.object as Stripe.PaymentIntent;
+              const transactionId = parseTransactionId(intent.metadata);
+
+              if (transactionId) {
+                await db.updateTransactionPaymentInfo({
+                  id: transactionId,
+                  status: "failed",
+                  stripePaymentIntentId: intent.id,
+                });
+              }
+
+              logger.warn("Payment intent failed", {
+                paymentIntentId: intent.id,
+                transactionId,
+              });
+              break;
+            }
+
+            case "charge.refunded": {
+              const charge = event.data.object as Stripe.Charge;
+              const transactionId = parseTransactionId(charge.metadata);
+
+              if (transactionId) {
+                await db.updateTransactionPaymentInfo({
+                  id: transactionId,
+                  status: "refunded",
+                });
+              }
+
+              logger.info("Charge refunded", {
+                chargeId: charge.id,
+                transactionId,
+              });
+              break;
+            }
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         await handleCheckoutCompleted(session);
@@ -257,7 +301,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       isActive: true,
     });
 
-    await db.incrementVectorStats(vectorId, parseFloat(transaction.creatorEarnings));
+    await db.incrementVectorStats(vectorId, parseFloat(transaction.creatorEarnings.toString()));
 
     // Transaction should already be created by the purchase API
     // Just update the payment intent ID
@@ -300,7 +344,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       });
 
       if (creator.email) {
-        const emailText = `Great news! ${user?.name || "A user"} just purchased your AI capability "${vector.title}". You earned $${parseFloat(transaction.creatorEarnings).toFixed(2)}.`;
+        const emailText = `Great news! ${user?.name || "A user"} just purchased your AI capability "${vector.title}". You earned $${parseFloat(transaction.creatorEarnings.toString()).toFixed(2)}.`;
         await sendEmail({
           to: creator.email,
           subject: "Awareness Market - New Sale",
@@ -322,20 +366,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       return;
     }
 
-    // Get listing details
-    const dbModule = await import('./db');
-    const db = await dbModule.getDb();
-    if (!db) {
-      logger.error("Database unavailable", { sessionId: session.id });
-      return;
-    }
-    const { wMatrixListings, wMatrixPurchases } = await import('../drizzle/schema');
-    const { eq, sql, and } = await import('drizzle-orm');
+    // Get listing details using Prisma
+    const { prisma } = await import('./db-prisma');
+    const prismaAny = prisma as any;
 
-    const [listing] = await db
-      .select()
-      .from(wMatrixListings)
-      .where(eq(wMatrixListings.id, listingId));
+    const listing = await prisma.wMatrixListing.findUnique({
+      where: { id: listingId }
+    });
 
     if (!listing) {
       logger.error("W-Matrix listing not found", {
@@ -347,16 +384,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     // Check if purchase already exists
-    const [existingPurchase] = await db
-      .select()
-      .from(wMatrixPurchases)
-      .where(
-        and(
-          eq(wMatrixPurchases.listingId, listingId),
-          eq(wMatrixPurchases.buyerId, userId),
-          eq(wMatrixPurchases.status, "completed")
-        )
-      );
+    const existingPurchase = await prismaAny.wMatrixPurchase.findFirst({
+      where: {
+        listingId,
+        buyerId: userId,
+        status: "completed"
+      }
+    });
 
     if (existingPurchase) {
       logger.info("W-Matrix already purchased", {
@@ -372,23 +406,24 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       ? session.payment_intent
       : session.payment_intent?.id || null;
 
-    // Create or update purchase record
-    await db.insert(wMatrixPurchases).values({
-      listingId,
-      buyerId: userId,
-      price: listing.price,
-      stripePaymentIntentId: paymentIntentId,
-      status: "completed",
+    // Create purchase record
+    await prismaAny.wMatrixPurchase.create({
+      data: {
+        listingId,
+        buyerId: userId,
+        price: listing.price,
+        stripePaymentIntentId: paymentIntentId,
+        status: "completed",
+      }
     });
 
     // Update listing stats
-    await db
-      .update(wMatrixListings)
-      .set({
-        totalSales: sql`${wMatrixListings.totalSales} + 1`,
-        totalRevenue: sql`${wMatrixListings.totalRevenue} + ${listing.price}`,
-      })
-      .where(eq(wMatrixListings.id, listingId));
+    await prisma.wMatrixListing.update({
+      where: { id: listingId },
+      data: {
+        downloads: { increment: 1 },
+      }
+    });
 
     logger.info("W-Matrix purchase completed", {
       userId,
@@ -397,7 +432,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
     // Create notification for buyer
-    await dbModule.createNotification({
+    await db.createNotification({
       userId,
       type: "transaction",
       title: "W-Matrix Purchase Successful",
@@ -406,7 +441,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
     // Send email to buyer
-    const user = await dbModule.getUserById(userId);
+    const user = await db.getUserById(userId);
     if (user?.email) {
       const emailText = `Your purchase of W-Matrix "${listing.title}" (${listing.sourceModel} → ${listing.targetModel}) was successful. You can now download and use this alignment matrix.`;
       await sendEmail({
@@ -418,13 +453,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     // Notify seller
-    const seller = await dbModule.getUserById(listing.sellerId);
+    const seller = await db.getUserById(listing.creatorId);
     if (seller) {
       const platformFeeRate = 0.15; // 15%
-      const sellerEarnings = parseFloat(listing.price) * (1 - platformFeeRate);
+      const sellerEarnings = parseFloat(listing.price.toString()) * (1 - platformFeeRate);
 
-      await dbModule.createNotification({
-        userId: listing.sellerId,
+      await db.createNotification({
+        userId: listing.creatorId,
         type: "transaction",
         title: "New W-Matrix Sale",
         message: `${user?.name || "Someone"} purchased your W-Matrix "${listing.title}"`,
@@ -441,8 +476,58 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         });
       }
     }
+  } else if (purchaseType === "org_plan") {
+    // Handle organization plan subscription
+    const orgIdStr = session.metadata?.org_id || "";
+    const orgId = orgIdStr ? parseInt(orgIdStr, 10) : NaN;
+    const targetTier = session.metadata?.target_tier || "";
+
+    if (!orgId || isNaN(orgId)) {
+      logger.error("Missing org_id in org_plan session metadata", {
+        sessionId: session.id, userId
+      });
+      return;
+    }
+
+    const customerId = typeof session.customer === "string"
+      ? session.customer
+      : (session.customer as any)?.id || null;
+
+    // Tier → plan limits mapping
+    const TIER_LIMITS: Record<string, { maxAgents: number; maxMemories: number; maxDepartments: number; pools: boolean; decisions: boolean; verification: boolean }> = {
+      lite:       { maxAgents: 8,      maxMemories: 10000,   maxDepartments: 1,   pools: false, decisions: false, verification: false },
+      team:       { maxAgents: 32,     maxMemories: 50000,   maxDepartments: 10,  pools: true,  decisions: false, verification: false },
+      enterprise: { maxAgents: 128,    maxMemories: 500000,  maxDepartments: 50,  pools: true,  decisions: true,  verification: false },
+      scientific: { maxAgents: 999999, maxMemories: 9999999, maxDepartments: 999, pools: true,  decisions: true,  verification: true },
+    };
+
+    const limits = TIER_LIMITS[targetTier] || TIER_LIMITS.lite;
+
+    const { prisma } = await import('./db-prisma');
+    await prisma.organization.update({
+      where: { id: orgId },
+      data: {
+        planTier: targetTier as any,
+        maxAgents: limits.maxAgents,
+        maxMemories: limits.maxMemories,
+        maxDepartments: limits.maxDepartments,
+        enableMemoryPools: limits.pools,
+        enableDecisions: limits.decisions,
+        enableVerification: limits.verification,
+        stripeCustomerId: customerId,
+      },
+    });
+
+    logger.info("Organization plan upgraded", { orgId, userId, targetTier, customerId });
+
+    await db.createNotification({
+      userId,
+      type: "subscription",
+      title: "Plan Upgraded",
+      message: `Your organization has been upgraded to the ${targetTier} plan.`,
+    });
   } else if (session.mode === "subscription") {
-    // Handle subscription purchase
+    // Handle generic subscription purchase
     const subscriptionId = session.subscription;
     logger.info("Subscription created", {
       userId,
@@ -451,6 +536,42 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
     // Subscription will be handled by subscription.created event
+  } else if (purchaseType === "credit_topup") {
+    const amountStr = session.metadata?.topup_amount || "0";
+    const amount = parseFloat(amountStr);
+    const paymentIntentId = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id || session.id;
+
+    if (!amount || Number.isNaN(amount)) {
+      logger.error("Invalid top-up amount in session metadata", {
+        sessionId: session.id,
+        userId,
+        amountStr,
+      });
+      return;
+    }
+
+    await topUpCredits({
+      userId,
+      amount,
+      paymentMethod: "stripe",
+      paymentId: paymentIntentId,
+      metadata: {
+        sessionId: session.id,
+        customerEmail: session.customer_details?.email,
+      },
+    });
+
+    logger.info("Credit top-up completed", { userId, amount, paymentIntentId });
+
+    await db.createNotification({
+      userId,
+      type: "transaction",
+      title: "Credits Top-up Successful",
+      message: `Your account has been credited with ${amount} credits.`,
+      relatedEntityId: null,
+    });
   }
 }
 

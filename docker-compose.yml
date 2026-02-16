@@ -5,8 +5,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    # Do NOT expose port directly — all traffic goes through nginx
+    expose:
+      - "3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL}
@@ -32,13 +41,14 @@ services:
 
   db:
     image: mysql:8.0
-    ports:
-      - "3306:3306"
+    # Do NOT expose port to host — only accessible within Docker network
+    expose:
+      - "3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-awareness_root_2024}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
       - MYSQL_DATABASE=awareness
       - MYSQL_USER=awareness_user
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-awareness_pass_2024}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
     volumes:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped
@@ -55,10 +65,22 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
+      - ./ssl:/etc/letsencrypt:ro
+      - nginx_cache:/var/cache/nginx
+      - nginx_logs:/var/log/nginx
     depends_on:
       - app
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
 
 volumes:
   mysql_data:
+  nginx_cache:
+  nginx_logs:

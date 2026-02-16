@@ -5,12 +5,14 @@
  * with in-memory caching for performance
  */
 
-import { getDb } from '../db';
-import { wMatrices, challenges } from '../../drizzle/schema';
-import { eq, and, lt } from 'drizzle-orm';
+import { prisma } from '../db-prisma';
 import type { DynamicWMatrix } from './dynamic-w-matrix';
 import type { Challenge } from './anti-poisoning';
 import { createLogger } from '../utils/logger';
+import { getModelDimension } from '../utils/model-dimensions';
+
+// Cast prisma for models not yet in schema (legacy v1/v2)
+const prismaAny = prisma as any;
 
 const logger = createLogger('LatentMAS:DBPersistence');
 
@@ -26,22 +28,21 @@ export class WMatrixDB {
     userId: string,
     matrix: DynamicWMatrix
   ): Promise<void> {
-    const db = await getDb();
-    if (!db) throw new Error('Database not available');
-
     const metadata = matrix.getMetadata();
     const serialized = matrix.serialize();
 
-    await db.insert(wMatrices).values({
-      matrixId,
-      userId: parseInt(userId),
-      sourceModel: metadata.sourceModel,
-      targetModel: metadata.targetModel,
-      sourceDim: parseInt(metadata.sourceModel.split('-')[0] || '0'), // Placeholder
-      targetDim: parseInt(metadata.targetModel.split('-')[0] || '0'), // Placeholder
-      architecture: metadata.architecture,
-      serializedData: serialized,
-      usageCount: 0,
+    await prismaAny.wMatrix.create({
+      data: {
+        matrixId,
+        userId: parseInt(userId),
+        sourceModel: metadata.sourceModel,
+        targetModel: metadata.targetModel,
+        sourceDim: getModelDimension(metadata.sourceModel),
+        targetDim: getModelDimension(metadata.targetModel),
+        architecture: metadata.architecture,
+        serializedData: serialized,
+        usageCount: 0,
+      },
     });
   }
 
@@ -49,39 +50,31 @@ export class WMatrixDB {
    * Load W-Matrix from database
    */
   static async load(matrixId: string): Promise<string | null> {
-    const db = await getDb();
-    if (!db) return null;
+    const result = await prismaAny.wMatrix.findUnique({
+      where: { matrixId },
+    });
 
-    const result = await db
-      .select()
-      .from(wMatrices)
-      .where(eq(wMatrices.matrixId, matrixId))
-      .limit(1);
-
-    if (result.length === 0) return null;
+    if (!result) return null;
 
     // Update usage count and last used time
-    await db
-      .update(wMatrices)
-      .set({
-        usageCount: result[0].usageCount + 1,
+    await prismaAny.wMatrix.update({
+      where: { matrixId },
+      data: {
+        usageCount: { increment: 1 },
         lastUsedAt: new Date(),
-      })
-      .where(eq(wMatrices.matrixId, matrixId));
+      },
+    });
 
-    return result[0].serializedData;
+    return result.serializedData;
   }
 
   /**
    * Delete W-Matrix from database
    */
   static async delete(matrixId: string): Promise<boolean> {
-    const db = await getDb();
-    if (!db) return false;
-
-    const result = await db
-      .delete(wMatrices)
-      .where(eq(wMatrices.matrixId, matrixId));
+    await prismaAny.wMatrix.delete({
+      where: { matrixId },
+    });
 
     return true;
   }
@@ -90,13 +83,9 @@ export class WMatrixDB {
    * List all W-Matrices for a user
    */
   static async listByUser(userId: string): Promise<any[]> {
-    const db = await getDb();
-    if (!db) return [];
-
-    const result = await db
-      .select()
-      .from(wMatrices)
-      .where(eq(wMatrices.userId, parseInt(userId)));
+    const result = await prismaAny.wMatrix.findMany({
+      where: { userId: parseInt(userId) },
+    });
 
     return result;
   }
@@ -110,17 +99,16 @@ export class ChallengeDB {
    * Save Challenge to database
    */
   static async save(challenge: Challenge, config?: Record<string, unknown>): Promise<void> {
-    const db = await getDb();
-    if (!db) throw new Error('Database not available');
-
-    await db.insert(challenges).values({
-      challengeId: challenge.id,
-      nonce: challenge.nonce,
-      testPrompts: JSON.stringify(challenge.testPrompts),
-      expectedPatterns: JSON.stringify(challenge.expectedPatterns),
-      expiresAt: new Date(challenge.expiresAt),
-      config: config ? JSON.stringify(config) : null,
-      status: 'active',
+    await prismaAny.challenge.create({
+      data: {
+        challengeId: challenge.id,
+        nonce: challenge.nonce,
+        testPrompts: JSON.stringify(challenge.testPrompts),
+        expectedPatterns: JSON.stringify(challenge.expectedPatterns),
+        expiresAt: new Date(challenge.expiresAt),
+        config: config ? JSON.stringify(config) : null,
+        status: 'active',
+      },
     });
   }
 
@@ -128,23 +116,14 @@ export class ChallengeDB {
    * Load Challenge from database
    */
   static async load(challengeId: string): Promise<Challenge | null> {
-    const db = await getDb();
-    if (!db) return null;
+    const row = await prismaAny.challenge.findFirst({
+      where: {
+        challengeId,
+        status: 'active',
+      },
+    });
 
-    const result = await db
-      .select()
-      .from(challenges)
-      .where(
-        and(
-          eq(challenges.challengeId, challengeId),
-          eq(challenges.status, 'active')
-        )
-      )
-      .limit(1);
-
-    if (result.length === 0) return null;
-
-    const row = result[0];
+    if (!row) return null;
 
     // Check if expired
     if (new Date(row.expiresAt) < new Date()) {
@@ -169,41 +148,32 @@ export class ChallengeDB {
     challengeId: string,
     verificationResult: Record<string, unknown>
   ): Promise<void> {
-    const db = await getDb();
-    if (!db) return;
-
-    await db
-      .update(challenges)
-      .set({
+    await prismaAny.challenge.updateMany({
+      where: { challengeId },
+      data: {
         status: 'completed',
         verificationResult: JSON.stringify(verificationResult),
-      })
-      .where(eq(challenges.challengeId, challengeId));
+      },
+    });
   }
 
   /**
    * Mark Challenge as expired
    */
   static async markExpired(challengeId: string): Promise<void> {
-    const db = await getDb();
-    if (!db) return;
-
-    await db
-      .update(challenges)
-      .set({ status: 'expired' })
-      .where(eq(challenges.challengeId, challengeId));
+    await prismaAny.challenge.updateMany({
+      where: { challengeId },
+      data: { status: 'expired' },
+    });
   }
 
   /**
    * Delete Challenge from database
    */
   static async delete(challengeId: string): Promise<boolean> {
-    const db = await getDb();
-    if (!db) return false;
-
-    await db
-      .delete(challenges)
-      .where(eq(challenges.challengeId, challengeId));
+    await prismaAny.challenge.deleteMany({
+      where: { challengeId },
+    });
 
     return true;
   }
@@ -212,32 +182,25 @@ export class ChallengeDB {
    * Clean up expired challenges
    */
   static async cleanupExpired(): Promise<number> {
-    const db = await getDb();
-    if (!db) return 0;
-
     // Mark expired
-    await db
-      .update(challenges)
-      .set({ status: 'expired' })
-      .where(
-        and(
-          lt(challenges.expiresAt, new Date()),
-          eq(challenges.status, 'active')
-        )
-      );
+    await prismaAny.challenge.updateMany({
+      where: {
+        expiresAt: { lt: new Date() },
+        status: 'active',
+      },
+      data: { status: 'expired' },
+    });
 
     // Delete expired challenges older than 24 hours
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const result = await db
-      .delete(challenges)
-      .where(
-        and(
-          eq(challenges.status, 'expired'),
-          lt(challenges.expiresAt, oneDayAgo)
-        )
-      );
+    const result = await prismaAny.challenge.deleteMany({
+      where: {
+        status: 'expired',
+        expiresAt: { lt: oneDayAgo },
+      },
+    });
 
-    return 0; // Return count if needed
+    return result.count;
   }
 }
 

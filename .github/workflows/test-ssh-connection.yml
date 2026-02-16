@@ -1,0 +1,97 @@
+name: Test SSH Connection
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  test:
+    name: Test EC2 SSH Connection
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check if AWARENESS secret is set
+        env:
+          SSH_KEY: ${{ secrets.AWARENESS }}
+        run: |
+          if [ -z "$SSH_KEY" ]; then
+            echo "❌ ERROR: AWARENESS secret is NOT set!"
+            echo "Please add it in: Repository Settings → Secrets and Variables → Actions"
+            exit 1
+          else
+            echo "✅ AWARENESS secret is configured"
+            echo "Key length: ${#SSH_KEY} characters"
+          fi
+      
+      - name: Test SSH key format
+        env:
+          SSH_KEY: ${{ secrets.AWARENESS }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/test-key.pem
+          
+          # Check if key starts with proper header
+          if head -n 1 ~/.ssh/test-key.pem | grep -q "BEGIN.*PRIVATE KEY"; then
+            echo "✅ SSH key has valid header"
+          else
+            echo "❌ ERROR: SSH key format is invalid"
+            echo "First line should be: -----BEGIN RSA PRIVATE KEY-----"
+            exit 1
+          fi
+          
+          chmod 600 ~/.ssh/test-key.pem
+          
+      - name: Test SSH connection to EC2
+        run: |
+          ssh-keyscan -H 44.220.181.78 >> ~/.ssh/known_hosts
+          
+          # Try SSH connection
+          if ssh -i ~/.ssh/test-key.pem -o ConnectTimeout=10 ec2-user@44.220.181.78 "echo 'SSH connection successful'"; then
+            echo "✅ SSH connection to EC2 successful!"
+          else
+            echo "❌ ERROR: Cannot connect to EC2"
+            echo "Possible issues:"
+            echo "  1. EC2 Security Group doesn't allow SSH from GitHub Actions IPs"
+            echo "  2. EC2 instance is not running"
+            echo "  3. Wrong SSH key"
+            exit 1
+          fi
+      
+      - name: Test EC2 environment
+        run: |
+          ssh -i ~/.ssh/test-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            echo "✅ Testing EC2 environment..."
+            
+            # Check Node.js
+            if command -v node &> /dev/null; then
+              echo "✅ Node.js: $(node --version)"
+            else
+              echo "❌ Node.js not installed"
+            fi
+            
+            # Check pnpm
+            if command -v pnpm &> /dev/null; then
+              echo "✅ pnpm: $(pnpm --version)"
+            else
+              echo "❌ pnpm not installed"
+            fi
+            
+            # Check PM2
+            if command -v pm2 &> /dev/null; then
+              echo "✅ PM2: $(pm2 --version)"
+            else
+              echo "❌ PM2 not installed"
+            fi
+            
+            # Check directory
+            if [ -d "/home/ec2-user/Awareness-Market" ]; then
+              echo "✅ Deployment directory exists"
+            else
+              echo "⚠️  Deployment directory doesn't exist (will be created)"
+            fi
+          ENDSSH
+      
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ All checks passed! Your EC2 deployment should work."
+          echo "You can now use the main deployment workflow."
