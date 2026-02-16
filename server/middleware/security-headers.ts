@@ -176,8 +176,8 @@ export const productionSecurityConfig: SecurityHeadersConfig = {
 
   cspDirectives: {
     'default-src': ["'self'"],
-    'script-src': ["'self'"],
-    'style-src': ["'self'"],
+    'script-src': ["'self'", "'unsafe-eval'"], // unsafe-eval needed for react-markdown and syntax highlighting
+    'style-src': ["'self'", "'unsafe-inline'"], // unsafe-inline needed for dynamic styles
     'img-src': ["'self'", 'data:', 'https:'],
     'font-src': ["'self'"],
     'connect-src': ["'self'", 'https://api.stripe.com'],
