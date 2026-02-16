@@ -578,6 +578,7 @@ model IpWhitelist {
   organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   creator         User          @relation("WhitelistCreator", fields: [createdBy], references: [id])
+  accessLogs      IpAccessLog[]
 
   @@index([organizationId])
   @@index([userId])
