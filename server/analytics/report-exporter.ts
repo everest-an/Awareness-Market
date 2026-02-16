@@ -3,9 +3,12 @@
  *
  * Generates exportable reports for compliance and audit purposes.
  * Decisions are immutable, so exports are point-in-time accurate.
+ *
+ * ✅ P1 Security: Sensitive data masking for GDPR/CCPA compliance
  */
 
 import type { PrismaClient } from '@prisma/client';
+import { sanitizeTextContent, maskEmail } from '../utils/data-masking';
 
 export class ReportExporter {
   constructor(private prisma: PrismaClient) {}
@@ -55,12 +58,15 @@ export class ReportExporter {
       'Verified At',
     ];
 
+    // ✅ P1 Security: Mask sensitive data in exports
     const rows = decisions.map((d) => [
       d.id,
       d.agentId,
       d.departmentId || '',
-      `"${(d.inputQuery || '').replace(/"/g, '""')}"`,
-      `"${(d.output || '').replace(/"/g, '""').substring(0, 500)}"`,
+      // Sanitize inputQuery to remove emails, API keys, passwords
+      `"${sanitizeTextContent(d.inputQuery || '').replace(/"/g, '""')}"`,
+      // Sanitize output (truncated to 500 chars)
+      `"${sanitizeTextContent(d.output || '').replace(/"/g, '""').substring(0, 500)}"`,
       Number(d.confidence),
       (d.retrievedMemoryIds || []).length,
       d.totalTokensUsed,
@@ -69,7 +75,8 @@ export class ReportExporter {
       d.latencyMs || '',
       d.outcomeVerified,
       d.outcomeCorrect ?? '',
-      `"${(d.outcomeNotes || '').replace(/"/g, '""')}"`,
+      // Sanitize outcome notes
+      `"${sanitizeTextContent(d.outcomeNotes || '').replace(/"/g, '""')}"`,
       d.createdAt.toISOString(),
       d.verifiedAt?.toISOString() || '',
     ]);
@@ -254,7 +261,7 @@ export class ReportExporter {
 ${decisions.map((d, i) => `  <tr>
     <td>${i + 1}</td>
     <td>${d.agentId || '—'}</td>
-    <td class="truncate">${(d.inputQuery || '').replace(/\u003c/g, '&lt;').substring(0, 80)}</td>
+    <td class="truncate">${sanitizeTextContent(d.inputQuery || '').replace(/</g, '&lt;').substring(0, 80)}</td>
     <td>${(Number(d.confidence) * 100).toFixed(0)}%</td>
     <td>${(d.retrievedMemoryIds || []).length}</td>
     <td>${d.outcomeVerified ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-gray">No</span>'}</td>
