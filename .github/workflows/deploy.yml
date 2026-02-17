@@ -6,6 +6,9 @@ on:
   # push:
   #   branches: [main]
 
+env:
+  PNPM_VERSION: '10'
+
 jobs:
   deploy:
     name: Deploy to Production
@@ -16,17 +19,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build application
-        run: npm run build
+        run: pnpm run build
         env:
           NODE_ENV: production
 
@@ -39,8 +47,8 @@ jobs:
           script: |
             cd /home/ec2-user/awareness-network
             git pull origin main
-            npm ci --production
-            npm run build
+            pnpm install --prod
+            pnpm run build
             pm2 restart awareness-network || pm2 start ecosystem.config.js
 
       - name: Health Check

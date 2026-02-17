@@ -11,47 +11,47 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10'
 
 jobs:
   # ==========================================
-  # 代码质量检查
+  # Code Quality
   # ==========================================
   lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18.x]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: 安装依赖
-        run: npm ci
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
-      - name: 运行 ESLint
-        run: npm run lint --if-present
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: 检查 TypeScript
-        run: npm run type-check --if-present
+      - name: Run ESLint
+        run: pnpm run lint --if-present
+
+      - name: TypeScript check
+        run: pnpm run check --if-present
 
   # ==========================================
-  # 运行测试
+  # Tests
   # ==========================================
   test:
     runs-on: ubuntu-latest
     needs: lint
-    strategy:
-      matrix:
-        node-version: [18.x]
 
     services:
       postgres:
@@ -78,43 +78,48 @@ jobs:
           - 6379:6379
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
-      - name: 安装依赖
-        run: npm ci
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: 运行数据库迁移
+      - name: Run database migrations
         env:
           DATABASE_URL: postgresql://postgres:test@localhost:5432/awareness_test
-        run: npm run db:migrate --if-present
+        run: pnpm run db:migrate --if-present
 
-      - name: 运行单元测试
-        run: npm run test:unit --if-present
-        env:
-          DATABASE_URL: postgresql://postgres:test@localhost:5432/awareness_test
-          REDIS_URL: redis://localhost:6379
-
-      - name: 运行集成测试
-        run: npm run test:integration --if-present
+      - name: Run unit tests
+        run: pnpm run test:unit --if-present
         env:
           DATABASE_URL: postgresql://postgres:test@localhost:5432/awareness_test
           REDIS_URL: redis://localhost:6379
 
-      - name: 上传覆盖率报告
-        uses: codecov/codecov-action@v3
+      - name: Run integration tests
+        run: pnpm run test:integration --if-present
+        env:
+          DATABASE_URL: postgresql://postgres:test@localhost:5432/awareness_test
+          REDIS_URL: redis://localhost:6379
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
 
   # ==========================================
-  # 构建
+  # Build
   # ==========================================
   build:
     runs-on: ubuntu-latest
@@ -124,39 +129,45 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - name: 安装依赖
-        run: npm ci
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: 构建应用
-        run: npm run build
+      - name: Build application
+        run: pnpm run build
 
-      - name: 生成构建工件
+      - name: Create build artifacts
         run: |
           mkdir -p build-artifacts
           cp -r dist build-artifacts/
-          cp package*.json build-artifacts/
+          cp package.json build-artifacts/
+          cp pnpm-lock.yaml build-artifacts/
 
-      - name: 上传构建工件
-        uses: actions/upload-artifact@v3
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: build-${{ github.sha }}
           path: build-artifacts/
 
-      - name: 分析包大小
+      - name: Analyze bundle size
         run: |
-          npm run analyze:build --if-present || echo "Build analysis not configured"
+          pnpm run analyze:build --if-present || echo "Build analysis not configured"
 
-      - name: 构建 Docker 镜像
+      - name: Build Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
@@ -166,19 +177,30 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
   # ==========================================
-  # 安全扫描
+  # Security Scan
   # ==========================================
   security:
     runs-on: ubuntu-latest
     needs: lint
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: 运行依赖安全检查
-        run: npm audit --audit-level=moderate || true
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Trivy 漏洞扫描
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Run dependency security check
+        run: pnpm audit --audit-level=moderate || true
+
+      - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
@@ -186,14 +208,14 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      - name: 上传 Trivy 结果
-        uses: github/codeql-action/upload-sarif@v2
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
 
   # ==========================================
-  # 部署到开发环境
+  # Deploy to Dev
   # ==========================================
   deploy-dev:
     runs-on: ubuntu-latest
@@ -204,14 +226,14 @@ jobs:
       url: https://dev.awareness-market.com
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: 下载构建工件
-        uses: actions/download-artifact@v3
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
           name: build-${{ github.sha }}
 
-      - name: 部署到开发服务器
+      - name: Deploy to dev server
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST_DEV }}
@@ -221,25 +243,25 @@ jobs:
           echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
-          
-          scp -i ~/.ssh/deploy_key -r dist $DEPLOY_USER@$DEPLOY_HOST:/var/www/awareness-market/
-          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && npm install && pm2 reload ecosystem.config.js'
 
-      - name: 健康检查
+          scp -i ~/.ssh/deploy_key -r dist $DEPLOY_USER@$DEPLOY_HOST:/var/www/awareness-market/
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && pnpm install --prod && pm2 reload ecosystem.config.js'
+
+      - name: Health check
         run: |
           for i in {1..5}; do
             if curl -f https://dev.awareness-market.com/health; then
-              echo "✅ 开发环境健康检查通过"
+              echo "Dev health check passed"
               exit 0
             fi
-            echo "⏳ 等待应用启动... ($i/5)"
+            echo "Waiting for app to start... ($i/5)"
             sleep 10
           done
-          echo "❌ 健康检查失败"
+          echo "Health check failed"
           exit 1
 
   # ==========================================
-  # 部署到生产环境
+  # Deploy to Production
   # ==========================================
   deploy-prod:
     runs-on: ubuntu-latest
@@ -253,14 +275,14 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: 下载构建工件
-        uses: actions/download-artifact@v3
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
           name: build-${{ github.sha }}
 
-      - name: 部署到生产服务器
+      - name: Deploy to production server
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST_PROD }}
@@ -270,40 +292,40 @@ jobs:
           echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
-          
-          # 备份当前版本
-          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && cp -r dist dist.backup'
-          
-          # 部署新版本
-          scp -i ~/.ssh/deploy_key -r dist $DEPLOY_USER@$DEPLOY_HOST:/var/www/awareness-market/
-          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && npm install && npm run build && pm2 reload ecosystem.config.js'
 
-      - name: 生产健康检查
+          # Backup current version
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && cp -r dist dist.backup'
+
+          # Deploy new version
+          scp -i ~/.ssh/deploy_key -r dist $DEPLOY_USER@$DEPLOY_HOST:/var/www/awareness-market/
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && pnpm install --prod && pnpm run build && pm2 reload ecosystem.config.js'
+
+      - name: Production health check
         run: |
           for i in {1..5}; do
             if curl -f https://awareness-market.com/health; then
-              echo "✅ 生产环境健康检查通过"
+              echo "Production health check passed"
               exit 0
             fi
-            echo "⏳ 等待应用启动... ($i/5)"
+            echo "Waiting for app to start... ($i/5)"
             sleep 10
           done
-          echo "❌ 健康检查失败"
+          echo "Health check failed"
           exit 1
 
-      - name: 通知部署完成
+      - name: Notify deployment
         if: success()
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ 生产环境部署完成！\n\n🔗 [查看应用](https://awareness-market.com)\n\n📊 [查看性能指标](https://console.aws.amazon.com/cloudwatch)'
+              body: 'Production deployment complete!\n\n[View App](https://awareness-market.com)'
             })
 
-      - name: 部署失败回滚
+      - name: Rollback on failure
         if: failure()
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
@@ -314,13 +336,13 @@ jobs:
           echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
-          
-          echo "⚠️  部署失败，开始回滚..."
+
+          echo "Deployment failed, rolling back..."
           ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'cd /var/www/awareness-market && rm -rf dist && mv dist.backup dist && pm2 reload ecosystem.config.js'
-          echo "✅ 回滚完成"
+          echo "Rollback complete"
 
   # ==========================================
-  # 通知和报告
+  # Notifications
   # ==========================================
   notify:
     runs-on: ubuntu-latest
@@ -328,15 +350,15 @@ jobs:
     if: always()
 
     steps:
-      - name: 构建状态总结
+      - name: Build summary
         run: |
-          echo "## CI/CD 流程完成"
+          echo "## CI/CD Pipeline Complete"
           echo "- Lint: ${{ needs.lint.result }}"
           echo "- Test: ${{ needs.test.result }}"
           echo "- Build: ${{ needs.build.result }}"
           echo "- Security: ${{ needs.security.result }}"
 
-      - name: 发送 Slack 通知
+      - name: Send Slack notification
         if: always()
         uses: 8398a7/action-slack@v3
         with:
