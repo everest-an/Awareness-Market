@@ -166,13 +166,18 @@ export default function CreatorDashboard() {
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
-                      data={[
-                        { date: "Day 1", revenue: 120, calls: 45 },
-                        { date: "Day 7", revenue: 250, calls: 89 },
-                        { date: "Day 14", revenue: 180, calls: 67 },
-                        { date: "Day 21", revenue: 320, calls: 112 },
-                        { date: "Day 30", revenue: 410, calls: 145 },
-                      ]}
+                      data={stats?.recentTransactions?.reduce((acc: any[], tx: any) => {
+                        const date = new Date(tx.createdAt || tx.transactions?.createdAt).toLocaleDateString();
+                        const existing = acc.find((d: any) => d.date === date);
+                        const amount = parseFloat(tx.amount || tx.transactions?.amount || "0") * 0.8;
+                        if (existing) {
+                          existing.revenue += amount;
+                          existing.calls += 1;
+                        } else {
+                          acc.push({ date, revenue: amount, calls: 1 });
+                        }
+                        return acc;
+                      }, []) || []}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
@@ -300,15 +305,23 @@ export default function CreatorDashboard() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                              <DropdownMenuItem asChild>
+                                <Link href={`/marketplace/${vector.id}`}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </Link>
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                {vector.status === "active" ? "Deactivate" : "Activate"}
+                              <DropdownMenuItem
+                                disabled
+                                className="text-muted-foreground"
+                              >
+                                {vector.status === "active" ? "Deactivate" : "Activate"} (coming soon)
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
-                                Delete
+                              <DropdownMenuItem
+                                disabled
+                                className="text-red-600/50"
+                              >
+                                Delete (coming soon)
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

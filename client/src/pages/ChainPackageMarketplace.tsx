@@ -57,8 +57,15 @@ export default function ChainPackageMarketplace() {
     return num.toString();
   };
 
-  const featuredCases = [
+  // Featured = top 3 from real query, or hardcoded examples as fallback when DB is empty
+  const realFeatured = (packages?.packages || [])
+    .slice()
+    .sort((a: any, b: any) => (b.downloads || 0) - (a.downloads || 0))
+    .slice(0, 3);
+
+  const featuredCases = realFeatured.length > 0 ? realFeatured : [
     {
+      id: 1,
       packageId: 'chain-case-math-001',
       name: 'Algebraic Proof Chain',
       description: 'Step-by-step proof chain for algebraic inequalities with verified reasoning checkpoints.',
@@ -74,6 +81,7 @@ export default function ChainPackageMarketplace() {
       downloads: 860,
     },
     {
+      id: 2,
       packageId: 'chain-case-code-002',
       name: 'API Refactor Chain',
       description: 'Reasoning chain for refactoring a legacy REST API into a typed service layer.',
@@ -89,6 +97,7 @@ export default function ChainPackageMarketplace() {
       downloads: 640,
     },
     {
+      id: 3,
       packageId: 'chain-case-legal-003',
       name: 'Regulatory Impact Chain',
       description: 'Compliance analysis chain for multi-region data residency requirements.',

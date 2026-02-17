@@ -55,48 +55,57 @@ export default function MemoryMarketplace() {
     return num.toString();
   };
 
-  const featuredCases = [
+  // Featured = top 3 from real query, or hardcoded examples as fallback when DB is empty
+  const realFeatured = (packages?.packages || [])
+    .slice()
+    .sort((a: any, b: any) => (b.downloads || 0) - (a.downloads || 0))
+    .slice(0, 3);
+
+  const featuredCases = realFeatured.length > 0 ? realFeatured : [
     {
-      id: "case-legal-review",
-      name: "Legal Reasoning Continuation",
-      description: "Transfer multi-step contract analysis from GPT-4 to Claude for follow-up negotiation and compliance checks.",
-      version: "1.3.0",
+      id: 1,
+      packageId: 'case-legal-review',
+      name: 'Legal Reasoning Continuation',
+      description: 'Transfer multi-step contract analysis from GPT-4 to Claude for follow-up negotiation and compliance checks.',
+      version: '1.3.0',
       tokenCount: 180000,
       compressionRatio: 0.92,
       rating: 4.8,
       price: 29.0,
-      sourceModel: "gpt-4",
-      targetModel: "claude-3",
+      sourceModel: 'gpt-4',
+      targetModel: 'claude-3',
       downloads: 1200,
-      contextDescription: "Enterprise contract review and risk analysis",
+      contextDescription: 'Enterprise contract review and risk analysis',
     },
     {
-      id: "case-research-synthesis",
-      name: "Research Synthesis Memory",
-      description: "Carry over a 40-page literature synthesis into a new model without losing citations or reasoning structure.",
-      version: "2.1.0",
+      id: 2,
+      packageId: 'case-research-synthesis',
+      name: 'Research Synthesis Memory',
+      description: 'Carry over a 40-page literature synthesis into a new model without losing citations or reasoning structure.',
+      version: '2.1.0',
       tokenCount: 240000,
       compressionRatio: 0.95,
       rating: 4.9,
       price: 45.0,
-      sourceModel: "claude-3",
-      targetModel: "gpt-4",
+      sourceModel: 'claude-3',
+      targetModel: 'gpt-4',
       downloads: 980,
-      contextDescription: "Academic literature review and hypothesis mapping",
+      contextDescription: 'Academic literature review and hypothesis mapping',
     },
     {
-      id: "case-product-design",
-      name: "Product Strategy Memory",
-      description: "Move a complete product discovery process across models for roadmap planning and stakeholder alignment.",
-      version: "1.0.4",
+      id: 3,
+      packageId: 'case-product-design',
+      name: 'Product Strategy Memory',
+      description: 'Move a complete product discovery process across models for roadmap planning and stakeholder alignment.',
+      version: '1.0.4',
       tokenCount: 150000,
       compressionRatio: 0.9,
       rating: 4.7,
       price: 24.0,
-      sourceModel: "llama-3",
-      targetModel: "qwen-2",
+      sourceModel: 'llama-3',
+      targetModel: 'qwen-2',
       downloads: 740,
-      contextDescription: "Product discovery, market sizing, and roadmap planning",
+      contextDescription: 'Product discovery, market sizing, and roadmap planning',
     },
   ];
 

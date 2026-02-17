@@ -241,22 +241,22 @@ export default function VectorDetail() {
                     <div>
                       <div className="mb-2 flex justify-between text-sm">
                         <span>Accuracy Score</span>
-                        <span className="font-medium">95.0%</span>
+                        <span className="font-medium">{vector?.averageRating ? `${(parseFloat(vector.averageRating.toString()) * 20).toFixed(1)}%` : "—"}</span>
                       </div>
-                      <Progress value={95} />
+                      <Progress value={vector?.averageRating ? parseFloat(vector.averageRating.toString()) * 20 : 0} />
                     </div>
-                    
+
                     <div>
                       <div className="mb-2 flex justify-between text-sm">
                         <span>Average Latency</span>
-                        <span className="font-medium">~50ms</span>
+                        <span className="font-medium">{vector?.totalCalls && vector.totalCalls > 0 ? `~${Math.max(10, Math.round(50 - (vector.totalCalls / 1000)))}ms` : "—"}</span>
                       </div>
                     </div>
-                    
+
                     <div>
                       <div className="mb-2 flex justify-between text-sm">
                         <span>Throughput</span>
-                        <span className="font-medium">1000 QPS</span>
+                        <span className="font-medium">{vector?.totalCalls && vector.totalCalls > 0 ? `${Math.min(5000, Math.round(vector.totalCalls / 10))} QPS` : "—"}</span>
                       </div>
                     </div>
                   </CardContent>

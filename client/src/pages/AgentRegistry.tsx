@@ -477,12 +477,16 @@ export default function AgentRegistry() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
-                          {["Engineering", "Research", "Finance"].map((dept) => (
+                          {[
+                            { dept: "Engineering", score: 62, dims: [70, 55, 60, 65] },
+                            { dept: "Research", score: 58, dims: [50, 65, 55, 70] },
+                            { dept: "Finance", score: 51, dims: [45, 60, 50, 48] },
+                          ].map(({ dept, score, dims }) => (
                             <div key={dept} className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs text-white/60">{dept}</span>
                                 <span className="text-xs text-cyan-400 font-medium">
-                                  {Math.floor(Math.random() * 30 + 40)}
+                                  {score}
                                 </span>
                               </div>
                               <div className="grid grid-cols-4 gap-1">
@@ -491,20 +495,17 @@ export default function AgentRegistry() {
                                   { label: "D", tip: "Decision" },
                                   { label: "C", tip: "Collaboration" },
                                   { label: "E", tip: "Expertise" },
-                                ].map((dim) => {
-                                  const val = Math.floor(Math.random() * 40 + 30);
-                                  return (
+                                ].map((dim, i) => (
                                     <div key={dim.label} className="text-center">
                                       <div className="h-1 rounded-full bg-white/[0.06] mb-1">
                                         <div
                                           className="h-full rounded-full bg-cyan-500/50"
-                                          style={{ width: `${val}%` }}
+                                          style={{ width: `${dims[i]}%` }}
                                         />
                                       </div>
                                       <span className="text-[9px] text-white/20">{dim.label}</span>
                                     </div>
-                                  );
-                                })}
+                                ))}
                               </div>
                             </div>
                           ))}

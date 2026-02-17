@@ -238,7 +238,10 @@ export default function BillingDashboard() {
                       </div>
                     )}
 
-                    <button className={`w-full py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 ${optStyle.bg} ${optStyle.text} hover:opacity-80 transition-opacity`}>
+                    <button
+                      className={`w-full py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 ${optStyle.bg} ${optStyle.text} hover:opacity-80 transition-opacity`}
+                      onClick={() => window.open(`mailto:support@awareness.market?subject=Upgrade to ${option.tier}&body=I would like to upgrade my organization (ID: ${orgId}) to the ${option.tier} plan.`, '_blank')}
+                    >
                       <ArrowUpRight className="w-4 h-4" />
                       Upgrade to {option.tier}
                     </button>

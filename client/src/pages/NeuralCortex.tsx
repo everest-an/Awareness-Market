@@ -8,13 +8,15 @@ import { NeuralCortexVisualizer, AgentNode, CortexNode } from '@/components/Neur
 import { Maximize2, Minimize2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
-// AI Agent nodes - cores in the unified latent space
+// Default AI agent nodes — representative of supported model families on the platform
 const AI_AGENTS: AgentNode[] = [
   { id: 'gpt-4', name: 'GPT-4', model: 'gpt', position: [0, 0, 0], color: '#a855f7', activity: 0.92, status: 'thinking' },
-  { id: 'claude-3', name: 'Claude 3', model: 'claude', position: [30, 15, 10], color: '#06b6d4', activity: 0.88, status: 'transferring' },
-  { id: 'llama-3', name: 'Llama 3', model: 'llama', position: [-25, -20, 15], color: '#f97316', activity: 0.7, status: 'thinking' },
+  { id: 'claude', name: 'Claude', model: 'claude', position: [30, 15, 10], color: '#06b6d4', activity: 0.88, status: 'transferring' },
+  { id: 'llama', name: 'Llama', model: 'llama', position: [-25, -20, 15], color: '#f97316', activity: 0.7, status: 'thinking' },
   { id: 'gemini', name: 'Gemini', model: 'gemini', position: [20, -30, -10], color: '#22c55e', activity: 0.6, status: 'idle' },
   { id: 'mistral', name: 'Mistral', model: 'mistral', position: [-15, 25, -20], color: '#ec4899', activity: 0.5, status: 'idle' },
+  { id: 'qwen', name: 'Qwen', model: 'qwen', position: [10, -15, 25], color: '#eab308', activity: 0.55, status: 'idle' },
+  { id: 'deepseek', name: 'DeepSeek', model: 'deepseek', position: [-20, 10, -15], color: '#14b8a6', activity: 0.65, status: 'thinking' },
 ];
 
 export default function NeuralCortex() {

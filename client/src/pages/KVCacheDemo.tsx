@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import Navbar from "@/components/Navbar";
 import { Upload, Zap, BarChart3, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,38 +37,53 @@ export default function KVCacheDemo() {
     }
   };
 
-  const compressKVCache = async () => {
-    if (!file) return;
-    
-    setCompressing(true);
-    
-    try {
-      // Simulate compression (in real implementation, call backend API)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const originalSize = file.size;
-      const compressedSize = Math.floor(originalSize * 0.05); // 95% compression
-      const compressionRatio = ((1 - compressedSize / originalSize) * 100);
-      
+  const compressMutation = trpc.latentmasV2.kvCache.compress.useMutation({
+    onSuccess: (data: any) => {
+      const res = data.result || data;
       setResult({
-        originalSize,
-        compressedSize,
-        compressionRatio,
-        bandwidthSavings: compressionRatio,
-        processingTime: 1.8,
+        originalSize: res.originalSize || file?.size || 0,
+        compressedSize: res.compressedSize || 0,
+        compressionRatio: res.compressionRatio || 0,
+        bandwidthSavings: res.bandwidthSavings || res.compressionRatio || 0,
+        processingTime: res.processingTime || 0,
       });
-      
       toast({
         title: "Compression Complete!",
-        description: `Achieved ${compressionRatio.toFixed(1)}% compression ratio`,
+        description: `Achieved ${(res.compressionRatio || 0).toFixed(1)}% compression ratio`,
       });
-    } catch (error) {
+      setCompressing(false);
+    },
+    onError: (err: any) => {
       toast({
         title: "Compression Failed",
-        description: "An error occurred during compression",
+        description: err.message || "An error occurred during compression",
         variant: "destructive",
       });
-    } finally {
+      setCompressing(false);
+    },
+  });
+
+  const compressKVCache = async () => {
+    if (!file) return;
+    setCompressing(true);
+
+    try {
+      const text = await file.text();
+      const kvData = JSON.parse(text);
+      compressMutation.mutate({
+        keys: kvData.keys || [],
+        values: kvData.values || [],
+        queries: kvData.queries || [],
+        config: {
+          attentionThreshold: 0.5,
+        },
+      });
+    } catch {
+      toast({
+        title: "Invalid File",
+        description: "Could not parse JSON. Ensure the file contains valid KV-Cache data.",
+        variant: "destructive",
+      });
       setCompressing(false);
     }
   };
