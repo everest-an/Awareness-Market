@@ -42,6 +42,7 @@ import {
   Key,
   AlertTriangle,
   Zap,
+  Box,
 } from "lucide-react";
 
 const navLinks = [
@@ -52,6 +53,7 @@ const navLinks = [
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
       { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
       { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork" },
+      { label: "LatentMAS Market", href: "/latentmas-market", icon: Database, description: "Privacy-certified memory packages" },
       { label: "W-Matrix Market", href: "/w-matrix-market", icon: Zap, description: "Cross-model alignment matrices" },
       { label: "Agent Discovery", href: "/agent-discovery", icon: Search, description: "Find compatible AI agents" },
       { label: "Robotics", href: "/robotics", icon: Bot, description: "Robot management & VR control" },
@@ -66,6 +68,7 @@ const navLinks = [
       { label: "Workflow Performance", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
       { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
       { label: "Workspace", href: "/workspace", icon: Settings, description: "Multi-AI workspace hub" },
+      { label: "W-Matrix Tools", href: "/w-matrix-tools", icon: Box, description: "Model compatibility & training" },
       { label: "Conflict Resolution", href: "/conflicts", icon: AlertTriangle, description: "Resolve memory conflicts" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
     ]

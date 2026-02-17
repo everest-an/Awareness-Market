@@ -91,6 +91,8 @@ import WorkspaceDetail from "./pages/WorkspaceDetail";
 import CreditsPayments from "./pages/CreditsPayments";
 import AgentDiscovery from "./pages/AgentDiscovery";
 import WMatrixMarketplace from "./pages/WMatrixMarketplace";
+import LatentMASMarketplace from "./pages/LatentMASMarketplace";
+import WMatrixTools from "./pages/WMatrixTools";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -176,6 +178,8 @@ function Router() {
       <Route path="/credits" component={CreditsPayments} />
       <Route path="/agent-discovery" component={AgentDiscovery} />
       <Route path="/w-matrix-market" component={WMatrixMarketplace} />
+      <Route path="/latentmas-market" component={LatentMASMarketplace} />
+      <Route path="/w-matrix-tools" component={WMatrixTools} />
 
       {/* v3: Organization Governance */}
       <Route path="/org/setup">{() => <FeatureErrorBoundary feature="Organization Setup"><OrganizationSetup /></FeatureErrorBoundary>}</Route>
