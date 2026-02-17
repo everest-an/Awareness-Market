@@ -100,9 +100,9 @@ export default function ApiKeysPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
       <Navbar />
-      <div className="pt-20 container max-w-6xl py-8 mt-20">
+      <div className="pt-24 pb-8 container max-w-6xl">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">API Keys</h1>

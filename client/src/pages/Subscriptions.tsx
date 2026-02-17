@@ -52,7 +52,7 @@ export default function Subscriptions() {
 
   if (authLoading || plansLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[#0a0a0f]">
         <div className="container py-16">
           <Skeleton className="mx-auto mb-4 h-12 w-64" />
           <Skeleton className="mx-auto mb-12 h-6 w-96" />
@@ -67,7 +67,7 @@ export default function Subscriptions() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0a0a0f]">
       <Navbar />
       {/* Header */}
       <div className="border-b bg-gradient-to-b from-muted/50 to-background mt-20">

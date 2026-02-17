@@ -182,7 +182,7 @@ export default function ConflictResolution() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="min-h-screen bg-[#0a0a0f]">
       <Navbar />
 
       <div className="pt-20 container mx-auto px-4 py-8">

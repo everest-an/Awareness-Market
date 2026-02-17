@@ -92,7 +92,7 @@ export default function Dashboard() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="min-h-screen bg-[#0a0a0f]">
         <Navbar />
         <div className="pt-20 container py-8">
           <Skeleton className="h-8 w-64 mb-8" />
@@ -107,10 +107,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen bg-[#0a0a0f]">
       <Navbar />
       
-      <div className="container py-8">
+      <div className="container pt-24 pb-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
