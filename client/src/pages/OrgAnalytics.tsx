@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useSearch } from "wouter";
+import Navbar from "@/components/Navbar";
 import {
   BarChart3,
   Users,
@@ -118,8 +119,9 @@ export default function OrgAnalytics() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <Navbar />
+      <div className="max-w-7xl mx-auto pt-24 px-6 pb-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

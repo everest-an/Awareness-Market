@@ -113,7 +113,7 @@ export default function OrganizationSetup() {
     <div className="min-h-screen bg-[#0a0a0f]">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="max-w-4xl mx-auto px-4 pt-24 pb-12">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-sm mb-4">

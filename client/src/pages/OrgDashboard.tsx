@@ -101,7 +101,7 @@ export default function OrgDashboard() {
     <div className="min-h-screen bg-[#0a0a0f]">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 pt-24 pb-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
