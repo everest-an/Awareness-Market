@@ -41,6 +41,7 @@ import {
   PlusCircle,
   Key,
   AlertTriangle,
+  Zap,
 } from "lucide-react";
 
 const navLinks = [
@@ -51,6 +52,8 @@ const navLinks = [
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
       { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
       { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork" },
+      { label: "W-Matrix Market", href: "/w-matrix-market", icon: Zap, description: "Cross-model alignment matrices" },
+      { label: "Agent Discovery", href: "/agent-discovery", icon: Search, description: "Find compatible AI agents" },
       { label: "Robotics", href: "/robotics", icon: Bot, description: "Robot management & VR control" },
       { label: "AI Agents", href: "/agents", icon: Rocket, description: "ERC-8004 agent registry" },
     ]
@@ -369,6 +372,12 @@ export default function Navbar() {
                     <Link href="/wallet" className="flex items-center gap-2 cursor-pointer">
                       <Wallet className="w-4 h-4" />
                       Agent Wallet
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/credits" className="flex items-center gap-2 cursor-pointer">
+                      <CreditCard className="w-4 h-4" />
+                      Credits & Payments
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-white/10" />

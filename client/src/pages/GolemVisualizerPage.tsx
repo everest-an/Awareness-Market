@@ -259,7 +259,7 @@ export default function GolemVisualizerPage() {
               <BarChart3 className="h-4 w-4" />
               <span>
                 Viewing <strong>600+ demo samples</strong> across 36 categories. 
-                <a href="/login" className="ml-1 underline hover:text-amber-300">
+                <a href="/auth" className="ml-1 underline hover:text-amber-300">
                   Sign in
                 </a> to explore your real deployment data.
               </span>
