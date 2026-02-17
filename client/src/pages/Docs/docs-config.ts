@@ -365,19 +365,74 @@ export const flattenDocs = (items: DocItem[]): DocItem[] => {
   }, [] as DocItem[]);
 };
 
-// 获取当前文档
-export const getDocByPath = (path: string): DocItem | undefined => {
-  const allDocs = flattenDocs(docsStructure);
-  return allDocs.find(doc => doc.path === path);
+// 路径规范化：去除尾部斜杠、解码 URI、去除查询参数
+const normalizePath = (path: string): string => {
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    // ignore decode errors
+  }
+  // 去除尾部斜杠（但保留根路径 "/"）
+  if (path.length > 1 && path.endsWith('/')) {
+    path = path.slice(0, -1);
+  }
+  // 去除查询参数和哈希
+  const queryIndex = path.indexOf('?');
+  if (queryIndex !== -1) path = path.slice(0, queryIndex);
+  const hashIndex = path.indexOf('#');
+  if (hashIndex !== -1) path = path.slice(0, hashIndex);
+  return path;
+};
+
+// 缓存扁平化结果
+let _flatDocsCache: DocItem[] | null = null;
+const getAllDocs = (): DocItem[] => {
+  if (!_flatDocsCache) {
+    _flatDocsCache = flattenDocs(docsStructure);
+  }
+  return _flatDocsCache;
+};
+
+// 获取当前文档（带路径规范化和模糊匹配）
+export const getDocByPath = (rawPath: string): DocItem | undefined => {
+  const allDocs = getAllDocs();
+  const path = normalizePath(rawPath);
+
+  // 1. 精确匹配
+  const exact = allDocs.find(doc => doc.path === path);
+  if (exact) return exact;
+
+  // 2. 忽略大小写匹配
+  const lower = path.toLowerCase();
+  const caseInsensitive = allDocs.find(
+    doc => doc.path.toLowerCase() === lower
+  );
+  if (caseInsensitive) return caseInsensitive;
+
+  // 3. 前缀匹配（找最长匹配的父级文档）
+  const prefixMatches = allDocs
+    .filter(doc => path.startsWith(doc.path))
+    .sort((a, b) => b.path.length - a.path.length);
+  if (prefixMatches.length > 0) return prefixMatches[0];
+
+  return undefined;
 };
 
 // 获取下一个/上一个文档
 export const getAdjacentDocs = (currentPath: string) => {
-  const allDocs = flattenDocs(docsStructure);
-  const currentIndex = allDocs.findIndex(doc => doc.path === currentPath);
+  const allDocs = getAllDocs();
+  const path = normalizePath(currentPath);
+  const currentIndex = allDocs.findIndex(doc => doc.path === path);
+
+  // 如果精确匹配失败，尝试忽略大小写
+  const effectiveIndex = currentIndex >= 0
+    ? currentIndex
+    : allDocs.findIndex(doc => doc.path.toLowerCase() === path.toLowerCase());
 
   return {
-    prev: currentIndex > 0 ? allDocs[currentIndex - 1] : null,
-    next: currentIndex < allDocs.length - 1 ? allDocs[currentIndex + 1] : null
+    prev: effectiveIndex > 0 ? allDocs[effectiveIndex - 1] : null,
+    next: effectiveIndex >= 0 && effectiveIndex < allDocs.length - 1
+      ? allDocs[effectiveIndex + 1]
+      : null
   };
 };

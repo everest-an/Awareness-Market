@@ -186,6 +186,19 @@ async function startServer() {
       createContext,
     })
   );
+  // Serve gitbook markdown files explicitly (before Vite/static catch-all)
+  // This ensures .md files are always served correctly regardless of Vite middleware
+  const gitbookPath = path.resolve(import.meta.dirname, "../..", "client", "public", "gitbook");
+  if (fs.existsSync(gitbookPath)) {
+    app.use("/gitbook", express.static(gitbookPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.md')) {
+          res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+        }
+      }
+    }));
+  }
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
