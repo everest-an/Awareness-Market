@@ -250,8 +250,33 @@ export function createUsageTracker(prisma: PrismaClient) {
         // Batch write to database every 100 requests (reduce DB load)
         const count = await redis.incr(`usage:org:${user.currentOrgId}:count`);
         if (count % 100 === 0) {
-          // TODO: Flush Redis usage data to database
-          // This would batch-write to a UsageLog table for billing
+          const dateKey = timestamp.toISOString().slice(0, 10);
+          const redisKey = `usage:org:${user.currentOrgId}:${dateKey}`;
+          const endpointCounts = await redis.hgetall(redisKey);
+
+          if (endpointCounts && Object.keys(endpointCounts).length > 0) {
+            // Ensure table exists (self-initializing, no migration required)
+            await prisma.$executeRaw`
+              CREATE TABLE IF NOT EXISTS org_api_usage_daily (
+                org_id      INT         NOT NULL,
+                date        DATE        NOT NULL,
+                endpoint    VARCHAR(255) NOT NULL,
+                call_count  INT         NOT NULL DEFAULT 0,
+                updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (org_id, date, endpoint)
+              )
+            `;
+
+            for (const [ep, callsStr] of Object.entries(endpointCounts)) {
+              const calls = parseInt(callsStr, 10) || 0;
+              await prisma.$executeRaw`
+                INSERT INTO org_api_usage_daily (org_id, date, endpoint, call_count, updated_at)
+                VALUES (${user.currentOrgId}, ${dateKey}::date, ${ep}, ${calls}, NOW())
+                ON CONFLICT (org_id, date, endpoint)
+                DO UPDATE SET call_count = ${calls}, updated_at = NOW()
+              `;
+            }
+          }
         }
       } catch (error) {
         console.error('Usage tracker error:', error);

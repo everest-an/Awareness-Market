@@ -20,9 +20,11 @@ import { promisify } from 'util';
 import { createWriteStream, createReadStream, statSync, unlinkSync } from 'fs';
 import { createGzip } from 'zlib';
 import { pipeline } from 'stream/promises';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { storagePut } from '../storage';
 import { createLogger } from '../utils/logger';
 import { prisma } from '../db-prisma';
+import { sendEmail } from '../email-service';
 
 const execAsync = promisify(exec);
 const logger = createLogger('BackupWorker');
@@ -285,7 +287,12 @@ export async function runBackupJob(): Promise<void> {
 
     // 5. Send notification (if configured)
     if (config.notificationEmail) {
-      // TODO: Implement email notification
+      await sendEmail({
+        to: config.notificationEmail,
+        subject: '✅ Database Backup Completed Successfully',
+        html: `<h2>Backup Completed</h2><p>Your database backup was uploaded to S3 successfully.</p><p>Location: <code>${s3Url}</code></p>`,
+        text: `Backup completed. S3 URL: ${s3Url}`,
+      });
       logger.info('Backup notification sent', { email: config.notificationEmail });
     }
   } catch (error) {
@@ -293,7 +300,12 @@ export async function runBackupJob(): Promise<void> {
 
     // Send alert notification
     if (getBackupConfig().notificationEmail) {
-      // TODO: Implement alert notification
+      await sendEmail({
+        to: getBackupConfig().notificationEmail!,
+        subject: '❌ Database Backup Failed',
+        html: `<h2>Backup Failed</h2><p>The scheduled database backup encountered an error.</p><pre>${error instanceof Error ? error.message : String(error)}</pre><p>Please check server logs immediately.</p>`,
+        text: `Backup failed: ${error instanceof Error ? error.message : String(error)}`,
+      });
       logger.error('Backup failure alert sent');
     }
 
@@ -318,8 +330,18 @@ export async function restoreFromBackup(backupFilename: string): Promise<void> {
 
   try {
     // 1. Download backup from S3
-    // TODO: Implement S3 download
-    logger.info('Backup downloaded from S3', { s3Key });
+    const s3 = new S3Client({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+    });
+    const getCmd = new GetObjectCommand({ Bucket: config.s3Bucket, Key: s3Key });
+    const s3Obj = await s3.send(getCmd);
+    if (!s3Obj.Body) throw new Error(`S3 object not found: ${s3Key}`);
+    await pipeline(s3Obj.Body as NodeJS.ReadableStream, createWriteStream(localPath));
+    logger.info('Backup downloaded from S3', { s3Key, localPath });
 
     // 2. Extract if compressed
     if (backupFilename.endsWith('.gz')) {

@@ -16,6 +16,7 @@
 import { prisma } from '../db-prisma';
 import { createLogger } from '../utils/logger';
 import { rotateApiKey } from '../api-key-manager';
+import { sendEmail } from '../email-service';
 
 const logger = createLogger('ApiKeyRotationWorker');
 
@@ -152,31 +153,28 @@ export async function sendExpirationWarning(
     daysUntilExpiry,
   });
 
-  // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
-  // For now, just log the notification
-  const message = `
-    ⚠️ API Key Expiration Warning
+  const keyListHtml = keys
+    .map(
+      (k) =>
+        `<li><strong>${k.name}</strong> (${k.keyPrefix}...) — Expires: ${k.expiresAt.toISOString()} ${k.autoRotationEnabled ? '✅ Auto-rotation enabled' : '❌ Auto-rotation disabled'}</li>`
+    )
+    .join('');
+  const actionNote = keys.some((k) => !k.autoRotationEnabled)
+    ? 'Please enable auto-rotation or manually rotate your keys before expiry.'
+    : 'Your keys will be automatically rotated before expiry.';
 
-    ${keys.length} of your API key(s) will expire in ${daysUntilExpiry} day(s):
-
-    ${keys
-      .map(
-        (k) =>
-          `- ${k.name} (${k.keyPrefix}...) - Expires: ${k.expiresAt.toISOString()} ${k.autoRotationEnabled ? '✅ Auto-rotation enabled' : '❌ Auto-rotation disabled'}`
-      )
-      .join('\n    ')}
-
-    Action required:
-    ${keys.some((k) => !k.autoRotationEnabled) ? '- Enable auto-rotation or manually rotate your keys before expiry' : '- Keys will be automatically rotated before expiry'}
-    - Update your applications with new keys after rotation
-
-    Manage your API keys: https://your-domain.com/settings/api-keys
-  `;
-
-  logger.warn('API key expiration notification', {
-    userId,
-    email,
-    message,
+  await sendEmail({
+    to: email,
+    subject: `⚠️ API Key Expiration Warning — ${daysUntilExpiry} day(s) remaining`,
+    html: `
+      <h2>API Key Expiration Warning</h2>
+      <p>${keys.length} of your API key(s) will expire in <strong>${daysUntilExpiry} day(s)</strong>:</p>
+      <ul>${keyListHtml}</ul>
+      <p><strong>Action required:</strong> ${actionNote}</p>
+      <p>Update your applications with new keys after rotation.</p>
+      <p><a href="https://awareness.market/settings/api-keys">Manage your API keys</a></p>
+    `,
+    text: `API Key Expiration Warning\n\n${keys.length} key(s) expire in ${daysUntilExpiry} day(s).\n${actionNote}\nManage keys: https://awareness.market/settings/api-keys`,
   });
 
   // Mark notification as sent
@@ -208,28 +206,28 @@ export async function sendRotationNotification(
     keyName,
   });
 
-  // TODO: Integrate with email service
-  const message = `
-    ✅ API Key Rotated Successfully
-
-    Your API key "${keyName}" has been automatically rotated.
-
-    Old key: ${oldKeyPrefix}... (revoked)
-    New key: ${newKeyPrefix}... (active)
-
-    Action required:
-    - Update your applications with the new API key
-    - Test your integrations
-    - The old key is now inactive
-
-    View your API keys: https://your-domain.com/settings/api-keys
-  `;
-
-  logger.info('API key rotation notification sent', {
-    userId,
-    email,
-    message,
+  await sendEmail({
+    to: email,
+    subject: `✅ API Key "${keyName}" Rotated Successfully`,
+    html: `
+      <h2>API Key Rotated Successfully</h2>
+      <p>Your API key <strong>${keyName}</strong> has been automatically rotated.</p>
+      <ul>
+        <li>Old key: <code>${oldKeyPrefix}...</code> (revoked)</li>
+        <li>New key: <code>${newKeyPrefix}...</code> (active)</li>
+      </ul>
+      <p><strong>Action required:</strong></p>
+      <ul>
+        <li>Update your applications with the new API key</li>
+        <li>Test your integrations</li>
+        <li>The old key is now inactive</li>
+      </ul>
+      <p><a href="https://awareness.market/settings/api-keys">View your API keys</a></p>
+    `,
+    text: `API Key Rotated\n\nYour key "${keyName}" was rotated.\nOld: ${oldKeyPrefix}... (revoked)\nNew: ${newKeyPrefix}... (active)\nUpdate your applications.\nhttps://awareness.market/settings/api-keys`,
   });
+
+  logger.info('API key rotation notification sent', { userId, email, keyName });
 }
 
 // ============================================================================

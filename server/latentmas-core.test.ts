@@ -267,13 +267,11 @@ describe('LatentMAS Core - Vector Operations', () => {
       expect(Array.isArray(result.pairs)).toBe(true);
     });
 
-    it('should include expected models (when ALIGNMENT_MATRICES are populated)', () => {
+    it('should include expected models', () => {
       const result = getSupportedModels();
-      // Currently returns empty arrays until ALIGNMENT_MATRICES is wired up.
-      // Once populated, these models should appear:
-      // expect(result.models).toContain('gpt-4');
-      // expect(result.models).toContain('claude-3-sonnet');
-      expect(result.models).toBeDefined();
+      expect(result.models.length).toBeGreaterThan(0);
+      expect(result.models).toContain('gpt-4');
+      expect(result.models).toContain('claude-3-sonnet');
     });
 
     it('should include quality scores for pairs', () => {

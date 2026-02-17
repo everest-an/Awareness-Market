@@ -10,7 +10,7 @@
 
 import * as math from 'mathjs';
 import { WMatrixService } from './latentmas/w-matrix-service';
-import { getModelSpec } from './latentmas/w-matrix-generator';
+import { getModelSpec, getSupportedModels as getWMatrixModels } from './latentmas/w-matrix-generator';
 import type { WMatrixMethod } from './latentmas/types';
 
 // Import TRUE LatentMAS implementation for integration
@@ -317,22 +317,27 @@ export function getSupportedModels(): {
     quality: number;
   }>;
 } {
-  const models = new Set<string>();
+  const modelList = getWMatrixModels();
   const pairs: Array<{ source: string; target: string; quality: number }> = [];
 
-  // TODO: Implement with proper ALIGNMENT_MATRICES or use WMatrixService
-  // Object.values(ALIGNMENT_MATRICES).forEach(pair => {
-  //   models.add(pair.source);
-  //   models.add(pair.target);
-  //   pairs.push({
-  //     source: pair.source,
-  //     target: pair.target,
-  //     quality: pair.quality.confidence
-  //   });
-  // });
+  // Build representative pairs: same-dimension pairs get quality 1.0,
+  // cross-dimension pairs get quality based on dimension ratio
+  for (let i = 0; i < modelList.length; i++) {
+    for (let j = i + 1; j < modelList.length; j++) {
+      const src = modelList[i];
+      const tgt = modelList[j];
+      const srcSpec = getModelSpec(src);
+      const tgtSpec = getModelSpec(tgt);
+      if (!srcSpec || !tgtSpec) continue;
+      const minDim = Math.min(srcSpec.keyDimension, tgtSpec.keyDimension);
+      const maxDim = Math.max(srcSpec.keyDimension, tgtSpec.keyDimension);
+      const quality = minDim / maxDim; // 1.0 for same dimension, < 1.0 otherwise
+      pairs.push({ source: src, target: tgt, quality });
+    }
+  }
 
   return {
-    models: Array.from(models),
+    models: modelList,
     pairs
   };
 }
