@@ -21,6 +21,7 @@ import path from "path";
 import { initializeWorkflowWebSocket } from "../workflow-websocket";
 import { setupGoServiceProxies, createHealthCheckRouter } from "../middleware/go-service-proxy";
 import communityRouter from "../community-assistant";
+import collabRouter from "../routers/workspace-collab";
 import { erc8004Router } from "../erc8004-api";
 import inferenceRouter from "../inference-api";
 import { createLogger } from "../utils/logger";
@@ -132,6 +133,9 @@ async function startServer() {
   registerOAuthRoutes(app);
   // MCP Protocol API
   app.use("/api/mcp", mcpRouter);
+
+  // Workspace Collaboration REST API (for v0, browser clients, etc.)
+  app.use("/api/collab", collabRouter);
   
   // LatentMAS Transformer API
   app.use("/api/latentmas", latentmasRouter);

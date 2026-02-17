@@ -59,6 +59,7 @@ import { orgAnalyticsRouter } from './routers/org-analytics';
 import { apiKeyRouter } from './routers/api-key';
 import { ipWhitelistRouter } from './routers/ip-whitelist';
 import { sessionManagementRouter } from './routers/session-management';
+import { workspaceRouter } from './routers/workspace';
 import { prisma } from './db-prisma';
 import { createSubscriptionCheckout, createVectorPurchaseCheckout } from "./stripe-client";
 import type {
@@ -2006,6 +2007,9 @@ export const appRouter = router({
 
   // BYOK — per-user LLM provider API keys (encrypted at rest)
   providerKeys: providerKeysRouter,
+
+  // Workspace — multi-AI workspace setup + config generation
+  workspace: workspaceRouter,
 
   // MCP (Model Context Protocol) - AI Agent Token Management
   mcp: mcpRouter,

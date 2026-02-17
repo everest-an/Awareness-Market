@@ -62,6 +62,7 @@ const navLinks = [
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Workflow Performance", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
       { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
+      { label: "Workspace", href: "/workspace", icon: Settings, description: "Multi-AI workspace hub" },
       { label: "Conflict Resolution", href: "/conflicts", icon: AlertTriangle, description: "Resolve memory conflicts" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
     ]
@@ -207,6 +208,12 @@ export default function Navbar() {
               <>
                 <span className="text-white/30 mx-1">/</span>
                 <span className="text-cyan-400 font-medium">Settings</span>
+              </>
+            )}
+            {location.startsWith('/workspace') && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Workspace</span>
               </>
             )}
             {location.startsWith('/org/') && (

@@ -85,6 +85,9 @@ import { Redirect } from "wouter";
 import LandingPage from "./pages/LandingPage";
 import RoboticsPage from "./pages/robotics";
 import { DocsLayout } from "./pages/Docs";
+import WorkspaceSetup from "./pages/WorkspaceSetup";
+import WorkspaceList from "./pages/WorkspaceList";
+import WorkspaceDetail from "./pages/WorkspaceDetail";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -101,6 +104,10 @@ function Router() {
       <Route path={"/api/auth/callback/:provider"} component={OAuthCallback} />
       
       <Route path="/docs/collaboration" component={AiCollaborationDocs} />
+      <Route path="/workspace" component={WorkspaceList} />
+      <Route path="/workspace/new" component={WorkspaceSetup} />
+      <Route path="/workspace/:id" component={WorkspaceDetail} />
+
       <Route path="/ai-collaboration" component={AiCollaborationHub} />
       <Route path="/ai-collaboration/new" component={NewCollaborationSession} />
       <Route path="/ai-collaboration/sessions" component={SessionsList} />
