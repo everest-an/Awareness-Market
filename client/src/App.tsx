@@ -93,7 +93,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/robotics"} component={RoboticsPage} />
       {/* Documentation System */}
-      <Route path="/documentation/:rest*" component={DocsLayout} />
+      <Route path="/documentation/*" component={DocsLayout} />
       <Route path="/documentation" component={DocsLayout} />
       <Route path={"/auth"} component={AuthPage} />
       <Route path={"/auth/verify"} component={EmailVerification} />
