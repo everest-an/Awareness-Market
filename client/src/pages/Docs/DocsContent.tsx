@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, Link } from 'wouter';
 import { MarkdownRenderer } from '../../components/MarkdownRenderer';
 import { getDocByPath, getAdjacentDocs } from './docs-config';
@@ -8,14 +8,29 @@ export const DocsContent: React.FC = () => {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const prevPathRef = useRef<string>('');
 
   const currentPath = location;
   const currentDoc = getDocByPath(currentPath);
   const { prev, next } = getAdjacentDocs(currentPath);
 
   useEffect(() => {
+    // 路径变化时重置状态
+    if (prevPathRef.current !== currentPath) {
+      setLoading(true);
+      setError(null);
+      prevPathRef.current = currentPath;
+    }
+
     const loadMarkdown = async () => {
       if (!currentDoc) {
+        console.warn('[Docs] No doc found for path:', currentPath);
+        // 如果路径以 /documentation 开头但没有匹配，重定向到文档首页
+        if (currentPath.startsWith('/documentation') && currentPath !== '/documentation') {
+          console.warn('[Docs] Redirecting to /documentation');
+          navigate('/documentation');
+          return;
+        }
         setError('Documentation not found');
         setLoading(false);
         return;
@@ -25,18 +40,29 @@ export const DocsContent: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // 从public/gitbook目录加载markdown文件
+        // 从 public/gitbook 目录加载 markdown 文件
         const mdPath = `/gitbook/${currentDoc.file}`;
         const response = await fetch(mdPath);
 
         if (!response.ok) {
-          throw new Error('Failed to load documentation');
+          // 检查返回的是否是 HTML（Vite SPA fallback）
+          const contentType = response.headers.get('content-type') || '';
+          if (contentType.includes('text/html')) {
+            throw new Error(`File not found: ${mdPath} (server returned HTML fallback)`);
+          }
+          throw new Error(`Failed to load: ${mdPath} (${response.status})`);
         }
 
         const text = await response.text();
+
+        // 验证返回的不是 HTML（Vite catch-all 可能返回 index.html）
+        if (text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html')) {
+          throw new Error(`Received HTML instead of markdown for: ${mdPath}`);
+        }
+
         setContent(text);
       } catch (err) {
-        console.error('Error loading markdown:', err);
+        console.error('[Docs] Error loading markdown:', err);
         setError('Failed to load documentation. Please try again later.');
       } finally {
         setLoading(false);
@@ -46,7 +72,7 @@ export const DocsContent: React.FC = () => {
     loadMarkdown();
     // Scroll to top on route change
     window.scrollTo(0, 0);
-  }, [currentPath, currentDoc]);
+  }, [currentPath, currentDoc?.path]);
 
   if (loading) {
     return (
@@ -68,7 +94,7 @@ export const DocsContent: React.FC = () => {
             {error || 'Documentation page not found'}
           </p>
           <button
-            onClick={() => navigate('/docs')}
+            onClick={() => navigate('/documentation')}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             Back to Documentation
@@ -88,7 +114,7 @@ export const DocsContent: React.FC = () => {
               Home
             </Link>
             <span>/</span>
-            <Link href="/docs" className="hover:text-blue-600 dark:hover:text-blue-400">
+            <Link href="/documentation" className="hover:text-blue-600 dark:hover:text-blue-400">
               Documentation
             </Link>
             <span>/</span>
