@@ -55,7 +55,7 @@ jobs:
             if [ -f "$ENV_FILE" ]; then
               sed -i 's|^BASE_URL=.*|BASE_URL=https://api.awareness.market|' "$ENV_FILE"
               sed -i 's|^OAUTH_SERVER_URL=.*|OAUTH_SERVER_URL=https://api.awareness.market|' "$ENV_FILE"
-              sed -i 's|^OAUTH_CALLBACK_URL=.*|OAUTH_CALLBACK_URL=https://api.awareness.market|' "$ENV_FILE"
+              sed -i 's|^OAUTH_CALLBACK_URL=.*|OAUTH_CALLBACK_URL=https://awareness.market|' "$ENV_FILE"
               echo ".env updated:"
               grep -E "^(BASE_URL|OAUTH_SERVER_URL|OAUTH_CALLBACK_URL)" "$ENV_FILE"
               pm2 restart awareness-network || pm2 restart all || true
