@@ -148,6 +148,28 @@ export const docsStructure: DocItem[] = [
         title: "Session Management",
         path: "/documentation/ai-collaboration/management",
         file: "ai-collaboration/session-management.md"
+      },
+      {
+        title: "Multi-AI Workspace",
+        path: "/documentation/ai-collaboration/workspace",
+        file: "ai-collaboration/multi-ai-workspace.md",
+        children: [
+          {
+            title: "Workspace Setup",
+            path: "/documentation/ai-collaboration/workspace/setup",
+            file: "ai-collaboration/workspace-setup.md"
+          },
+          {
+            title: "Permission Model",
+            path: "/documentation/ai-collaboration/workspace/permissions",
+            file: "ai-collaboration/workspace-permissions.md"
+          },
+          {
+            title: "REST API Reference",
+            path: "/documentation/ai-collaboration/workspace/api",
+            file: "ai-collaboration/workspace-api.md"
+          }
+        ]
       }
     ]
   },

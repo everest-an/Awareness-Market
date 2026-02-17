@@ -971,6 +971,65 @@ model MemoryNFT {
 }
 
 // ============================================================================
+// Multi-AI Workspace (dedicated tables instead of AiMemory JSON blobs)
+// ============================================================================
+
+enum WorkspaceStatus {
+  active
+  paused
+  completed
+  archived
+}
+
+enum AgentIntegration {
+  mcp
+  rest
+}
+
+model Workspace {
+  id                  String           @id @db.VarChar(32) // ws_xxxx
+  userId              Int              @map("user_id")
+  name                String           @db.VarChar(200)
+  description         String?          @db.VarChar(1000)
+  status              WorkspaceStatus  @default(active)
+
+  // Encrypted MCP token (AES-256-GCM: iv:authTag:ciphertext hex)
+  mcpTokenEncrypted   String           @map("mcp_token_encrypted") @db.Text
+  mcpTokenMask        String           @map("mcp_token_mask") @db.VarChar(30)
+  memoryKey           String           @map("memory_key") @db.VarChar(255)
+
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  agents              WorkspaceAgent[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("workspaces")
+}
+
+model WorkspaceAgent {
+  id                  String           @id @db.VarChar(32) // agent_xxxx
+  workspaceId         String           @map("workspace_id") @db.VarChar(32)
+  name                String           @db.VarChar(100)
+  role                String           @db.VarChar(50)
+  model               String           @db.VarChar(100)
+  integration         AgentIntegration
+  permissions         String[]         @default(["read", "write"]) // read, write, propose, execute
+  description         String?          @db.VarChar(500)
+
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  workspace           Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("workspace_agents")
+}
+
+// ============================================================================
 // Email Verification System
 // ============================================================================
 

@@ -4,8 +4,8 @@
  * Allows users to create workspaces, add agents, set permissions,
  * and generate MCP / REST API configs for each agent.
  *
- * Workspaces are stored in the AiMemory table under a special key prefix,
- * and MCP tokens are created for each workspace.
+ * Uses dedicated Workspace + WorkspaceAgent Prisma tables.
+ * MCP tokens are AES-256-GCM encrypted at rest.
  */
 
 import { z } from 'zod';
@@ -13,39 +13,47 @@ import crypto from 'crypto';
 import { router, protectedProcedure } from '../_core/trpc';
 import { TRPCError } from '@trpc/server';
 import * as db from '../db';
+import { prisma } from '../db-prisma';
 import { createLogger } from '../utils/logger';
 import { encryptKey, decryptKey } from '../provider-keys-service';
 
 const logger = createLogger('Workspace');
+
+// After adding Workspace/WorkspaceAgent models to schema.prisma, run:
+//   npx prisma generate && npx prisma migrate dev --name add-workspaces
+// The `orm` alias provides runtime access to the new tables before
+// the generated client types are available.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const orm = prisma as any;
 
 // ============================================================================
 // Schemas
 // ============================================================================
 
 const agentSchema = z.object({
-  name: z.string().min(1).max(100),
-  role: z.string().min(1).max(50),
-  model: z.string().min(1).max(100),
+  name: z.string().min(1, 'Agent name is required').max(100),
+  role: z.string().min(1, 'Agent role is required').max(50),
+  model: z.string().min(1, 'Model is required').max(100),
   integration: z.enum(['mcp', 'rest']),
-  permissions: z.array(z.enum(['read', 'write', 'propose', 'execute'])).default(['read', 'write']),
+  permissions: z.array(z.enum(['read', 'write', 'propose', 'execute'])).min(1, 'At least one permission required').default(['read', 'write']),
   description: z.string().max(500).optional(),
 });
 
 const createSchema = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string().min(1, 'Workspace name is required').max(200).trim(),
   description: z.string().max(1000).optional(),
-  agents: z.array(agentSchema).min(1).max(10),
+  agents: z.array(agentSchema).min(1, 'At least one agent is required').max(10),
 });
 
 const addAgentSchema = z.object({
-  workspaceId: z.string(),
+  workspaceId: z.string().min(1),
   agent: agentSchema,
 });
 
 const updatePermissionsSchema = z.object({
-  workspaceId: z.string(),
-  agentId: z.string(),
-  permissions: z.array(z.enum(['read', 'write', 'propose', 'execute'])),
+  workspaceId: z.string().min(1),
+  agentId: z.string().min(1),
+  permissions: z.array(z.enum(['read', 'write', 'propose', 'execute'])).min(1, 'At least one permission required'),
 });
 
 // ============================================================================
@@ -60,38 +68,9 @@ function generateToken(): string {
   return `mcp_collab_${crypto.randomBytes(16).toString('hex')}`;
 }
 
-interface WorkspaceAgent {
-  id: string;
-  name: string;
-  role: string;
-  model: string;
-  integration: 'mcp' | 'rest';
-  permissions: string[];
-  description?: string;
-}
-
-interface WorkspaceData {
-  id: string;
-  name: string;
-  description?: string;
-  mcpTokenEncrypted: string;  // AES-256-GCM encrypted token
-  mcpTokenMask: string;       // e.g. "mcp_collab_ab12...ef78"
-  memoryKey: string;
-  agents: WorkspaceAgent[];
-  createdAt: string;
-  status: 'active' | 'paused' | 'completed';
-  /** @deprecated — old field, will be migrated on read */
-  mcpToken?: string;
-}
-
-/** Decrypt token from workspace, handling legacy plaintext field */
-function resolveToken(ws: WorkspaceData): string {
-  if (ws.mcpTokenEncrypted) {
-    return decryptKey(ws.mcpTokenEncrypted);
-  }
-  // Legacy migration: if only plaintext field exists
-  if (ws.mcpToken) return ws.mcpToken;
-  throw new Error('No MCP token stored for this workspace');
+/** Decrypt token from workspace */
+function resolveToken(encrypted: string): string {
+  return decryptKey(encrypted);
 }
 
 /** Mask a token for display: first 15 chars + ... + last 4 */
@@ -100,10 +79,36 @@ function maskToken(token: string): string {
   return `${token.substring(0, 15)}...${token.slice(-4)}`;
 }
 
-const WORKSPACE_PREFIX = '__workspace:';
+// Type shapes for orm results (before prisma generate creates real types)
+interface WsRecord {
+  id: string;
+  userId: number;
+  name: string;
+  description: string | null;
+  status: string;
+  mcpTokenEncrypted: string;
+  mcpTokenMask: string;
+  memoryKey: string;
+  createdAt: Date;
+  updatedAt: Date;
+  agents: AgentRecord[];
+}
+
+interface AgentRecord {
+  id: string;
+  workspaceId: string;
+  name: string;
+  role: string;
+  model: string;
+  integration: string;
+  permissions: string[];
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 // ============================================================================
-// Audit logging — persisted to AiMemory under workspace:__audit key
+// Audit logging — persisted to AiMemory under workspace:{id}:__audit key
 // ============================================================================
 
 interface AuditEntry {
@@ -137,7 +142,6 @@ async function logWorkspaceAudit(
     }
 
     entries.push(entry);
-    // Keep last 500 audit entries
     if (entries.length > 500) {
       entries = entries.slice(-500);
     }
@@ -149,39 +153,8 @@ async function logWorkspaceAudit(
       ttlDays: 365,
     });
   } catch (err) {
-    // Audit logging should never break the main flow
     logger.warn('Failed to write audit log', { workspaceId, action, error: err });
   }
-}
-
-async function loadWorkspace(
-  userId: number,
-  workspaceId: string
-): Promise<WorkspaceData | null> {
-  const mem = await db.getAIMemoryByKey({
-    userId,
-    memoryKey: `${WORKSPACE_PREFIX}${workspaceId}`,
-  });
-
-  if (!mem?.memoryData) return null;
-
-  try {
-    return JSON.parse(mem.memoryData) as WorkspaceData;
-  } catch {
-    return null;
-  }
-}
-
-async function saveWorkspace(
-  userId: number,
-  workspace: WorkspaceData
-): Promise<void> {
-  await db.upsertAIMemory({
-    userId,
-    memoryKey: `${WORKSPACE_PREFIX}${workspace.id}`,
-    data: workspace as unknown as Record<string, unknown>,
-    ttlDays: 365,
-  });
 }
 
 // ============================================================================
@@ -207,33 +180,34 @@ export const workspaceRouter = router({
         expiresInDays: 365,
       });
 
-      const agents: WorkspaceAgent[] = input.agents.map((a) => ({
-        id: generateId('agent'),
-        name: a.name,
-        role: a.role,
-        model: a.model,
-        integration: a.integration,
-        permissions: a.permissions,
-        description: a.description,
-      }));
+      // Create workspace in dedicated table
+      const workspace: WsRecord = await orm.workspace.create({
+        data: {
+          id: workspaceId,
+          userId: ctx.user.id,
+          name: input.name.trim(),
+          description: input.description?.trim() || null,
+          mcpTokenEncrypted: encryptKey(tokenData.token),
+          mcpTokenMask: maskToken(tokenData.token),
+          memoryKey,
+          agents: {
+            create: input.agents.map((a) => ({
+              id: generateId('agent'),
+              name: a.name.trim(),
+              role: a.role,
+              model: a.model,
+              integration: a.integration,
+              permissions: a.permissions,
+              description: a.description?.trim() || null,
+            })),
+          },
+        },
+        include: { agents: true },
+      });
 
-      const workspace: WorkspaceData = {
-        id: workspaceId,
-        name: input.name,
-        description: input.description,
-        mcpTokenEncrypted: encryptKey(tokenData.token),
-        mcpTokenMask: maskToken(tokenData.token),
-        memoryKey,
-        agents,
-        createdAt: new Date().toISOString(),
-        status: 'active',
-      };
-
-      await saveWorkspace(ctx.user.id, workspace);
-
-      // Also store permissions map for the REST collab API
+      // Store permissions map for the REST collab API
       const permMap: Record<string, string[]> = {};
-      for (const agent of agents) {
+      for (const agent of workspace.agents as AgentRecord[]) {
         permMap[agent.role] = agent.permissions;
       }
       await db.upsertAIMemory({
@@ -243,17 +217,16 @@ export const workspaceRouter = router({
         ttlDays: 365,
       });
 
-      // Audit log
       await logWorkspaceAudit(ctx.user.id, workspaceId, 'workspace_created', {
         name: input.name,
-        agentCount: agents.length,
-        agents: agents.map((a) => ({ name: a.name, role: a.role, integration: a.integration })),
+        agentCount: workspace.agents.length,
+        agents: (workspace.agents as AgentRecord[]).map((a) => ({ name: a.name, role: a.role, integration: a.integration })),
       });
 
       logger.info('Workspace created', {
         workspaceId,
         name: input.name,
-        agentCount: agents.length,
+        agentCount: workspace.agents.length,
       });
 
       return {
@@ -261,71 +234,91 @@ export const workspaceRouter = router({
         workspaceId,
         memoryKey,
         tokenPrefix: tokenData.tokenPrefix,
-        agents: agents.map((a) => ({ id: a.id, name: a.name, role: a.role })),
+        agents: (workspace.agents as AgentRecord[]).map((a) => ({ id: a.id, name: a.name, role: a.role })),
       };
     }),
 
   /**
-   * List user's workspaces
+   * List user's workspaces with cursor-based pagination
    */
-  list: protectedProcedure.query(async ({ ctx }) => {
-    // Search for workspace memories by prefix
-    // AiMemory doesn't have a built-in prefix search, so we use a raw query
-    const { prisma } = await import('../db-prisma');
+  list: protectedProcedure
+    .input(z.object({
+      cursor: z.string().optional(),
+      limit: z.number().min(1).max(50).default(20),
+    }).optional())
+    .query(async ({ input, ctx }) => {
+      const limit = input?.limit ?? 20;
+      const cursor = input?.cursor;
 
-    const mems = await prisma.aiMemory.findMany({
-      where: {
-        userId: ctx.user.id,
-        memoryKey: { startsWith: WORKSPACE_PREFIX },
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: 50,
-    });
+      const workspaces: WsRecord[] = await orm.workspace.findMany({
+        where: { userId: ctx.user.id },
+        include: {
+          agents: {
+            select: {
+              name: true,
+              role: true,
+              model: true,
+              integration: true,
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: limit + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
 
-    const workspaces = mems
-      .map((m) => {
-        try {
-          const ws = JSON.parse(m.memoryData) as WorkspaceData;
-          return {
-            id: ws.id,
-            name: ws.name,
-            description: ws.description,
-            agentCount: ws.agents.length,
-            agents: ws.agents.map((a) => ({
-              name: a.name,
-              role: a.role,
-              model: a.model,
-              integration: a.integration,
-            })),
-            status: ws.status,
-            createdAt: ws.createdAt,
-          };
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
+      let nextCursor: string | undefined;
+      if (workspaces.length > limit) {
+        const next = workspaces.pop();
+        nextCursor = next?.id;
+      }
 
-    return { workspaces };
-  }),
+      return {
+        workspaces: workspaces.map((ws: WsRecord) => ({
+          id: ws.id,
+          name: ws.name,
+          description: ws.description,
+          agentCount: ws.agents.length,
+          agents: ws.agents,
+          status: ws.status,
+          createdAt: ws.createdAt.toISOString(),
+        })),
+        nextCursor,
+      };
+    }),
 
   /**
-   * Get workspace details + generated configs for each agent
+   * Get workspace details
    */
   get: protectedProcedure
     .input(z.object({ workspaceId: z.string() }))
     .query(async ({ input, ctx }) => {
-      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+        include: { agents: true },
+      });
 
       if (!workspace) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
       }
 
-      // Never expose encrypted or plaintext token in get response
-      const { mcpTokenEncrypted, mcpToken: _legacyToken, ...safeWorkspace } = workspace;
       return {
-        ...safeWorkspace,
-        mcpTokenMask: workspace.mcpTokenMask || maskToken(resolveToken(workspace)),
+        id: workspace.id,
+        name: workspace.name,
+        description: workspace.description,
+        mcpTokenMask: workspace.mcpTokenMask,
+        memoryKey: workspace.memoryKey,
+        agents: workspace.agents.map((a: AgentRecord) => ({
+          id: a.id,
+          name: a.name,
+          role: a.role,
+          model: a.model,
+          integration: a.integration,
+          permissions: a.permissions,
+          description: a.description,
+        })),
+        createdAt: workspace.createdAt.toISOString(),
+        status: workspace.status,
       };
     }),
 
@@ -335,16 +328,19 @@ export const workspaceRouter = router({
   getConfigs: protectedProcedure
     .input(z.object({ workspaceId: z.string() }))
     .query(async ({ input, ctx }) => {
-      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+        include: { agents: true },
+      });
 
       if (!workspace) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
       }
 
       const apiBaseUrl = process.env.VITE_APP_URL || 'https://awareness.market';
-      const rawToken = resolveToken(workspace);
+      const rawToken = resolveToken(workspace.mcpTokenEncrypted);
 
-      const configs = workspace.agents.map((agent) => {
+      const configs = workspace.agents.map((agent: AgentRecord) => {
         if (agent.integration === 'mcp') {
           return {
             agentId: agent.id,
@@ -433,7 +429,10 @@ export const workspaceRouter = router({
   addAgent: protectedProcedure
     .input(addAgentSchema)
     .mutation(async ({ input, ctx }) => {
-      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+        include: { agents: true },
+      });
 
       if (!workspace) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
@@ -446,23 +445,26 @@ export const workspaceRouter = router({
         });
       }
 
-      const newAgent: WorkspaceAgent = {
-        id: generateId('agent'),
-        name: input.agent.name,
-        role: input.agent.role,
-        model: input.agent.model,
-        integration: input.agent.integration,
-        permissions: input.agent.permissions,
-        description: input.agent.description,
-      };
-
-      workspace.agents.push(newAgent);
-      await saveWorkspace(ctx.user.id, workspace);
+      const newAgent: AgentRecord = await orm.workspaceAgent.create({
+        data: {
+          id: generateId('agent'),
+          workspaceId: workspace.id,
+          name: input.agent.name.trim(),
+          role: input.agent.role,
+          model: input.agent.model,
+          integration: input.agent.integration,
+          permissions: input.agent.permissions,
+          description: input.agent.description?.trim() || null,
+        },
+      });
 
       // Update permissions map
+      const allAgents: AgentRecord[] = await orm.workspaceAgent.findMany({
+        where: { workspaceId: workspace.id },
+      });
       const permMap: Record<string, string[]> = {};
-      for (const agent of workspace.agents) {
-        permMap[agent.role] = agent.permissions;
+      for (const a of allAgents) {
+        permMap[a.role] = a.permissions;
       }
       await db.upsertAIMemory({
         userId: ctx.user.id,
@@ -486,24 +488,27 @@ export const workspaceRouter = router({
   removeAgent: protectedProcedure
     .input(z.object({ workspaceId: z.string(), agentId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+      });
 
       if (!workspace) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
       }
 
-      const idx = workspace.agents.findIndex((a) => a.id === input.agentId);
-      if (idx === -1) {
+      const agent: AgentRecord | null = await orm.workspaceAgent.findFirst({
+        where: { id: input.agentId, workspaceId: workspace.id },
+      });
+
+      if (!agent) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
       }
 
-      const removed = workspace.agents[idx];
-      workspace.agents.splice(idx, 1);
-      await saveWorkspace(ctx.user.id, workspace);
+      await orm.workspaceAgent.delete({ where: { id: input.agentId } });
 
       await logWorkspaceAudit(ctx.user.id, input.workspaceId, 'agent_removed', {
-        agentName: removed.name,
-        role: removed.role,
+        agentName: agent.name,
+        role: agent.role,
       });
 
       return { success: true };
@@ -515,23 +520,33 @@ export const workspaceRouter = router({
   updatePermissions: protectedProcedure
     .input(updatePermissionsSchema)
     .mutation(async ({ input, ctx }) => {
-      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+      });
 
       if (!workspace) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
       }
 
-      const agent = workspace.agents.find((a) => a.id === input.agentId);
+      const agent: AgentRecord | null = await orm.workspaceAgent.findFirst({
+        where: { id: input.agentId, workspaceId: workspace.id },
+      });
+
       if (!agent) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
       }
 
-      agent.permissions = input.permissions;
-      await saveWorkspace(ctx.user.id, workspace);
+      await orm.workspaceAgent.update({
+        where: { id: input.agentId },
+        data: { permissions: input.permissions },
+      });
 
       // Update permissions map
+      const allAgents: AgentRecord[] = await orm.workspaceAgent.findMany({
+        where: { workspaceId: workspace.id },
+      });
       const permMap: Record<string, string[]> = {};
-      for (const a of workspace.agents) {
+      for (const a of allAgents) {
         permMap[a.role] = a.permissions;
       }
       await db.upsertAIMemory({
@@ -546,7 +561,7 @@ export const workspaceRouter = router({
         newPermissions: input.permissions,
       });
 
-      return { success: true, agent: { id: agent.id, permissions: agent.permissions } };
+      return { success: true, agent: { id: agent.id, permissions: input.permissions } };
     }),
 
   /**
@@ -555,51 +570,38 @@ export const workspaceRouter = router({
   delete: protectedProcedure
     .input(z.object({ workspaceId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+      });
 
       if (!workspace) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
       }
 
-      const { prisma } = await import('../db-prisma');
-
-      // 1. Delete the workspace memory blob
-      await prisma.aiMemory.deleteMany({
-        where: {
-          userId: ctx.user.id,
-          memoryKey: `${WORKSPACE_PREFIX}${workspace.id}`,
-        },
-      });
-
-      // 2. Delete the permissions memory blob
-      await prisma.aiMemory.deleteMany({
-        where: {
-          userId: ctx.user.id,
-          memoryKey: `${workspace.memoryKey}:__permissions`,
-        },
-      });
-
-      // 3. Delete the collaboration history memory blob
-      await prisma.aiMemory.deleteMany({
-        where: {
-          userId: ctx.user.id,
-          memoryKey: workspace.memoryKey,
-        },
-      });
-
-      // 4. Deactivate the MCP token (don't hard-delete, for audit trail)
+      // 1. Deactivate the MCP token
       try {
-        const rawToken = resolveToken(workspace);
+        const rawToken = resolveToken(workspace.mcpTokenEncrypted);
         const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
         await prisma.mcpToken.updateMany({
           where: { tokenHash, userId: ctx.user.id },
           data: { isActive: false },
         });
       } catch {
-        // Token may already be invalid — not critical
+        // Token may already be invalid
       }
 
-      // Audit log (write to a separate key since workspace blob is gone)
+      // 2. Delete workspace (cascades to agents via onDelete: Cascade)
+      await orm.workspace.delete({ where: { id: workspace.id } });
+
+      // 3. Clean up AiMemory blobs (permissions, collaboration history, audit)
+      await prisma.aiMemory.deleteMany({
+        where: {
+          userId: ctx.user.id,
+          memoryKey: { startsWith: `workspace:${workspace.id}` },
+        },
+      });
+
+      // Audit log (write after deletion for audit trail)
       await logWorkspaceAudit(ctx.user.id, workspace.id, 'workspace_deleted', {
         name: workspace.name,
       });
@@ -618,14 +620,18 @@ export const workspaceRouter = router({
       status: z.enum(['active', 'paused', 'completed']),
     }))
     .mutation(async ({ input, ctx }) => {
-      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+      });
 
       if (!workspace) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
       }
 
-      workspace.status = input.status;
-      await saveWorkspace(ctx.user.id, workspace);
+      await orm.workspace.update({
+        where: { id: workspace.id },
+        data: { status: input.status },
+      });
 
       await logWorkspaceAudit(ctx.user.id, workspace.id, 'status_changed', {
         newStatus: input.status,
@@ -645,17 +651,17 @@ export const workspaceRouter = router({
   rotateToken: protectedProcedure
     .input(z.object({ workspaceId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+      });
 
       if (!workspace) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
       }
 
-      const { prisma } = await import('../db-prisma');
-
       // 1. Deactivate old token
       try {
-        const oldToken = resolveToken(workspace);
+        const oldToken = resolveToken(workspace.mcpTokenEncrypted);
         const oldHash = crypto.createHash('sha256').update(oldToken).digest('hex');
         await prisma.mcpToken.updateMany({
           where: { tokenHash: oldHash, userId: ctx.user.id },
@@ -674,14 +680,16 @@ export const workspaceRouter = router({
       });
 
       // 3. Update workspace with encrypted new token
-      workspace.mcpTokenEncrypted = encryptKey(newTokenData.token);
-      workspace.mcpTokenMask = maskToken(newTokenData.token);
-      delete workspace.mcpToken; // Remove legacy field if present
-      await saveWorkspace(ctx.user.id, workspace);
+      const newMask = maskToken(newTokenData.token);
+      await orm.workspace.update({
+        where: { id: workspace.id },
+        data: {
+          mcpTokenEncrypted: encryptKey(newTokenData.token),
+          mcpTokenMask: newMask,
+        },
+      });
 
-      // 4. Log the rotation
       await logWorkspaceAudit(ctx.user.id, workspace.id, 'token_rotated', {
-        oldTokenPrefix: workspace.mcpTokenMask,
         newTokenPrefix: newTokenData.tokenPrefix,
       });
 
@@ -692,7 +700,7 @@ export const workspaceRouter = router({
 
       return {
         success: true,
-        mcpTokenMask: maskToken(newTokenData.token),
+        mcpTokenMask: newMask,
         message: 'Token rotated. All agents must update their configs with the new token.',
       };
     }),
@@ -706,7 +714,11 @@ export const workspaceRouter = router({
       limit: z.number().min(1).max(100).default(50),
     }))
     .query(async ({ input, ctx }) => {
-      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+      // Verify ownership
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+        select: { id: true, memoryKey: true },
+      });
 
       if (!workspace) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
@@ -714,7 +726,7 @@ export const workspaceRouter = router({
 
       const auditMem = await db.getAIMemoryByKey({
         userId: ctx.user.id,
-        memoryKey: `${workspace.memoryKey}:__audit`,
+        memoryKey: `workspace:${workspace.id}:__audit`,
       });
 
       if (!auditMem?.memoryData) {

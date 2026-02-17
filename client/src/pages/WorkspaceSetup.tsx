@@ -129,13 +129,42 @@ export default function WorkspaceSetup() {
     );
   }
 
+  function validateAgents(): string | null {
+    for (const a of agents) {
+      if (!a.name.trim()) return `Agent name cannot be empty`;
+      if (!a.role) return `Role is required for "${a.name}"`;
+      if (!a.model.trim()) return `Model is required for "${a.name}"`;
+      if (a.permissions.length === 0) return `"${a.name}" must have at least one permission`;
+    }
+    // Check duplicate roles
+    const roles = agents.map((a) => a.role);
+    const dupRole = roles.find((r, i) => roles.indexOf(r) !== i);
+    if (dupRole) return `Duplicate role "${dupRole}" — each agent needs a unique role`;
+    return null;
+  }
+
+  function goToPermissions() {
+    const err = validateAgents();
+    if (err) {
+      toast({ title: 'Validation Error', description: err, variant: 'destructive' });
+      return;
+    }
+    setStep('permissions');
+  }
+
   async function handleCreate() {
+    const err = validateAgents();
+    if (err) {
+      toast({ title: 'Validation Error', description: err, variant: 'destructive' });
+      return;
+    }
+
     try {
       const result = await createMut.mutateAsync({
-        name,
-        description: description || undefined,
+        name: name.trim(),
+        description: description.trim() || undefined,
         agents: agents.map((a) => ({
-          name: a.name,
+          name: a.name.trim(),
           role: a.role,
           model: a.model,
           integration: a.integration,
@@ -358,7 +387,7 @@ export default function WorkspaceSetup() {
               </Button>
               <Button
                 disabled={agents.length === 0}
-                onClick={() => setStep('permissions')}
+                onClick={goToPermissions}
                 className="bg-cyan-600 hover:bg-cyan-700"
               >
                 Next: Set Permissions
@@ -462,7 +491,7 @@ export default function WorkspaceSetup() {
               </div>
             )}
 
-            {configsQuery.data?.configs.map((cfg) => (
+            {configsQuery.data?.configs.map((cfg: any) => (
               <Card key={cfg.agentId} className="bg-[#0a0a0f] border-white/10">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
