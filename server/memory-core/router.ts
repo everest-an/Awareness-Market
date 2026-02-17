@@ -506,17 +506,135 @@ export class MemoryRouter {
 
   /**
    * Batch create memories (optimized for bulk operations)
+   * Pre-generates all embeddings in a single API call, then creates each memory.
    */
   async batchCreate(inputs: CreateMemoryInput[]): Promise<string[]> {
-    const memoryIds: string[] = [];
+    if (inputs.length === 0) return [];
 
-    // TODO: Optimize with bulk embeddings + bulk database insert
-    for (const input of inputs) {
-      const id = await this.create(input);
+    // Pre-generate embeddings for all text/code inputs in a single batch call
+    const textInputIndices: number[] = [];
+    const textsToEmbed: string[] = [];
+    for (let i = 0; i < inputs.length; i++) {
+      if (inputs[i].content_type === 'text' || inputs[i].content_type === 'code') {
+        textInputIndices.push(i);
+        textsToEmbed.push(inputs[i].content);
+      }
+    }
+
+    const precomputedEmbeddings = new Map<number, number[]>();
+    if (textsToEmbed.length > 0) {
+      const embeddings = await this.embeddingService.batchGenerate(textsToEmbed);
+      textInputIndices.forEach((inputIdx, i) => {
+        if (embeddings[i]) precomputedEmbeddings.set(inputIdx, embeddings[i]);
+      });
+    }
+
+    // Create each memory using pre-computed embeddings
+    const memoryIds: string[] = [];
+    for (let i = 0; i < inputs.length; i++) {
+      const id = await this.createWithEmbedding(inputs[i], precomputedEmbeddings.get(i));
       memoryIds.push(id);
     }
 
     return memoryIds;
+  }
+
+  /**
+   * Internal: create a memory with an optional pre-computed embedding
+   */
+  private async createWithEmbedding(
+    input: CreateMemoryInput,
+    precomputedEmbedding?: number[]
+  ): Promise<string> {
+    // Validate namespace
+    if (!validateNamespace(input.namespace)) {
+      throw new Error(
+        `Invalid namespace format: ${input.namespace}. Expected: org-id/scope/entity`
+      );
+    }
+
+    // Governance check
+    const accessResult = await memoryGovernance.checkAccess(
+      input.org_id,
+      input.namespace,
+      input.created_by ?? null,
+      'write',
+    );
+    if (!accessResult.allowed) {
+      throw new Error(`Memory write blocked by policy: ${accessResult.reason}`);
+    }
+
+    // Quota check
+    const organizationId = (input as any).organizationId || parseInt(input.org_id.split('-')[1]);
+    if (organizationId) {
+      const org = await this.prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { maxMemories: true, currentMemoryCount: true, planTier: true },
+      });
+      if (!org) throw new Error('Organization not found');
+      if (org.currentMemoryCount >= org.maxMemories) {
+        throw new Error(
+          `Memory limit reached (${org.maxMemories}). Current plan: ${org.planTier}. Upgrade to add more memories.`
+        );
+      }
+    }
+
+    // Use pre-computed embedding or generate on the fly
+    let embedding: number[] | undefined = precomputedEmbedding;
+    if (!embedding && (input.content_type === 'text' || input.content_type === 'code')) {
+      embedding = await this.embeddingService.generate(input.content);
+    }
+
+    let decay_factor = input.decay_factor || DECAY_FACTORS[input.content_type];
+    if (input.memoryType) {
+      decay_factor = getMemoryTypeDecayFactor(input.memoryType);
+    }
+
+    const memoryId = uuidv4();
+    await this.prisma.$transaction(async (tx: any) => {
+      const memory = await tx.memoryEntry.create({
+        data: {
+          id: memoryId,
+          org_id: input.org_id,
+          namespace: input.namespace,
+          content_type: input.content_type,
+          content: input.content,
+          embedding: embedding ? `[${embedding.join(',')}]` : null,
+          metadata: input.metadata || {},
+          confidence: input.confidence,
+          reputation: 50,
+          usage_count: 0,
+          validation_count: 0,
+          version: 1,
+          parent_id: null,
+          is_latest: true,
+          created_by: input.created_by,
+          expires_at: input.expires_at,
+          decay_factor,
+          decay_checkpoint: new Date(),
+          ...(input.memoryType && { memoryType: input.memoryType }),
+          ...(input.poolType && { poolType: input.poolType }),
+          ...(input.departmentId && { department: String(input.departmentId) }),
+          ...(input.agentId && { agentId: input.agentId }),
+        },
+      });
+
+      const score = calculateMemoryScore(memory);
+      await tx.memoryScore.create({ data: { memory_id: memoryId, ...score } });
+
+      if (organizationId) {
+        await tx.organization.update({
+          where: { id: organizationId },
+          data: { currentMemoryCount: { increment: 1 } },
+        });
+      }
+    });
+
+    this.processRMCAsync(memoryId, input).catch((err) => {
+      logger.error(`[RMC] Failed to process memory ${memoryId}:`, err);
+    });
+
+    return memoryId;
   }
 
   /**

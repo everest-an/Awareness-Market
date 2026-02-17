@@ -281,10 +281,9 @@ class NeuralBridgeBackend {
   }
 
   /**
-   * Fast semantic quality validation
-   * Uses heuristic: normalized vector magnitude as proxy for quality
-   *
-   * TODO: Replace with real semantic anchor comparison when anchors are precomputed
+   * Fast semantic quality validation using semantic anchor calibration.
+   * Falls back to a heuristic based on vector distribution during startup
+   * while anchors are being loaded asynchronously.
    */
   private fastValidation(vector: number[]): number {
     const stats = semanticAnchors.getStatistics();
@@ -293,6 +292,9 @@ class NeuralBridgeBackend {
       if (Number.isFinite(calibration.calibrationScore)) {
         return calibration.calibrationScore;
       }
+    } else {
+      // Trigger async anchor loading if not yet started
+      void ensureSemanticAnchorsLoaded();
     }
 
     // Check for numerical issues
