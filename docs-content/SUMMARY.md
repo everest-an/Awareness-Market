@@ -38,6 +38,7 @@
 
 ## Developer Guide
 
+* [Multi-Agent Quickstart](developer-guide/multi-agent-quickstart.md)
 * [Python SDK](developer-guide/python-sdk/README.md)
   * [Installation](developer-guide/python-sdk/installation.md)
   * [Quick Start](developer-guide/python-sdk/quick-start.md)

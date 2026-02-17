@@ -77,7 +77,7 @@ cat ~/.ssh/your-ec2-key.pem
 ✅ 推送到 `main` 分支且修改了：
 - `server/**` (后端代码)
 - `client/**` (前端代码)
-- `gitbook/**` (文档)
+- `docs-content/**` (文档)
 - `package.json` (依赖)
 - `prisma/**` (数据库)
 

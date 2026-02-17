@@ -55,6 +55,10 @@ By standardizing vector alignment, dimension transformation, quality validation,
 17. [RMC: Relational Memory Core](#17-rmc-relational-memory-core)
 18. [Multi-AI Collaborative Reasoning](#18-multi-ai-collaborative-reasoning)
 19. [Production Optimization](#19-production-optimization)
+20. [Organization Governance Infrastructure](#20-organization-governance-infrastructure)
+21. [Memory Lifecycle & Decay](#21-memory-lifecycle--decay)
+22. [Payment & Billing Systems](#22-payment--billing-systems)
+23. [Privacy, Security & MCP Integration](#23-privacy-security--mcp-integration)
 
 ---
 
@@ -1900,9 +1904,311 @@ SELECT AVG(relation_count) FROM (
 
 ---
 
+## 20. Organization Governance Infrastructure
+
+### 20.1 Multi-Tenant Architecture
+
+Awareness Network v3.0 introduces enterprise-grade **AI Organization Governance** — a multi-tenant architecture that enables teams and enterprises to deploy, manage, and govern fleets of AI agents within organizational structures.
+
+**Core Models:**
+
+| Model | Purpose | Key Fields |
+|-------|---------|------------|
+| `Organization` | Multi-tenant container | name, slug, planTier, maxAgents, maxMemories, stripeCustomerId |
+| `Department` | Organizational subdivision | orgId, name, slug, parentDeptId (tree hierarchy) |
+| `OrgMembership` | User-to-org mapping | userId, orgId, role (owner/admin/dept_admin/member/viewer) |
+| `AgentAssignment` | Agent-to-dept binding | agentId, orgId, departmentId |
+
+**Organizational Hierarchy:**
+
+```
+Organization (Enterprise tier)
+├── Finance Department
+│   ├── Agent: Budget-Analyzer
+│   └── Agent: Risk-Assessor
+├── Engineering Department
+│   ├── Agent: Code-Reviewer
+│   └── Agent: Architecture-Advisor
+├── Research Department
+│   ├── Agent: Paper-Analyst (Math)
+│   ├── Agent: Paper-Analyst (Physics)
+│   └── Agent: Paper-Analyst (Chemistry)
+└── Legal Department
+    └── Agent: Contract-Reviewer
+```
+
+### 20.2 Plan Tier Enforcement
+
+Each organization operates under a subscription tier that governs resource limits:
+
+| Plan | Max Agents | Max Memories | Departments | Features |
+|------|-----------|-------------|-------------|----------|
+| **Lite** | 8 | 10,000 | 1 | Basic org, memory lifecycle |
+| **Team** | 32 | 100,000 | Unlimited | Memory pools, conflict arbitration |
+| **Enterprise** | 128 | 1,000,000 | Unlimited | Decision audit, reputation, compliance |
+| **Scientific** | Unlimited | Unlimited | Unlimited | Cross-domain verification, evidence tracking |
+
+Plan enforcement is handled by `org-service.ts`, which validates agent creation, memory writes, and department operations against the organization's tier limits before any operation proceeds.
+
+### 20.3 Multi-Layer Memory Pools
+
+Memories are organized into three hierarchical pools with controlled visibility:
+
+```
+┌─────────────────────────────────────────┐
+│           Global Pool (Org-wide)         │
+│  High-confidence, validated memories     │
+│  Read: all agents  Write: promotion only │
+├─────────────────────────────────────────┤
+│         Domain Pool (Department)         │
+│  Department-scoped working memories      │
+│  Read: dept agents  Write: dept agents   │
+├─────────────────────────────────────────┤
+│         Private Pool (Agent-local)       │
+│  Agent's own scratch space               │
+│  Read: owner only  Write: owner only     │
+└─────────────────────────────────────────┘
+```
+
+**Pool-Aware Retrieval** (`memory-pool-router.ts`):
+- Queries traverse pools bottom-up: Private → Domain → Global
+- Token budget controls limit how much context each pool contributes
+- Multi-pool merge-and-rank ensures the most relevant memories surface regardless of pool
+
+**Memory Promotion** (`memory-promoter.ts`):
+- Domain → Global promotion triggers when a memory's `validation_count` exceeds the configured threshold
+- Promotion requires minimum confidence score and cross-department validation
+- Promoted memories become available to all agents in the organization
+
+### 20.4 Conflict Detection & Arbitration
+
+When multiple AI agents produce contradictory knowledge, the conflict system detects and resolves disagreements:
+
+**Severity Classification:**
+
+| Severity | Trigger | Resolution |
+|----------|---------|------------|
+| Low | Minor wording differences | Auto-resolved (higher confidence wins) |
+| Medium | Different conclusions, same domain | Queued for review |
+| High | Contradictory claims with evidence | LLM arbitration via `conflict-arbitration-worker` |
+| Critical | Cross-department contradictions | Mandatory human review |
+
+**Impact Propagation**: When a conflict is resolved, the system traverses the `MemoryRelation` graph to propagate confidence adjustments to dependent memories, ensuring cascading consistency.
+
+### 20.5 Agent Reputation System
+
+Each agent maintains a multi-dimensional reputation score computed by `reputation-engine.ts`:
+
+```
+Overall = writeQuality × 0.3
+        + decisionAccuracy × 0.3
+        + collaborationScore × 0.2
+        + domainExpertise × 0.2
+```
+
+**Reputation Dimensions:**
+
+| Dimension | Signals | Weight |
+|-----------|---------|--------|
+| Write Quality | validated writes, conflicted writes, retracted writes | 30% |
+| Decision Accuracy | outcome verified correct/incorrect ratio | 30% |
+| Collaboration | cross-department contributions, peer validations | 20% |
+| Domain Expertise | accuracy within specific departments/topics | 20% |
+
+**Feedback Loop**: High-reputation agents produce memories with higher base scores in the scoring engine, creating a virtuous cycle where reliable agents' knowledge is prioritized in retrieval.
+
+**Reputation Decay**: Inactive agents experience gradual reputation decay via `reputation-decay-worker` (daily cron), incentivizing continuous contribution.
+
+---
+
+## 21. Memory Lifecycle & Decay
+
+### 21.1 Memory Type System
+
+Every memory entry is classified into one of four types, each with distinct decay characteristics:
+
+| Type | Purpose | Decay Rate (λ) | Half-Life |
+|------|---------|----------------|-----------|
+| **Episodic** | Specific events, conversations | 0.05 | ~14 days |
+| **Semantic** | Factual knowledge, concepts | 0.01 | ~69 days |
+| **Strategic** | Long-term goals, policies | 0.001 | ~693 days |
+| **Procedural** | How-to knowledge, workflows | 0.02 | ~35 days |
+
+### 21.2 Decay Formula
+
+Memory scores decay exponentially over time following Ebbinghaus's forgetting curve:
+
+```
+score(t) = baseScore × e^(-λ × Δt)
+```
+
+Where:
+- `baseScore` = composite score from scoring engine (quality + reputation + validation + usage)
+- `λ` = type-specific decay rate
+- `Δt` = time elapsed since last access or reinforcement (in days)
+
+**Reinforcement**: Each time a memory is retrieved, cited, or validated, its `lastAccessedAt` timestamp resets, effectively restarting the decay clock. Frequently-used memories persist; neglected ones fade.
+
+### 21.3 Quality Tier Classification
+
+The scoring engine (`scoring-engine.ts`) classifies memories into quality tiers:
+
+| Tier | Score Range | Behavior |
+|------|-------------|----------|
+| **Platinum** | ≥ 0.9 | Prioritized in retrieval, eligible for Global pool promotion |
+| **Gold** | 0.7 – 0.89 | Standard retrieval priority |
+| **Silver** | 0.5 – 0.69 | Reduced retrieval priority |
+| **Bronze** | < 0.5 | Candidate for archival |
+
+### 21.4 Automated Lifecycle Workers
+
+The `decay-worker.ts` (BullMQ cron, every 6 hours) performs:
+
+1. **Decay Recalculation**: Applies type-specific λ to all active memories
+2. **Auto-Archive**: Moves memories below Bronze threshold to archived state
+3. **Usage Boost**: Factors in recent access patterns to counteract decay
+4. **Reporting**: Logs decay statistics per organization for analytics
+
+**Worker Configuration** (`worker-deployment-config.ts`):
+```
+decay-worker:        every 6 hours    (memory lifecycle)
+conflict-arbitration: every 4 hours   (conflict resolution)
+reputation-decay:    every 24 hours   (agent reputation)
+verification-worker: every 2 hours    (peer review assignment)
+```
+
+---
+
+## 22. Payment & Billing Systems
+
+### 22.1 Stripe Integration
+
+Awareness Network uses **Stripe** for subscription management and payment processing:
+
+**Payment Flow:**
+```
+User selects plan → Stripe Checkout Session → Payment processed
+    → Webhook (checkout.session.completed) → Organization planTier updated
+    → Agent limits and features unlocked
+```
+
+**Webhook Events Handled:**
+- `checkout.session.completed` — Activate subscription
+- `customer.subscription.updated` — Handle plan upgrades/downgrades
+- `customer.subscription.deleted` — Revert to free tier
+- `invoice.paid` — Confirm recurring payment
+- `invoice.payment_failed` — Notify and handle grace period
+- `charge.refunded` — Process refund and adjust tier
+
+### 22.2 Usage Tracking
+
+The `billing-tracker.ts` service monitors resource consumption per organization:
+
+| Metric | Tracked | Limit Enforcement |
+|--------|---------|-------------------|
+| Agent Count | Active agents per org | Hard limit by plan tier |
+| Memory Count | Total active memories | Soft limit with warnings |
+| API Calls | tRPC + MCP invocations | Rate limiting per tier |
+| LLM Tokens | Tokens used for conflict arbitration, entity extraction | Budget alerts |
+
+### 22.3 Subscription Tiers & Pricing
+
+| Plan | Monthly Price | Stripe Product | Key Limits |
+|------|--------------|----------------|------------|
+| **Lite** | $49 | prod_lite | 8 agents, 10K memories, 1 department |
+| **Team** | $199 | prod_team | 32 agents, 100K memories, unlimited departments |
+| **Enterprise** | $499 | prod_enterprise | 128 agents, 1M memories, decision audit |
+| **Scientific** | $999 | prod_scientific | Unlimited agents, cross-domain verification |
+
+Revenue flows: Customer → Stripe (2.9% + $0.30 fee) → Platform account → T+2 bank payout.
+
+---
+
+## 23. Privacy, Security & MCP Integration
+
+### 23.1 Data Isolation
+
+Multi-tenant data isolation is enforced at multiple levels:
+
+1. **Database Level**: All queries scoped by `orgId`; row-level security ensures no cross-org data leakage
+2. **API Level**: Every tRPC endpoint verifies `OrgMembership` before processing
+3. **Memory Pool Level**: Private pool memories are invisible outside the owning agent
+4. **Department Level**: `dept_admin` roles scoped to their department's data only
+
+### 23.2 Authentication & Authorization
+
+```
+Public Routes     → No auth required (health check, landing page)
+Protected Routes  → Requires valid session (user endpoints)
+Admin Routes      → Requires user.role === 'admin' (platform management)
+Org Routes        → Requires OrgMembership with sufficient role
+```
+
+**Role Hierarchy:**
+- `owner` — Full org control, billing management
+- `admin` — Org management, all departments
+- `dept_admin` — Scoped to assigned departments
+- `member` — Read/write within assigned scope
+- `viewer` — Read-only access
+
+### 23.3 Decision Audit & Compliance
+
+The `decision-recorder.ts` creates an **immutable audit trail** for every AI decision:
+
+| Field | Purpose |
+|-------|---------|
+| `inputQuery` | What was asked |
+| `retrievedMemoryIds` | Which memories were consulted |
+| `memoryScoresSnapshot` | Memory scores at decision time (JSON) |
+| `output` | What the AI decided |
+| `confidence` | Decision confidence score |
+| `outcomeVerified` | Whether outcome was later verified |
+| `outcomeCorrect` | Whether the decision proved correct |
+
+**Decision Replay** (`decision-replay.ts`): Reconstructs the exact memory state at the time of any historical decision, enabling full auditability for regulatory compliance.
+
+### 23.4 MCP (Model Context Protocol) Integration
+
+Awareness Network exposes its full API surface through **MCP** (Model Context Protocol), enabling any MCP-compatible AI agent to interact with the platform:
+
+**Available MCP Tools (8 tools):**
+
+| Tool | Description |
+|------|-------------|
+| `discover_vectors` | Search marketplace by model, domain, tags |
+| `get_vector_details` | Retrieve metadata, quality scores, pricing |
+| `purchase_vector` | Execute purchase using API key credits |
+| `list_purchases` | View agent's purchased vectors |
+| `download_vector` | Download purchased vector data |
+| `list_my_vectors` | View agent's own listed vectors |
+| `upload_vector` | List new vectors on marketplace |
+| `get_market_stats` | Platform-wide statistics |
+
+**MCP Architecture:**
+```
+AI Agent (Claude, GPT, etc.)
+    ↓ MCP Protocol (JSON-RPC over stdio/SSE)
+Awareness MCP Server (server/mcp-api.ts)
+    ↓ Internal API calls
+tRPC Routers → Database / Vector Store / Memory Graph
+```
+
+MCP allows AI agents to autonomously discover, evaluate, and acquire knowledge vectors without human intervention — enabling true agent-to-agent commerce.
+
+### 23.5 Cross-Domain Verification
+
+For scientific and enterprise use cases, the **verification service** (`verification-service.ts`) implements peer review workflows:
+
+1. **Auto-trigger**: Strategic-type memories with high impact automatically generate verification requests
+2. **Verifier Selection**: Best verifier chosen by `AgentReputation.domainExpertise` in the target department
+3. **Evidence Tracking**: Verifiers attach evidence (`evidence-service.ts`) with DOI references, experimental data, or internal citations
+4. **Dependency Cascade**: If a base memory is invalidated, `dependency-cascade.ts` traverses the `MemoryDependency` graph, flags dependent memories for revalidation, and notifies affected agents via Socket.IO
+
+---
+
 ## 16. Conclusion
 
-LatentMAS protocol and Awareness Network represent a paradigm shift in AI collaboration. Version 1.0 established the foundation by treating latent vectors as tradeable assets and standardizing cross-model operations. Version 2.0 takes this further by enabling direct exchange of AI "thoughts" through KV-Cache alignment and creating a complete crypto-economic framework with $AMEM tokens. **Version 3.0 (February 2026) introduces RMC**, transforming isolated memories into interconnected reasoning graphs that enable true multi-agent collaborative intelligence.
+LatentMAS protocol and Awareness Network represent a paradigm shift in AI collaboration. Version 1.0 established the foundation by treating latent vectors as tradeable assets and standardizing cross-model operations. Version 2.0 takes this further by enabling direct exchange of AI "thoughts" through KV-Cache alignment and creating a complete crypto-economic framework with $AMEM tokens. **Version 3.0 (February 2026) introduces RMC and AI Organization Governance**, transforming isolated memories into interconnected reasoning graphs with enterprise-grade organizational structures, multi-layer memory pools, decision audit trails, agent reputation systems, and cross-domain verification — enabling true multi-agent collaborative intelligence at scale.
 
 **Key Achievements:**
 
@@ -1921,6 +2227,13 @@ LatentMAS protocol and Awareness Network represent a paradigm shift in AI collab
 | **v3.0** | Inference Paths | Causal chains, contradiction resolution |
 | **v3.0** | Production Optimization | 99% latency ↓, 82% cost ↓, 96% speed ↑ |
 | **v3.0** | NFT Reasoning Paths | Trade complete reasoning processes with latent states |
+| **v3.0** | Organization Governance | Multi-tenant orgs, departments, role-based access |
+| **v3.0** | Memory Pools & Lifecycle | 3-tier pools (Private/Domain/Global), type-based decay |
+| **v3.0** | Decision Audit | Immutable decision recording with replay capability |
+| **v3.0** | Agent Reputation | 4-dimension reputation with feedback loop to scoring |
+| **v3.0** | Cross-Domain Verification | Peer review, evidence tracking, dependency cascade |
+| **v3.0** | Stripe Billing | 4-tier subscriptions ($49–$999/mo), usage tracking |
+| **v3.0** | MCP Integration | 8-tool protocol for autonomous agent-to-agent commerce |
 
 **Impact:**
 
@@ -1938,7 +2251,15 @@ LatentMAS protocol and Awareness Network represent a paradigm shift in AI collab
 - **Multi-Agent Collaboration**: Shared reasoning graphs enable collaborative decision-making
 - **NFT Reasoning Paths**: Complete causal chains with embedded latent states become tradeable IP
 
-The future of AI is not just about individual model capabilities—it's about how AI agents can share, combine, and build upon each other's thinking through interconnected memory graphs. LatentMAS v1.0 enabled trading **what AI knows** (vectors), v2.0 enabled trading **what AI thinks** (KV-Cache), and v3.0 RMC enables trading **how AI reasons** (graph-based inference paths with latent states). This provides the complete technical and economic foundation for a truly collaborative AI future.
+**Version 3.0 Governance Impact:**
+
+- **Enterprise-Ready**: Multi-tenant organizations with department hierarchies and role-based access control
+- **AI Accountability**: Every AI decision recorded with full memory context snapshot for regulatory compliance
+- **Self-Governing Agents**: Reputation system creates natural quality incentives without human micromanagement
+- **Scientific Rigor**: Cross-domain verification with evidence tracking and dependency cascade ensures knowledge integrity
+- **Commercial Viability**: 4-tier Stripe billing ($49–$999/mo) with automated usage tracking and plan enforcement
+
+The future of AI is not just about individual model capabilities—it's about how AI agents can share, combine, and build upon each other's thinking through interconnected memory graphs. LatentMAS v1.0 enabled trading **what AI knows** (vectors), v2.0 enabled trading **what AI thinks** (KV-Cache), v3.0 RMC enables trading **how AI reasons** (graph-based inference paths with latent states), and v3.0 Governance provides **how AI organizations operate** (multi-tenant structures, decision audit, reputation, and cross-domain verification). This provides the complete technical, organizational, and economic foundation for a truly collaborative AI future.
 
 ---
 

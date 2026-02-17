@@ -62,6 +62,7 @@ model User {
   ipAccessLogs          IpAccessLog[]
   createdWhitelists     IpWhitelist[] @relation("WhitelistCreator")
   userSessions          UserSession[]
+  providerKeys          ProviderKey[]
 
   // Ensure no duplicate emails (allows multiple NULLs for wallet-only users)
   @@unique([email], map: "unique_email_non_null")
@@ -557,6 +558,44 @@ model ApiKeyRotationHistory {
   @@index([apiKeyId])
   @@index([createdAt])
   @@map("api_key_rotation_history")
+}
+
+// ============================================================================
+// BYOK — Bring Your Own (LLM Provider) Key
+// Keys are stored AES-256-GCM encrypted; never stored in plaintext.
+// ============================================================================
+
+model ProviderKey {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+
+  // Provider identifier: 'openai' | 'anthropic' | 'gemini' | 'forge' | 'custom'
+  provider      String    @db.VarChar(50)
+
+  // User-facing label (e.g. "My Work OpenAI Key")
+  label         String?   @db.VarChar(100)
+
+  // AES-256-GCM encrypted key: "iv:authTag:ciphertext" (all hex)
+  encryptedKey  String    @map("encrypted_key") @db.Text
+
+  // Masked display version shown on frontend, e.g. "sk-...ab4c"
+  keyMask       String    @map("key_mask") @db.VarChar(24)
+
+  // Optional: custom base URL (for proxies, Ollama, local LLM servers)
+  baseUrl       String?   @map("base_url") @db.VarChar(512)
+
+  isActive      Boolean   @default(true) @map("is_active")
+  lastUsedAt    DateTime? @map("last_used_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One active key per provider per user (upsert by provider)
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([isActive])
+  @@map("provider_keys")
 }
 
 // P2 Security: IP Whitelist Control

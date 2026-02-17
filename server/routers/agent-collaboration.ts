@@ -24,6 +24,27 @@ const logger = createLogger('Agent:Collaboration');
 // Input Schemas
 // ============================================================================
 
+/**
+ * Per-agent decision authority config.
+ *
+ * weight : 0.0–1.0 multiplier applied when combining outputs (default: 1.0).
+ *          e.g.  { weight: 0.5 }  →  advisory role, half the vote
+ *          e.g.  { weight: 1.0 }  →  equal authority (default)
+ *
+ * roles  : semantic labels for this agent's responsibility.
+ *          e.g. ["planner", "spec"] or ["backend"] or ["deployment"]
+ *          Passed to the agent in the request body so it can self-limit its scope.
+ *
+ * scope  : memory namespace prefixes this agent is allowed to write to.
+ *          e.g. ["org-123/planning/", "org-123/spec/"]
+ *          Empty/omitted = no restriction (agent may write anywhere).
+ */
+const agentAuthoritySchema = z.object({
+  weight: z.number().min(0).max(1).default(1.0),
+  roles: z.array(z.string()).optional(),
+  scope: z.array(z.string()).optional(),
+});
+
 const collaborateSchema = z.object({
   task: z.string().min(1).max(500),
   description: z.string().optional(),
@@ -34,6 +55,18 @@ const collaborateSchema = z.object({
   maxExecutionTime: z.number().min(60).max(3600).default(600), // 1 min to 1 hour
   inputData: z.record(z.string(), z.unknown()).optional(),
   recordOnChain: z.boolean().default(true), // Record interactions to ERC-8004
+  /**
+   * Optional per-agent decision authority.
+   * Key = agentId (openId).  Value = authority config.
+   *
+   * Example:
+   * {
+   *   "ai_kiro_xxx":   { weight: 1.0, roles: ["planner", "spec"] },
+   *   "ai_claude_yyy": { weight: 1.0, roles: ["backend"] },
+   *   "ai_v0_zzz":     { weight: 0.8, roles: ["deployment"] }
+   * }
+   */
+  agentAuthority: z.record(z.string(), agentAuthoritySchema).optional(),
 });
 
 const getWorkflowStatusSchema = z.object({
@@ -174,6 +207,12 @@ async function executeStep(
           : {};
         const authToken = authTokens[step.agentId];
 
+        // Extract this agent's authority config (if configured)
+        const authorityMap = typeof sharedMemory.agentAuthority === 'object' && sharedMemory.agentAuthority !== null
+          ? (sharedMemory.agentAuthority as Record<string, { weight?: number; roles?: string[]; scope?: string[] }>)
+          : {};
+        const myAuthority = authorityMap[step.agentId] ?? { weight: 1.0 };
+
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
@@ -187,6 +226,15 @@ async function executeStep(
               .filter(s => s.status === 'completed')
               .map(s => ({ agent: s.agentName, output: s.output })),
             input: typeof step.input === 'object' && step.input !== null ? step.input : undefined,
+            // Tell the agent what its authority is, so it can self-limit scope
+            authority: {
+              myAgent: {
+                id: step.agentId,
+                name: step.agentName,
+                ...myAuthority,
+              },
+              allAgents: authorityMap,
+            },
           }),
           signal: controller.signal,
         });
@@ -278,11 +326,16 @@ async function executeWorkflow(workflowId: string): Promise<void> {
         // Record interaction with previous step
         if (workflow.recordOnChain && i > 0) {
           const prevStep = workflow.steps[i - 1];
+          // Use authority weight (0–1) scaled to 0–100 for ERC-8004; default 70
+          const authorityMap = typeof workflow.sharedMemory.agentAuthority === 'object' && workflow.sharedMemory.agentAuthority !== null
+            ? (workflow.sharedMemory.agentAuthority as Record<string, { weight?: number }>)
+            : {};
+          const stepWeight = Math.round((authorityMap[step.agentId]?.weight ?? 0.7) * 100);
           const txHash = await recordInteractionOnChain(
             prevStep.agentId,
             step.agentId,
             step.status === 'completed',
-            70 // Higher weight for successful collaboration
+            stepWeight
           );
 
           if (txHash) {
@@ -304,6 +357,51 @@ async function executeWorkflow(workflowId: string): Promise<void> {
           executeStep(workflowId, index, step, workflow.sharedMemory, workflow.task)
         )
       );
+
+      // ✅ Authority-weighted consensus for parallel workflows
+      // Re-fetch after all steps complete to get final outputs
+      const finalWorkflow = await workflowDb.getWorkflow(workflowId);
+      if (finalWorkflow) {
+        const authorityMap = typeof finalWorkflow.sharedMemory.agentAuthority === 'object' && finalWorkflow.sharedMemory.agentAuthority !== null
+          ? (finalWorkflow.sharedMemory.agentAuthority as Record<string, { weight?: number; roles?: string[]; scope?: string[] }>)
+          : {};
+
+        // Collect completed steps with their weights
+        const weightedResults = finalWorkflow.steps
+          .filter(s => s.status === 'completed' && s.output)
+          .map(s => ({
+            agentId: s.agentId,
+            agentName: s.agentName,
+            weight: authorityMap[s.agentId]?.weight ?? 1.0,
+            roles: authorityMap[s.agentId]?.roles ?? [],
+            output: s.output,
+          }))
+          .sort((a, b) => b.weight - a.weight); // highest authority first
+
+        if (weightedResults.length > 0) {
+          // Primary = highest authority agent's output
+          const primary = weightedResults[0];
+          const consensus = {
+            primary: {
+              agentId: primary.agentId,
+              agentName: primary.agentName,
+              weight: primary.weight,
+              roles: primary.roles,
+              output: primary.output,
+            },
+            all: weightedResults,
+            totalWeight: weightedResults.reduce((sum, r) => sum + r.weight, 0),
+            generatedAt: new Date().toISOString(),
+          };
+
+          await workflowDb.updateSharedMemory(workflowId, {
+            ...finalWorkflow.sharedMemory,
+            _consensus: consensus,
+          });
+
+          logger.info(`[Collaboration] Parallel consensus: primary agent "${primary.agentName}" (weight=${primary.weight})`);
+        }
+      }
 
       // Record all pairwise interactions
       if (workflow.recordOnChain) {
@@ -383,6 +481,12 @@ export const agentCollaborationRouter = router({
       // Create workflow in database
       const workflowId = `wf_${Date.now()}_${randomUUID().replace(/-/g, '').substring(0, 9)}`;
 
+      // Merge agentAuthority into sharedMemory so it's available during execution
+      const sharedMemoryInit: Record<string, unknown> = { ...(input.inputData || {}) };
+      if (input.agentAuthority && Object.keys(input.agentAuthority).length > 0) {
+        sharedMemoryInit.agentAuthority = input.agentAuthority;
+      }
+
       await workflowDb.createWorkflow({
         id: workflowId,
         task: input.task,
@@ -393,7 +497,7 @@ export const agentCollaborationRouter = router({
         maxExecutionTime: input.maxExecutionTime,
         recordOnChain: input.recordOnChain,
         createdBy: ctx.user.id,
-        sharedMemory: input.inputData || {},
+        sharedMemory: sharedMemoryInit,
         steps,
       });
 
@@ -440,14 +544,17 @@ export const agentCollaborationRouter = router({
         },
         steps: workflow.steps.map(step => ({
           agent: step.agentName,
+          agentId: step.agentId,
           status: step.status,
           output: step.output ?? null,
           simulated: (step.output as any)?.simulated === true,
+          authority: (workflow.sharedMemory.agentAuthority as any)?.[step.agentId] ?? null,
           startedAt: step.startedAt,
           completedAt: step.completedAt,
           error: step.error,
         })),
         hasSimulatedSteps: workflow.steps.some(s => (s.output as any)?.simulated === true),
+        consensus: (workflow.sharedMemory as any)._consensus ?? null,
         sharedMemory: workflow.memorySharing ? Object.keys(workflow.sharedMemory) : [],
         executionTime: workflow.completedAt
           ? workflow.totalExecutionTime

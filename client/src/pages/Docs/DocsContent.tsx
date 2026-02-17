@@ -40,8 +40,8 @@ export const DocsContent: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // 从 public/gitbook 目录加载 markdown 文件
-        const mdPath = `/gitbook/${currentDoc.file}`;
+        // 从 public/docs-content 目录加载 markdown 文件
+        const mdPath = `/docs-content/${currentDoc.file}`;
         const response = await fetch(mdPath);
 
         if (!response.ok) {

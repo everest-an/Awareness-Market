@@ -26,6 +26,7 @@ import { calculateMemoryScore, rerank, QueryContext, getMemoryTypeDecayFactor } 
 import { VersionManager } from './version-manager';
 import { EmbeddingService } from './embedding-service';
 import { createLogger } from '../utils/logger';
+import { memoryGovernance } from './memory-governance';
 
 const logger = createLogger('MemoryRouter');
 
@@ -59,6 +60,17 @@ export class MemoryRouter {
       throw new Error(
         `Invalid namespace format: ${input.namespace}. Expected: org-id/scope/entity`
       );
+    }
+
+    // ✅ Governance: Enforce access policy (write)
+    const accessResult = await memoryGovernance.checkAccess(
+      input.org_id,
+      input.namespace,
+      input.created_by ?? null,
+      'write',
+    );
+    if (!accessResult.allowed) {
+      throw new Error(`Memory write blocked by policy: ${accessResult.reason}`);
     }
 
     // ✅ P0-2: Check memory quota if organizationId is provided

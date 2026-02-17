@@ -33,6 +33,7 @@ import BlogLatentMASPaper from "./pages/BlogLatentMASPaper";
 import MemoryMarketplace from "./pages/MemoryMarketplace";
 import MemoryNFTDetail from "./pages/MemoryNFTDetail";
 import ApiKeys from "./pages/ApiKeys";
+import ProviderKeys from "./pages/ProviderKeys";
 import AdminPanel from "./pages/AdminPanel";
 import ServiceHealth from "./pages/ServiceHealth";
 import UsageAnalytics from "./pages/UsageAnalytics";
@@ -160,6 +161,7 @@ function Router() {
       <Route path="/sdk" component={SDKPage} />
       <Route path="/docs" component={SDKPage} />
       <Route path="/api-keys" component={ApiKeys} />
+      <Route path="/provider-keys" component={ProviderKeys} />
       <Route path="/wallet" component={WalletDashboard} />
 
       {/* v3: Organization Governance */}

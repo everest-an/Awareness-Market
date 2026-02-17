@@ -39,6 +39,8 @@ import { apiAnalyticsRouter } from './routers/api-analytics';
 import { agentDiscoveryRouter } from './routers/agent-discovery';
 import { agentCollaborationRouter } from './routers/agent-collaboration';
 import { memoryRouter } from './routers/memory';
+import { memoryPolicyRouter } from './routers/memory-policy';
+import { providerKeysRouter } from './routers/provider-keys';
 import { neuralBridgeRouter } from './routers/neural-bridge-api';
 import { creatorDashboardRouter } from './routers/creator-dashboard-api';
 import { zkpRouter } from './routers/zkp-api';
@@ -1998,6 +2000,12 @@ export const appRouter = router({
 
   // Memory System API (Phase A - Universal AI Memory Infrastructure)
   memory: memoryRouter,
+
+  // Memory Governance — policy management (retention / access / conflict_resolution)
+  memoryPolicy: memoryPolicyRouter,
+
+  // BYOK — per-user LLM provider API keys (encrypted at rest)
+  providerKeys: providerKeysRouter,
 
   // MCP (Model Context Protocol) - AI Agent Token Management
   mcp: mcpRouter,
