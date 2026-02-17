@@ -325,6 +325,24 @@ export default function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link href="/org/analytics" className="flex items-center gap-2 cursor-pointer">
+                      <BarChart3 className="w-4 h-4" />
+                      Org Analytics
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/org/billing" className="flex items-center gap-2 cursor-pointer">
+                      <CreditCard className="w-4 h-4" />
+                      Org Billing
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/org/setup" className="flex items-center gap-2 cursor-pointer">
+                      <PlusCircle className="w-4 h-4" />
+                      New Organization
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/usage-analytics" className="flex items-center gap-2 cursor-pointer">
                       <BarChart3 className="w-4 h-4" />
                       Usage Analytics
