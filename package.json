@@ -32,7 +32,7 @@
     "monitor": "tsx scripts/monitor-resources.ts",
     "monitor:watch": "tsx scripts/monitor-resources.ts --watch",
     "build:frontend": "vite build",
-    "build:backend": "esbuild server/_core/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:@prisma/client --external:better-sqlite3 --external:@tensorflow/tfjs-node",
+    "build:backend": "esbuild server/_core/index.ts --bundle --platform=node --target=node20 --format=esm --packages=external --outfile=dist/index.js",
     "deploy:backend": "./scripts/deploy-backend.sh"
   },
   "dependencies": {
