@@ -160,7 +160,7 @@ function Router() {
       <Route path="/semantic-index" component={AgentRegistry} />
       <Route path="/sdk" component={SDKPage} />
       <Route path="/docs" component={SDKPage} />
-      <Route path="/api-keys" component={ApiKeys} />
+      <Route path="/api-keys">{() => <Redirect to="/profile" />}</Route>
       <Route path="/provider-keys" component={ProviderKeys} />
       <Route path="/wallet" component={WalletDashboard} />
 

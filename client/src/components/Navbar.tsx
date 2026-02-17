@@ -24,7 +24,6 @@ import {
   Users,
   LogOut,
   LayoutDashboard,
-  Key,
   Upload,
   Settings,
   Server,
@@ -36,8 +35,10 @@ import {
   History,
   Wallet,
   Database,
-  AlertTriangle,
   Bot,
+  Building2,
+  CreditCard,
+  PlusCircle,
 } from "lucide-react";
 
 const navLinks = [
@@ -57,13 +58,8 @@ const navLinks = [
     children: [
       { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
-      { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
       { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
-      { label: "Conflict Resolution", href: "/conflicts", icon: AlertTriangle, description: "Resolve memory conflicts" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
-      { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
-      { label: "Provider Keys", href: "/provider-keys", icon: Key, description: "BYOK — your own OpenAI/Anthropic/Gemini keys" },
-      { label: "Agent Login", href: "/auth/agent", icon: Server, description: "AI agent authentication" },
     ]
   },
   {
@@ -74,6 +70,7 @@ const navLinks = [
       { label: "API Reference", href: "/docs", icon: FileCode, description: "API & SDK quick reference" },
       { label: "Python SDK", href: "/sdk", icon: Code, description: "Python integration" },
       { label: "MCP Integration", href: "/sdk#mcp", icon: Cpu, description: "Model Context Protocol" },
+      { label: "Agent Auth", href: "/auth/agent", icon: Server, description: "AI agent authentication" },
       { label: "GitHub", href: "https://github.com/everest-an/Awareness-Market", icon: Github, description: "View source code", external: true },
       { label: "Blog", href: "/blog", icon: BookOpen, description: "Latest updates" },
     ]
@@ -178,22 +175,10 @@ export default function Navbar() {
                 <span className="text-cyan-400 font-medium">Workflow History</span>
               </>
             )}
-            {location === '/workflow-performance' && (
-              <>
-                <span className="text-white/30 mx-1">/</span>
-                <span className="text-cyan-400 font-medium">Performance</span>
-              </>
-            )}
             {location === '/memory-management' && (
               <>
                 <span className="text-white/30 mx-1">/</span>
                 <span className="text-cyan-400 font-medium">Memory Management</span>
-              </>
-            )}
-            {location === '/conflicts' && (
-              <>
-                <span className="text-white/30 mx-1">/</span>
-                <span className="text-cyan-400 font-medium">Conflicts</span>
               </>
             )}
             {location === '/dashboard' && (
@@ -214,10 +199,16 @@ export default function Navbar() {
                 <span className="text-cyan-400 font-medium">Documentation</span>
               </>
             )}
-            {location === '/api-keys' && (
+            {location === '/profile' && (
               <>
                 <span className="text-white/30 mx-1">/</span>
-                <span className="text-cyan-400 font-medium">API Keys</span>
+                <span className="text-cyan-400 font-medium">Settings</span>
+              </>
+            )}
+            {location.startsWith('/org/') && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Enterprise</span>
               </>
             )}
           </Link>
@@ -324,13 +315,13 @@ export default function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
                       <User className="w-4 h-4" />
-                      Profile
+                      Personal Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/api-keys" className="flex items-center gap-2 cursor-pointer">
-                      <Key className="w-4 h-4" />
-                      API Keys
+                    <Link href="/org/dashboard" className="flex items-center gap-2 cursor-pointer">
+                      <Building2 className="w-4 h-4" />
+                      Enterprise Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -349,19 +340,19 @@ export default function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link href="/upload-vector-package" className="flex items-center gap-2 cursor-pointer">
                       <Upload className="w-4 h-4" />
-                      Upload Vector Package
+                      Upload Vector
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/upload-memory-package" className="flex items-center gap-2 cursor-pointer">
                       <Upload className="w-4 h-4" />
-                      Upload Memory Package
+                      Upload Memory
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/upload-chain-package" className="flex items-center gap-2 cursor-pointer">
                       <Upload className="w-4 h-4" />
-                      Upload Chain Package
+                      Upload Chain
                     </Link>
                   </DropdownMenuItem>
                   {user?.role === "admin" && (

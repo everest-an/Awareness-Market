@@ -230,8 +230,22 @@ export default function Profile() {
           </TabsContent>
 
           {/* API Keys Tab */}
-          <TabsContent value="api">
+          <TabsContent value="api" className="space-y-4">
             <ApiKeyManager />
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Provider Keys (BYOK)</CardTitle>
+                <CardDescription>
+                  Bring your own OpenAI, Anthropic, or Google API keys for AI collaboration
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UIButton variant="outline" onClick={() => setLocation('/provider-keys')}>
+                  <Key className="h-4 w-4 mr-2" />
+                  Manage Provider Keys
+                </UIButton>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* API Tutorial Tab */}
