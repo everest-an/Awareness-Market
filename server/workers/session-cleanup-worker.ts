@@ -51,7 +51,7 @@ export async function runSessionCleanup(): Promise<{
   revokedCount: number;
 }> {
   const config = getCleanupConfig();
-  logger.info('Starting session cleanup job', config);
+  logger.info('Starting session cleanup job', { ...config } as any);
 
   try {
     // 1. Auto-revoke idle sessions

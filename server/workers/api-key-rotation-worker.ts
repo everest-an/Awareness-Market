@@ -53,10 +53,10 @@ export async function findExpiringKeys(warningDays: number): Promise<
     userId: number;
     keyPrefix: string;
     name: string;
-    expiresAt: Date;
+    expiresAt: Date | null;
     autoRotationEnabled: boolean;
     notificationSentAt: Date | null;
-    user: { id: number; email: string };
+    user: { id: number; email: string | null };
   }>
 > {
   const now = new Date();
@@ -99,7 +99,7 @@ export async function findExpiredKeys(): Promise<
     userId: number;
     keyPrefix: string;
     name: string;
-    expiresAt: Date;
+    expiresAt: Date | null;
     autoRotationEnabled: boolean;
   }>
 > {
@@ -138,13 +138,13 @@ export async function sendExpirationWarning(
   keys: Array<{
     keyPrefix: string;
     name: string;
-    expiresAt: Date;
+    expiresAt: Date | null;
     autoRotationEnabled: boolean;
   }>
 ): Promise<void> {
-  const daysUntilExpiry = Math.ceil(
-    (keys[0].expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
-  );
+  const daysUntilExpiry = keys[0].expiresAt
+    ? Math.ceil((keys[0].expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+    : 0;
 
   logger.info('Sending API key expiration warning', {
     userId,
@@ -156,7 +156,7 @@ export async function sendExpirationWarning(
   const keyListHtml = keys
     .map(
       (k) =>
-        `<li><strong>${k.name}</strong> (${k.keyPrefix}...) — Expires: ${k.expiresAt.toISOString()} ${k.autoRotationEnabled ? '✅ Auto-rotation enabled' : '❌ Auto-rotation disabled'}</li>`
+        `<li><strong>${k.name}</strong> (${k.keyPrefix}...) — Expires: ${k.expiresAt?.toISOString() ?? 'N/A'} ${k.autoRotationEnabled ? '✅ Auto-rotation enabled' : '❌ Auto-rotation disabled'}</li>`
     )
     .join('');
   const actionNote = keys.some((k) => !k.autoRotationEnabled)
@@ -328,7 +328,7 @@ export async function runRotationJob(): Promise<{
   revoked: number;
 }> {
   const config = getRotationConfig();
-  logger.info('Starting API key rotation job', config);
+  logger.info('Starting API key rotation job', { ...config } as any);
 
   let totalWarned = 0;
   let totalRotated = 0;
@@ -352,7 +352,7 @@ export async function runRotationJob(): Promise<{
 
       // Send notifications
       for (const [userId, keys] of keysByUser.entries()) {
-        const userEmail = keys[0].user.email;
+        const userEmail = keys[0].user.email || '';
         await sendExpirationWarning(userId, userEmail, keys);
         totalWarned += keys.length;
 
