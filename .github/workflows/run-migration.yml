@@ -1,0 +1,62 @@
+name: Run Database Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_file:
+        description: 'Migration SQL file (relative to prisma/migrations/)'
+        required: true
+        default: '04_add_provider_keys.sql'
+
+jobs:
+  migrate:
+    name: Apply Migration via EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.AWARENESS }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/awareness-key.pem
+          chmod 600 ~/.ssh/awareness-key.pem
+          ssh-keyscan -H 44.220.181.78 >> ~/.ssh/known_hosts
+
+      - name: Upload migration file to EC2
+        run: |
+          scp -i ~/.ssh/awareness-key.pem \
+            prisma/migrations/${{ github.event.inputs.migration_file }} \
+            ec2-user@44.220.181.78:/tmp/migration.sql
+
+      - name: Run migration on EC2 (has RDS access)
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            set -e
+            cd /home/ec2-user/Awareness-Market
+
+            echo "=== Running migration: ${{ github.event.inputs.migration_file }} ==="
+            pnpm exec prisma db execute \
+              --file /tmp/migration.sql \
+              --schema prisma/schema.prisma
+
+            echo "=== Migration applied successfully ==="
+            rm -f /tmp/migration.sql
+          ENDSSH
+
+      - name: Verify table exists
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            cd /home/ec2-user/Awareness-Market
+            node -e "
+              const { PrismaClient } = require('@prisma/client');
+              const prisma = new PrismaClient();
+              prisma.\$queryRaw\`SELECT COUNT(*) FROM provider_keys\`
+                .then(r => { console.log('provider_keys table OK, row count:', r[0].count); })
+                .catch(e => { console.error('Verify failed:', e.message); process.exit(1); })
+                .finally(() => prisma.\$disconnect());
+            "
+          ENDSSH
