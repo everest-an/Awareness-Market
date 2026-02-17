@@ -128,11 +128,12 @@ export function createOrgIpWhitelist(organizationId: number) {
           endpoint: req.path,
         });
 
-        return res.status(403).json({
+        res.status(403).json({
           error: 'Access denied',
           message: 'Your IP address is not whitelisted for this organization',
           organizationId,
         });
+        return;
       }
 
       next();
@@ -180,10 +181,11 @@ export async function ipWhitelistApiKeyMiddleware(
         endpoint: req.path,
       });
 
-      return res.status(403).json({
+      res.status(403).json({
         error: 'Access denied',
         message: 'Your IP address is not whitelisted for API access',
       });
+      return;
     }
 
     next();

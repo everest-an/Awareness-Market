@@ -49,7 +49,7 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
   // Use Redis for distributed rate limiting across multiple servers
   store: new RedisStore({
-    client: redis as any,
+    sendCommand: (...args: string[]) => (redis as any).call(...args),
     prefix: 'rl:api:',
   }),
   // Skip successful requests for better UX (only count failed requests)
@@ -73,7 +73,7 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   store: new RedisStore({
-    client: redis as any,
+    sendCommand: (...args: string[]) => (redis as any).call(...args),
     prefix: 'rl:auth:',
   }),
   // Don't skip successful requests - count all attempts
@@ -94,7 +94,7 @@ export const passwordResetLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   store: new RedisStore({
-    client: redis as any,
+    sendCommand: (...args: string[]) => (redis as any).call(...args),
     prefix: 'rl:pwd-reset:',
   }),
 });
@@ -113,7 +113,7 @@ export const listingCreationLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   store: new RedisStore({
-    client: redis as any,
+    sendCommand: (...args: string[]) => (redis as any).call(...args),
     prefix: 'rl:listing:',
   }),
   // Use user ID as key instead of IP

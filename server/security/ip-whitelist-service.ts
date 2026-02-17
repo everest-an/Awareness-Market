@@ -81,16 +81,8 @@ export function parseCIDR(cidr: string): {
 export function isIpInCIDR(ip: string, cidr: string): boolean {
   try {
     const parsedIp = ipaddr.process(ip);
-    const [network, prefixStr] = cidr.split('/');
-    const prefix = parseInt(prefixStr, 10);
-
-    if (parsedIp.kind() === 'ipv4') {
-      const [netAddr, netPrefix] = ipaddr.IPv4.networkAddressFromCIDR(cidr);
-      return parsedIp.match(netAddr, netPrefix);
-    } else {
-      const [netAddr, netPrefix] = ipaddr.IPv6.networkAddressFromCIDR(cidr);
-      return parsedIp.match(netAddr, netPrefix);
-    }
+    const parsed = ipaddr.parseCIDR(cidr);
+    return parsedIp.match(parsed);
   } catch (error) {
     logger.error('CIDR matching error', { error, ip, cidr });
     return false;
