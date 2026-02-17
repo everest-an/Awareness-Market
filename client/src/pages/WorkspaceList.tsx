@@ -1,14 +1,39 @@
+import { useState, useCallback } from 'react';
 import { Link } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Settings2, Users, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, Settings2, Users, Loader2, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
 export default function WorkspaceList() {
-  const { data, isLoading, error, refetch } = trpc.workspace.list.useQuery();
+  const [extraPages, setExtraPages] = useState<Array<{ workspaces: any[]; nextCursor?: string }>>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const { data, isLoading, error, refetch } = trpc.workspace.list.useQuery({ limit: 20 });
+  const utils = trpc.useUtils();
+
+  const allWorkspaces = [
+    ...(data?.workspaces ?? []),
+    ...extraPages.flatMap((p) => p.workspaces),
+  ];
+
+  const lastCursor = extraPages.length > 0
+    ? extraPages[extraPages.length - 1].nextCursor
+    : data?.nextCursor;
+
+  const loadMore = useCallback(async () => {
+    if (!lastCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const result = await utils.workspace.list.fetch({ limit: 20, cursor: lastCursor });
+      setExtraPages((prev) => [...prev, { workspaces: result.workspaces, nextCursor: result.nextCursor }]);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [lastCursor, loadingMore, utils]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -47,7 +72,7 @@ export default function WorkspaceList() {
           </Alert>
         )}
 
-        {data?.workspaces && data.workspaces.length === 0 && (
+        {!isLoading && !error && allWorkspaces.length === 0 && (
           <Card className="bg-[#0a0a0f] border-white/10">
             <CardContent className="py-16 text-center">
               <Settings2 className="w-10 h-10 text-slate-600 mx-auto mb-4" />
@@ -66,7 +91,7 @@ export default function WorkspaceList() {
         )}
 
         <div className="space-y-4">
-          {data?.workspaces?.map((ws: any) => (
+          {allWorkspaces.map((ws: any) => (
             <Link key={ws.id} href={`/workspace/${ws.id}`}>
               <Card className="bg-[#0a0a0f] border-white/10 hover:border-white/20 transition-colors cursor-pointer">
                 <CardContent className="py-5">
@@ -109,6 +134,25 @@ export default function WorkspaceList() {
             </Link>
           ))}
         </div>
+
+        {/* Load More */}
+        {lastCursor && (
+          <div className="flex justify-center mt-6">
+            <Button
+              variant="outline"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="bg-white/5 border-white/10"
+            >
+              {loadingMore ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <ChevronDown className="w-4 h-4 mr-2" />
+              )}
+              Load More
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
