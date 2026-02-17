@@ -41,10 +41,11 @@ export async function enhancedSessionValidation(
     if (!payload) {
       // Invalid JWT - clear cookie and reject
       res.clearCookie('jwt_token');
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Invalid or expired token',
         message: 'Please log in again',
       });
+      return;
     }
 
     // 2. Validate session in database (idle timeout, revocation, etc.)
@@ -60,11 +61,12 @@ export async function enhancedSessionValidation(
         error: sessionValidation.error,
       });
 
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Session expired or invalid',
         message: sessionValidation.error,
         reason: sessionValidation.error,
       });
+      return;
     }
 
     // 3. Attach session info to request
