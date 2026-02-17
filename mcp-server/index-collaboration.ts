@@ -40,6 +40,37 @@ if (!MCP_TOKEN) {
   process.exit(1);
 }
 
+// ── Permission enforcement ──────────────────────────────────────────────
+// AGENT_PERMISSIONS env var: JSON array of allowed permissions
+// e.g. '["read","write","propose"]'
+// If not set, all permissions are allowed (backwards compat).
+const AGENT_PERMISSIONS: string[] = (() => {
+  const raw = process.env.AGENT_PERMISSIONS;
+  if (!raw) return ['read', 'write', 'propose', 'execute']; // allow all by default
+  try { return JSON.parse(raw); } catch { return ['read', 'write', 'propose', 'execute']; }
+})();
+
+// Map tool names → required permission
+const TOOL_PERMISSION_MAP: Record<string, string> = {
+  share_reasoning: 'write',
+  get_other_agent_context: 'read',
+  propose_shared_decision: 'propose',
+  get_collaboration_history: 'read',
+  sync_progress: 'write',
+  ask_question: 'write',
+};
+
+function checkPermission(toolName: string): void {
+  const required = TOOL_PERMISSION_MAP[toolName];
+  if (required && !AGENT_PERMISSIONS.includes(required)) {
+    throw new Error(
+      `Permission denied: tool "${toolName}" requires "${required}" permission. ` +
+      `This agent has: [${AGENT_PERMISSIONS.join(', ')}]. ` +
+      `Update AGENT_PERMISSIONS in your workspace config to grant access.`
+    );
+  }
+}
+
 // Tool Definitions
 const COLLABORATION_TOOLS = [
   {
@@ -459,6 +490,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
+    // Enforce permissions before executing any tool
+    checkPermission(name);
+
     let result: any;
 
     switch (name) {
@@ -518,11 +552,13 @@ async function main() {
 
   const projectInfo = PROJECT_ID ? `Project: ${PROJECT_NAME} (${PROJECT_ID})` : 'No project configured';
 
+  const permInfo = `Permissions: [${AGENT_PERMISSIONS.join(', ')}]`;
   console.error(`
 ╔═══════════════════════════════════════════════════════════╗
 ║   Awareness MCP Collaboration Server                      ║
 ║   ${projectInfo.padEnd(57)}║
 ║   Agent Role: ${AGENT_ROLE.padEnd(43)}║
+║   ${permInfo.padEnd(57)}║
 ║   Memory Key: ${MEMORY_KEY.padEnd(43)}║
 ║   API: ${API_BASE.padEnd(50)}║
 ╚═══════════════════════════════════════════════════════════╝
