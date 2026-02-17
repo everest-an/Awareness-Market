@@ -1,0 +1,78 @@
+name: Configure EC2 Environment Variables
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  configure-env:
+    name: Configure EC2 Environment Variables
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/awareness-key.pem
+          chmod 600 ~/.ssh/awareness-key.pem
+          ssh-keyscan -H 44.220.181.78 >> ~/.ssh/known_hosts
+
+      - name: Update .env on EC2
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GH_OAUTH_CLIENT_ID: ${{ secrets.GH_OAUTH_CLIENT_ID }}
+          GH_OAUTH_CLIENT_SECRET: ${{ secrets.GH_OAUTH_CLIENT_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << ENDSSH
+            cd /home/ec2-user/Awareness-Market
+
+            # Backup existing .env
+            cp .env .env.backup.\$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+
+            # Update or add each environment variable
+            # Function to upsert a key=value in .env
+            upsert_env() {
+              local key="\$1"
+              local value="\$2"
+              if grep -q "^\${key}=" .env 2>/dev/null; then
+                sed -i "s|^\${key}=.*|\${key}=\${value}|" .env
+              else
+                echo "\${key}=\${value}" >> .env
+              fi
+            }
+
+            upsert_env "GOOGLE_CLIENT_ID" "${GOOGLE_CLIENT_ID}"
+            upsert_env "GOOGLE_CLIENT_SECRET" "${GOOGLE_CLIENT_SECRET}"
+            upsert_env "GITHUB_CLIENT_ID" "${GH_OAUTH_CLIENT_ID}"
+            upsert_env "GITHUB_CLIENT_SECRET" "${GH_OAUTH_CLIENT_SECRET}"
+            upsert_env "STRIPE_SECRET_KEY" "${STRIPE_SECRET_KEY}"
+            upsert_env "STRIPE_WEBHOOK_SECRET" "${STRIPE_WEBHOOK_SECRET}"
+            upsert_env "RESEND_API_KEY" "${RESEND_API_KEY}"
+
+            echo "✅ Environment variables updated successfully"
+            echo "--- Current .env keys ---"
+            grep -oP '^[A-Z_]+=' .env | sort
+          ENDSSH
+
+      - name: Restart PM2 services
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            cd /home/ec2-user/Awareness-Market
+            pm2 restart all
+            sleep 3
+            pm2 status
+            echo "✅ PM2 services restarted with new environment variables"
+          ENDSSH
+
+      - name: Verify services
+        run: |
+          sleep 5
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            pm2 status
+            curl -sf http://localhost:3001/api-docs/ > /dev/null && echo "✅ API is responding" || echo "⚠️ API check failed"
+          ENDSSH
