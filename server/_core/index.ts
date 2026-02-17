@@ -28,7 +28,7 @@ import { createLogger } from "../utils/logger";
 import { initializeSocketIO } from "../socket-events";
 import { securityHeaders, getSecurityConfig } from "../middleware/security-headers";
 import { httpsRedirect, getHttpsConfig } from "../middleware/https-redirect";
-import { globalLimiter, uploadLimiter, purchaseLimiter, browseLimiter, aiAgentLimiter } from "../rate-limiter";
+import { globalLimiter, uploadLimiter, purchaseLimiter, browseLimiter, aiAgentLimiter, collabWriteLimiter, collabReadLimiter } from "../rate-limiter";
 import { planAwareAgentLimiter, planAwareGlobalLimiter } from "../middleware/plan-rate-limiter";
 import { ddosShield, ddosStatsHandler } from "../middleware/ddos-shield";
 import { ghostTrapMiddleware, ghostTrapStatsHandler } from "../middleware/ghost-trap";
@@ -135,6 +135,13 @@ async function startServer() {
   app.use("/api/mcp", mcpRouter);
 
   // Workspace Collaboration REST API (for v0, browser clients, etc.)
+  // Write endpoints: 60 req/min per token
+  app.post("/api/collab/share", collabWriteLimiter);
+  app.post("/api/collab/decision", collabWriteLimiter);
+  app.post("/api/collab/progress", collabWriteLimiter);
+  // Read endpoints: 200 req/min per token
+  app.get("/api/collab/context", collabReadLimiter);
+  app.get("/api/collab/status", collabReadLimiter);
   app.use("/api/collab", collabRouter);
   
   // LatentMAS Transformer API

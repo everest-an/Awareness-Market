@@ -102,6 +102,58 @@ function maskToken(token: string): string {
 
 const WORKSPACE_PREFIX = '__workspace:';
 
+// ============================================================================
+// Audit logging — persisted to AiMemory under workspace:__audit key
+// ============================================================================
+
+interface AuditEntry {
+  action: string;
+  timestamp: string;
+  details?: Record<string, unknown>;
+}
+
+async function logWorkspaceAudit(
+  userId: number,
+  workspaceId: string,
+  action: string,
+  details?: Record<string, unknown>,
+): Promise<void> {
+  const memoryKey = `workspace:${workspaceId}:__audit`;
+  const entry: AuditEntry = {
+    action,
+    timestamp: new Date().toISOString(),
+    details,
+  };
+
+  try {
+    const existing = await db.getAIMemoryByKey({ userId, memoryKey });
+    let entries: AuditEntry[] = [];
+
+    if (existing?.memoryData) {
+      try {
+        const data = JSON.parse(existing.memoryData);
+        entries = Array.isArray(data.entries) ? data.entries : [];
+      } catch { /* fresh start */ }
+    }
+
+    entries.push(entry);
+    // Keep last 500 audit entries
+    if (entries.length > 500) {
+      entries = entries.slice(-500);
+    }
+
+    await db.upsertAIMemory({
+      userId,
+      memoryKey,
+      data: { entries } as unknown as Record<string, unknown>,
+      ttlDays: 365,
+    });
+  } catch (err) {
+    // Audit logging should never break the main flow
+    logger.warn('Failed to write audit log', { workspaceId, action, error: err });
+  }
+}
+
 async function loadWorkspace(
   userId: number,
   workspaceId: string
@@ -189,6 +241,13 @@ export const workspaceRouter = router({
         memoryKey: `${memoryKey}:__permissions`,
         data: permMap,
         ttlDays: 365,
+      });
+
+      // Audit log
+      await logWorkspaceAudit(ctx.user.id, workspaceId, 'workspace_created', {
+        name: input.name,
+        agentCount: agents.length,
+        agents: agents.map((a) => ({ name: a.name, role: a.role, integration: a.integration })),
       });
 
       logger.info('Workspace created', {
@@ -412,6 +471,12 @@ export const workspaceRouter = router({
         ttlDays: 365,
       });
 
+      await logWorkspaceAudit(ctx.user.id, input.workspaceId, 'agent_added', {
+        agentName: newAgent.name,
+        role: newAgent.role,
+        integration: newAgent.integration,
+      });
+
       return { success: true, agent: newAgent };
     }),
 
@@ -432,8 +497,14 @@ export const workspaceRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
       }
 
+      const removed = workspace.agents[idx];
       workspace.agents.splice(idx, 1);
       await saveWorkspace(ctx.user.id, workspace);
+
+      await logWorkspaceAudit(ctx.user.id, input.workspaceId, 'agent_removed', {
+        agentName: removed.name,
+        role: removed.role,
+      });
 
       return { success: true };
     }),
@@ -468,6 +539,11 @@ export const workspaceRouter = router({
         memoryKey: `${workspace.memoryKey}:__permissions`,
         data: permMap,
         ttlDays: 365,
+      });
+
+      await logWorkspaceAudit(ctx.user.id, input.workspaceId, 'permissions_updated', {
+        agentId: input.agentId,
+        newPermissions: input.permissions,
       });
 
       return { success: true, agent: { id: agent.id, permissions: agent.permissions } };
@@ -523,6 +599,11 @@ export const workspaceRouter = router({
         // Token may already be invalid — not critical
       }
 
+      // Audit log (write to a separate key since workspace blob is gone)
+      await logWorkspaceAudit(ctx.user.id, workspace.id, 'workspace_deleted', {
+        name: workspace.name,
+      });
+
       logger.info('Workspace deleted', { workspaceId: workspace.id, name: workspace.name });
 
       return { success: true };
@@ -546,11 +627,106 @@ export const workspaceRouter = router({
       workspace.status = input.status;
       await saveWorkspace(ctx.user.id, workspace);
 
+      await logWorkspaceAudit(ctx.user.id, workspace.id, 'status_changed', {
+        newStatus: input.status,
+      });
+
       logger.info('Workspace status updated', {
         workspaceId: workspace.id,
         status: input.status,
       });
 
       return { success: true, status: input.status };
+    }),
+
+  /**
+   * Rotate the MCP token for a workspace (invalidate old, issue new)
+   */
+  rotateToken: protectedProcedure
+    .input(z.object({ workspaceId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+
+      if (!workspace) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+      }
+
+      const { prisma } = await import('../db-prisma');
+
+      // 1. Deactivate old token
+      try {
+        const oldToken = resolveToken(workspace);
+        const oldHash = crypto.createHash('sha256').update(oldToken).digest('hex');
+        await prisma.mcpToken.updateMany({
+          where: { tokenHash: oldHash, userId: ctx.user.id },
+          data: { isActive: false },
+        });
+      } catch {
+        // Old token may already be invalid
+      }
+
+      // 2. Create new MCP token
+      const newTokenData = await db.createMcpToken({
+        userId: ctx.user.id,
+        name: `Workspace: ${workspace.name} (rotated)`,
+        permissions: ['sync', 'memory', 'collab'],
+        expiresInDays: 365,
+      });
+
+      // 3. Update workspace with encrypted new token
+      workspace.mcpTokenEncrypted = encryptKey(newTokenData.token);
+      workspace.mcpTokenMask = maskToken(newTokenData.token);
+      delete workspace.mcpToken; // Remove legacy field if present
+      await saveWorkspace(ctx.user.id, workspace);
+
+      // 4. Log the rotation
+      await logWorkspaceAudit(ctx.user.id, workspace.id, 'token_rotated', {
+        oldTokenPrefix: workspace.mcpTokenMask,
+        newTokenPrefix: newTokenData.tokenPrefix,
+      });
+
+      logger.info('Workspace token rotated', {
+        workspaceId: workspace.id,
+        newPrefix: newTokenData.tokenPrefix,
+      });
+
+      return {
+        success: true,
+        mcpTokenMask: maskToken(newTokenData.token),
+        message: 'Token rotated. All agents must update their configs with the new token.',
+      };
+    }),
+
+  /**
+   * Get audit log for a workspace
+   */
+  getAuditLog: protectedProcedure
+    .input(z.object({
+      workspaceId: z.string(),
+      limit: z.number().min(1).max(100).default(50),
+    }))
+    .query(async ({ input, ctx }) => {
+      const workspace = await loadWorkspace(ctx.user.id, input.workspaceId);
+
+      if (!workspace) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+      }
+
+      const auditMem = await db.getAIMemoryByKey({
+        userId: ctx.user.id,
+        memoryKey: `${workspace.memoryKey}:__audit`,
+      });
+
+      if (!auditMem?.memoryData) {
+        return { entries: [] };
+      }
+
+      try {
+        const data = JSON.parse(auditMem.memoryData);
+        const entries = Array.isArray(data.entries) ? data.entries.slice(-input.limit) : [];
+        return { entries };
+      } catch {
+        return { entries: [] };
+      }
     }),
 });
