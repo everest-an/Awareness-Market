@@ -46,10 +46,9 @@ jobs:
             --bundle \
             --platform=node \
             --target=node20 \
-            --outfile=dist/index.js \
-            --external:@prisma/client \
-            --external:better-sqlite3 \
-            --external:@tensorflow/tfjs-node
+            --format=esm \
+            --packages=external \
+            --outfile=dist/index.js
 
       - name: Build frontend
         run: |
