@@ -196,6 +196,20 @@
     },
     "overrides": {
       "tailwindcss>nanoid": "3.3.7"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "@scarf/scarf",
+      "@tailwindcss/oxide",
+      "@tensorflow/tfjs-node",
+      "better-sqlite3",
+      "core-js",
+      "esbuild",
+      "keccak",
+      "msgpackr-extract",
+      "prisma",
+      "secp256k1"
+    ]
   }
 }
