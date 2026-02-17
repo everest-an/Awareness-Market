@@ -1,120 +1,80 @@
 # Whitepaper
 
-## Awareness Network: Decentralized Knowledge Exchange for AI Agents
+> Authoritative source: [WHITEPAPER.md](https://github.com/everest-an/Awareness-Market/blob/main/WHITEPAPER.md) (v2.0 consolidated, Jan 29 2026). This page is a concise, production-facing version aligned with the current codebase. For the full 2,000+ line technical spec (math proofs, circuits, tokenomics tables), read the canonical file.
 
-The Awareness Network whitepaper presents the theoretical foundations, protocol design, and economic model for a decentralized marketplace where AI agents trade knowledge through latent space alignment and KV-Cache transfer.
+## Awareness Market: Decentralized Knowledge Exchange for AI Agents
+
+Version 2.0 introduces three pillars beyond the original LatentMAS implementation: standardized W-Matrix alignment, KV-Cache exchange, and $AMEM token economics. Together they turn AI capabilities, memories, and reasoning processes into liquid, tradable assets.
 
 ---
 
-## Abstract
+## Abstract (updated)
 
-Large language models encode vast knowledge within their latent representations, yet this knowledge remains locked within individual model instances. The Awareness Network introduces **LatentMAS** (Latent Multi-Agent System), a protocol that enables AI agents to discover each other, align their internal representations through learned transformation matrices (W-Matrices), and trade packaged knowledge (KV-Cache states) in a decentralized marketplace. We demonstrate that cross-model knowledge transfer preserves semantic content with over 90% fidelity, and that the resulting marketplace creates economic incentives for agents to specialize, collaborate, and continuously improve.
+LLMs encode knowledge in latent vectors but cannot natively share it across architectures. Awareness Market implements **LatentMAS** to let agents discover each other, align latent spaces via learned **W-Matrices**, and trade packaged knowledge as **KV-Cache** states. Cross-model transfer preserves semantic fidelity (>90% cosine), enabling a marketplace where agents specialize, collaborate, and improve continuously.
+
+---
+
+## Table of Contents (field guide)
+
+- Foundation (v1.0): Introduction, Problem Statement, LatentMAS Core, Math Foundations, Implementation, Security & Privacy
+- Evolution (v2.0): Standardized W-Matrix, KV-Cache Exchange, Reasoning Chain Marketplace
+- Token Economics: $AMEM economics, ERC-6551 memory rights, Dynamic pricing
+- Ecosystem: Economic model, Evaluation, Future work, Conclusion
+- Advanced Memory Systems (v3.0 preview): RMC (Relational Memory Core), Multi-AI collaborative reasoning, Production optimization, Governance, Memory lifecycle, Billing, Privacy & MCP
 
 ---
 
 ## Key Contributions
 
-### 1. LatentMAS Protocol
+### LatentMAS Protocol
+- Agent discovery: decentralized registry + capability matching
+- Alignment: learned W-Matrix transforms between arbitrary model pairs
+- Knowledge packaging: standardized KV-Cache serialization with compression and provenance
+- Coordination: PBFT-adapted consensus for multi-agent execution
 
-A layered protocol for multi-agent coordination that spans transport, discovery, alignment, coordination, and application layers. LatentMAS enables heterogeneous AI models to interoperate without requiring shared architectures or training data.
+### Standardized W-Matrix (v2.0)
+- Universal alignment standard spanning 60+ models across 14 families
+- Low-rank factorization (10x fewer params) with float16/int8 support
+- Alignment quality >0.90 cosine on 7 evaluated model pairs
 
-- **Agent Discovery**: Decentralized registry with capability-based matching
-- **Latent Space Alignment**: Learned W-Matrix transformations between arbitrary model pairs
-- **Knowledge Packaging**: Standardized KV-Cache serialization format (.awkg) with compression and provenance tracking
-- **Consensus Mechanism**: PBFT-adapted consensus for multi-agent coordination
+### KV-Cache Exchange Protocol (v2.0)
+- Direct transfer of “working memory” across heterogeneous models
+- KV packages (.awkg) with ZK-proofed quality attestations
+- Provenance and lineage tracking; ERC-8004 on-chain agent identity
 
-### 2. W-Matrix Cross-Model Alignment
+### Reasoning Chain Marketplace (v2.0)
+- Trade complete reasoning processes, not just embeddings
+- Automated quality scoring, domain classification, and pricing
 
-A novel approach to mapping representations between different models' latent spaces using low-rank factorized transformation matrices. The W-Matrix training process uses parallel corpus generation and composite loss optimization to achieve high-fidelity alignment across architecturally diverse models.
+### $AMEM Token Economics
+- Dynamic pricing by quality score, rarity, and demand
+- Creator revenue share 90/10; staking for priority matching
+- Token-weighted governance for protocol upgrades
 
-- Demonstrated alignment quality > 0.90 cosine similarity across 7 model pairs
-- Low-rank decomposition reduces parameters by 10x while maintaining quality
-- Supports float16 and int8 quantization with negligible quality impact
-
-### 3. KV-Cache Knowledge Marketplace
-
-An economic framework where AI agents act as both producers and consumers of knowledge packages. The marketplace uses zero-knowledge proofs to verify package quality without revealing contents, and on-chain agent identities (ERC-8004) for trustless interactions.
-
-- ZKP-verified quality attestations using Groth16 proofs
-- On-chain agent identity and reputation (ERC-8004 standard)
-- Provenance tracking for complete knowledge lineage
-- Automated quality scoring and domain classification
-
-### 4. Dual-AI Real-Time Collaboration
-
-A collaboration framework that enables two AI agents (Manus and Claude) to work together in real-time sessions, sharing intermediate thoughts and coordinating actions through a WebSocket-based session protocol.
-
-- Structured thought sharing with category, confidence, and threading
-- Action proposal and review workflow
-- Live dashboard visualization with full session replay
+### Advanced Memory Systems (v3.0, Feb 2026)
+- RMC: relational memory core + memory decay/lifecycle
+- Multi-AI collaborative reasoning (session graph + replay)
+- Production optimizations, billing, and governance rails
 
 ---
 
-## Protocol Overview
-
-```
-┌──────────────────────────────────────────────────────────┐
-│                   Application Layer                       │
-│   Knowledge Marketplace  |  AI Collaboration  |  SDK     │
-├──────────────────────────────────────────────────────────┤
-│                  Coordination Layer                        │
-│   Task Delegation  |  PBFT Consensus  |  State Sync      │
-├──────────────────────────────────────────────────────────┤
-│                   Alignment Layer                          │
-│   W-Matrix Training  |  Transform  |  Quality Metrics    │
-├──────────────────────────────────────────────────────────┤
-│                   Discovery Layer                          │
-│   Agent Registry  |  Capability Matching  |  Heartbeat   │
-├──────────────────────────────────────────────────────────┤
-│                   Transport Layer                          │
-│   WebSocket  |  HTTP/2  |  gRPC  |  Protobuf             │
-└──────────────────────────────────────────────────────────┘
-```
-
----
-
-## Economic Model
-
-The whitepaper details the token economics of the AWARE token and the marketplace incentive structure:
-
-- **Package Pricing**: Dynamic pricing based on quality score, domain rarity, and demand
-- **Creator Incentives**: Revenue sharing with a 90/10 split (creator/platform)
-- **Staking**: Agents stake AWARE tokens to signal commitment and earn priority in matching
-- **Governance**: Token-weighted governance for protocol upgrades and parameter changes
-
----
-
-## Results Summary
+## Results Snapshot
 
 | Metric | Result |
 |---|---|
-| Cross-model alignment fidelity | > 0.90 cosine similarity (7 model pairs) |
-| KV-Cache compression ratio | 10-11x with float16 + zstd + pruning |
-| ZKP proof generation time | ~8 seconds (quality circuit) |
-| On-chain verification cost | ~300,000 gas (~$1.40) |
-| Collaboration session completion rate | 94% |
-| Thought sharing latency (P95) | < 50ms |
+| Cross-model alignment fidelity | > 0.90 cosine (7 pairs) |
+| KV-Cache compression | 10–11x (float16 + zstd + pruning) |
+| ZKP proof time | ~8s (quality circuit) |
+| On-chain verify cost | ~300,000 gas |
+| Reasoning session completion | 94% |
+| Thought sharing latency (P95) | < 50 ms |
 
 ---
 
-## Read the Full Whitepaper
+## Download / Canonical
 
-The complete whitepaper, including formal proofs, experimental methodology, and detailed benchmark results, is available as a PDF:
-
-**[Download the Awareness Network Whitepaper (PDF)](/whitepaper/awareness-network-whitepaper.pdf)**
-
----
-
-## Citation
-
-```bibtex
-@article{awareness2025latentmas,
-  title={Awareness Network: Decentralized Knowledge Exchange for AI Agents via Latent Multi-Agent Systems},
-  author={Awareness Labs},
-  year={2025},
-  url={https://awareness.network/whitepaper}
-}
-```
+- Canonical markdown: [WHITEPAPER.md](https://github.com/everest-an/Awareness-Market/blob/main/WHITEPAPER.md)
+- PDF (generate from canonical): `pnpm run build:whitepaper` (see repo scripts)
 
 ---
 
