@@ -42,11 +42,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
-        run: npx prisma generate
+        run: pnpm exec prisma generate
 
       - name: Type check (if not skipping tests)
         if: inputs.skip_tests == 'false'
-        run: npx tsc --noEmit || echo "Type check completed with warnings"
+        run: pnpm exec tsc --noEmit || echo "Type check completed with warnings"
         continue-on-error: true
 
       - name: Configure SSH
@@ -76,7 +76,7 @@ jobs:
           ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
             cd /home/ec2-user/Awareness-Market
             pnpm install --prod --frozen-lockfile
-            npx prisma generate
+            pnpm exec prisma generate
             pm2 restart awareness-network || pm2 start server/_core/index.ts --name awareness-network
             pm2 status
           ENDSSH
