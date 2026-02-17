@@ -208,7 +208,7 @@ export default defineConfig({
     // 其他优化
     // ==========================================
     reportCompressedSize: true,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
     sourcemap: false, // Do NOT ship sourcemaps to production (exposes source code)
 
     // ==========================================
