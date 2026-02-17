@@ -38,11 +38,11 @@ jobs:
         run: pnpm install --frozen-lockfile
       
       - name: Generate Prisma client
-        run: npx prisma generate
-      
+        run: pnpm exec prisma generate
+
       - name: Build backend
         run: |
-          npx esbuild server/_core/index.ts \
+          pnpm exec esbuild server/_core/index.ts \
             --bundle \
             --platform=node \
             --target=node20 \
@@ -73,12 +73,24 @@ jobs:
           scp -i ~/.ssh/awareness-key.pem -r prisma ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
           scp -i ~/.ssh/awareness-key.pem ecosystem.config.js ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
       
+      - name: Run database migrations on EC2
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            cd /home/ec2-user/Awareness-Market
+            echo "=== Applying pending migrations ==="
+            for f in prisma/migrations/*.sql; do
+              echo "  Running $f..."
+              pnpm exec prisma db execute --file "$f" --schema prisma/schema.prisma || true
+            done
+            echo "=== Migrations done ==="
+          ENDSSH
+
       - name: Restart PM2 service
         run: |
           ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
             cd /home/ec2-user/Awareness-Market
             pnpm install --prod --frozen-lockfile
-            npx prisma generate
+            pnpm exec prisma generate
             pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
             pm2 status
           ENDSSH
