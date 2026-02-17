@@ -1,0 +1,107 @@
+name: Configure EC2 Environment Variables
+
+on:
+  workflow_dispatch:
+    inputs:
+      restart_pm2:
+        description: 'Restart PM2 after updating .env'
+        type: boolean
+        default: true
+
+jobs:
+  configure:
+    name: Update .env on EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.AWARENESS }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/awareness-key.pem
+          chmod 600 ~/.ssh/awareness-key.pem
+          ssh-keyscan -H 44.220.181.78 >> ~/.ssh/known_hosts
+
+      - name: Update .env on EC2
+        env:
+          OAUTH_CALLBACK_URL: https://awareness.market
+          BASE_URL: https://api.awareness.market
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GITHUB_OAUTH_CLIENT_ID: ${{ secrets.GITHUB_CLIENT_ID }}
+          GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << ENDSSH
+            ENV_FILE="/home/ec2-user/Awareness-Market/.env"
+
+            # Create .env if it doesn't exist
+            touch "\$ENV_FILE"
+
+            # Helper: set or update a variable in .env
+            set_env() {
+              local key="\$1" val="\$2"
+              if [ -z "\$val" ]; then
+                echo "  SKIP \$key (not set in GitHub Secrets)"
+                return
+              fi
+              if grep -q "^\${key}=" "\$ENV_FILE"; then
+                sed -i "s|^\${key}=.*|\${key}=\${val}|" "\$ENV_FILE"
+                echo "  UPDATE \$key"
+              else
+                echo "\${key}=\${val}" >> "\$ENV_FILE"
+                echo "  ADD \$key"
+              fi
+            }
+
+            echo "=== Updating .env ==="
+
+            # Core
+            set_env "NODE_ENV" "production"
+            set_env "BASE_URL" "${BASE_URL}"
+            set_env "OAUTH_CALLBACK_URL" "${OAUTH_CALLBACK_URL}"
+
+            # Google OAuth
+            set_env "GOOGLE_CLIENT_ID" "${GOOGLE_CLIENT_ID}"
+            set_env "GOOGLE_CLIENT_SECRET" "${GOOGLE_CLIENT_SECRET}"
+
+            # GitHub OAuth
+            set_env "GITHUB_CLIENT_ID" "${GITHUB_OAUTH_CLIENT_ID}"
+            set_env "GITHUB_CLIENT_SECRET" "${GITHUB_OAUTH_CLIENT_SECRET}"
+
+            # Stripe
+            set_env "STRIPE_SECRET_KEY" "${STRIPE_SECRET_KEY}"
+            set_env "STRIPE_WEBHOOK_SECRET" "${STRIPE_WEBHOOK_SECRET}"
+
+            # Email
+            set_env "RESEND_API_KEY" "${RESEND_API_KEY}"
+            set_env "EMAIL_FROM" "noreply@awareness.market"
+            set_env "EMAIL_FROM_NAME" "Awareness Market"
+
+            echo ""
+            echo "=== Current .env keys ==="
+            grep -oP '^[A-Z_]+(?==)' "\$ENV_FILE" | sort
+          ENDSSH
+
+      - name: Restart PM2
+        if: inputs.restart_pm2
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            cd /home/ec2-user/Awareness-Market
+            pm2 restart awareness-network || pm2 restart all
+            echo ""
+            pm2 status
+          ENDSSH
+
+      - name: Verify API
+        if: inputs.restart_pm2
+        run: |
+          sleep 8
+          if curl -f --max-time 10 https://api.awareness.market/api-docs/; then
+            echo "✅ API is running"
+          else
+            echo "⚠️ API check failed (may need a moment to start)"
+          fi
