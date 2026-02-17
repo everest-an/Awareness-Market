@@ -17,6 +17,8 @@
  * - Reuses embeddingService from latentmas/embedding-service.ts
  */
 
+import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db-prisma';
 import { createLogger } from '../utils/logger';
 import { AgentType } from './agent-type-system';
 
@@ -120,9 +122,10 @@ export class SharedLatentMemoryManager {
   private embeddingService: CollaborationEmbeddingService;
 
   constructor(config: {
-    storageBackend: 'memory' | 'chromadb' | 'faiss';
+    storageBackend?: 'memory' | 'prisma' | 'chromadb' | 'faiss';
     embeddingModel?: string;
-  }) {
+    prismaClient?: PrismaClient;
+  } = {}) {
     this.embeddingService = new CollaborationEmbeddingService(config.embeddingModel);
 
     // Initialize vector store based on backend
@@ -133,8 +136,12 @@ export class SharedLatentMemoryManager {
       case 'faiss':
         this.vectorStore = new FAISSVectorStore();
         break;
-      default:
+      case 'memory':
         this.vectorStore = new InMemoryVectorStore();
+        break;
+      default:
+        // 'prisma' or unset → persistent store backed by DB
+        this.vectorStore = new PrismaVectorStore(config.prismaClient ?? prisma);
     }
 
     logger.info('SharedLatentMemoryManager initialized', {
@@ -551,6 +558,136 @@ class InMemoryVectorStore extends LatentVectorStore {
 }
 
 /**
+ * Prisma-backed vector store — survives restarts.
+ * Keeps an in-memory Map for fast kNN; DB is the source of truth on startup.
+ * Uses AiMemory table (userId=0 reserved for system-level shared memories).
+ */
+class PrismaVectorStore extends LatentVectorStore {
+  private cache = new Map<string, LatentMemory>();
+  private loaded = false;
+  private readonly SYSTEM_USER_ID = 0;
+  private readonly KEY_PREFIX = 'latent_memory:';
+
+  constructor(private db: PrismaClient) {
+    super();
+  }
+
+  private async ensureLoaded(): Promise<void> {
+    if (this.loaded) return;
+
+    const records = await this.db.aiMemory.findMany({
+      where: {
+        userId: this.SYSTEM_USER_ID,
+        memoryKey: { startsWith: this.KEY_PREFIX },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+    });
+
+    for (const record of records) {
+      try {
+        const memory: LatentMemory = JSON.parse(record.memoryData);
+        memory.timestamp = new Date(memory.timestamp); // restore Date
+        this.cache.set(memory.id, memory);
+      } catch {
+        // skip malformed records
+      }
+    }
+
+    this.loaded = true;
+    logger.info('PrismaVectorStore loaded from DB', { count: this.cache.size });
+  }
+
+  async insert(memory: LatentMemory): Promise<void> {
+    await this.ensureLoaded();
+    this.cache.set(memory.id, memory);
+
+    await this.db.aiMemory.create({
+      data: {
+        userId: this.SYSTEM_USER_ID,
+        memoryKey: `${this.KEY_PREFIX}${memory.id}`,
+        memoryData: JSON.stringify(memory),
+      },
+    });
+  }
+
+  async search(
+    queryEmbedding: number[],
+    k: number,
+    filters?: MemoryQuery['filters']
+  ): Promise<Array<{ memory: LatentMemory; similarity: number }>> {
+    await this.ensureLoaded();
+
+    let candidates = Array.from(this.cache.values());
+
+    if (filters) {
+      if (filters.sourceAgent) candidates = candidates.filter(m => m.sourceAgent === filters.sourceAgent);
+      if (filters.taskType) candidates = candidates.filter(m => m.taskType === filters.taskType);
+      if (filters.successfulOnly) candidates = candidates.filter(m => m.success);
+      if (filters.minComplexity) candidates = candidates.filter(m => m.complexity >= filters.minComplexity!);
+      if (filters.maxComplexity) candidates = candidates.filter(m => m.complexity <= filters.maxComplexity!);
+      if (filters.tags?.length) candidates = candidates.filter(m => filters.tags!.some(t => m.tags.includes(t)));
+      if (filters.timeRange) {
+        candidates = candidates.filter(
+          m => m.timestamp >= filters.timeRange!.start && m.timestamp <= filters.timeRange!.end
+        );
+      }
+    }
+
+    return candidates
+      .map(memory => ({ memory, similarity: cosineSimilarity(queryEmbedding, memory.embedding) }))
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, k);
+  }
+
+  async deleteOlderThan(date: Date): Promise<number> {
+    await this.ensureLoaded();
+
+    const toDelete: string[] = [];
+    for (const [id, memory] of this.cache) {
+      if (memory.timestamp < date) toDelete.push(id);
+    }
+    toDelete.forEach(id => this.cache.delete(id));
+
+    if (toDelete.length > 0) {
+      await this.db.aiMemory.deleteMany({
+        where: {
+          userId: this.SYSTEM_USER_ID,
+          memoryKey: { in: toDelete.map(id => `${this.KEY_PREFIX}${id}`) },
+        },
+      });
+    }
+
+    return toDelete.length;
+  }
+
+  async getStats(): Promise<{
+    totalMemories: number;
+    byAgent: Record<AgentType, number>;
+    avgComplexity: number;
+    successRate: number;
+  }> {
+    await this.ensureLoaded();
+    const memories = Array.from(this.cache.values());
+    const byAgent: Record<string, number> = {};
+    let totalComplexity = 0;
+    let successCount = 0;
+
+    memories.forEach(m => {
+      byAgent[m.sourceAgent] = (byAgent[m.sourceAgent] || 0) + 1;
+      totalComplexity += m.complexity;
+      if (m.success) successCount++;
+    });
+
+    return {
+      totalMemories: memories.length,
+      byAgent: byAgent as Record<AgentType, number>,
+      avgComplexity: memories.length > 0 ? totalComplexity / memories.length : 0,
+      successRate: memories.length > 0 ? successCount / memories.length : 0,
+    };
+  }
+}
+
+/**
  * ChromaDB vector store (production-ready)
  * TODO: Implement when ChromaDB is set up
  */
@@ -608,6 +745,7 @@ class FAISSVectorStore extends LatentVectorStore {
 
 export {
   InMemoryVectorStore,
+  PrismaVectorStore,
   ChromaDBVectorStore,
   FAISSVectorStore,
 };
