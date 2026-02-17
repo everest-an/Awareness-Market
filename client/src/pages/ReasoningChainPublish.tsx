@@ -246,7 +246,7 @@ export default function ReasoningChainPublish() {
             </CardHeader>
             <CardContent>
               <Button className="w-full btn-primary" asChild>
-                <Link href="/login">Sign In</Link>
+                <Link href="/auth">Sign In</Link>
               </Button>
             </CardContent>
           </Card>
@@ -600,7 +600,7 @@ export default function ReasoningChainPublish() {
                     id="inputExample"
                     value={inputExample}
                     onChange={(e) => setInputExample(e.target.value)}
-                    placeholder='{"problem": "Prove that âˆ? is irrational"}'
+                    placeholder='{"problem": "Prove that ï¿½? is irrational"}'
                     rows={4}
                     className="input-glass font-mono text-sm resize-none"
                   />
@@ -612,7 +612,7 @@ export default function ReasoningChainPublish() {
                     id="outputExample"
                     value={outputExample}
                     onChange={(e) => setOutputExample(e.target.value)}
-                    placeholder='{"proof": "Assume âˆ? = p/q where p,q are coprime integers...", "steps": [...]}'
+                    placeholder='{"proof": "Assume ï¿½? = p/q where p,q are coprime integers...", "steps": [...]}'
                     rows={4}
                     className="input-glass font-mono text-sm resize-none"
                   />

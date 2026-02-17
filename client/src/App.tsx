@@ -88,6 +88,9 @@ import { DocsLayout } from "./pages/Docs";
 import WorkspaceSetup from "./pages/WorkspaceSetup";
 import WorkspaceList from "./pages/WorkspaceList";
 import WorkspaceDetail from "./pages/WorkspaceDetail";
+import CreditsPayments from "./pages/CreditsPayments";
+import AgentDiscovery from "./pages/AgentDiscovery";
+import WMatrixMarketplace from "./pages/WMatrixMarketplace";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -170,6 +173,9 @@ function Router() {
       <Route path="/api-keys">{() => <Redirect to="/profile" />}</Route>
       <Route path="/provider-keys" component={ProviderKeys} />
       <Route path="/wallet" component={WalletDashboard} />
+      <Route path="/credits" component={CreditsPayments} />
+      <Route path="/agent-discovery" component={AgentDiscovery} />
+      <Route path="/w-matrix-market" component={WMatrixMarketplace} />
 
       {/* v3: Organization Governance */}
       <Route path="/org/setup">{() => <FeatureErrorBoundary feature="Organization Setup"><OrganizationSetup /></FeatureErrorBoundary>}</Route>

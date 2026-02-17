@@ -290,7 +290,7 @@ export default function ConsumerDashboard() {
               <CardContent>
                 <div className="text-center text-muted-foreground">
                   <p className="text-sm">
-                    Detailed usage analytics available in <Link href="/analytics" className="text-primary hover:underline">Analytics Dashboard</Link>
+                    Detailed usage analytics available in <Link href="/usage-analytics" className="text-primary hover:underline">Analytics Dashboard</Link>
                   </p>
                 </div>
               </CardContent>
