@@ -48,44 +48,44 @@ jobs:
             rm -f /tmp/setup-https.sh
           ENDSSH
 
-      - name: Update production BASE_URL to HTTPS on EC2
+      - name: Update production .env on EC2
         run: |
           ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
             ENV_FILE="/home/ec2-user/Awareness-Market/.env"
             if [ -f "$ENV_FILE" ]; then
-              # Update BASE_URL to HTTPS
-              sed -i 's|^BASE_URL=.*|BASE_URL=https://awareness.market|' "$ENV_FILE"
-              # Update OAUTH URLs
-              sed -i 's|^OAUTH_SERVER_URL=.*|OAUTH_SERVER_URL=https://awareness.market|' "$ENV_FILE"
-              sed -i 's|^OAUTH_CALLBACK_URL=.*|OAUTH_CALLBACK_URL=https://awareness.market|' "$ENV_FILE"
-              echo "  .env updated with HTTPS URLs."
+              sed -i 's|^BASE_URL=.*|BASE_URL=https://api.awareness.market|' "$ENV_FILE"
+              sed -i 's|^OAUTH_SERVER_URL=.*|OAUTH_SERVER_URL=https://api.awareness.market|' "$ENV_FILE"
+              sed -i 's|^OAUTH_CALLBACK_URL=.*|OAUTH_CALLBACK_URL=https://api.awareness.market|' "$ENV_FILE"
+              echo ".env updated:"
               grep -E "^(BASE_URL|OAUTH_SERVER_URL|OAUTH_CALLBACK_URL)" "$ENV_FILE"
-              # Restart PM2 so env changes take effect
-              pm2 restart awareness-market-api || true
+              pm2 restart awareness-network || pm2 restart all || true
             else
-              echo "  WARNING: $ENV_FILE not found — update BASE_URL manually"
+              echo "WARNING: $ENV_FILE not found"
             fi
           ENDSSH
 
-      - name: Verify HTTPS is working
+      - name: Verify HTTPS
         run: |
+          echo "Waiting for Nginx to reload..."
           sleep 5
-          echo "Testing HTTPS endpoint..."
-          curl -f --max-time 15 https://awareness.market/api-docs/ \
-            -H "Host: awareness.market" \
-            || echo "Warning: HTTPS check failed (DNS may not be propagated yet)"
+          echo "Testing https://api.awareness.market ..."
+          curl -f --max-time 15 https://api.awareness.market/api-docs/ \
+            || echo "Warning: HTTPS check failed (DNS may still be propagating)"
 
       - name: Show certificate info
         run: |
           ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 \
-            "sudo certbot certificates 2>/dev/null || echo 'certbot not yet installed'"
+            "sudo certbot certificates 2>/dev/null || echo 'certbot not available'"
 
-      - name: Success
+      - name: Summary
         run: |
-          echo "✅ HTTPS setup complete!"
-          echo "   Site: https://awareness.market"
+          echo "======================================"
+          echo "  HTTPS setup complete!"
+          echo "  API: https://api.awareness.market"
+          echo "======================================"
           echo ""
-          echo "Remaining manual steps:"
-          echo "  1. Update Stripe webhook: https://awareness.market/api/stripe/webhook"
-          echo "  2. Update GitHub OAuth callback: https://awareness.market/api/auth/github/callback"
-          echo "  3. Update Google OAuth callback: https://awareness.market/api/auth/google/callback"
+          echo "Next steps:"
+          echo "  1. Vercel: set VITE_API_URL=https://api.awareness.market"
+          echo "  2. Stripe: update webhook to https://api.awareness.market/api/stripe/webhook"
+          echo "  3. GitHub OAuth: https://api.awareness.market/api/auth/github/callback"
+          echo "  4. Google OAuth: https://api.awareness.market/api/auth/google/callback"

@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production-backend
-      url: http://44.220.181.78:3001/api-docs/
+      url: https://api.awareness.market/api-docs/
 
     steps:
       - name: Checkout code
@@ -84,7 +84,7 @@ jobs:
       - name: Verify deployment
         run: |
           sleep 10
-          if curl -f http://44.220.181.78:3001/api-docs/; then
+          if curl -f https://api.awareness.market/api-docs/; then
             echo "✅ Deployment successful!"
           else
             echo "❌ Deployment verification failed"
@@ -95,7 +95,7 @@ jobs:
         run: |
           echo "## ✅ Deployment Complete"
           echo ""
-          echo "🔗 API URL: http://44.220.181.78:3001/api-docs/"
+          echo "🔗 API URL: https://api.awareness.market/api-docs/"
           echo "⏰ Deployed at: $(date)"
           echo "👤 Deployed by: ${{ github.actor }}"
           echo "📝 Commit: ${{ github.sha }}"
