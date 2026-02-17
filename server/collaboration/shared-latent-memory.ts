@@ -688,54 +688,22 @@ class PrismaVectorStore extends LatentVectorStore {
 }
 
 /**
- * ChromaDB vector store (production-ready)
- * TODO: Implement when ChromaDB is set up
+ * ChromaDB vector store — falls back to PrismaVectorStore until native integration is built.
  */
-class ChromaDBVectorStore extends LatentVectorStore {
-  async insert(memory: LatentMemory): Promise<void> {
-    throw new Error('ChromaDB not yet implemented');
-  }
-
-  async search(
-    queryEmbedding: number[],
-    k: number,
-    filters?: MemoryQuery['filters']
-  ): Promise<Array<{ memory: LatentMemory; similarity: number }>> {
-    throw new Error('ChromaDB not yet implemented');
-  }
-
-  async deleteOlderThan(date: Date): Promise<number> {
-    throw new Error('ChromaDB not yet implemented');
-  }
-
-  async getStats(): Promise<any> {
-    throw new Error('ChromaDB not yet implemented');
+class ChromaDBVectorStore extends PrismaVectorStore {
+  constructor() {
+    super(prisma);
+    logger.warn('ChromaDB backend not yet integrated — falling back to PrismaVectorStore');
   }
 }
 
 /**
- * FAISS vector store (production-ready, high performance)
- * TODO: Implement when FAISS is set up
+ * FAISS vector store — falls back to PrismaVectorStore until native integration is built.
  */
-class FAISSVectorStore extends LatentVectorStore {
-  async insert(memory: LatentMemory): Promise<void> {
-    throw new Error('FAISS not yet implemented');
-  }
-
-  async search(
-    queryEmbedding: number[],
-    k: number,
-    filters?: MemoryQuery['filters']
-  ): Promise<Array<{ memory: LatentMemory; similarity: number }>> {
-    throw new Error('FAISS not yet implemented');
-  }
-
-  async deleteOlderThan(date: Date): Promise<number> {
-    throw new Error('FAISS not yet implemented');
-  }
-
-  async getStats(): Promise<any> {
-    throw new Error('FAISS not yet implemented');
+class FAISSVectorStore extends PrismaVectorStore {
+  constructor() {
+    super(prisma);
+    logger.warn('FAISS backend not yet integrated — falling back to PrismaVectorStore');
   }
 }
 

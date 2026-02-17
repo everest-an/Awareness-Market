@@ -11,6 +11,7 @@
 import { Worker, Queue } from 'bullmq';
 import { PrismaClient } from '@prisma/client';
 import { invokeLLM } from '../llm-aws';
+import { memoryGovernance } from '../memory-core/memory-governance';
 
 const prisma = new PrismaClient();
 
@@ -252,15 +253,39 @@ const arbitrationWorker = new Worker(
       },
     });
 
-    // 3. Resolve based on severity
+    // 3. ✅ Governance: check conflict_resolution policy first
     let resolved = false;
-    if (severity === 'low') {
-      resolved = await autoResolve(conflictId);
-    } else {
-      resolved = await llmArbitrate(conflictId);
+    let resolvedByPolicy = false;
+    try {
+      const orgId = conflict.memory1.orgId;
+      const namespace = conflict.memory1.namespace;
+      const policyResult = await memoryGovernance.resolveConflictByPolicy(conflictId, orgId, namespace);
+      if (policyResult.action === 'resolved') {
+        resolved = true;
+        resolvedByPolicy = true;
+      } else if (policyResult.action === 'queued') {
+        // Already enqueued for LLM — mark as handled
+        await job.updateProgress(100);
+        return { success: true, conflictId, severity, resolvedBy: 'policy:queue-arbitration', impactPropagated: 0 };
+      } else if (policyResult.action === 'pending') {
+        // manual-review — leave as pending
+        await job.updateProgress(100);
+        return { success: true, conflictId, severity, resolvedBy: 'policy:manual-review', impactPropagated: 0 };
+      }
+    } catch (policyErr: any) {
+      console.warn(`[Arbitration Worker] Policy check failed, falling back to severity logic: ${policyErr.message}`);
     }
 
-    // 4. Propagate impact for resolved high/critical conflicts
+    // 4. Fallback: severity-based resolution (when no policy configured or policy threw)
+    if (!resolvedByPolicy) {
+      if (severity === 'low') {
+        resolved = await autoResolve(conflictId);
+      } else {
+        resolved = await llmArbitrate(conflictId);
+      }
+    }
+
+    // 5. Propagate impact for resolved high/critical conflicts
     let impactCount = 0;
     if (resolved && (severity === 'high' || severity === 'critical')) {
       impactCount = await propagateImpact(conflictId);
@@ -272,6 +297,7 @@ const arbitrationWorker = new Worker(
       success: resolved,
       conflictId,
       severity,
+      resolvedBy: resolvedByPolicy ? 'policy' : 'severity-fallback',
       impactPropagated: impactCount,
     };
   },

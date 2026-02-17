@@ -127,4 +127,4 @@ go-services/*/memory-exchange
 go-services/*/w-matrix-marketplace
 go-services/*/*.exe
 
-client/public/gitbook
+client/public/docs-content

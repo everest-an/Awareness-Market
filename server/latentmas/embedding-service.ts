@@ -80,18 +80,29 @@ export class OpenAIEmbeddingService {
   constructor() {
     // 使用 forge API 或直接使用 OpenAI
     this.apiKey = ENV.forgeApiKey || process.env.OPENAI_API_KEY || "";
-    this.baseUrl = ENV.forgeApiUrl 
+    this.baseUrl = ENV.forgeApiUrl
       ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/embeddings`
       : "https://api.openai.com/v1/embeddings";
   }
 
-  async embed(request: EmbeddingRequest): Promise<EmbeddingResponse> {
+  async embed(request: EmbeddingRequest & {
+    /** BYOK: override the default API key for this single request */
+    apiKeyOverride?: string;
+    /** BYOK: override the base URL for this single request */
+    baseUrlOverride?: string;
+  }): Promise<EmbeddingResponse> {
     const startTime = Date.now();
     const model = request.model || "text-embedding-3-small";
     const targetDimensions = request.dimensions || MODEL_DIMENSIONS[model];
 
+    // Resolve key: per-request BYOK override > service-level env key
+    const resolvedKey = request.apiKeyOverride || this.apiKey;
+    const resolvedBaseUrl = request.baseUrlOverride
+      ? `${request.baseUrlOverride.replace(/\/$/, "")}/v1/embeddings`
+      : this.baseUrl;
+
     // 如果没有 API key，使用本地生成（用于测试）
-    if (!this.apiKey) {
+    if (!resolvedKey) {
       logger.warn("No API key configured, using local generation");
       return this.generateLocalEmbedding(request.text, model, targetDimensions, startTime);
     }
@@ -111,11 +122,11 @@ export class OpenAIEmbeddingService {
         payload.dimensions = request.dimensions;
       }
 
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(resolvedBaseUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${this.apiKey}`,
+          "Authorization": `Bearer ${resolvedKey}`,
         },
         body: JSON.stringify(payload),
       });

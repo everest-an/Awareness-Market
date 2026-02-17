@@ -17,6 +17,7 @@ import {
   calculateDecayMultiplier,
 } from '../memory-core/scoring-engine';
 import type { MemoryEntry } from '../memory-core/schema';
+import { memoryGovernance } from '../memory-core/memory-governance';
 
 const prisma = new PrismaClient();
 
@@ -190,15 +191,25 @@ const decayWorker = new Worker(
       await job.updateProgress(Math.min(95, totalProcessed));
     }
 
+    // ✅ Governance: enforce retention policies for all configured org+namespace pairs
+    let retentionResult = { policiesProcessed: 0, totalExpired: 0, totalTrimmed: 0 };
+    try {
+      retentionResult = await memoryGovernance.enforceAllRetentionPolicies();
+    } catch (retentionErr: any) {
+      console.error('[Decay Worker] Retention policy enforcement error (non-critical):', retentionErr.message);
+    }
+
     const duration = Date.now() - startTime;
     await job.updateProgress(100);
 
-    console.log(`[Decay Worker] Completed: ${totalProcessed} processed, ${totalArchived} archived (${duration}ms)`);
+    console.log(`[Decay Worker] Completed: ${totalProcessed} processed, ${totalArchived} archived, ` +
+      `${retentionResult.totalExpired} policy-expired, ${retentionResult.totalTrimmed} policy-trimmed (${duration}ms)`);
 
     return {
       success: true,
       totalProcessed,
       totalArchived,
+      retentionPolicies: retentionResult,
       durationMs: duration,
     };
   },

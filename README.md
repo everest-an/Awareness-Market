@@ -6,6 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Protocol: LatentMAS v2.0](https://img.shields.io/badge/Protocol-LatentMAS%20v2.0-blue)](docs/LATENTMAS_V2_FEATURES.md)
+[![v3.0: AI Governance](https://img.shields.io/badge/v3.0-AI%20Organization%20Governance-purple)](WHITEPAPER.md#20-organization-governance-infrastructure)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io)
 [![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-success)](https://awareness.market)
 
@@ -23,6 +24,8 @@ Built on the **LatentMAS (Latent Multi-Agent Systems)** protocol (based on resea
 - **4.3x faster inference** vs. traditional text-based communication
 - **83.7% reduction** in token consumption costs
 - **Lossless knowledge transfer** between heterogeneous AI models
+
+**v3.0 (February 2026)** adds **AI Organization Governance**: multi-tenant organizations, department hierarchies, 3-tier memory pools, agent reputation systems, decision audit trails, cross-domain verification, and Stripe-powered subscription billing.
 
 > **From API Economy to Subconscious Economy:** Instead of selling API calls that return text, AI agents can now monetize their specialized internal "thoughts," "memories," and "reasoning processes" as high-fidelity vector packages.
 
@@ -273,6 +276,68 @@ See [ERC-8004 Integration Guide](docs/ERC8004_INTEGRATION.md) for full documenta
 
 ---
 
+## v3.0: AI Organization Governance
+
+### Enterprise AI Management
+
+Deploy and govern fleets of AI agents within organizational structures:
+
+```
+Organization (Enterprise tier — $499/mo)
+├── Finance Department
+│   ├── Agent: Budget-Analyzer      ← reputation: 0.92
+│   └── Agent: Risk-Assessor        ← reputation: 0.87
+├── Engineering Department
+│   ├── Agent: Code-Reviewer         ← reputation: 0.95
+│   └── Agent: Architecture-Advisor  ← reputation: 0.89
+└── Research Department
+    ├── Agent: Paper-Analyst (Math)   ← cross-domain verified
+    └── Agent: Paper-Analyst (Physics)← cross-domain verified
+```
+
+### Key Capabilities
+
+| Feature | Description |
+|:--------|:-----------|
+| **Multi-Tenant Organizations** | Create organizations with departments, role-based access (owner/admin/dept_admin/member/viewer) |
+| **3-Tier Memory Pools** | Private (agent-local) → Domain (department) → Global (org-wide) with automatic promotion |
+| **Memory Lifecycle** | 4 memory types (episodic/semantic/strategic/procedural) with type-specific exponential decay |
+| **Conflict Arbitration** | Auto-detect contradictions, severity classification, LLM-powered arbitration for critical conflicts |
+| **Agent Reputation** | 4-dimension scoring (writeQuality, decisionAccuracy, collaboration, domainExpertise) with feedback loop |
+| **Decision Audit** | Immutable recording of every AI decision with full memory context snapshot and replay capability |
+| **Cross-Domain Verification** | Peer review workflows across departments with evidence tracking and dependency cascade |
+| **Stripe Billing** | 4-tier subscriptions: Lite ($49), Team ($199), Enterprise ($499), Scientific ($999/mo) |
+| **18 Feature Flags** | Gradual rollout across 5 phases via environment variables |
+
+### RMC: Relational Memory Core
+
+Graph-based memory system combining vector search + knowledge graph traversal + inference path discovery:
+
+```
+Vector Search (pgvector)     Knowledge Graph (BFS)     Inference Engine
+   "Find similar"      →     "Expand context"     →    "Discover paths"
+   ┌──────────┐             ┌──────────────┐           ┌────────────────┐
+   │ Embedding │──────────▶│ Graph Traversal│─────────▶│ Causal Chains  │
+   │ Similarity │           │ (depth 2)     │          │ Contradictions │
+   └──────────┘             └──────────────┘           │ Support Chains │
+                                                        └────────────────┘
+```
+
+- **99% write latency reduction** (10-30s → <100ms via async BullMQ workers)
+- **82% cost savings** ($1,944 → $350/mo via coarse entity filtering)
+- **96% query speed improvement** (5-10s → <200ms with pgvector indexes)
+
+### Background Workers
+
+| Worker | Schedule | Purpose |
+|:-------|:---------|:--------|
+| `decay-worker` | Every 6 hours | Memory score decay & auto-archive |
+| `conflict-arbitration` | Every 4 hours | LLM-powered conflict resolution |
+| `reputation-decay` | Every 24 hours | Agent reputation decay for inactivity |
+| `verification-worker` | Every 2 hours | Cross-department peer review assignment |
+
+---
+
 ## Tech Stack
 
 | Layer | Technologies |
@@ -280,10 +345,12 @@ See [ERC-8004 Integration Guide](docs/ERC8004_INTEGRATION.md) for full documenta
 | **Frontend** | React 19, Vite, TailwindCSS, Radix UI, Framer Motion |
 | **Backend** | Node.js 18+, Express, tRPC 11, Socket.IO |
 | **Database** | PostgreSQL (Prisma ORM), Redis (KV-Cache) |
-| **AI/ML** | LatentMAS v2, Model Context Protocol, OpenAI API |
+| **AI/ML** | LatentMAS v2, Model Context Protocol, OpenAI API, pgvector |
 | **Blockchain** | Solidity, Hardhat, Polygon Amoy (ERC-8004) |
 | **Storage** | AWS S3 (Vectors), Cloudflare R2 |
+| **Workers** | BullMQ (Redis-backed job queues for decay, arbitration, verification) |
 | **Security** | JWT, bcrypt, Stripe Payments, Proof-of-Latent-Fidelity |
+| **Billing** | Stripe (Checkout, Webhooks, Subscriptions), Usage Tracking |
 | **Deployment** | Vercel (Serverless), PM2, Docker, Nginx |
 
 ---
@@ -481,11 +548,26 @@ console.log(`Saved ${data.stats.compressionRatio * 100}% bandwidth`);
 - [x] Comprehensive test coverage (95%+)
 - [x] ERC-8004 AI Agent Authentication
 
-### Phase 7 (Current - Q1 2026)
+### Phase 7 — v3.0 AI Organization Governance (Completed - Feb 2026)
+
+- [x] Multi-tenant organizations with department hierarchies
+- [x] 3-tier memory pools (Private/Domain/Global) with promotion
+- [x] 4-type memory lifecycle with exponential decay (episodic/semantic/strategic/procedural)
+- [x] Conflict detection, severity classification, and LLM arbitration
+- [x] Multi-dimensional agent reputation system with feedback loop
+- [x] Decision recording with immutable audit trail and replay
+- [x] Cross-domain verification with evidence tracking
+- [x] Dependency graphs with cascade invalidation
+- [x] RMC: Relational Memory Core (vector + graph + inference)
+- [x] Stripe subscription billing (4 tiers: $49–$999/mo)
+- [x] Organization analytics dashboard and usage tracking
+- [x] 18 feature flags for gradual rollout across 5 phases
+
+### Phase 8 (Current - Q2 2026)
 - [ ] Public beta launch
 - [ ] Mobile SDK release
-- [ ] Enterprise tier features
 - [ ] Community governance DAO
+- [ ] Multi-language SDK expansion
 
 ### Future Phases
 - [ ] Federated learning for W-Matrix training

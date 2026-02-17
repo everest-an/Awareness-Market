@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import Navbar from '@/components/Navbar';
-import { Brain, Users, Code, Server, ArrowRight, Loader2, Info, ChevronDown, Settings } from 'lucide-react';
+import { Brain, Users, Code, Server, ArrowRight, Loader2, Info, ChevronDown, Settings, ShieldCheck } from 'lucide-react';
+import { Slider } from "@/components/ui/slider";
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 
@@ -24,6 +25,13 @@ export default function NewCollaborationSession() {
   });
   const [agentEndpoints, setAgentEndpoints] = useState<Record<string, string>>({});
   const [agentAuthTokens, setAgentAuthTokens] = useState<Record<string, string>>({});
+  // agentAuthority: per-agent decision weight + roles
+  const [agentAuthority, setAgentAuthority] = useState<
+    Record<string, { weight: number; roles: string[]; scope: string[] }>
+  >({
+    'manus-frontend': { weight: 1.0, roles: ['planner', 'frontend'], scope: [] },
+    'claude-backend': { weight: 1.0, roles: ['backend'], scope: [] },
+  });
 
   // tRPC mutation for creating collaboration
   const createCollaboration = trpc.agentCollaboration.collaborate.useMutation({
@@ -104,13 +112,14 @@ export default function NewCollaborationSession() {
         agents: agentConfig.agents,
         orchestration: agentConfig.orchestration as 'sequential' | 'parallel',
         memorySharing: formData.privacy === 'shared',
-        memoryTTL: formData.privacy === 'private' ? 3600 : 86400, // 1 hour for private, 1 day for shared
-        maxExecutionTime: 1800, // 30 minutes
+        memoryTTL: formData.privacy === 'private' ? 3600 : 86400,
+        maxExecutionTime: 1800,
         recordOnChain: true,
         inputData: {
           agentEndpoints: Object.keys(agentEndpoints).length > 0 ? agentEndpoints : undefined,
           agentAuthTokens: Object.keys(agentAuthTokens).length > 0 ? agentAuthTokens : undefined,
         },
+        agentAuthority: Object.keys(agentAuthority).length > 0 ? agentAuthority : undefined,
       };
 
       // Call real API
@@ -384,6 +393,113 @@ export default function NewCollaborationSession() {
                       placeholder="Bearer token or API key"
                       className="bg-slate-800 border-slate-700 text-white"
                     />
+                  </div>
+                </div>
+
+                {/* ── Decision Authority ─────────────────────────────── */}
+                <div className="mt-6 pt-4 border-t border-slate-700">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldCheck className="w-4 h-4 text-purple-400" />
+                    <span className="text-white font-medium">Decision Authority</span>
+                    <span className="text-xs text-slate-400">(optional)</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-4">
+                    Set the relative influence of each agent. The highest-weight agent's output
+                    becomes the primary result in parallel workflows. Roles are informational hints
+                    sent to each agent so it can self-limit its scope.
+                  </p>
+
+                  {Object.keys(agentAuthority).map((agentId) => {
+                    const auth = agentAuthority[agentId];
+                    return (
+                      <div key={agentId} className="bg-slate-800/60 rounded-lg p-4 mb-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-white">{agentId}</span>
+                          <span className="text-xs text-purple-300 font-mono">
+                            weight: {auth.weight.toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* Weight slider */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-xs text-slate-400">
+                            <span>Advisory (0.1)</span>
+                            <span>Equal (1.0)</span>
+                          </div>
+                          <Slider
+                            min={0.1}
+                            max={1.0}
+                            step={0.05}
+                            value={[auth.weight]}
+                            onValueChange={([val]) =>
+                              setAgentAuthority({
+                                ...agentAuthority,
+                                [agentId]: { ...auth, weight: val },
+                              })
+                            }
+                            className="w-full"
+                          />
+                        </div>
+
+                        {/* Roles input */}
+                        <div className="space-y-1">
+                          <Label className="text-xs text-slate-400">
+                            Roles (comma-separated)
+                          </Label>
+                          <Input
+                            value={auth.roles.join(', ')}
+                            onChange={(e) =>
+                              setAgentAuthority({
+                                ...agentAuthority,
+                                [agentId]: {
+                                  ...auth,
+                                  roles: e.target.value
+                                    .split(',')
+                                    .map((r) => r.trim())
+                                    .filter(Boolean),
+                                },
+                              })
+                            }
+                            placeholder="e.g. planner, spec, backend, deployment"
+                            className="bg-slate-700 border-slate-600 text-white text-sm"
+                          />
+                          <p className="text-xs text-slate-500">
+                            Passed to the agent so it knows its responsibility scope.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Preset examples */}
+                  <div className="mt-2">
+                    <p className="text-xs text-slate-500 mb-2">Quick presets:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: 'Equal', weights: [1.0, 1.0] },
+                        { label: 'Primary + Reviewer', weights: [1.0, 0.5] },
+                        { label: 'Lead + Advisory', weights: [1.0, 0.2] },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => {
+                            const keys = Object.keys(agentAuthority);
+                            const updated = { ...agentAuthority };
+                            keys.forEach((k, i) => {
+                              updated[k] = {
+                                ...agentAuthority[k],
+                                weight: preset.weights[i] ?? preset.weights[preset.weights.length - 1],
+                              };
+                            });
+                            setAgentAuthority(updated);
+                          }}
+                          className="text-xs px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </CollapsibleContent>

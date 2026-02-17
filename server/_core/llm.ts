@@ -66,6 +66,12 @@ export type InvokeParams = {
   output_schema?: OutputSchema;
   responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
+  /** BYOK: override the server-level API key for this single call */
+  apiKeyOverride?: string;
+  /** BYOK: override the base URL (e.g. use Anthropic or local proxy) */
+  baseUrlOverride?: string;
+  /** BYOK: override the model to use */
+  modelOverride?: string;
 };
 
 export type ToolCall = {
@@ -266,7 +272,15 @@ const normalizeResponseFormat = ({
 };
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
+  // BYOK: use override key if provided; fall back to env key
+  const resolvedApiKey = params.apiKeyOverride || ENV.forgeApiKey;
+  if (!resolvedApiKey) {
+    throw new Error("No LLM API key configured. Set BUILT_IN_FORGE_API_KEY or provide a key via BYOK settings.");
+  }
+
+  const resolvedApiUrl = params.baseUrlOverride
+    ? `${params.baseUrlOverride.replace(/\/$/, "")}/v1/chat/completions`
+    : resolveApiUrl();
 
   const {
     messages,
@@ -280,7 +294,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    model: params.modelOverride || "gemini-2.5-flash",
     messages: messages.map(normalizeMessage),
   };
 
@@ -312,11 +326,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  const response = await fetch(resolvedApiUrl, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${resolvedApiKey}`,
     },
     body: JSON.stringify(payload),
   });

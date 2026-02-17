@@ -62,6 +62,7 @@ const navLinks = [
       { label: "Conflict Resolution", href: "/conflicts", icon: AlertTriangle, description: "Resolve memory conflicts" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
       { label: "API Keys", href: "/api-keys", icon: Key, description: "Manage API access" },
+      { label: "Provider Keys", href: "/provider-keys", icon: Key, description: "BYOK — your own OpenAI/Anthropic/Gemini keys" },
       { label: "Agent Login", href: "/auth/agent", icon: Server, description: "AI agent authentication" },
     ]
   },
