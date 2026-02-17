@@ -50,6 +50,7 @@ import { latentUploadRouter } from './latentmas-upload';
 import { resonanceRouter } from './latentmas-resonance';
 import { embeddingRouter } from './routers/embedding-api';
 import { stablecoinPaymentRouter } from './routers/stablecoin-payment';
+import { creditPaymentRouter } from './routers/credit-payment-api';
 import { mcpRouter } from './routers/mcp';
 import { roboticsRouter } from './routers/robotics';
 import { organizationRouter } from './routers/organization';
@@ -2043,6 +2044,9 @@ export const appRouter = router({
 
   // Stablecoin Payment (USDC/USDT on Polygon - AI Agent autonomous payments)
   stablecoinPayment: stablecoinPaymentRouter,
+
+  // Credit Payment — balance-based purchases, top-ups, refunds
+  creditPayment: creditPaymentRouter,
 
   // memoryExchange: Go microservice at :8080
 

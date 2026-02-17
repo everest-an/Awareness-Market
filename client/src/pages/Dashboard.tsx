@@ -257,14 +257,14 @@ export default function Dashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setLocation(`/vector/${vector.id}`)}
+                            onClick={() => setLocation(`/marketplace/${vector.id}`)}
                           >
                             View
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setLocation(`/vector/${vector.id}/edit`)}
+                            onClick={() => setLocation(`/marketplace/${vector.id}`)}
                           >
                             Edit
                           </Button>
@@ -326,7 +326,7 @@ export default function Dashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setLocation(`/vector/${purchase.vectorId}`)}
+                          onClick={() => setLocation(`/marketplace/${purchase.vectorId}`)}
                         >
                           <Download className="mr-2 h-3 w-3" />
                           Access
