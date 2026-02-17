@@ -42,7 +42,7 @@ jobs:
 
       - name: Build backend
         run: |
-          pnpm exec esbuild server/_core/index.ts \
+          pnpm exec esbuild ./server/_core/index.ts \
             --bundle \
             --platform=node \
             --target=node20 \
