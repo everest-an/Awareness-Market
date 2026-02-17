@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useLocation, useSearch } from "wouter";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,9 +7,10 @@ import { CheckCircle2, ArrowRight, Package } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PurchaseSuccess() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const transactionId = searchParams.get("transactionId");
+  const search = useSearch();
+  const [, setLocation] = useLocation();
+  const params = new URLSearchParams(search);
+  const transactionId = params.get("transactionId");
 
   useEffect(() => {
     toast.success("Purchase Successful!", {
@@ -76,7 +77,7 @@ export default function PurchaseSuccess() {
 
               <div className="flex flex-col gap-3 pt-4 sm:flex-row">
                 <Button
-                  onClick={() => navigate("/my-vectors")}
+                  onClick={() => setLocation("/dashboard")}
                   className="flex-1"
                   size="lg"
                 >
@@ -84,7 +85,7 @@ export default function PurchaseSuccess() {
                   View My Capabilities
                 </Button>
                 <Button
-                  onClick={() => navigate("/marketplace")}
+                  onClick={() => setLocation("/marketplace")}
                   variant="outline"
                   className="flex-1"
                   size="lg"
@@ -100,14 +101,10 @@ export default function PurchaseSuccess() {
                 </div>
                 <div className="mt-1 text-sm text-blue-700 dark:text-blue-300">
                   Check out our{" "}
-                  <a href="/docs" className="underline hover:no-underline">
+                  <a href="/documentation" className="underline hover:no-underline">
                     documentation
                   </a>{" "}
-                  or{" "}
-                  <a href="/support" className="underline hover:no-underline">
-                    contact support
-                  </a>
-                  .
+                  for integration guides.
                 </div>
               </div>
             </CardContent>

@@ -264,7 +264,8 @@ export default function Dashboard() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setLocation(`/marketplace/${vector.id}`)}
+                            disabled
+                            title="Editing coming soon"
                           >
                             Edit
                           </Button>

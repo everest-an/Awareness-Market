@@ -22,8 +22,6 @@ import {
 import { toast } from "sonner";
 
 export default function WalletDashboard() {
-  const [depositAmount, setDepositAmount] = useState("");
-  const [withdrawAddress, setWithdrawAddress] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawToken, setWithdrawToken] = useState<"USDC" | "USDT">("USDC");
 
@@ -50,7 +48,6 @@ export default function WalletDashboard() {
       balanceQuery.refetch();
       txQuery.refetch();
       setWithdrawAmount("");
-      setWithdrawAddress("");
     },
     onError: (err) => {
       toast.error("Withdrawal failed", { description: err.message });
@@ -212,52 +209,48 @@ export default function WalletDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">Recipient Address</label>
+                <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-sm">
+                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span className="text-muted-foreground">
+                    Withdrawals transfer tokens from the payment contract back to your custody wallet above.
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium mb-1.5 block">Amount (USD)</label>
                     <Input
-                      placeholder="0x..."
-                      value={withdrawAddress}
-                      onChange={(e) => setWithdrawAddress(e.target.value)}
+                      type="number"
+                      placeholder="0.00"
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
                     />
                   </div>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="text-sm font-medium mb-1.5 block">Amount (USD)</label>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        value={withdrawAmount}
-                        onChange={(e) => setWithdrawAmount(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-1.5 block">Token</label>
-                      <div className="flex gap-1">
-                        <Button
-                          variant={withdrawToken === "USDC" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setWithdrawToken("USDC")}
-                          className="h-9"
-                        >
-                          USDC
-                        </Button>
-                        <Button
-                          variant={withdrawToken === "USDT" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setWithdrawToken("USDT")}
-                          className="h-9"
-                        >
-                          USDT
-                        </Button>
-                      </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Token</label>
+                    <div className="flex gap-1">
+                      <Button
+                        variant={withdrawToken === "USDC" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setWithdrawToken("USDC")}
+                        className="h-9"
+                      >
+                        USDC
+                      </Button>
+                      <Button
+                        variant={withdrawToken === "USDT" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setWithdrawToken("USDT")}
+                        className="h-9"
+                      >
+                        USDT
+                      </Button>
                     </div>
                   </div>
                 </div>
                 <Button
                   onClick={() => {
-                    if (!withdrawAddress || !withdrawAmount) {
-                      toast.error("Please fill in all fields");
+                    if (!withdrawAmount) {
+                      toast.error("Please enter an amount");
                       return;
                     }
                     withdrawMutation.mutate({
@@ -265,7 +258,7 @@ export default function WalletDashboard() {
                       token: withdrawToken,
                     });
                   }}
-                  disabled={withdrawMutation.isPending || !withdrawAddress || !withdrawAmount}
+                  disabled={withdrawMutation.isPending || !withdrawAmount}
                 >
                   {withdrawMutation.isPending ? (
                     <>

@@ -121,6 +121,9 @@ export const memoryNFTRouter = router({
         price: record.price,
         assetUrl: record.assetUrl,
         metadataUrl: record.metadataUrl,
+        downloads: record.downloads,
+        royaltyPercent: record.royaltyPercent,
+        totalRoyaltiesPaid: record.totalRoyaltiesPaid,
         mintedAt: record.mintedAt,
         updatedAt: record.updatedAt,
       };

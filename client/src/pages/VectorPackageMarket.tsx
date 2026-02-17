@@ -86,7 +86,13 @@ export default function VectorPackageMarket() {
     return 'text-red-400';
   };
 
-  const featuredCases = [
+  // Featured = top 3 from real query, or hardcoded examples as fallback when DB is empty
+  const realFeatured = (packagesData?.packages || [])
+    .slice()
+    .sort((a: any, b: any) => (b.downloadCount || b.downloads || 0) - (a.downloadCount || a.downloads || 0))
+    .slice(0, 3);
+
+  const featuredCases = realFeatured.length > 0 ? realFeatured : [
     {
       packageId: 'vector-case-nlp-001',
       name: 'Contract Clause Classifier',

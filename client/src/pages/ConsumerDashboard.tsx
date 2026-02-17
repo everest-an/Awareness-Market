@@ -112,7 +112,7 @@ export default function ConsumerDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">4.5</div>
+              <div className="text-2xl font-bold">{(stats as any)?.averageRating?.toFixed(1) || "—"}</div>
               <p className="text-xs text-muted-foreground">
                 Your review average
               </p>
@@ -184,7 +184,11 @@ export default function ConsumerDashboard() {
                               </Link>
                             </Button>
                             {permission.isActive && !isExpired && (
-                              <Button variant="outline" size="sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.location.href = `/marketplace/${permission.vectorId}`}
+                              >
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 Renew
                               </Button>

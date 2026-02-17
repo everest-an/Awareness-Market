@@ -45,11 +45,10 @@ export function WorkflowHistory() {
   // Query statistics
   const { data: stats } = trpc.workflowHistory.getStatistics.useQuery({});
 
-  // Handle search
+  // Handle search — resets to page 1, filtering is done in the rendered list
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      // TODO: Implement search using searchSessions endpoint
-      console.log("Search:", searchQuery);
+      setPage(1);
     }
   };
 

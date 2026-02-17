@@ -428,16 +428,16 @@ export default function MemoryNFTDetail() {
 
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Views</span>
-                  <span className="text-white">1,234</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Favorites</span>
-                  <span className="text-white">89</span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-slate-400">Downloads</span>
-                  <span className="text-white">45</span>
+                  <span className="text-white">{nft?.downloads?.toLocaleString() ?? "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Royalty Rate</span>
+                  <span className="text-white">{nft?.royaltyPercent ?? 30}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Total Royalties</span>
+                  <span className="text-white">{nft?.totalRoyaltiesPaid ? `$${parseFloat(nft.totalRoyaltiesPaid).toFixed(2)}` : "—"}</span>
                 </div>
               </div>
             </Card>

@@ -346,12 +346,17 @@ export default function MemoryProvenance() {
 
                     {/* Actions */}
                     <div className="pt-4 space-y-2">
-                      <Button className="w-full bg-cyan-500 hover:bg-cyan-600">
-                        View in Marketplace
-                      </Button>
-                      <Button variant="outline" className="w-full border-slate-700 hover:bg-slate-800">
-                        Download Memory
-                      </Button>
+                      <Link href={`/memory/${selectedNode.id}`}>
+                        <Button className="w-full bg-cyan-500 hover:bg-cyan-600">
+                          View in Marketplace
+                        </Button>
+                      </Link>
+                      <Link href={`/package/memory/${selectedNode.id}`}>
+                        <Button variant="outline" className="w-full border-slate-700 hover:bg-slate-800">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download Memory
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 ) : (
