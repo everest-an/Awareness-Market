@@ -54,7 +54,9 @@ export default function WorkspaceDetail() {
   const workspaceId = params?.id ?? '';
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [rotateDialogOpen, setRotateDialogOpen] = useState(false);
   const [showConfigs, setShowConfigs] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
 
   // Queries
   const wsQuery = trpc.workspace.get.useQuery(
@@ -67,11 +69,17 @@ export default function WorkspaceDetail() {
     { enabled: showConfigs && !!workspaceId },
   );
 
+  const auditQuery = trpc.workspace.getAuditLog.useQuery(
+    { workspaceId, limit: 50 },
+    { enabled: showAudit && !!workspaceId },
+  );
+
   // Mutations
   const deleteMut = trpc.workspace.delete.useMutation();
   const statusMut = trpc.workspace.updateStatus.useMutation();
   const permMut = trpc.workspace.updatePermissions.useMutation();
   const removeAgentMut = trpc.workspace.removeAgent.useMutation();
+  const rotateMut = trpc.workspace.rotateToken.useMutation();
 
   const ws = wsQuery.data;
 
@@ -85,6 +93,21 @@ export default function WorkspaceDetail() {
       await deleteMut.mutateAsync({ workspaceId });
       toast({ title: 'Workspace deleted' });
       navigate('/workspace');
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  }
+
+  async function handleRotateToken() {
+    try {
+      const result = await rotateMut.mutateAsync({ workspaceId });
+      setRotateDialogOpen(false);
+      wsQuery.refetch();
+      if (showConfigs) configsQuery.refetch();
+      toast({
+        title: 'Token rotated',
+        description: result.message,
+      });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
@@ -238,6 +261,15 @@ export default function WorkspaceDetail() {
                 Complete
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRotateDialogOpen(true)}
+              className="bg-white/5 border-white/10"
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Rotate Token
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -425,6 +457,93 @@ export default function WorkspaceDetail() {
             )}
           </CardContent>
         </Card>
+
+        {/* ── Audit Log ──────────────────────────────────────────────── */}
+        <Card className="bg-[#0a0a0f] border-white/10 mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg text-white flex items-center gap-2">
+                <Shield className="w-5 h-5 text-cyan-400" />
+                Audit Log
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowAudit(true);
+                  if (auditQuery.data) auditQuery.refetch();
+                }}
+                className="bg-white/5 border-white/10"
+              >
+                {auditQuery.isLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                )}
+                {showAudit ? 'Refresh' : 'Show Log'}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {!showAudit && (
+              <p className="text-sm text-slate-500">
+                Click "Show Log" to view workspace activity history.
+              </p>
+            )}
+
+            {auditQuery.data && auditQuery.data.entries.length === 0 && (
+              <p className="text-sm text-slate-500">No audit entries yet.</p>
+            )}
+
+            {auditQuery.data && auditQuery.data.entries.length > 0 && (
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {[...auditQuery.data.entries].reverse().map((entry: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 py-1.5 border-b border-white/5 last:border-0">
+                    <span className="text-[10px] text-slate-600 font-mono w-32 shrink-0">
+                      {new Date(entry.timestamp).toLocaleString()}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] border-white/15 shrink-0">
+                      {entry.action}
+                    </Badge>
+                    <span className="text-xs text-slate-400 truncate">
+                      {entry.details ? JSON.stringify(entry.details) : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Rotate Token Dialog ──────────────────────────────────────── */}
+        <Dialog open={rotateDialogOpen} onOpenChange={setRotateDialogOpen}>
+          <DialogContent className="bg-card border-white/10">
+            <DialogHeader>
+              <DialogTitle>Rotate MCP Token</DialogTitle>
+              <DialogDescription>
+                This will invalidate the current token and generate a new one.
+                All agents must update their configs with the new token.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setRotateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRotateToken}
+                disabled={rotateMut.isPending}
+                className="bg-cyan-600 hover:bg-cyan-700"
+              >
+                {rotateMut.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Rotate Token
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* ── Delete Dialog ────────────────────────────────────────────── */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

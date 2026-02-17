@@ -159,6 +159,65 @@ export const aiAgentLimiter = rateLimit({
 });
 
 /**
+ * Workspace Collaboration rate limiter
+ * Limits context sharing / progress sync to prevent spam
+ * 60 writes per minute per token, 200 reads per minute
+ */
+export const collabWriteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  keyGenerator: (req: Request) => {
+    const token = req.headers['x-mcp-token'] as string
+      || req.headers['x-api-key'] as string
+      || req.ip || 'anonymous';
+    return `collab-write:${token}`;
+  },
+  message: {
+    error: 'Collaboration write rate limit exceeded. Max 60 writes per minute.',
+    retryAfter: '1 minute',
+  },
+  handler: (req: Request, res: Response) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: 'COLLAB_WRITE_LIMIT_EXCEEDED',
+        message: 'Collaboration write rate limit exceeded. Max 60 writes per minute.',
+        retryAfter: 60,
+        limit: 60,
+        window: '1 minute',
+      },
+    });
+  },
+});
+
+export const collabReadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  keyGenerator: (req: Request) => {
+    const token = req.headers['x-mcp-token'] as string
+      || req.headers['x-api-key'] as string
+      || req.ip || 'anonymous';
+    return `collab-read:${token}`;
+  },
+  message: {
+    error: 'Collaboration read rate limit exceeded. Max 200 reads per minute.',
+    retryAfter: '1 minute',
+  },
+  handler: (req: Request, res: Response) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: 'COLLAB_READ_LIMIT_EXCEEDED',
+        message: 'Collaboration read rate limit exceeded. Max 200 reads per minute.',
+        retryAfter: 60,
+        limit: 200,
+        window: '1 minute',
+      },
+    });
+  },
+});
+
+/**
  * Create custom rate limiter with specific configuration
  */
 export function createRateLimiter(options: {
