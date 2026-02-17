@@ -39,6 +39,8 @@ import {
   Building2,
   CreditCard,
   PlusCircle,
+  Key,
+  AlertTriangle,
 } from "lucide-react";
 
 const navLinks = [
@@ -58,7 +60,9 @@ const navLinks = [
     children: [
       { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
+      { label: "Workflow Performance", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
       { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
+      { label: "Conflict Resolution", href: "/conflicts", icon: AlertTriangle, description: "Resolve memory conflicts" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
     ]
   },
@@ -316,6 +320,12 @@ export default function Navbar() {
                     <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
                       <User className="w-4 h-4" />
                       Personal Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/provider-keys" className="flex items-center gap-2 cursor-pointer">
+                      <Key className="w-4 h-4" />
+                      Provider Keys
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
