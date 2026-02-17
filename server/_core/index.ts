@@ -32,7 +32,7 @@ import { planAwareAgentLimiter, planAwareGlobalLimiter } from "../middleware/pla
 import { ddosShield, ddosStatsHandler } from "../middleware/ddos-shield";
 import { ghostTrapMiddleware, ghostTrapStatsHandler } from "../middleware/ghost-trap";
 import { cryptoAssetGuard, getCryptoGuardStats, CRYPTO_HONEYPOT_PATHS } from "../middleware/crypto-asset-guard";
-import { initializeWorkers } from "../workers";
+import { initializeWorkers, shutdownWorkers } from "../workers";
 import { prisma } from "../db-prisma";
 
 const logger = createLogger('Server');
@@ -253,26 +253,9 @@ function setupGracefulShutdown(server: any) {
         await prisma.$disconnect();
         logger.info('Database disconnected');
 
-        // 3. Shutdown workers if available
+        // 3. Shutdown workers
         try {
-          // Dynamically import workers to avoid errors if not configured
-          // const conflictWorker = await import('../workers/conflict-arbitration-worker').catch(() => null);
-          // if (conflictWorker?.arbitrationQueue) {
-          //   await conflictWorker.arbitrationQueue.close();
-          //   logger.info('Conflict arbitration worker closed');
-          // }
-
-          // const cascadeWorker = await import('../workers/dependency-cascade-worker').catch(() => null);
-          // if (cascadeWorker?.cascadeQueue) {
-          //   await cascadeWorker.cascadeQueue.close();
-          //   logger.info('Dependency cascade worker closed');
-          // }
-
-          // const scoreWorker = await import('../workers/score-recalculation-worker').catch(() => null);
-          // if (scoreWorker?.scoreRecalculationQueue) {
-          //   await scoreWorker.scoreRecalculationQueue.close();
-          //   logger.info('Score recalculation worker closed');
-          // }
+          await shutdownWorkers();
         } catch (workerError) {
           logger.warn('Worker shutdown error (non-critical)', { error: workerError });
         }

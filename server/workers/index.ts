@@ -12,11 +12,16 @@
  * - verification-worker: Cross-domain peer review (every 2h)
  */
 
+import type { Worker, Queue } from 'bullmq';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('Workers');
 
 let initialized = false;
+
+// Worker and Queue instances tracked for clean shutdown
+const activeWorkers: Worker[] = [];
+const activeQueues: Queue[] = [];
 
 /**
  * Initialize all BullMQ workers.
@@ -35,11 +40,11 @@ export async function initializeWorkers(): Promise<void> {
   try {
     // Dynamic imports to avoid crashing if Redis is unavailable
     const [
-      { rmcQueue },
-      { decayQueue },
-      { arbitrationQueue },
-      { reputationDecayQueue },
-      { verificationQueue },
+      { rmcQueue, rmcWorker },
+      { decayQueue, decayWorker },
+      { arbitrationQueue, arbitrationWorker },
+      { reputationDecayQueue, reputationDecayWorker },
+      { verificationQueue, verificationWorker },
     ] = await Promise.all([
       import('./rmc-worker'),
       import('./decay-worker'),
@@ -47,6 +52,9 @@ export async function initializeWorkers(): Promise<void> {
       import('./reputation-decay-worker'),
       import('./verification-worker'),
     ]);
+
+    activeQueues.push(rmcQueue, decayQueue, arbitrationQueue, reputationDecayQueue, verificationQueue);
+    activeWorkers.push(rmcWorker, decayWorker, arbitrationWorker, reputationDecayWorker, verificationWorker);
 
     initialized = true;
     logger.info('All BullMQ workers initialized', {
@@ -63,4 +71,22 @@ export async function initializeWorkers(): Promise<void> {
       error: err.message,
     });
   }
+}
+
+/**
+ * Gracefully close all active workers and queues.
+ * Called during server shutdown — waits for in-flight jobs to complete.
+ */
+export async function shutdownWorkers(): Promise<void> {
+  if (!initialized || activeWorkers.length === 0) return;
+
+  logger.info('Shutting down BullMQ workers...', { count: activeWorkers.length });
+
+  // Close workers first (stops accepting new jobs, waits for current jobs)
+  await Promise.allSettled(activeWorkers.map(w => w.close()));
+
+  // Then close queues
+  await Promise.allSettled(activeQueues.map(q => q.close()));
+
+  logger.info('All BullMQ workers shut down');
 }

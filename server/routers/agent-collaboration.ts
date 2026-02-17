@@ -206,14 +206,15 @@ async function executeStep(
         clearTimeout(timeout);
       }
     } else {
-      // Fallback simulation when no endpoint is configured
+      // No endpoint configured — run in simulation mode so caller can detect it
+      logger.warn(`[Collaboration] No endpoint for agent ${step.agentName} (id: ${step.agentId}) — step running in simulation mode`);
       output = {
         agent: step.agentName,
-        status: 'success',
-        result: `Completed ${task} analysis`,
+        status: 'simulated',
+        result: `Simulated output for: ${task}`,
         timestamp: new Date().toISOString(),
-        confidence: 0.85,
-        note: 'No agent endpoint configured; used fallback output',
+        simulated: true,
+        note: `Agent "${step.agentName}" has no endpoint configured. Register an endpoint via sharedMemory.agentEndpoints["${step.agentId}"] to run real execution.`,
       };
     }
 
@@ -440,10 +441,13 @@ export const agentCollaborationRouter = router({
         steps: workflow.steps.map(step => ({
           agent: step.agentName,
           status: step.status,
+          output: step.output ?? null,
+          simulated: (step.output as any)?.simulated === true,
           startedAt: step.startedAt,
           completedAt: step.completedAt,
           error: step.error,
         })),
+        hasSimulatedSteps: workflow.steps.some(s => (s.output as any)?.simulated === true),
         sharedMemory: workflow.memorySharing ? Object.keys(workflow.sharedMemory) : [],
         executionTime: workflow.completedAt
           ? workflow.totalExecutionTime
