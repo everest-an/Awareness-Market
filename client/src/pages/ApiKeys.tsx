@@ -23,7 +23,7 @@ export default function ApiKeysPage() {
   
   const createMutation = trpc.apiKeys.create.useMutation({
     onSuccess: (data) => {
-      setCreatedKey(data.apiKey);
+      setCreatedKey(data.key);
       setNewKeyName("");
       setExpiresInDays(undefined);
       utils.apiKeys.list.invalidate();
@@ -70,7 +70,7 @@ export default function ApiKeysPage() {
 
     createMutation.mutate({
       name: newKeyName,
-      expiresInDays,
+      expiresAt: expiresInDays ? new Date(Date.now() + expiresInDays * 86400_000) : null,
     });
   };
 
@@ -212,7 +212,7 @@ export default function ApiKeysPage() {
         <div className="text-center py-12">
           <p className="text-muted-foreground">Loading API keys...</p>
         </div>
-      ) : keysData?.keys.length === 0 ? (
+      ) : keysData?.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Key className="h-12 w-12 text-muted-foreground mb-4" />
@@ -228,7 +228,7 @@ export default function ApiKeysPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {keysData?.keys.map((key) => (
+          {keysData?.map((key) => (
             <Card key={key.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">

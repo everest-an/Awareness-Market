@@ -21,8 +21,8 @@ export function ApiKeyManager() {
   
   const createMutation = trpc.apiKeys.create.useMutation({
     onSuccess: (result) => {
-      setNewKeyData({ apiKey: result.apiKey, keyPrefix: result.keyPrefix });
-      toast.success(result.message);
+      setNewKeyData({ apiKey: result.key, keyPrefix: result.keyPrefix });
+      toast.success('API key created successfully');
       utils.apiKeys.list.invalidate();
     },
     onError: (error) => {
@@ -31,8 +31,8 @@ export function ApiKeyManager() {
   });
 
   const revokeMutation = trpc.apiKeys.revoke.useMutation({
-    onSuccess: (result) => {
-      toast.success(result.message);
+    onSuccess: () => {
+      toast.success('API key revoked');
       utils.apiKeys.list.invalidate();
     },
     onError: (error) => {
@@ -41,8 +41,8 @@ export function ApiKeyManager() {
   });
 
   const deleteMutation = trpc.apiKeys.delete.useMutation({
-    onSuccess: (result) => {
-      toast.success(result.message);
+    onSuccess: () => {
+      toast.success('API key deleted');
       utils.apiKeys.list.invalidate();
     },
     onError: (error) => {
@@ -187,7 +187,7 @@ export function ApiKeyManager() {
             <div className="animate-pulse">Loading API keys...</div>
           </CardContent>
         </Card>
-      ) : data?.keys.length === 0 ? (
+      ) : data?.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Key className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -203,14 +203,14 @@ export function ApiKeyManager() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {data?.keys.map((key) => (
+          {data?.map((key) => (
             <Card key={key.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-lg">{key.name}</CardTitle>
                     <CardDescription className="font-mono text-xs">
-                      {key.keyPrefix}•••••••••••••••�?
+                      {key.keyPrefix}•••••••••••••••�?
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export function ApiKeyManager() {
                   <div>
                     <p className="text-muted-foreground">Permissions</p>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {key.permissions.map((perm, idx) => (
+                      {key.permissions.map((perm: string, idx: number) => (
                         <Badge key={idx} variant="outline" className="text-xs">
                           {perm}
                         </Badge>
@@ -301,7 +301,7 @@ export function ApiKeyManager() {
           </pre>
           <p className="pt-2">
             <a href="/api-docs" target="_blank" className="text-primary hover:underline">
-              View full API documentation �?
+              View full API documentation �?
             </a>
           </p>
         </CardContent>
