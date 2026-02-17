@@ -91,8 +91,8 @@ export const WORKERS: Record<string, WorkerConfig> = {
     priority: 'high',
     timeout: 45 * 60 * 1000, // 45 minutes
     handler: async () => {
-      const { runDecayJob } = await import('./decay-worker');
-      await runDecayJob();
+      const { decayQueue } = await import('./decay-worker');
+      await decayQueue.add('process-decay', { trigger: 'cron' });
     },
   },
 
@@ -110,8 +110,8 @@ export const WORKERS: Record<string, WorkerConfig> = {
     priority: 'medium',
     timeout: 30 * 60 * 1000, // 30 minutes
     handler: async () => {
-      const { runConflictArbitrationJob } = await import('./conflict-arbitration-worker');
-      await runConflictArbitrationJob();
+      const { arbitrationQueue } = await import('./conflict-arbitration-worker');
+      await arbitrationQueue.add('process-conflicts', { trigger: 'cron' });
     },
   },
 
@@ -129,8 +129,8 @@ export const WORKERS: Record<string, WorkerConfig> = {
     priority: 'low',
     timeout: 20 * 60 * 1000, // 20 minutes
     handler: async () => {
-      const { runReputationDecayJob } = await import('./reputation-decay-worker');
-      await runReputationDecayJob();
+      const { reputationDecayQueue } = await import('./reputation-decay-worker');
+      await reputationDecayQueue.add('process-reputation-decay', { trigger: 'cron' });
     },
   },
 
@@ -148,8 +148,8 @@ export const WORKERS: Record<string, WorkerConfig> = {
     priority: 'medium',
     timeout: 30 * 60 * 1000, // 30 minutes
     handler: async () => {
-      const { runVerificationJob } = await import('./verification-worker');
-      await runVerificationJob();
+      const { verificationQueue } = await import('./verification-worker');
+      await verificationQueue.add('process-verification', { trigger: 'cron' });
     },
   },
 
@@ -166,8 +166,8 @@ export const WORKERS: Record<string, WorkerConfig> = {
     priority: 'medium',
     timeout: 10 * 60 * 1000, // 10 minutes
     handler: async () => {
-      const { runRMCJob } = await import('./rmc-worker');
-      await runRMCJob();
+      const { rmcQueue } = await import('./rmc-worker');
+      await rmcQueue.add('process-rmc', { trigger: 'cron' });
     },
   },
 };
