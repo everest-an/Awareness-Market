@@ -71,6 +71,7 @@ jobs:
           scp -i ~/.ssh/awareness-key.pem -r dist/public ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/dist/
           scp -i ~/.ssh/awareness-key.pem package.json ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
           scp -i ~/.ssh/awareness-key.pem -r prisma ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
+          scp -i ~/.ssh/awareness-key.pem -r scripts ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
           scp -i ~/.ssh/awareness-key.pem ecosystem.config.js ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
       
       - name: Run database migrations on EC2

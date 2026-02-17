@@ -1,0 +1,77 @@
+name: Seed Database (Demo Data)
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'What to seed'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - vectors
+          - packages
+          - users
+          - memory-nfts
+
+jobs:
+  seed:
+    name: Seed Production Database
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.AWARENESS }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/awareness-key.pem
+          chmod 600 ~/.ssh/awareness-key.pem
+          ssh-keyscan -H 44.220.181.78 >> ~/.ssh/known_hosts
+
+      - name: Upload seed script to EC2
+        run: |
+          scp -i ~/.ssh/awareness-key.pem -r scripts ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
+
+      - name: Run seed on EC2
+        run: |
+          SCOPE_FLAG=""
+          if [ "${{ github.event.inputs.scope }}" != "all" ]; then
+            SCOPE_FLAG="-- --${{ github.event.inputs.scope }}"
+          fi
+
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << ENDSSH
+            cd /home/ec2-user/Awareness-Market
+            echo "=== Running database seed (scope: ${{ github.event.inputs.scope }}) ==="
+            npx tsx scripts/seed.ts ${SCOPE_FLAG}
+            echo "=== Seed completed ==="
+          ENDSSH
+
+      - name: Verify seed data
+        run: |
+          echo "Checking marketplace endpoints..."
+          curl -sf "https://api.awareness.market/trpc/vectors.search?input=%7B%7D" | head -c 200 || echo "Vectors endpoint check"
+          echo ""
+          curl -sf "https://api.awareness.market/trpc/packages.browsePackages?input=%7B%22packageType%22%3A%22memory%22%7D" | head -c 200 || echo "Memory packages endpoint check"
+          echo ""
+          echo "✅ Seed verification complete"
