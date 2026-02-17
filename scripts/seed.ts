@@ -36,7 +36,7 @@ const seedAgents = args.length === 0 || args.includes('--agents');
 const seedMemoryNFTs = args.length === 0 || args.includes('--memory-nfts');
 
 // ============================================================================
-// Sample Data
+// Sample Data — Permanent showcase entries for all three marketplaces
 // ============================================================================
 
 const SAMPLE_USERS = [
@@ -45,110 +45,448 @@ const SAMPLE_USERS = [
   { name: 'Carol Wang', email: 'carol@example.com', role: UserRole.consumer },
   { name: 'David Lee', email: 'david@example.com', role: UserRole.consumer },
   { name: 'AI Agent Alpha', email: 'agent-alpha@awareness.market', role: UserRole.creator },
+  { name: 'Dr. Sarah Kim', email: 'sarah@example.com', role: UserRole.creator },
+  { name: 'Marcus Chen', email: 'marcus@example.com', role: UserRole.creator },
+  { name: 'Elena Petrova', email: 'elena@example.com', role: UserRole.creator },
 ];
 
+// ── Vector Marketplace (LatentVector) ───────────────────────────────────────
 const SAMPLE_VECTORS = [
   {
     title: 'Solidity Gas Optimization Patterns',
-    description: 'Advanced techniques for reducing gas costs in smart contracts. Includes storage optimization, loop unrolling, and memory management patterns.',
+    description: 'Advanced techniques for reducing gas costs in smart contracts. Includes storage optimization, loop unrolling, and memory management patterns. Covers EIP-1559 fee market, calldata vs memory trade-offs, and assembly-level optimizations.',
     category: 'Smart Contracts',
     basePrice: '29.99',
     sourceModel: 'gpt-4',
+    totalCalls: 1847,
+    averageRating: 4.72,
+    reviewCount: 89,
   },
   {
     title: 'ZK-SNARK Circuit Design',
-    description: 'Efficient circuit construction for zero-knowledge proofs. Covers R1CS constraints, witness generation, and proof optimization.',
+    description: 'Efficient circuit construction for zero-knowledge proofs. Covers R1CS constraints, witness generation, and proof optimization. Includes Groth16 and PLONK-based constructions with real Circom examples.',
     category: 'Cryptography',
     basePrice: '49.99',
     sourceModel: 'claude-3-opus',
+    totalCalls: 932,
+    averageRating: 4.88,
+    reviewCount: 43,
   },
   {
     title: 'Transformer Attention Mechanism',
-    description: 'Deep understanding of multi-head attention in neural networks. Includes self-attention, cross-attention, and efficient attention variants.',
+    description: 'Deep understanding of multi-head attention in neural networks. Includes self-attention, cross-attention, flash attention, and linear attention variants. Covers KV-cache optimization and sliding window attention.',
     category: 'AI/ML',
     basePrice: '39.99',
     sourceModel: 'gpt-4-turbo',
+    totalCalls: 3241,
+    averageRating: 4.91,
+    reviewCount: 156,
   },
   {
     title: 'DeFi Arbitrage Strategies',
-    description: 'Flash loan arbitrage and MEV extraction techniques. Covers sandwich attacks, liquidation bots, and cross-DEX arbitrage.',
+    description: 'Flash loan arbitrage and MEV extraction techniques. Covers sandwich attacks defense, liquidation bots, and cross-DEX arbitrage. Includes Uniswap V3 concentrated liquidity math and optimal routing algorithms.',
     category: 'DeFi',
     basePrice: '79.99',
     sourceModel: 'deepseek-v3',
+    totalCalls: 567,
+    averageRating: 4.65,
+    reviewCount: 28,
   },
   {
     title: 'Rust Systems Programming',
-    description: 'Memory-safe systems programming patterns in Rust. Ownership, borrowing, lifetimes, and async programming.',
+    description: 'Memory-safe systems programming patterns in Rust. Ownership, borrowing, lifetimes, and async programming. Covers tokio runtime, zero-copy deserialization, and lock-free data structures.',
     category: 'Programming',
     basePrice: '34.99',
     sourceModel: 'claude-3.5-sonnet',
+    totalCalls: 2156,
+    averageRating: 4.83,
+    reviewCount: 112,
+  },
+  {
+    title: 'Medical Image Segmentation',
+    description: 'U-Net and ViT-based architectures for medical imaging. Covers CT, MRI, and X-ray segmentation with DICOM preprocessing. Includes multi-class organ segmentation and tumor detection pipelines.',
+    category: 'Healthcare',
+    basePrice: '59.99',
+    sourceModel: 'gpt-4-vision',
+    totalCalls: 1423,
+    averageRating: 4.76,
+    reviewCount: 67,
+  },
+  {
+    title: 'Autonomous Vehicle Perception',
+    description: 'LiDAR + camera fusion for 3D object detection. BEVFormer-based bird\'s-eye-view representation, lane detection, and occupancy prediction. Covers nuScenes and Waymo benchmark evaluation.',
+    category: 'Robotics',
+    basePrice: '89.99',
+    sourceModel: 'deepseek-v3',
+    totalCalls: 789,
+    averageRating: 4.69,
+    reviewCount: 34,
+  },
+  {
+    title: 'Financial Risk Modeling',
+    description: 'VAR, CVaR, and Monte Carlo simulation for portfolio risk assessment. Covers Black-Scholes pricing, volatility surface construction, and credit risk modeling with copulas.',
+    category: 'Finance',
+    basePrice: '69.99',
+    sourceModel: 'claude-3-opus',
+    totalCalls: 1678,
+    averageRating: 4.81,
+    reviewCount: 78,
+  },
+  {
+    title: 'Multilingual NLP Pipeline',
+    description: 'Cross-lingual transfer learning for 100+ languages. Covers mBERT, XLM-R, and BLOOM-based architectures. Includes named entity recognition, sentiment analysis, and machine translation with quality estimation.',
+    category: 'NLP',
+    basePrice: '44.99',
+    sourceModel: 'gpt-4-turbo',
+    totalCalls: 4521,
+    averageRating: 4.87,
+    reviewCount: 203,
+  },
+  {
+    title: 'Kubernetes Orchestration Intelligence',
+    description: 'AI-powered container orchestration patterns. Auto-scaling policies, resource quota optimization, and multi-cluster federation. Covers Istio service mesh, Argo CD GitOps, and Prometheus alerting rules.',
+    category: 'DevOps',
+    basePrice: '54.99',
+    sourceModel: 'claude-3.5-sonnet',
+    totalCalls: 2890,
+    averageRating: 4.79,
+    reviewCount: 134,
+  },
+  {
+    title: 'Protein Structure Prediction',
+    description: 'AlphaFold2-inspired geometry-aware embeddings for protein folding. Covers multiple sequence alignment, structure module attention, and confidence estimation. Includes drug-target interaction prediction.',
+    category: 'Bioinformatics',
+    basePrice: '99.99',
+    sourceModel: 'gpt-4',
+    totalCalls: 456,
+    averageRating: 4.94,
+    reviewCount: 21,
+  },
+  {
+    title: 'Real-time Speech Enhancement',
+    description: 'Neural noise suppression and echo cancellation for real-time audio. Covers STFT-based and end-to-end approaches. Includes speaker separation, dereverberation, and low-latency streaming inference.',
+    category: 'Audio',
+    basePrice: '42.99',
+    sourceModel: 'deepseek-v3',
+    totalCalls: 1234,
+    averageRating: 4.71,
+    reviewCount: 56,
   },
 ];
 
+// ── Vector Packages (Cross-model embedding transfer) ────────────────────────
 const SAMPLE_VECTOR_PACKAGES = [
   {
-    name: 'NLP Embedding Suite',
-    description: 'High-quality text embeddings for semantic search and similarity matching. Trained on diverse multilingual corpus.',
+    name: 'NLP Embedding Suite v3',
+    description: 'High-quality text embeddings for semantic search and similarity matching. Trained on 500M+ multilingual documents with contrastive learning. Supports 50+ languages with state-of-the-art retrieval performance.',
     sourceModel: 'gpt-4',
     targetModel: 'claude-3-opus',
     category: 'nlp',
     price: '19.99',
     dimension: 1536,
+    downloads: 2341,
+    rating: 4.82,
+    reviewCount: 156,
   },
   {
     name: 'Code Understanding Vectors',
-    description: 'Specialized embeddings for code comprehension. Supports 20+ programming languages with syntax-aware encoding.',
+    description: 'Specialized embeddings for code comprehension. Supports 25+ programming languages with syntax-aware encoding. Covers function-level, file-level, and repository-level code understanding.',
     sourceModel: 'deepseek-coder-33b',
     targetModel: 'gpt-4-turbo',
     category: 'code',
     price: '29.99',
     dimension: 2048,
+    downloads: 1567,
+    rating: 4.76,
+    reviewCount: 89,
+  },
+  {
+    name: 'Vision-Language Alignment',
+    description: 'CLIP-style cross-modal embeddings aligning visual and textual representations. Trained on 400M image-text pairs. Enables zero-shot image classification, visual search, and multimodal retrieval.',
+    sourceModel: 'gpt-4-vision',
+    targetModel: 'claude-3-opus',
+    category: 'multimodal',
+    price: '39.99',
+    dimension: 1024,
+    downloads: 892,
+    rating: 4.88,
+    reviewCount: 67,
+  },
+  {
+    name: 'Legal Document Embeddings',
+    description: 'Domain-adapted embeddings for legal text understanding. Covers contract analysis, case law retrieval, and regulatory compliance matching. Fine-tuned on 10M+ legal documents across 30 jurisdictions.',
+    sourceModel: 'claude-3-opus',
+    targetModel: 'gpt-4-turbo',
+    category: 'legal',
+    price: '49.99',
+    dimension: 1536,
+    downloads: 678,
+    rating: 4.71,
+    reviewCount: 45,
+  },
+  {
+    name: 'Scientific Paper Vectors',
+    description: 'Research-grade embeddings for academic literature. Covers citation graph-aware representations, abstract summarization, and cross-paper concept linking. Trained on 200M+ ArXiv and PubMed papers.',
+    sourceModel: 'gpt-4-turbo',
+    targetModel: 'llama-3-70b',
+    category: 'research',
+    price: '34.99',
+    dimension: 2048,
+    downloads: 1234,
+    rating: 4.85,
+    reviewCount: 78,
+  },
+  {
+    name: 'Financial Sentiment Vectors',
+    description: 'Embeddings optimized for financial text analysis. Covers earnings calls, SEC filings, news sentiment, and social media signal detection. Includes temporal awareness for event-driven analysis.',
+    sourceModel: 'gpt-4',
+    targetModel: 'claude-3.5-sonnet',
+    category: 'finance',
+    price: '59.99',
+    dimension: 1536,
+    downloads: 1456,
+    rating: 4.79,
+    reviewCount: 92,
+  },
+  {
+    name: 'Medical Entity Embeddings',
+    description: 'Clinical NLP embeddings for healthcare applications. Covers ICD-10 coding, drug interaction prediction, and patient note understanding. HIPAA-compliant training on de-identified clinical data.',
+    sourceModel: 'claude-3-opus',
+    targetModel: 'gpt-4',
+    category: 'healthcare',
+    price: '69.99',
+    dimension: 2048,
+    downloads: 567,
+    rating: 4.92,
+    reviewCount: 34,
+  },
+  {
+    name: 'Robotics Control Vectors',
+    description: 'Sensorimotor embeddings for robot manipulation tasks. Covers grasp planning, motion primitives, and sim-to-real transfer. Compatible with ROS2 and Isaac Sim environments.',
+    sourceModel: 'deepseek-v3',
+    targetModel: 'gpt-4-turbo',
+    category: 'robotics',
+    price: '79.99',
+    dimension: 4096,
+    downloads: 345,
+    rating: 4.68,
+    reviewCount: 23,
   },
 ];
 
+// ── Memory Packages (KV-Cache transfer) ─────────────────────────────────────
 const SAMPLE_MEMORY_PACKAGES = [
   {
-    name: 'GPT-4 Technical Discussion',
-    description: 'KV-Cache from a deep technical discussion about distributed systems. Includes context about consensus algorithms and fault tolerance.',
+    name: 'GPT-4 Technical Architecture Discussion',
+    description: 'KV-Cache from a deep technical discussion about distributed systems architecture. Includes context about consensus algorithms, fault tolerance, CAP theorem trade-offs, and CRDT implementation patterns.',
     sourceModel: 'gpt-4',
     targetModel: 'claude-3-opus',
-    tokenCount: 4096,
+    tokenCount: 32768,
     compressionRatio: '0.75',
-    contextDescription: 'Technical discussion about distributed systems architecture',
-    price: '9.99',
+    contextDescription: 'Technical discussion about distributed systems and microservices architecture',
+    price: '14.99',
+    downloads: 1892,
+    rating: 4.78,
+    reviewCount: 123,
   },
   {
     name: 'Claude Code Review Session',
-    description: 'Memory from an extensive code review session. Contains patterns for identifying bugs and suggesting improvements.',
+    description: 'Memory from an extensive code review of a production TypeScript backend. Contains patterns for identifying security vulnerabilities, performance bottlenecks, and architectural anti-patterns.',
     sourceModel: 'claude-3-opus',
     targetModel: 'gpt-4-turbo',
-    tokenCount: 8192,
+    tokenCount: 65536,
     compressionRatio: '0.68',
-    contextDescription: 'Code review session for a TypeScript backend project',
-    price: '14.99',
+    contextDescription: 'Full-stack code review session for a TypeScript/Node.js production application',
+    price: '19.99',
+    downloads: 1456,
+    rating: 4.85,
+    reviewCount: 98,
+  },
+  {
+    name: 'Legal Contract Analysis Memory',
+    description: 'KV-Cache from analyzing 50+ enterprise SaaS contracts. Captures clause comparison patterns, risk assessment frameworks, and negotiation strategy insights for B2B software agreements.',
+    sourceModel: 'gpt-4',
+    targetModel: 'claude-3.5-sonnet',
+    tokenCount: 131072,
+    compressionRatio: '0.82',
+    contextDescription: 'Enterprise SaaS contract analysis and risk assessment across multiple jurisdictions',
+    price: '39.99',
+    downloads: 789,
+    rating: 4.91,
+    reviewCount: 56,
+  },
+  {
+    name: 'Research Paper Synthesis',
+    description: 'Memory from reading and synthesizing 200+ papers on transformer architectures. Captures evolution from attention-is-all-you-need to modern SSM hybrids, including Mamba, RWKV, and retention networks.',
+    sourceModel: 'claude-3-opus',
+    targetModel: 'llama-3-70b',
+    tokenCount: 262144,
+    compressionRatio: '0.71',
+    contextDescription: 'Academic literature review on transformer and state-space model architectures',
+    price: '29.99',
+    downloads: 2134,
+    rating: 4.93,
+    reviewCount: 145,
+  },
+  {
+    name: 'Product Strategy Planning',
+    description: 'KV-Cache from strategic product planning sessions. Contains market analysis frameworks, competitive positioning models, and go-to-market playbooks for B2B SaaS products.',
+    sourceModel: 'gpt-4-turbo',
+    targetModel: 'claude-3-opus',
+    tokenCount: 49152,
+    compressionRatio: '0.77',
+    contextDescription: 'Product strategy and go-to-market planning for enterprise SaaS',
+    price: '24.99',
+    downloads: 1023,
+    rating: 4.74,
+    reviewCount: 67,
+  },
+  {
+    name: 'Medical Diagnosis Reasoning',
+    description: 'Memory from processing 1000+ differential diagnosis cases. Captures clinical reasoning patterns, symptom-disease associations, and treatment protocol decision trees for internal medicine.',
+    sourceModel: 'gpt-4',
+    targetModel: 'claude-3-opus',
+    tokenCount: 196608,
+    compressionRatio: '0.79',
+    contextDescription: 'Clinical differential diagnosis reasoning across internal medicine specialties',
+    price: '49.99',
+    downloads: 567,
+    rating: 4.96,
+    reviewCount: 34,
+  },
+  {
+    name: 'Kubernetes Troubleshooting Memory',
+    description: 'KV-Cache from debugging 500+ Kubernetes cluster issues. Contains pod scheduling failure patterns, network policy debugging, and resource quota optimization strategies.',
+    sourceModel: 'claude-3.5-sonnet',
+    targetModel: 'gpt-4-turbo',
+    tokenCount: 81920,
+    compressionRatio: '0.73',
+    contextDescription: 'Production Kubernetes cluster troubleshooting and optimization',
+    price: '19.99',
+    downloads: 1678,
+    rating: 4.82,
+    reviewCount: 89,
+  },
+  {
+    name: 'Financial Modeling Session',
+    description: 'Memory from building DCF models, LBO analysis, and merger models for tech companies. Contains valuation frameworks, comparable company analysis, and sensitivity analysis patterns.',
+    sourceModel: 'gpt-4-turbo',
+    targetModel: 'claude-3.5-sonnet',
+    tokenCount: 65536,
+    compressionRatio: '0.69',
+    contextDescription: 'Investment banking financial modeling and valuation analysis',
+    price: '34.99',
+    downloads: 892,
+    rating: 4.77,
+    reviewCount: 52,
   },
 ];
 
+// ── Chain Packages (Reasoning chains) ───────────────────────────────────────
 const SAMPLE_CHAIN_PACKAGES = [
   {
     name: 'Mathematical Proof Chain',
-    description: 'Step-by-step reasoning chain for mathematical proofs. Demonstrates formal logic and proof techniques.',
+    description: 'Step-by-step reasoning chain for mathematical theorem proving. Demonstrates formal logic, proof by induction, contradiction, and construction. Covers number theory, abstract algebra, and real analysis proofs.',
     sourceModel: 'o1',
     targetModel: 'gpt-4-turbo',
     problemType: 'mathematical-proof',
     solutionQuality: '0.95',
     stepCount: 12,
     price: '24.99',
+    downloads: 1567,
+    rating: 4.89,
+    reviewCount: 87,
   },
   {
     name: 'System Design Reasoning',
-    description: 'Reasoning chain for system design interviews. Covers scalability, reliability, and performance considerations.',
+    description: 'Reasoning chain for system design interviews and architecture reviews. Covers scalability analysis, database selection, caching strategies, and distributed system trade-offs with quantitative capacity estimation.',
     sourceModel: 'claude-3-opus',
     targetModel: 'gpt-4',
     problemType: 'system-design',
     solutionQuality: '0.92',
-    stepCount: 8,
+    stepCount: 16,
     price: '19.99',
+    downloads: 2341,
+    rating: 4.84,
+    reviewCount: 134,
+  },
+  {
+    name: 'Legal Case Analysis',
+    description: 'Multi-step legal reasoning for case analysis. Covers IRAC methodology (Issue, Rule, Application, Conclusion), precedent comparison, statutory interpretation, and damages calculation.',
+    sourceModel: 'gpt-4',
+    targetModel: 'claude-3.5-sonnet',
+    problemType: 'legal-analysis',
+    solutionQuality: '0.91',
+    stepCount: 14,
+    price: '34.99',
+    downloads: 678,
+    rating: 4.76,
+    reviewCount: 45,
+  },
+  {
+    name: 'Debugging Complex Codebase',
+    description: 'Systematic debugging reasoning for production incidents. Covers root cause analysis, hypothesis generation, binary search debugging, and post-mortem documentation. Includes real-world race condition and memory leak patterns.',
+    sourceModel: 'claude-3.5-sonnet',
+    targetModel: 'deepseek-v3',
+    problemType: 'debugging',
+    solutionQuality: '0.94',
+    stepCount: 18,
+    price: '29.99',
+    downloads: 1892,
+    rating: 4.91,
+    reviewCount: 112,
+  },
+  {
+    name: 'Scientific Hypothesis Testing',
+    description: 'Research methodology reasoning chain for experimental design. Covers hypothesis formulation, variable control, statistical test selection, power analysis, and result interpretation with effect sizes.',
+    sourceModel: 'gpt-4-turbo',
+    targetModel: 'claude-3-opus',
+    problemType: 'research',
+    solutionQuality: '0.93',
+    stepCount: 15,
+    price: '39.99',
+    downloads: 456,
+    rating: 4.87,
+    reviewCount: 28,
+  },
+  {
+    name: 'API Architecture Decision',
+    description: 'Reasoning chain for API design decisions. Covers REST vs GraphQL vs gRPC trade-offs, pagination strategies, authentication patterns, rate limiting, and backward compatibility. Includes OpenAPI spec generation.',
+    sourceModel: 'claude-3-opus',
+    targetModel: 'gpt-4-turbo',
+    problemType: 'code-generation',
+    solutionQuality: '0.90',
+    stepCount: 11,
+    price: '22.99',
+    downloads: 1345,
+    rating: 4.73,
+    reviewCount: 78,
+  },
+  {
+    name: 'Financial Due Diligence',
+    description: 'Investment analysis reasoning chain for startup due diligence. Covers unit economics validation, market sizing (TAM/SAM/SOM), competitive moat analysis, and financial projection stress testing.',
+    sourceModel: 'gpt-4',
+    targetModel: 'claude-3.5-sonnet',
+    problemType: 'research',
+    solutionQuality: '0.89',
+    stepCount: 20,
+    price: '44.99',
+    downloads: 567,
+    rating: 4.81,
+    reviewCount: 34,
+  },
+  {
+    name: 'Multi-Agent Coordination',
+    description: 'Reasoning chain for designing multi-agent AI systems. Covers task decomposition, agent communication protocols, conflict resolution, and consensus mechanisms. Includes LatentMAS W-Matrix alignment strategies.',
+    sourceModel: 'o1',
+    targetModel: 'claude-3-opus',
+    problemType: 'system-design',
+    solutionQuality: '0.96',
+    stepCount: 22,
+    price: '59.99',
+    downloads: 789,
+    rating: 4.94,
+    reviewCount: 56,
   },
 ];
 
@@ -313,10 +651,14 @@ async function seedUsersData(): Promise<number[]> {
   return userIds;
 }
 
-async function seedVectorsData(creatorId: number) {
+async function seedVectorsData(creatorIds: number[]) {
   console.log('\n📦 Seeding latent vectors...');
 
-  for (const vector of SAMPLE_VECTORS) {
+  for (let i = 0; i < SAMPLE_VECTORS.length; i++) {
+    const vector = SAMPLE_VECTORS[i];
+    // Distribute vectors across creators
+    const creatorId = creatorIds[i % creatorIds.length];
+
     const existingVector = await prisma.latentVector.findFirst({
       where: { title: vector.title },
     });
@@ -338,17 +680,23 @@ async function seedVectorsData(creatorId: number) {
         modelArchitecture: vector.sourceModel,
         vectorDimension: 8192,
         status: 'active',
+        totalCalls: vector.totalCalls,
+        averageRating: vector.averageRating,
+        reviewCount: vector.reviewCount,
+        totalRevenue: parseFloat(vector.basePrice) * vector.totalCalls * 0.3,
       },
     });
-    console.log(`  ✓ ${vector.title}`);
+    console.log(`  ✓ ${vector.title} (${vector.totalCalls} calls, ★${vector.averageRating})`);
   }
 
   console.log(`  Total: ${SAMPLE_VECTORS.length} vectors`);
 }
 
-async function seedPackagesData(creatorId: number) {
+async function seedPackagesData(creatorIds: number[]) {
   console.log('\n📦 Seeding vector packages...');
-  for (const pkg of SAMPLE_VECTOR_PACKAGES) {
+  for (let i = 0; i < SAMPLE_VECTOR_PACKAGES.length; i++) {
+    const pkg = SAMPLE_VECTOR_PACKAGES[i];
+    const creatorId = creatorIds[i % creatorIds.length];
     const packageId = `vpkg_${nanoid(12)}`;
 
     const existingPkg = await prisma.vectorPackage.findFirst({
@@ -373,17 +721,22 @@ async function seedPackagesData(creatorId: number) {
         dimension: pkg.dimension,
         epsilon: 0.05,
         informationRetention: 0.95,
+        downloads: pkg.downloads,
+        rating: pkg.rating,
+        reviewCount: pkg.reviewCount,
         packageUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}.vectorpkg`,
         vectorUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/vector.json`,
         wMatrixUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/w_matrix.json`,
         status: 'active',
       },
     });
-    console.log(`  ✓ ${pkg.name}`);
+    console.log(`  ✓ ${pkg.name} (${pkg.downloads} downloads, ★${pkg.rating})`);
   }
 
   console.log('\n📦 Seeding memory packages...');
-  for (const pkg of SAMPLE_MEMORY_PACKAGES) {
+  for (let i = 0; i < SAMPLE_MEMORY_PACKAGES.length; i++) {
+    const pkg = SAMPLE_MEMORY_PACKAGES[i];
+    const creatorId = creatorIds[i % creatorIds.length];
     const packageId = `mpkg_${nanoid(12)}`;
 
     const existingPkg = await prisma.memoryPackage.findFirst({
@@ -409,17 +762,22 @@ async function seedPackagesData(creatorId: number) {
         price: parseFloat(pkg.price),
         epsilon: 0.05,
         informationRetention: 0.95,
+        downloads: pkg.downloads,
+        rating: pkg.rating,
+        reviewCount: pkg.reviewCount,
         packageUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}.memorypkg`,
         kvCacheUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/kv_cache.json`,
         wMatrixUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/w_matrix.json`,
         status: 'active',
       },
     });
-    console.log(`  ✓ ${pkg.name}`);
+    console.log(`  ✓ ${pkg.name} (${pkg.downloads} downloads, ★${pkg.rating})`);
   }
 
   console.log('\n📦 Seeding chain packages...');
-  for (const pkg of SAMPLE_CHAIN_PACKAGES) {
+  for (let i = 0; i < SAMPLE_CHAIN_PACKAGES.length; i++) {
+    const pkg = SAMPLE_CHAIN_PACKAGES[i];
+    const creatorId = creatorIds[i % creatorIds.length];
     const packageId = `cpkg_${nanoid(12)}`;
 
     const existingPkg = await prisma.chainPackage.findFirst({
@@ -445,17 +803,20 @@ async function seedPackagesData(creatorId: number) {
         price: parseFloat(pkg.price),
         epsilon: 0.05,
         informationRetention: 0.95,
+        downloads: pkg.downloads,
+        rating: pkg.rating,
+        reviewCount: pkg.reviewCount,
         packageUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}.chainpkg`,
         chainUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/chain.json`,
         wMatrixUrl: `https://awareness-storage.s3.amazonaws.com/packages/${packageId}/w_matrix.json`,
         status: 'active',
       },
     });
-    console.log(`  ✓ ${pkg.name}`);
+    console.log(`  ✓ ${pkg.name} (${pkg.downloads} downloads, ★${pkg.rating})`);
   }
 
   const total = SAMPLE_VECTOR_PACKAGES.length + SAMPLE_MEMORY_PACKAGES.length + SAMPLE_CHAIN_PACKAGES.length;
-  console.log(`  Total: ${total} packages`);
+  console.log(`\n  Total: ${total} packages`);
 }
 
 async function seedMemoryNFTsData(ownerId: string) {
@@ -514,7 +875,7 @@ async function seedMemoryNFTsData(ownerId: string) {
 }
 
 async function cleanDatabase() {
-  // 🛡️ PRODUCTION SAFETY CHECK
+  // PRODUCTION SAFETY CHECK
   const nodeEnv = process.env.NODE_ENV || 'development';
   const dbUrl = process.env.DATABASE_URL || '';
 
@@ -565,13 +926,11 @@ async function cleanDatabase() {
 
   // Delete in order to respect foreign key constraints
   try {
-    // Clear MemoryNFT first (has self-referential FK)
     await prisma.$executeRaw`DELETE FROM memory_nfts`;
     console.log('  ✓ Cleared MemoryNFT');
   } catch (e) { /* Table might be empty or not exist */ }
 
   try {
-    // Use raw SQL since Prisma client may not have this model yet
     await prisma.$executeRaw`DELETE FROM memory_usage_log`;
     console.log('  ✓ Cleared MemoryUsageLog');
   } catch (e) { /* Table might be empty or not exist */ }
@@ -622,7 +981,6 @@ async function cleanDatabase() {
   } catch (e) { /* Table might be empty or not exist */ }
 
   try {
-    // Delete workflow-related tables
     await prisma.workflowStep.deleteMany();
     console.log('  ✓ Cleared WorkflowStep');
   } catch (e) { /* Table might be empty or not exist */ }
@@ -638,7 +996,6 @@ async function cleanDatabase() {
   } catch (e) { /* Table might be empty or not exist */ }
 
   try {
-    // Delete user-related tables
     await prisma.notification.deleteMany();
     console.log('  ✓ Cleared Notification');
   } catch (e) { /* Table might be empty or not exist */ }
@@ -677,7 +1034,7 @@ async function main() {
     process.exit(1);
   }
 
-  // 🛡️ ENVIRONMENT SAFETY CHECK
+  // ENVIRONMENT SAFETY CHECK
   const nodeEnv = process.env.NODE_ENV || 'development';
   const dbUrl = process.env.DATABASE_URL || '';
   console.log(`\n📍 Environment: ${nodeEnv}`);
@@ -702,27 +1059,28 @@ async function main() {
       await cleanDatabase();
     }
 
-    let creatorId = 1;
+    let creatorIds: number[] = [1];
 
     if (seedUsers) {
-      const userIds = await seedUsersData();
-      creatorId = userIds[0] || 1;
+      creatorIds = await seedUsersData();
     } else {
-      // Get an existing user to use as creator
-      const existingUser = await prisma.user.findFirst({
+      // Get existing creators
+      const existingCreators = await prisma.user.findMany({
         where: { role: UserRole.creator },
+        select: { id: true },
+        take: 5,
       });
-      if (existingUser) {
-        creatorId = existingUser.id;
+      if (existingCreators.length > 0) {
+        creatorIds = existingCreators.map(u => u.id);
       }
     }
 
     if (seedVectors) {
-      await seedVectorsData(creatorId);
+      await seedVectorsData(creatorIds);
     }
 
     if (seedPackages) {
-      await seedPackagesData(creatorId);
+      await seedPackagesData(creatorIds);
     }
 
     if (seedAgents) {
@@ -732,7 +1090,6 @@ async function main() {
     }
 
     if (seedMemoryNFTs) {
-      // Get a wallet address for the owner
       const ownerAddress = '0xABCDEF1234567890abcdef1234567890ABCDEF12';
       await seedMemoryNFTsData(ownerAddress);
     }
