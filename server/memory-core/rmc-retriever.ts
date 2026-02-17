@@ -7,6 +7,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import type { RelationType } from './relation-builder';
+import { embeddingService } from '../latentmas/embedding-service';
 
 export interface MemoryNode {
   id: string;
@@ -100,22 +101,34 @@ export class RMCRetriever {
     query: string,
     options: Required<RetrievalOptions>
   ): Promise<MemoryNode[]> {
-    // 生成查询向量（需要调用 embedding API）
     const queryEmbedding = await this.generateEmbedding(query);
+    // pgvector 需要字符串格式 '[1,2,3]'::vector
+    const vectorStr = `[${queryEmbedding.join(',')}]`;
 
-    // PostgreSQL + pgvector 检索
-    const results = await this.prisma.$queryRaw<any[]>`
-      SELECT id, content, agent_id as "agentId", confidence, created_at as "createdAt", entities,
-             1 - (embedding <=> ${queryEmbedding}::vector) as similarity
-      FROM memory_entries
-      WHERE is_latest = true
-        AND confidence >= ${options.minConfidence}
-        ${options.agentFilter && options.agentFilter.length > 0
-          ? this.prisma.$queryRawUnsafe(`AND agent_id = ANY(ARRAY[${options.agentFilter.map(a => `'${a}'`).join(',')}])`)
-          : this.prisma.$queryRawUnsafe('')}
-      ORDER BY embedding <=> ${queryEmbedding}::vector
-      LIMIT 5
-    `;
+    let results: any[];
+
+    if (options.agentFilter && options.agentFilter.length > 0) {
+      results = await this.prisma.$queryRaw<any[]>`
+        SELECT id, content, agent_id as "agentId", confidence, created_at as "createdAt", entities,
+               1 - (embedding <=> ${vectorStr}::vector) as similarity
+        FROM memory_entries
+        WHERE is_latest = true
+          AND confidence >= ${options.minConfidence}
+          AND agent_id = ANY(${options.agentFilter})
+        ORDER BY embedding <=> ${vectorStr}::vector
+        LIMIT 5
+      `;
+    } else {
+      results = await this.prisma.$queryRaw<any[]>`
+        SELECT id, content, agent_id as "agentId", confidence, created_at as "createdAt", entities,
+               1 - (embedding <=> ${vectorStr}::vector) as similarity
+        FROM memory_entries
+        WHERE is_latest = true
+          AND confidence >= ${options.minConfidence}
+        ORDER BY embedding <=> ${vectorStr}::vector
+        LIMIT 5
+      `;
+    }
 
     return results.map((r) => ({
       id: r.id,
@@ -442,12 +455,11 @@ export class RMCRetriever {
   }
 
   /**
-   * 生成查询向量（需要 OpenAI API）
+   * 生成查询向量（调用 embedding service，无 API key 时自动降级到本地语义向量）
    */
   private async generateEmbedding(text: string): Promise<number[]> {
-    // 简化实现：返回零向量（实际应调用 OpenAI Embedding API）
-    // 在生产环境中，这里应该调用 embedding service
-    return new Array(1536).fill(0);
+    const result = await embeddingService.embed({ text, model: 'text-embedding-3-small' });
+    return result.vector;
   }
 
   /**
