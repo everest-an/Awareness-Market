@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm run copy:docs && pnpm exec vite build",
+  "buildCommand": "pnpm run build:vercel",
   "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
   "framework": null,
