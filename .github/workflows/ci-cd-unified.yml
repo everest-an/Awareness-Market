@@ -187,7 +187,7 @@ jobs:
         run: pnpm exec vite build
         env:
           NODE_ENV: production
-          VITE_API_URL: http://44.220.181.78:3001
+          VITE_API_URL: https://api.awareness.market
 
       - name: Check build size
         run: |
@@ -251,7 +251,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production-backend
-      url: http://44.220.181.78:3001/api-docs/
+      url: https://api.awareness.market/api-docs/
 
     steps:
       - name: Checkout code
@@ -325,9 +325,9 @@ jobs:
           sleep 15
 
           for i in {1..5}; do
-            if curl -f -s http://44.220.181.78:3001/api-docs/ > /dev/null; then
+            if curl -f -s https://api.awareness.market/api-docs/ > /dev/null; then
               echo "✅ Backend deployment successful!"
-              echo "🔗 API Docs: http://44.220.181.78:3001/api-docs/"
+              echo "🔗 API Docs: https://api.awareness.market/api-docs/"
               exit 0
             fi
             echo "⏳ Attempt $i/5: Waiting for server..."
@@ -370,7 +370,7 @@ jobs:
           echo "**Triggered by**: ${{ github.actor }}"
           echo ""
           echo "### 🔗 Links"
-          echo "- Backend API: http://44.220.181.78:3001/api-docs/"
+          echo "- Backend API: https://api.awareness.market/api-docs/"
           echo "- Frontend: https://awareness-network-v2.vercel.app/"
           echo ""
           echo "### ℹ️ Notes"

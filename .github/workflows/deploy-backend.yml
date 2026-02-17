@@ -98,13 +98,13 @@ jobs:
       - name: Verify deployment
         run: |
           sleep 10
-          curl -f http://44.220.181.78:3001/api-docs/ || exit 1
+          curl -f https://api.awareness.market/api-docs/ || exit 1
       
       - name: Notify success
         if: success( )
         run: |
           echo "✅ Backend deployment successful!"
-          echo "API URL: http://44.220.181.78:3001/api-docs/"
+          echo "API URL: https://api.awareness.market/api-docs/"
       
       - name: Notify failure
         if: failure( )
