@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "tsx scripts/copy-docs.ts && cross-env NODE_ENV=development tsx watch server/_core/index.ts",
-    "build": "pnpm run copy:docs && pnpm run build:client && pnpm run build:server",
+    "build": "pnpm run copy:docs && pnpm run build:client && node -e \"process.env.VERCEL||require('child_process').execSync('pnpm run build:server',{stdio:'inherit'})\"",
     "build:vercel": "pnpm run copy:docs && pnpm run build:client",
     "build:client": "cross-env NODE_ENV=production vite build",
     "copy:docs": "tsx scripts/copy-docs.ts",
