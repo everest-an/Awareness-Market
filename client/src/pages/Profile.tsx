@@ -259,49 +259,49 @@ export default function Profile() {
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
                 <CardDescription>
-                  Choose how you want to be notified
+                  Notification settings coming soon. You will be able to configure transaction alerts, recommendation updates, and email preferences.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-4">
+                <div className="space-y-4 opacity-50 pointer-events-none">
                   <div className="flex items-center justify-between">
-                    <label htmlFor="notif-transactions" className="flex-1 cursor-pointer">
+                    <div className="flex-1">
                       <p className="font-medium">Transaction Notifications</p>
                       <p className="text-sm text-muted-foreground">
                         Get notified when transactions complete
                       </p>
-                    </label>
-                    <input id="notif-transactions" type="checkbox" defaultChecked className="h-4 w-4" />
+                    </div>
+                    <input type="checkbox" defaultChecked disabled className="h-4 w-4" aria-label="Transaction notifications" />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
-                    <label htmlFor="notif-recommendations" className="flex-1 cursor-pointer">
+                    <div className="flex-1">
                       <p className="font-medium">Recommendation Updates</p>
                       <p className="text-sm text-muted-foreground">
                         Receive personalized recommendations
                       </p>
-                    </label>
-                    <input id="notif-recommendations" type="checkbox" defaultChecked className="h-4 w-4" />
+                    </div>
+                    <input type="checkbox" defaultChecked disabled className="h-4 w-4" aria-label="Recommendation updates" />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
-                    <label htmlFor="notif-market" className="flex-1 cursor-pointer">
+                    <div className="flex-1">
                       <p className="font-medium">Market Changes</p>
                       <p className="text-sm text-muted-foreground">
                         Stay updated on market trends
                       </p>
-                    </label>
-                    <input id="notif-market" type="checkbox" defaultChecked className="h-4 w-4" />
+                    </div>
+                    <input type="checkbox" defaultChecked disabled className="h-4 w-4" aria-label="Market changes" />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
-                    <label htmlFor="notif-email" className="flex-1 cursor-pointer">
+                    <div className="flex-1">
                       <p className="font-medium">Email Notifications</p>
                       <p className="text-sm text-muted-foreground">
                         Receive updates via email
                       </p>
-                    </label>
-                    <input id="notif-email" type="checkbox" className="h-4 w-4" />
+                    </div>
+                    <input type="checkbox" disabled className="h-4 w-4" aria-label="Email notifications" />
                   </div>
                 </div>
               </CardContent>
