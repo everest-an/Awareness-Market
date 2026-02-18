@@ -28,7 +28,7 @@ import {
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [showWelcome, setShowWelcome] = useState(false);
-  
+
   // Query user profile to check onboarding status
   const { data: userProfile } = trpc.user.me.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -45,8 +45,8 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       {/* Welcome Dialog for new users */}
       {isAuthenticated && (
-        <WelcomeDialog 
-          open={showWelcome} 
+        <WelcomeDialog
+          open={showWelcome}
           onOpenChange={setShowWelcome}
         />
       )}
@@ -58,13 +58,13 @@ export default function Home() {
           height="100%"
         />
       </div>
-      
+
       {/* Navbar */}
       <Navbar />
 
       {/* Hero Section */}
       <section className="relative z-10 min-h-screen flex items-center overflow-hidden pt-16">
-        
+
         <div className="container relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: Content */}
@@ -73,18 +73,18 @@ export default function Home() {
                 <Sparkles className="mr-1.5 h-3 w-3" />
                 The Future of AI Collaboration
               </Badge>
-              
+
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6" style={{ letterSpacing: '-0.04em' }}>
                 Share{" "}
 <span className="gradient-text">AI </span><FlipWord words={['Thoughts', 'Memory', 'Awareness', 'Opinion', 'Thinking']} className="gradient-text" />
                 <br />Across Models
               </h1>
-              
+
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Trade complete reasoning processes, not just capabilities. 
+                Trade complete reasoning processes, not just capabilities.
                 Memory Packages combine KV-Cache and W-Matrix for true cross-model thought transfer.
               </p>
-              
+
               <div className="flex flex-wrap gap-4">
                 {isAuthenticated ? (
                   <>
@@ -116,10 +116,10 @@ export default function Home() {
                   </>
                 )}
               </div>
-              
+
 
             </div>
-            
+
             {/* Right: spacer for layout balance */}
             <div className="hidden lg:block h-[600px]" />
           </div>
@@ -128,21 +128,36 @@ export default function Home() {
 
       {/* V2.0 Features Section */}
       <section className="py-24 relative z-10">
-        
+
         <div className="container relative">
           <div className="text-center mb-16">
             <Badge className="mb-4 px-3 py-1 text-xs font-medium bg-accent/10 border-accent/20 text-accent">
-              Five Product Lines
+              Six Product Lines
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Trade AI Thoughts in Five Ways
+              Trade AI Thoughts in Six Ways
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Choose how you want to share AI intelligence: trade capabilities (Vector), transfer reasoning states (Memory), replicate solution processes (Chain), collaborate with dual-AI (Collaboration), or control robots (Robotics).
+              Choose how you want to share AI intelligence: manage multi-AI workspaces, trade capabilities (Vector), transfer reasoning states (Memory), replicate solution processes (Chain), collaborate with dual-AI (Collaboration), or control robots (Robotics).
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* NEW: Multi-AI Workspace Card — first product */}
+            <Link href="/dev" className="group">
+              <div className="glass-card-hover p-6 h-full border border-cyan-500/20">
+                <Badge className="mb-3 text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/20">Multi-AI Management</Badge>
+                <h3 className="text-xl font-semibold mb-2">AI Workspace</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Stop re-explaining your codebase to AI. One workspace for Claude Code, Cursor, Kiro, v0, Windsurf, and Manus. Shared context, session resume, conflict detection.
+                </p>
+                <div className="flex items-center text-sm text-cyan-400">
+                  Open Project Brain
+                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+
             {/* Vector Package Market Card */}
             <Link href="/marketplace" className="group">
               <div className="glass-card-hover p-6 h-full">
@@ -157,7 +172,7 @@ export default function Home() {
                 </div>
               </div>
             </Link>
-            
+
             {/* Memory Package Market Card */}
             <Link href="/memory-marketplace" className="group">
               <div className="glass-card-hover p-6 h-full">
@@ -172,7 +187,7 @@ export default function Home() {
                 </div>
               </div>
             </Link>
-            
+
             {/* Reasoning Chain Market Card */}
             <Link href="/reasoning-chains" className="group">
               <div className="glass-card-hover p-6 h-full">
@@ -248,7 +263,7 @@ export default function Home() {
 
       {/* How It Works Section */}
       <section className="py-24 relative z-10">
-        
+
         <div className="container relative">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -258,7 +273,7 @@ export default function Home() {
               Three simple steps to share AI intelligence across models
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="glass-card p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
@@ -269,7 +284,7 @@ export default function Home() {
                 Export your model's KV-cache and reasoning chain after solving a complex problem
               </p>
             </div>
-            
+
             <div className="glass-card p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                 <span className="text-xl font-bold text-accent">2</span>
@@ -279,7 +294,7 @@ export default function Home() {
                 Our W-Matrix protocol transforms the knowledge to be compatible with any target model
               </p>
             </div>
-            
+
             <div className="glass-card p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                 <span className="text-xl font-bold text-primary">3</span>
@@ -337,7 +352,7 @@ export default function Home() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="relative w-8 h-8">
-                  <div 
+                  <div
                     className="absolute inset-0 rounded-full"
                     style={{
                       background: 'conic-gradient(from 180deg, #0ea5e9, #06b6d4, #22d3ee, #67e8f9, #22d3ee, #06b6d4, #0ea5e9)',
@@ -353,10 +368,11 @@ export default function Home() {
                 The first decentralized marketplace for AI intelligence trading.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-medium mb-4">Products</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/dev" className="hover:text-foreground transition-colors">AI Workspace</Link></li>
                 <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Packages</Link></li>
                 <li><Link href="/memory-marketplace" className="hover:text-foreground transition-colors">Memory Packages</Link></li>
                 <li><Link href="/reasoning-chains" className="hover:text-foreground transition-colors">Reasoning Chains</Link></li>
@@ -364,27 +380,28 @@ export default function Home() {
                 <li><Link href="/robotics" className="hover:text-foreground transition-colors">Robotics</Link></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-medium mb-4">Resources</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/docs" className="hover:text-foreground transition-colors">Documentation</Link></li>
+                <li><Link href="/documentation" className="hover:text-foreground transition-colors">Documentation</Link></li>
                 <li><Link href="/sdk" className="hover:text-foreground transition-colors">Python SDK</Link></li>
                 <li><a href="https://github.com/everest-an/Awareness-Market" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-medium mb-4">Company</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/about" className="hover:text-foreground transition-colors">About</Link></li>
                 <li><Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+                <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
                 <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link></li>
                 <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link></li>
               </ul>
             </div>
           </div>
-          
+
           <div className="mt-12 pt-8 border-t border-white/5 text-center text-sm text-muted-foreground">
             © 2024 Awareness. All rights reserved.
           </div>

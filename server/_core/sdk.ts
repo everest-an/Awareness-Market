@@ -261,8 +261,9 @@ class SDKServer {
   async authenticateRequest(req: Request): Promise<User> {
     const cookies = this.parseCookies(req.headers.cookie);
     
-    // Try JWT token first (new auth system)
-    const jwtToken = cookies.get('jwt_token');
+    // Try JWT token first (new auth system) — from cookie or Authorization: Bearer header
+    const jwtToken = cookies.get('jwt_token')
+      || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined);
     if (jwtToken) {
       try {
         const authStandalone = await import('../auth-standalone');

@@ -1,0 +1,37 @@
+{
+  "name": "awareness-cli",
+  "version": "0.1.0",
+  "description": "CLI for Awareness Market — manage multi-AI workspaces from the terminal",
+  "type": "module",
+  "bin": {
+    "awareness": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "ora": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "ai",
+    "mcp",
+    "workspace",
+    "context",
+    "developer-tools"
+  ],
+  "license": "MIT"
+}

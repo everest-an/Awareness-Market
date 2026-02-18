@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserCircle, ShoppingCart } from "lucide-react";
+import { Users, Terminal, ArrowRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,17 +20,27 @@ interface WelcomeDialogProps {
 
 export function WelcomeDialog({ open, onOpenChange }: WelcomeDialogProps) {
   const { toast } = useToast();
-  const [selectedRole, setSelectedRole] = useState<"creator" | "consumer" | null>(null);
+  const [, navigate] = useLocation();
+  const [selected, setSelected] = useState<"workspace" | "cli" | null>(null);
   const utils = trpc.useUtils();
 
   const updateRoleMutation = trpc.user.updateUserRole.useMutation({
     onSuccess: () => {
-      toast({
-        title: "Welcome aboard!",
-        description: "Your profile has been set up successfully.",
-      });
       utils.user.me.invalidate();
       onOpenChange(false);
+
+      if (selected === "workspace") {
+        navigate("/workspace/new");
+      } else {
+        navigate("/documentation");
+      }
+
+      toast({
+        title: "Welcome aboard!",
+        description: selected === "workspace"
+          ? "Let's set up your AI workspace."
+          : "Check out the CLI getting started guide.",
+      });
     },
     onError: (error) => {
       toast({
@@ -40,13 +51,10 @@ export function WelcomeDialog({ open, onOpenChange }: WelcomeDialogProps) {
     },
   });
 
-  const handleRoleSelect = (role: "creator" | "consumer") => {
-    setSelectedRole(role);
-  };
-
   const handleContinue = () => {
-    if (selectedRole) {
-      updateRoleMutation.mutate({ userType: selectedRole });
+    if (selected) {
+      // Set role as "creator" for developer-focused users (compatible with existing schema)
+      updateRoleMutation.mutate({ userType: "creator" });
     }
   };
 
@@ -61,84 +69,76 @@ export function WelcomeDialog({ open, onOpenChange }: WelcomeDialogProps) {
           </div>
           <DialogTitle className="text-center text-2xl">Welcome to Awareness!</DialogTitle>
           <DialogDescription className="text-center">
-            The first marketplace for trading AI capabilities, reasoning states, and solution processes.
+            Stop re-explaining your codebase to AI.
             <br />
-            Let's get you started in 3 quick steps.
+            Set up your multi-AI workspace in 30 seconds.
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-center mb-4">
-            What brings you here today?
+            How do you want to get started?
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Creator Card */}
+            {/* Workspace UI Card */}
             <Card
               className={`cursor-pointer transition-all ${
-                selectedRole === "creator"
+                selected === "workspace"
                   ? "ring-2 ring-cyan-500 bg-cyan-50 dark:bg-cyan-950"
                   : "hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
-              onClick={() => handleRoleSelect("creator")}
+              onClick={() => setSelected("workspace")}
             >
               <CardContent className="p-6">
                 <div className="flex flex-col items-center text-center space-y-4">
                   <div className="w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900 flex items-center justify-center">
-                    <UserCircle className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+                    <Users className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-lg mb-2">I'm a Creator</h4>
+                    <h4 className="font-semibold text-lg mb-2">Set up workspace</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      I want to publish and monetize my AI capabilities, reasoning states, or
-                      solution processes.
+                      Add your AI tools (Claude, Cursor, Kiro, v0...) and get MCP configs in a wizard.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <span className="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 text-xs rounded">
-                      Upload
+                      Visual Setup
                     </span>
                     <span className="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 text-xs rounded">
-                      Earn Revenue
-                    </span>
-                    <span className="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 text-xs rounded">
-                      Share Knowledge
+                      30 seconds
                     </span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Consumer Card */}
+            {/* CLI Card */}
             <Card
               className={`cursor-pointer transition-all ${
-                selectedRole === "consumer"
+                selected === "cli"
                   ? "ring-2 ring-cyan-500 bg-cyan-50 dark:bg-cyan-950"
                   : "hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
-              onClick={() => handleRoleSelect("consumer")}
+              onClick={() => setSelected("cli")}
             >
               <CardContent className="p-6">
                 <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                    <ShoppingCart className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                    <Terminal className="w-6 h-6 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-lg mb-2">I'm a Consumer</h4>
+                    <h4 className="font-semibold text-lg mb-2">Use the CLI</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      I want to discover and integrate pre-trained AI capabilities into my
-                      applications.
+                      Run <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">npx awareness init</code> in your project to auto-detect everything.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-center">
-                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded">
-                      Browse
+                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs rounded">
+                      Auto-detect
                     </span>
-                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded">
-                      Purchase
-                    </span>
-                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded">
-                      Integrate
+                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs rounded">
+                      Terminal
                     </span>
                   </div>
                 </div>
@@ -149,16 +149,21 @@ export function WelcomeDialog({ open, onOpenChange }: WelcomeDialogProps) {
           <div className="mt-6 flex justify-center">
             <Button
               onClick={handleContinue}
-              disabled={!selectedRole || updateRoleMutation.isPending}
+              disabled={!selected || updateRoleMutation.isPending}
               size="lg"
               className="w-full md:w-auto"
             >
-              {updateRoleMutation.isPending ? "Setting up..." : "Continue"}
+              {updateRoleMutation.isPending ? "Setting up..." : (
+                <>
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
           </div>
 
           <p className="text-xs text-center text-gray-500 mt-4">
-            Don't worry, you can change this later in your profile settings.
+            You can always switch methods later or explore the full platform marketplace.
           </p>
         </div>
       </DialogContent>
