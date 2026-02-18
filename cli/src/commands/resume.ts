@@ -41,12 +41,12 @@ export async function resumeCommand(options: { copy?: boolean }) {
 
     let context: any = null;
     try {
-      context = await client.collabGet('context', { workspace: `workspace:${workspaceId}` });
+      context = await client.collabGet('context', { workspace: workspaceId });
     } catch { /* non-critical */ }
 
     let collabStatus: any = null;
     try {
-      collabStatus = await client.collabGet('status', { workspace: `workspace:${workspaceId}` });
+      collabStatus = await client.collabGet('status', { workspace: workspaceId });
     } catch { /* non-critical */ }
 
     spinner.stop();

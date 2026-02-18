@@ -40,11 +40,16 @@ async function resolveUser(req: any): Promise<{ userId: number } | null> {
     }
   }
 
+  // Try Bearer JWT (set by flexAuth)
+  if ((req as any)._bearerUserId) {
+    return { userId: (req as any)._bearerUserId };
+  }
+
   return null;
 }
 
-// Apply validateApiKey optionally — allow MCP token fallback
-function flexAuth(req: any, res: any, next: any) {
+// Apply validateApiKey optionally — allow MCP token or Bearer JWT fallback
+async function flexAuth(req: any, res: any, next: any) {
   const apiKey = req.headers['x-api-key'] as string | undefined;
   if (apiKey) {
     return validateApiKey(req, res, next);
@@ -55,7 +60,25 @@ function flexAuth(req: any, res: any, next: any) {
     return next(); // Will be resolved in handler via resolveUser
   }
 
-  return res.status(401).json({ error: 'Missing authentication. Provide X-API-Key or X-MCP-Token header.' });
+  // Bearer JWT token (for CLI and web clients)
+  const authHeader = req.headers.authorization as string | undefined;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const { getUserFromToken } = await import('../auth-standalone');
+      const result = await getUserFromToken(authHeader.slice(7));
+      if (result.success && result.user) {
+        (req as AuthenticatedRequest).apiKeyUserId = result.user.id;
+        (req as AuthenticatedRequest).apiKeyPermissions = ['read', 'write', 'propose'];
+        (req as any)._bearerUserId = result.user.id;
+        return next();
+      }
+    } catch (error) {
+      logger.error('Bearer token validation error:', { error });
+    }
+    return res.status(401).json({ error: 'Invalid Bearer token' });
+  }
+
+  return res.status(401).json({ error: 'Missing authentication. Provide X-API-Key, X-MCP-Token, or Authorization: Bearer header.' });
 }
 
 // ============================================================================

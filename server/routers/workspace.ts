@@ -233,6 +233,7 @@ export const workspaceRouter = router({
         success: true,
         workspaceId,
         memoryKey,
+        mcpToken: tokenData.token,
         tokenPrefix: tokenData.tokenPrefix,
         agents: (workspace.agents as AgentRecord[]).map((a) => ({ id: a.id, name: a.name, role: a.role })),
       };
@@ -759,9 +760,10 @@ export const workspaceRouter = router({
       }
 
       // Read collaboration history from AiMemory
+      // The collab REST API writes to `workspace:${id}` memoryKey with { history: [...] } format
       const historyMem = await db.getAIMemoryByKey({
         userId: ctx.user.id,
-        memoryKey: `${workspace.memoryKey}:__collab_history`,
+        memoryKey: workspace.memoryKey,
       });
 
       let recentContext: Array<{ agent: string; agentRole: string; content: string; timestamp: string }> = [];
@@ -771,30 +773,58 @@ export const workspaceRouter = router({
       if (historyMem?.memoryData) {
         try {
           const data = JSON.parse(historyMem.memoryData);
-          // Extract context entries
-          if (Array.isArray(data.entries)) {
-            recentContext = data.entries
-              .filter((e: any) => e.type === 'share' || e.reasoning)
-              .slice(-20)
-              .map((e: any) => ({
-                agent: e.agentName || e.agent || 'unknown',
-                agentRole: e.agentRole || e.role || 'unknown',
-                content: e.reasoning || e.task || e.content || '',
-                timestamp: e.timestamp || e.createdAt || '',
-              }));
-          }
-          // Extract decisions
-          if (Array.isArray(data.decisions)) {
-            decisions = data.decisions.slice(-10).map((d: any) => ({
-              proposal: d.proposal || d.decision || d.content || '',
-              proposedBy: d.proposedBy || d.agent || 'unknown',
+          // Collab REST API stores as { history: [...] }, also check entries for compatibility
+          const historyArray = Array.isArray(data.history) ? data.history : Array.isArray(data.entries) ? data.entries : [];
+
+          // Extract context entries (share, progress_sync, reasoning_update)
+          recentContext = historyArray
+            .filter((e: any) => e.type === 'share' || e.type === 'progress_sync' || e.type === 'reasoning_update' || e.reasoning)
+            .slice(-20)
+            .map((e: any) => ({
+              agent: e.agentName || e.agent || e.agent_role || 'unknown',
+              agentRole: e.agentRole || e.agent_role || e.role || 'unknown',
+              content: e.reasoning || e.current_task || e.task || e.content || (e.completed_tasks ? `Completed: ${e.completed_tasks.join(', ')}` : ''),
+              timestamp: e.timestamp || e.createdAt || '',
+            }));
+
+          // Extract decisions (decision_proposal type)
+          decisions = historyArray
+            .filter((e: any) => e.type === 'decision_proposal')
+            .slice(-10)
+            .map((d: any) => ({
+              proposal: d.decision || d.proposal || d.content || '',
+              proposedBy: d.agent_role || d.proposedBy || d.agent || 'unknown',
               status: d.status || 'pending',
               timestamp: d.timestamp || '',
             }));
+
+          // Also check dedicated decisions/agentActivity keys
+          if (Array.isArray(data.decisions)) {
+            for (const d of data.decisions) {
+              decisions.push({
+                proposal: d.proposal || d.decision || d.content || '',
+                proposedBy: d.proposedBy || d.agent || 'unknown',
+                status: d.status || 'pending',
+                timestamp: d.timestamp || '',
+              });
+            }
           }
-          // Extract per-agent last activity
+
+          // Build per-agent last activity from history
+          for (const entry of historyArray) {
+            const role = entry.agent_role || entry.agentRole || entry.role;
+            if (role && entry.timestamp) {
+              const existing = agentActivity[role];
+              if (!existing || new Date(entry.timestamp) > new Date(existing.lastSeen)) {
+                agentActivity[role] = {
+                  lastSeen: entry.timestamp,
+                  lastContext: entry.reasoning || entry.current_task || entry.task || '',
+                };
+              }
+            }
+          }
           if (data.agentActivity && typeof data.agentActivity === 'object') {
-            agentActivity = data.agentActivity;
+            Object.assign(agentActivity, data.agentActivity);
           }
         } catch { /* corrupted data, return empty */ }
       }
@@ -845,10 +875,10 @@ export const workspaceRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
       }
 
-      // Read all AiMemory entries for this workspace's collab history
+      // Read collab history — the REST API stores at workspace.memoryKey with { history: [...] }
       const historyMem = await db.getAIMemoryByKey({
         userId: ctx.user.id,
-        memoryKey: `${workspace.memoryKey}:__collab_history`,
+        memoryKey: workspace.memoryKey,
       });
 
       let allEntries: Array<{ agent: string; role: string; content: string; type: string; timestamp: string }> = [];
@@ -856,15 +886,14 @@ export const workspaceRouter = router({
       if (historyMem?.memoryData) {
         try {
           const data = JSON.parse(historyMem.memoryData);
-          if (Array.isArray(data.entries)) {
-            allEntries = data.entries.map((e: any) => ({
-              agent: e.agentName || e.agent || 'unknown',
-              role: e.agentRole || e.role || 'unknown',
-              content: e.reasoning || e.task || e.content || e.progress || '',
-              type: e.type || 'context',
-              timestamp: e.timestamp || e.createdAt || '',
-            }));
-          }
+          const historyArray = Array.isArray(data.history) ? data.history : Array.isArray(data.entries) ? data.entries : [];
+          allEntries = historyArray.map((e: any) => ({
+            agent: e.agentName || e.agent || e.agent_role || 'unknown',
+            role: e.agentRole || e.agent_role || e.role || 'unknown',
+            content: e.reasoning || e.current_task || e.task || e.content || e.progress || (e.completed_tasks ? `Completed: ${e.completed_tasks.join(', ')}` : ''),
+            type: e.type || 'context',
+            timestamp: e.timestamp || e.createdAt || '',
+          }));
         } catch { /* return empty */ }
       }
 
@@ -906,18 +935,22 @@ export const workspaceRouter = router({
         try { brain = JSON.parse(brainMem.memoryData); } catch { /* ignore */ }
       }
 
-      // Get collab history
+      // Get collab history — REST API stores at workspace.memoryKey with { history: [...] }
       let entries: any[] = [];
       let decisions: any[] = [];
       const historyMem = await db.getAIMemoryByKey({
         userId: ctx.user.id,
-        memoryKey: `${workspace.memoryKey}:__collab_history`,
+        memoryKey: workspace.memoryKey,
       });
       if (historyMem?.memoryData) {
         try {
           const data = JSON.parse(historyMem.memoryData);
-          entries = Array.isArray(data.entries) ? data.entries.slice(-15) : [];
-          decisions = Array.isArray(data.decisions) ? data.decisions.slice(-5) : [];
+          const historyArray = Array.isArray(data.history) ? data.history : Array.isArray(data.entries) ? data.entries : [];
+          entries = historyArray.slice(-15);
+          decisions = historyArray.filter((e: any) => e.type === 'decision_proposal').slice(-5);
+          if (Array.isArray(data.decisions)) {
+            decisions = decisions.concat(data.decisions.slice(-5));
+          }
         } catch { /* ignore */ }
       }
 
@@ -938,12 +971,12 @@ export const workspaceRouter = router({
       }
 
       // What happened
-      const contextEntries = entries.filter((e: any) => e.reasoning || e.task || e.content);
+      const contextEntries = entries.filter((e: any) => e.reasoning || e.current_task || e.task || e.content || e.completed_tasks);
       if (contextEntries.length > 0) {
         lines.push('### What happened:');
         for (const entry of contextEntries.slice(-10)) {
-          const agent = entry.agentRole || entry.agent || 'Agent';
-          const text = entry.reasoning || entry.task || entry.content || '';
+          const agent = entry.agentRole || entry.agent_role || entry.agent || 'Agent';
+          const text = entry.reasoning || entry.current_task || entry.task || entry.content || (entry.completed_tasks ? `Completed: ${entry.completed_tasks.join(', ')}` : '');
           if (text) lines.push(`- **${agent}**: ${text}`);
         }
         lines.push('');

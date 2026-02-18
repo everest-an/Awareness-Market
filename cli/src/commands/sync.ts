@@ -51,12 +51,17 @@ async function pushContext(client: ApiClient, workspaceId: string) {
       gitDiff ? `Changes:\n${gitDiff}` : 'No uncommitted changes',
     ].filter(Boolean).join('\n');
 
+    // Parse modified files from git diff --stat output
+    const modifiedFiles = gitDiff
+      ? gitDiff.split('\n').slice(0, -1).map(l => l.trim().split('|')[0].trim()).filter(Boolean)
+      : [];
+
     await client.collabPost('progress', {
-      workspace: `workspace:${workspaceId}`,
+      workspace: workspaceId,
       role: 'cli',
-      task: 'Manual sync from CLI',
-      progress: summary,
-      status: 'synced',
+      completedTasks: ['Manual sync from CLI'],
+      currentTask: branch ? `Working on branch: ${branch}` : undefined,
+      filesModified: modifiedFiles.length > 0 ? modifiedFiles : undefined,
     });
 
     spinner.succeed('Context pushed');
@@ -76,7 +81,7 @@ async function pullContext(client: ApiClient, workspaceId: string) {
 
   try {
     const context = await client.collabGet('context', {
-      workspace: `workspace:${workspaceId}`,
+      workspace: workspaceId,
     });
 
     const entries = context?.entries || context?.context || [];
