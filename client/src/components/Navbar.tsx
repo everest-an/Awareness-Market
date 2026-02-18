@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 
 const navLinks = [
+  { label: "Dashboard", href: "/dev" },
   {
     label: "Products",
     children: [
@@ -130,7 +131,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-2.5">
             <div className="relative w-9 h-9">
               {/* Outer gradient ring */}
-              <div 
+              <div
                 className="absolute inset-0 rounded-full"
                 style={{
                   background: 'conic-gradient(from 180deg, #0ea5e9, #06b6d4, #22d3ee, #67e8f9, #22d3ee, #06b6d4, #0ea5e9)',
@@ -140,7 +141,7 @@ export default function Navbar() {
                 <div className="w-full h-full rounded-full bg-background" />
               </div>
               {/* Inner subtle glow */}
-              <div 
+              <div
                 className="absolute inset-[3px] rounded-full opacity-20"
                 style={{
                   background: 'radial-gradient(circle, #22d3ee 0%, transparent 70%)',
@@ -196,6 +197,12 @@ export default function Navbar() {
               <>
                 <span className="text-white/30 mx-1">/</span>
                 <span className="text-cyan-400 font-medium">Dashboard</span>
+              </>
+            )}
+            {location === '/dev' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Project Brain</span>
               </>
             )}
             {location === '/docs' && (
@@ -324,6 +331,12 @@ export default function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-card/95 backdrop-blur-xl border-white/10">
                   <DropdownMenuItem asChild>
+                    <Link href="/dev" className="flex items-center gap-2 cursor-pointer">
+                      <Brain className="w-4 h-4" />
+                      Project Brain
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
                       <LayoutDashboard className="w-4 h-4" />
                       Dashboard
@@ -419,7 +432,7 @@ export default function Navbar() {
                     </>
                   )}
                   <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => logout()}
                     className="flex items-center gap-2 cursor-pointer text-destructive"
                   >

@@ -93,6 +93,7 @@ import AgentDiscovery from "./pages/AgentDiscovery";
 import WMatrixMarketplace from "./pages/WMatrixMarketplace";
 import LatentMASMarketplace from "./pages/LatentMASMarketplace";
 import WMatrixTools from "./pages/WMatrixTools";
+import DevDashboard from "./pages/DevDashboard";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -109,6 +110,7 @@ function Router() {
       <Route path={"/api/auth/callback/:provider"} component={OAuthCallback} />
       
       <Route path="/docs/collaboration" component={AiCollaborationDocs} />
+      <Route path="/dev" component={DevDashboard} />
       <Route path="/workspace" component={WorkspaceList} />
       <Route path="/workspace/new" component={WorkspaceSetup} />
       <Route path="/workspace/:id" component={WorkspaceDetail} />

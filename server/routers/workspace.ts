@@ -741,4 +741,239 @@ export const workspaceRouter = router({
         return { entries: [] };
       }
     }),
+
+  /**
+   * Get workspace status — agent activity, recent decisions, conflicts
+   * (Used by DevDashboard and CLI `awareness status`)
+   */
+  getStatus: protectedProcedure
+    .input(z.object({ workspaceId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+        include: { agents: true },
+      });
+
+      if (!workspace) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+      }
+
+      // Read collaboration history from AiMemory
+      const historyMem = await db.getAIMemoryByKey({
+        userId: ctx.user.id,
+        memoryKey: `${workspace.memoryKey}:__collab_history`,
+      });
+
+      let recentContext: Array<{ agent: string; agentRole: string; content: string; timestamp: string }> = [];
+      let decisions: Array<{ proposal: string; proposedBy: string; status: string; timestamp: string }> = [];
+      let agentActivity: Record<string, { lastSeen: string; lastContext: string }> = {};
+
+      if (historyMem?.memoryData) {
+        try {
+          const data = JSON.parse(historyMem.memoryData);
+          // Extract context entries
+          if (Array.isArray(data.entries)) {
+            recentContext = data.entries
+              .filter((e: any) => e.type === 'share' || e.reasoning)
+              .slice(-20)
+              .map((e: any) => ({
+                agent: e.agentName || e.agent || 'unknown',
+                agentRole: e.agentRole || e.role || 'unknown',
+                content: e.reasoning || e.task || e.content || '',
+                timestamp: e.timestamp || e.createdAt || '',
+              }));
+          }
+          // Extract decisions
+          if (Array.isArray(data.decisions)) {
+            decisions = data.decisions.slice(-10).map((d: any) => ({
+              proposal: d.proposal || d.decision || d.content || '',
+              proposedBy: d.proposedBy || d.agent || 'unknown',
+              status: d.status || 'pending',
+              timestamp: d.timestamp || '',
+            }));
+          }
+          // Extract per-agent last activity
+          if (data.agentActivity && typeof data.agentActivity === 'object') {
+            agentActivity = data.agentActivity;
+          }
+        } catch { /* corrupted data, return empty */ }
+      }
+
+      // Also check individual agent context keys
+      const agents = workspace.agents.map((a: AgentRecord) => {
+        const activity = agentActivity[a.role] || agentActivity[a.name];
+        return {
+          id: a.id,
+          name: a.name,
+          role: a.role,
+          model: a.model,
+          integration: a.integration,
+          permissions: a.permissions,
+          lastSeen: activity?.lastSeen || null,
+          lastContext: activity?.lastContext || null,
+        };
+      });
+
+      return {
+        workspaceId: workspace.id,
+        name: workspace.name,
+        status: workspace.status,
+        agents,
+        recentContext,
+        decisions,
+        conflicts: [], // Placeholder — conflict detection can read from memory governance
+      };
+    }),
+
+  /**
+   * Get context timeline for a workspace (paginated)
+   * (Used by DevDashboard context panel)
+   */
+  getContext: protectedProcedure
+    .input(z.object({
+      workspaceId: z.string(),
+      limit: z.number().min(1).max(100).default(20),
+      offset: z.number().min(0).default(0),
+    }))
+    .query(async ({ input, ctx }) => {
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+        select: { id: true, memoryKey: true },
+      });
+
+      if (!workspace) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+      }
+
+      // Read all AiMemory entries for this workspace's collab history
+      const historyMem = await db.getAIMemoryByKey({
+        userId: ctx.user.id,
+        memoryKey: `${workspace.memoryKey}:__collab_history`,
+      });
+
+      let allEntries: Array<{ agent: string; role: string; content: string; type: string; timestamp: string }> = [];
+
+      if (historyMem?.memoryData) {
+        try {
+          const data = JSON.parse(historyMem.memoryData);
+          if (Array.isArray(data.entries)) {
+            allEntries = data.entries.map((e: any) => ({
+              agent: e.agentName || e.agent || 'unknown',
+              role: e.agentRole || e.role || 'unknown',
+              content: e.reasoning || e.task || e.content || e.progress || '',
+              type: e.type || 'context',
+              timestamp: e.timestamp || e.createdAt || '',
+            }));
+          }
+        } catch { /* return empty */ }
+      }
+
+      // Sort newest first
+      allEntries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      const paginated = allEntries.slice(input.offset, input.offset + input.limit);
+
+      return {
+        entries: paginated,
+        total: allEntries.length,
+        hasMore: input.offset + input.limit < allEntries.length,
+      };
+    }),
+
+  /**
+   * Generate session resume markdown
+   * (Used by DevDashboard "Resume Session" button and CLI `awareness resume`)
+   */
+  generateResume: protectedProcedure
+    .input(z.object({ workspaceId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+        include: { agents: true },
+      });
+
+      if (!workspace) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+      }
+
+      // Get project brain
+      let brain: any = null;
+      const brainMem = await db.getAIMemoryByKey({
+        userId: ctx.user.id,
+        memoryKey: `${workspace.memoryKey}:project-brain`,
+      });
+      if (brainMem?.memoryData) {
+        try { brain = JSON.parse(brainMem.memoryData); } catch { /* ignore */ }
+      }
+
+      // Get collab history
+      let entries: any[] = [];
+      let decisions: any[] = [];
+      const historyMem = await db.getAIMemoryByKey({
+        userId: ctx.user.id,
+        memoryKey: `${workspace.memoryKey}:__collab_history`,
+      });
+      if (historyMem?.memoryData) {
+        try {
+          const data = JSON.parse(historyMem.memoryData);
+          entries = Array.isArray(data.entries) ? data.entries.slice(-15) : [];
+          decisions = Array.isArray(data.decisions) ? data.decisions.slice(-5) : [];
+        } catch { /* ignore */ }
+      }
+
+      // Build markdown
+      const lines: string[] = [];
+      const today = new Date().toISOString().split('T')[0];
+
+      lines.push(`## Session Resume - ${workspace.name}`);
+      lines.push(`**Date**: ${today}`);
+      lines.push('');
+
+      // Stack info from brain
+      if (brain?.stack) {
+        const stack = Array.isArray(brain.stack) ? brain.stack.join(' + ') : brain.stack;
+        lines.push(`**Stack**: ${stack}`);
+        if (brain.databaseType) lines.push(`**Database**: ${brain.databaseType}`);
+        lines.push('');
+      }
+
+      // What happened
+      const contextEntries = entries.filter((e: any) => e.reasoning || e.task || e.content);
+      if (contextEntries.length > 0) {
+        lines.push('### What happened:');
+        for (const entry of contextEntries.slice(-10)) {
+          const agent = entry.agentRole || entry.agent || 'Agent';
+          const text = entry.reasoning || entry.task || entry.content || '';
+          if (text) lines.push(`- **${agent}**: ${text}`);
+        }
+        lines.push('');
+      }
+
+      // Decisions
+      if (decisions.length > 0) {
+        lines.push('### Decisions:');
+        for (const dec of decisions) {
+          const text = dec.proposal || dec.decision || dec.content || '';
+          const status = dec.status || 'pending';
+          const by = dec.proposedBy || dec.agent || 'unknown';
+          lines.push(`- ${text} (${status}, by ${by})`);
+        }
+        lines.push('');
+      }
+
+      // Active agents
+      const agents = workspace.agents as AgentRecord[];
+      if (agents.length > 0) {
+        lines.push('### Active agents:');
+        for (const a of agents) {
+          lines.push(`- **${a.name}** (${a.role}) — ${a.model}`);
+        }
+        lines.push('');
+      }
+
+      lines.push('### Instructions:');
+      lines.push('Continue from where the team left off. Check the decisions above and coordinate with other agents through Awareness.');
+
+      return { markdown: lines.join('\n') };
+    }),
 });
