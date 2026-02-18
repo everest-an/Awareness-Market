@@ -19,47 +19,63 @@ export interface AuthenticatedRequest extends express.Request {
 
 const router = express.Router();
 
-// Middleware to validate API key from header
+// Middleware to validate API key or Bearer JWT from header
 async function validateApiKey(req: express.Request, res: express.Response, next: express.NextFunction) {
   const apiKey = req.headers["x-api-key"] as string;
+  const authHeader = req.headers.authorization;
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
 
-  if (!apiKey) {
-    return res.status(401).json({ error: "API key required" });
+  // Try API key first
+  if (apiKey) {
+    try {
+      const keyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
+      const keyRecord = await prisma.apiKey.findFirst({
+        where: {
+          keyHash,
+          isActive: true,
+        },
+      });
+
+      if (!keyRecord) {
+        return res.status(401).json({ error: "Invalid API key" });
+      }
+
+      if (keyRecord.expiresAt && new Date(keyRecord.expiresAt) < new Date()) {
+        return res.status(401).json({ error: "API key expired" });
+      }
+
+      await prisma.apiKey.update({
+        where: { id: keyRecord.id },
+        data: { lastUsedAt: new Date() },
+      });
+
+      (req as AuthenticatedRequest).apiKeyUserId = keyRecord.userId;
+      (req as AuthenticatedRequest).apiKeyPermissions = keyRecord.permissions ? JSON.parse(keyRecord.permissions) : [];
+
+      return next();
+    } catch (error) {
+      logger.error(" API key validation error:", { error });
+      return res.status(500).json({ error: "Authentication failed" });
+    }
   }
 
-  try {
-    const keyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
-    const keyRecord = await prisma.apiKey.findFirst({
-      where: {
-        keyHash,
-        isActive: true,
-      },
-    });
-
-    if (!keyRecord) {
-      return res.status(401).json({ error: "Invalid API key" });
+  // Fallback: Bearer JWT token (for CLI and web clients)
+  if (bearerToken) {
+    try {
+      const { getUserFromToken } = await import('./auth-standalone');
+      const result = await getUserFromToken(bearerToken);
+      if (result.success && result.user) {
+        (req as AuthenticatedRequest).apiKeyUserId = result.user.id;
+        (req as AuthenticatedRequest).apiKeyPermissions = ['read', 'write', 'purchase'];
+        return next();
+      }
+    } catch (error) {
+      logger.error(" Bearer token validation error:", { error });
     }
-
-    // Check expiration
-    if (keyRecord.expiresAt && new Date(keyRecord.expiresAt) < new Date()) {
-      return res.status(401).json({ error: "API key expired" });
-    }
-
-    // Update last used timestamp
-    await prisma.apiKey.update({
-      where: { id: keyRecord.id },
-      data: { lastUsedAt: new Date() },
-    });
-
-    // Attach user info to request
-    (req as AuthenticatedRequest).apiKeyUserId = keyRecord.userId;
-    (req as AuthenticatedRequest).apiKeyPermissions = keyRecord.permissions ? JSON.parse(keyRecord.permissions) : [];
-
-    next();
-  } catch (error) {
-    logger.error(" API key validation error:", { error });
-    return res.status(500).json({ error: "Authentication failed" });
+    return res.status(401).json({ error: "Invalid Bearer token" });
   }
+
+  return res.status(401).json({ error: "Authentication required. Provide X-API-Key or Authorization: Bearer header." });
 }
 
 /**

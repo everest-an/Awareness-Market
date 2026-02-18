@@ -44,13 +44,13 @@ export async function statusCommand() {
     // Fetch collaboration status
     let collabStatus: any = null;
     try {
-      collabStatus = await client.collabGet('status', { workspace: `workspace:${workspaceId}` });
+      collabStatus = await client.collabGet('status', { workspace: workspaceId });
     } catch { /* collab API may not be configured */ }
 
     // Fetch recent context
     let context: any = null;
     try {
-      context = await client.collabGet('context', { workspace: `workspace:${workspaceId}` });
+      context = await client.collabGet('context', { workspace: workspaceId });
     } catch { /* non-critical */ }
 
     spinner.stop();
