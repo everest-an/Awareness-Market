@@ -173,7 +173,7 @@ const shareSchema = z.object({
   task: z.string().min(1).max(2000),
   reasoning: z.string().min(1).max(10000),
   decision: z.string().max(2000).optional(),
-  filesModified: z.array(z.string()).optional(),
+  filesModified: z.array(z.string().max(500)).max(500).optional(),
   needsInput: z.boolean().optional(),
   question: z.string().max(2000).optional(),
 });
@@ -412,7 +412,7 @@ const progressSchema = z.object({
   currentTask: z.string().optional(),
   blockers: z.array(z.string()).optional(),
   nextSteps: z.array(z.string()).optional(),
-  filesModified: z.array(z.string()).optional(),
+  filesModified: z.array(z.string().max(500)).max(500).optional(),
 });
 
 collabRouter.post('/progress', flexAuth, async (req, res) => {
@@ -557,6 +557,9 @@ const heartbeatSchema = z.object({
   role: z.string().min(1).max(50),
 });
 
+// Simple in-memory rate limiter for heartbeat: max 30 calls per minute per user
+const heartbeatRateMap = new Map<number, { count: number; resetAt: number }>();
+
 collabRouter.post('/heartbeat', flexAuth, async (req, res) => {
   try {
     const user = await resolveUser(req);
@@ -564,10 +567,35 @@ collabRouter.post('/heartbeat', flexAuth, async (req, res) => {
       return res.status(401).json({ error: 'Authentication failed' });
     }
 
+    // Rate limit: 30 heartbeats/min per user
+    const now = Date.now();
+    const entry = heartbeatRateMap.get(user.userId);
+    if (entry && now < entry.resetAt) {
+      if (entry.count >= 30) {
+        return res.status(429).json({ error: 'Too many heartbeats', retryAfter: Math.ceil((entry.resetAt - now) / 1000) });
+      }
+      entry.count++;
+    } else {
+      heartbeatRateMap.set(user.userId, { count: 1, resetAt: now + 60_000 });
+    }
+
     const body = heartbeatSchema.parse(req.body);
-    const memoryKey = body.workspace.startsWith('client:')
+    const memoryKey = body.workspace.startsWith('workspace:')
       ? body.workspace
       : `workspace:${body.workspace}`;
+
+    // Verify workspace ownership explicitly before touching agent
+    const wsIdMatch = memoryKey.match(/^workspace:(ws_[a-f0-9]+)/);
+    if (!wsIdMatch) {
+      return res.status(400).json({ error: 'Invalid workspace key' });
+    }
+    const wsOwned = await orm.workspace.findFirst({
+      where: { id: wsIdMatch[1], userId: user.userId },
+      select: { id: true },
+    });
+    if (!wsOwned) {
+      return res.status(403).json({ error: 'Not workspace owner' });
+    }
 
     await touchAgentHeartbeat(user.userId, memoryKey, body.role);
 

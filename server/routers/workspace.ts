@@ -42,7 +42,7 @@ const agentSchema = z.object({
   tools: z.array(z.string().max(50)).max(20).default([]),
   priority: z.number().int().min(1).max(10).default(5),
   endpoint: z.string().url().max(512).optional().or(z.literal('')),
-  config: z.record(z.string(), z.unknown()).optional(),
+  config: z.record(z.string(), z.string().max(2000)).refine(obj => Object.keys(obj).length <= 50, { message: 'Config limited to 50 keys' }).optional(),
 });
 
 const createSchema = z.object({
@@ -1074,8 +1074,8 @@ export const workspaceRouter = router({
         backstory: z.string().max(5000).optional().nullable(),
         tools: z.array(z.string().max(50)).max(20).optional(),
         priority: z.number().int().min(1).max(10).optional(),
-        endpoint: z.string().max(512).optional().nullable(),
-        config: z.record(z.string(), z.unknown()).optional().nullable(),
+        endpoint: z.string().url().max(512).or(z.literal('')).optional().nullable(),
+        config: z.record(z.string(), z.string().max(2000)).refine(obj => Object.keys(obj).length <= 50, { message: 'Config limited to 50 keys' }).optional().nullable(),
       }),
     }))
     .mutation(async ({ input, ctx }) => {
