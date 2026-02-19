@@ -1,9 +1,85 @@
 import chalk from 'chalk';
 import ora from 'ora';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { ApiClient } from '../lib/api-client.js';
 import { loadConfig, saveConfig, isLoggedIn, saveProjectConfig, loadProjectConfig } from '../lib/config.js';
 import { scanProject, mapToolsToAgents } from '../lib/scanner.js';
 import * as fmt from '../lib/formatter.js';
+
+/** MCP config file paths for each AI tool (project-level) */
+const MCP_CONFIG_PATHS: Record<string, string> = {
+  'Claude Code': '.claude/mcp_config.json',
+  'Cursor':      '.cursor/mcp.json',
+  'Windsurf':    '.windsurf/mcp.json',
+  'Kiro':        '.kiro/mcp.json',
+};
+
+/**
+ * Build the MCP server block for awareness-collab.
+ */
+function buildMcpServerEntry(apiUrl: string, mcpToken: string, role: string, memoryKey: string) {
+  return {
+    command: 'npx',
+    args: ['-y', '@anthropic-ai/mcp-server-awareness-collab'],
+    env: {
+      VITE_APP_URL: apiUrl,
+      MCP_COLLABORATION_TOKEN: mcpToken,
+      AGENT_ROLE: role,
+      MEMORY_KEY: memoryKey,
+    },
+  };
+}
+
+/**
+ * Auto-inject awareness-collab MCP config into detected AI tool config files.
+ * Merges with existing config if the file already exists.
+ * Returns list of paths that were written.
+ */
+function injectMcpConfigs(
+  detectedTools: string[],
+  agents: Array<{ name: string; role: string; integration: string }>,
+  apiUrl: string,
+  mcpToken: string,
+  workspaceId: string,
+  cwd: string = process.cwd(),
+): string[] {
+  const written: string[] = [];
+
+  for (const toolName of detectedTools) {
+    const configRelPath = MCP_CONFIG_PATHS[toolName];
+    if (!configRelPath) continue; // tool doesn't support MCP config (e.g. v0, Copilot, Aider)
+
+    const agent = agents.find(a => a.name === toolName);
+    const role = agent?.role || 'fullstack';
+    const memoryKey = `workspace:${workspaceId}:dev`;
+    const entry = buildMcpServerEntry(apiUrl, mcpToken, role, memoryKey);
+
+    const configPath = path.join(cwd, configRelPath);
+    const configDir = path.dirname(configPath);
+
+    // Ensure directory exists
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    // Merge with existing config
+    let existing: any = {};
+    if (fs.existsSync(configPath)) {
+      try {
+        existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      } catch { /* overwrite if parse fails */ }
+    }
+
+    if (!existing.mcpServers) existing.mcpServers = {};
+    existing.mcpServers['awareness-collab'] = entry;
+
+    fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n');
+    written.push(configRelPath);
+  }
+
+  return written;
+}
 
 export async function initCommand(options: { force?: boolean }) {
   // Check if already initialized
@@ -106,7 +182,29 @@ export async function initCommand(options: { force?: boolean }) {
     if (result.mcpToken) config.mcpToken = result.mcpToken;
     saveConfig(config);
 
-    // Step 6: Print success
+    // Step 6: Auto-inject MCP configs into detected AI tools
+    let injectedPaths: string[] = [];
+    if (result.mcpToken && scan.detectedAITools.length > 0) {
+      const mcpSpinner = ora('Injecting MCP configs...').start();
+      try {
+        injectedPaths = injectMcpConfigs(
+          scan.detectedAITools,
+          agents,
+          config.apiUrl,
+          result.mcpToken,
+          result.workspaceId,
+        );
+        if (injectedPaths.length > 0) {
+          mcpSpinner.succeed(`MCP config injected into ${injectedPaths.length} tool(s)`);
+        } else {
+          mcpSpinner.info('No MCP-compatible tools to configure');
+        }
+      } catch {
+        mcpSpinner.warn('Could not inject MCP configs (non-critical)');
+      }
+    }
+
+    // Step 7: Print success
     console.log('');
     console.log(chalk.green.bold('  awareness knows your project!\n'));
     console.log(fmt.label('Project', chalk.white(scan.name)));
@@ -119,14 +217,28 @@ export async function initCommand(options: { force?: boolean }) {
     }
     console.log(fmt.label('Workspace', result.workspaceId));
 
-    // Step 7: Show config instructions
+    // Step 8: Show config instructions
     console.log('');
     console.log(chalk.dim('  Config saved to .ai-collaboration/awareness.json'));
+
+    if (injectedPaths.length > 0) {
+      console.log('');
+      console.log(chalk.dim('  MCP configs written:'));
+      for (const p of injectedPaths) {
+        console.log(chalk.dim(`    + ${p}`));
+      }
+    }
+
     console.log('');
     console.log(chalk.dim('  Next steps:'));
     console.log(chalk.dim('  1. Run `awareness status` to see your project brain'));
-    console.log(chalk.dim('  2. Configure your AI tools with the workspace MCP config'));
-    console.log(chalk.dim('     Visit your workspace settings page to get MCP configs'));
+    if (injectedPaths.length > 0) {
+      console.log(chalk.dim('  2. Restart your AI tools to load the new MCP config'));
+      console.log(chalk.dim('  3. Agents will auto-connect and appear in Control Center'));
+    } else {
+      console.log(chalk.dim('  2. Configure your AI tools with the workspace MCP config'));
+      console.log(chalk.dim('     Visit your workspace settings page to get MCP configs'));
+    }
 
     if (result.mcpToken) {
       console.log('');

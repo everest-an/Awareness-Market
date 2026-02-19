@@ -22,6 +22,7 @@ import {
   MessageSquare,
   FileText,
   RefreshCw,
+  BarChart3,
 } from 'lucide-react';
 
 export default function DevDashboard() {
@@ -339,6 +340,12 @@ export default function DevDashboard() {
                   <Button onClick={handleResume} variant="outline" size="sm" className="gap-2">
                     <RefreshCw className="h-4 w-4" />
                     Resume Session
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="gap-2">
+                    <Link href="/workflow-performance?tab=agents">
+                      <BarChart3 className="h-4 w-4" />
+                      Control Center
+                    </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="gap-2">
                     <Link href={`/workspace/${activeWsId}`}>

@@ -43,6 +43,15 @@ export type AgentJoinEvent = {
   timestamp: Date;
 };
 
+export type AgentStatusEvent = {
+  workspaceId: string;
+  agentId: string;
+  agentName: string;
+  role: string;
+  connectionStatus: 'connected' | 'idle' | 'disconnected';
+  lastSeenAt: string;
+};
+
 export type NetworkStatsEvent = {
   totalAgents: number;
   activeAgents: number;
@@ -102,6 +111,17 @@ export function initializeSocketIO(httpServer: HttpServer) {
     socket.on('unsubscribe:agent', (agentId: number) => {
       socket.leave(`agent:${agentId}`);
       logger.debug('Client unsubscribed from agent updates', { socketId: socket.id, agentId });
+    });
+
+    // Workspace-level subscriptions (for Control Center agent status)
+    socket.on('subscribe:workspace', (workspaceId: string) => {
+      socket.join(`workspace:${workspaceId}`);
+      logger.debug('Client subscribed to workspace updates', { socketId: socket.id, workspaceId });
+    });
+
+    socket.on('unsubscribe:workspace', (workspaceId: string) => {
+      socket.leave(`workspace:${workspaceId}`);
+      logger.debug('Client unsubscribed from workspace updates', { socketId: socket.id, workspaceId });
     });
   });
 
@@ -187,6 +207,22 @@ export function broadcastAgentJoin(event: AgentJoinEvent) {
   logger.info('Broadcast agent join', {
     agentId: event.agentId,
     agentName: event.agentName,
+  });
+}
+
+/**
+ * Broadcast agent connection status change to workspace subscribers.
+ * Called from heartbeat procedures and collab endpoints.
+ */
+export function broadcastAgentStatus(event: AgentStatusEvent) {
+  if (!io) return;
+
+  io.to(`workspace:${event.workspaceId}`).emit('agent:status', event);
+
+  logger.debug('Broadcast agent status', {
+    workspaceId: event.workspaceId,
+    agentId: event.agentId,
+    status: event.connectionStatus,
   });
 }
 

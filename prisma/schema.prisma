@@ -984,6 +984,7 @@ enum WorkspaceStatus {
 enum AgentIntegration {
   mcp
   rest
+  windows_mcp
 }
 
 model Workspace {
@@ -1019,6 +1020,17 @@ model WorkspaceAgent {
   permissions         String[]         @default(["read", "write"]) // read, write, propose, execute
   description         String?          @db.VarChar(500)
 
+  // CrewAI-style enhanced fields
+  goal                String?          @db.VarChar(500)
+  backstory           String?          @db.Text
+  tools               String[]         @default([])
+  priority            Int              @default(5) // 1-10
+  endpoint            String?          @db.VarChar(512)
+  authTokenEnc        String?          @map("auth_token_enc") @db.Text
+  connectionStatus    String           @default("disconnected") @map("connection_status") @db.VarChar(20)
+  lastSeenAt          DateTime?        @map("last_seen_at")
+  config              Json?
+
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
 
@@ -1026,6 +1038,7 @@ model WorkspaceAgent {
   workspace           Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId])
+  @@index([connectionStatus])
   @@map("workspace_agents")
 }
 
