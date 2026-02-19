@@ -1,19 +1,20 @@
 # 🚀 部署追踪仪表板
 
-**最后更新**: 2026-02-19 22:00 UTC  
-**部署工作流**: OAuth & API Configuration Fix  
-**提交**: ecfa532
+**最后更新**: 2026-02-19 23:30 UTC  
+**部署工作流**: OAuth & API Configuration Fix - MANUAL TASKS COMPLETE  
+**提交**: bf898e1 (最新), ecfa532 (初始修复)
 
 ---
 
 ## 📊 整体进度
 
 ```
-[████████████░░░░░░░░░░░░░░░░░░░░░░░░░░] 30% Complete
+[██████████████████████████░░░░░░░░░░] 85% Complete
 
 ✅ 代码修复和测试
-⏳ 自动化部署进行中
-⏳ 手动配置待完成
+✅ 自动化部署已完成
+✅ 手动配置已完成 (Manus)
+⏳ 端对端 OAuth 测试进行中
 ```
 
 ---
@@ -52,30 +53,36 @@
 
 ---
 
-### 阶段 3: 手动配置 ❌ **PENDING**
+### 阶段 3: 手动配置 ✅ **COMPLETE**
 
-| 任务 | 优先级 | 状态 | 分配给 | 预计完成 |
-|-----|--------|------|--------|---------|
-| **任务 1**: nginx SSL 证书 | 🔴 高 | ❌ 待开始 | Manus | 今天 |
-| **任务 2**: EC2 .env 更新 | 🔴 高 | ❌ 待开始 | Manus | 今天 |
-| **任务 3**: GitHub OAuth App | 🟠 中 | ❌ 待开始 | Manus | 今天 |
-| **任务 4**: Google OAuth App | 🟠 中 | ❌ 待开始 | Manus | 今天 |
-| **任务 5**: PM2 集群验证 | 🟡 低 | ❌ 待开始 | Manus | 明天 |
+| 任务 | 优先级 | 状态 | 完成时间 | 验证结果 |
+|-----|--------|------|---------|---------|
+| **任务 1**: nginx SSL 证书 + 域名 | 🔴 高 | ✅ 完成 | 2026-02-19 | SSL 证书有效，nginx -t 通过，HTTPS 200 OK |
+| **任务 2**: EC2 .env OAuth 配置 | 🔴 高 | ✅ 完成 | 2026-02-19 | OAUTH_CALLBACK_URL=https://api.awareness.market, 4 个 OAuth 凭证非空 |
+| **任务 3**: GitHub OAuth App 回调 | 🟠 中 | ✅ 完成 | 2026-02-19 | 已正确配置为 https://api.awareness.market/api/auth/callback/github |
+| **任务 4**: Google OAuth App 重定向 | 🟠 中 | ✅ 完成 | 2026-02-19 | 2 个重定向 URI 已配置，Client ID/Secret 与 EC2 完全匹配 |
+| **任务 5**: PM2 集群验证 | 🟡 低 | ✅ 完成 | 2026-02-19 | 2 个 cluster 实例均 online，curl /api-docs/ → HTTP/2 200 |
 
-**详细提示词**: 查看 `MANUS_MANUAL_TASKS.md`
+**Phase Status**: ✅ Complete - 所有手动配置任务已完成
 
 ---
 
-### 阶段 4: 部署后验证 ❌ **PENDING**
+### 阶段 4: 部署后验证 ⏳ **END-TO-END TESTING**
 
 | 验证项 | 检查内容 | 状态 | 脚本 |
 |--------|---------|------|------|
-| OAuth 路由 | 200/400 (not 404) | ❌ 待验证 | `scripts/verify-oauth-deployment.sh` |
-| 前端连接 | VITE_API_URL 正确 | ❌ 待验证 | - |
-| 后端 API | tRPC endpoint 响应 | ❌ 待验证 | - |
-| SSL 证书 | HTTPS 有效 | ❌ 待验证 | - |
-| Google Login | 点击按钮→授权→重定向 | ❌ 待验证 | Manual |
-| GitHub Login | 点击按钮→授权→重定向 | ❌ 待验证 | Manual |
+| OAuth 路由 | GET /api/auth/callback/google → 400 (not 404) | ⏳ 待验证 | 详见 OAUTH_END_TO_END_TEST.md |
+| 前端连接 | https://awareness.market → 200 | ✅ 正常 | - |
+| 后端 API | https://api.awareness.market/health → 200 | ✅ 正常 | - |
+| SSL 证书 | HTTPS 有效 | ✅ 正常 | - |
+| Google Login | 点击按钮→授权→重定向→仪表板 | ⏳ 待验证 | Manual test |
+| GitHub Login | 点击按钮→授权→重定向→仪表板 | ⏳ 待验证 | Manual test |
+| JWT Cookie | HTTP-only Cookie 已设置 | ⏳ 待验证 | Manual check |
+| 后端日志 | PM2 日志无错误 | ⏳ 待验证 | pm2 logs awareness-api |
+
+**Phase Status**: ⏳ In Progress - 等待 OAuth 端对端测试
+
+**测试指南**: 查看新建的 `OAUTH_END_TO_END_TEST.md`
 
 ---
 
@@ -103,24 +110,24 @@
 - [ ] EC2 deployment
 - [ ] Health checks
 
-### 手动配置 ❌
+### 手动配置 ✅
 
-**Manus 需要执行的任务** (完整说明在 `MANUS_MANUAL_TASKS.md`):
+**Manus 已完成所有任务**:
 
-- [ ] **Task 1**: Update nginx config (域名和 SSL)
-- [ ] **Task 2**: Update EC2 .env (环境变量)
-- [ ] **Task 3**: Update GitHub OAuth App callback URL
-- [ ] **Task 4**: Update Google OAuth App redirect URI
-- [ ] **Task 5**: Verify PM2 cluster config
+- [x] **Task 1**: Update nginx config (SSL 证书 + 域名) ✅ 完成
+- [x] **Task 2**: Update EC2 .env (环境变量) ✅ 完成
+- [x] **Task 3**: Update GitHub OAuth App callback URL ✅ 完成
+- [x] **Task 4**: Update Google OAuth App redirect URI ✅ 完成
+- [x] **Task 5**: Verify PM2 cluster config ✅ 完成
 
-### 部署后验证 ❌
+### 部署后验证 ⏳
 
-- [ ] 运行 OAuth 部署验证脚本
-- [ ] 测试 Google 登录流程
-- [ ] 测试 GitHub 登录流程
-- [ ] 验证 SSL 证书有效性
-- [ ] 检查 PM2 日志无错误
-- [ ] 验证数据库连接正常
+- [x] 后端部署完成 (HTTP/2 200)
+- [x] 前端部署完成 (HTTP/2 200)
+- [ ] 测试 Google 登录流程 ← **立即进行**
+- [ ] 测试 GitHub 登录流程 ← **立即进行**
+- [ ] 验证 SSL 证书有效性 ← **已完成 (Manus)**
+- [ ] 检查 PM2 日志无错误 ← **进行中**
 
 ---
 
@@ -158,8 +165,10 @@
 
 ### 文档
 - **部署指南**: `FINAL_FIX_DEPLOYMENT_GUIDE.md`
-- **手动任务**: `MANUS_MANUAL_TASKS.md`
+- **手动任务完成**: `MANUS_MANUAL_TASKS.md` ✅
 - **诊断报告**: `SYSTEM_DIAGNOSIS_REPORT.md`
+- **OAuth 端对端测试**: `OAUTH_END_TO_END_TEST.md` ✨ **新建** (立即查看!)
+- **快速参考卡**: `QUICK_REFERENCE.md`
 
 ---
 
@@ -167,33 +176,41 @@
 
 | 时间 | 事件 | 状态 |
 |-----|------|------|
-| 2026-02-19 22:00 | 代码修复完成 | ✅ |
-| 2026-02-19 22:15 | GitHub 推送 | ✅ |
-| 2026-02-19 22:20 | CI/CD 触发 | ⏳ |
-| 2026-02-19 22:30 | Vercel 部署 | ⏳ |
-| 2026-02-19 22:40 | EC2 部署 | ⏳ |
-| **待定** | 手动配置 (nginx/OAuth) | ❌ |
-| **待定** | 部署验证 | ❌ |
-| **待定** | 生产环境测试 | ❌ |
+| 2026-02-19 ~22:00 | 代码修复完成 | ✅ |
+| 2026-02-19 ~22:15 | GitHub 第一次推送 (ecfa532) | ✅ |
+| 2026-02-19 ~22:35 | 文档和脚本完成 | ✅ |
+| 2026-02-19 ~22:40 | GitHub 第二次推送 (bf898e1) | ✅ |
+| 2026-02-19 ~22:45 | CI/CD 触发 | ✅ |
+| 2026-02-19 ~23:00 | Vercel 部署 | ✅ |
+| 2026-02-19 ~23:10 | EC2 部署 | ✅ |
+| 2026-02-19 ~23:00-23:30 | Manus 执行全部 5 任务 | ✅ |
+| 2026-02-19 **23:30** | **所有部署完成 - 准备 OAuth 测试** | ✅ |
+| **Now** | **立即开始 OAuth 端对端测试** | ⏳ |
 
 ---
 
 ## 🎯 下一步行动
 
 ### 立即 (现在)
-1. ✅ 等待 GitHub Actions 完成 (监控: Actions 标签页)
-2. ✅ 验证 Vercel 部署完成
-3. ❌ **准备手动任务**: Manus 执行 `MANUS_MANUAL_TASKS.md`
+1. ✅ GitHub Actions 完成
+2. ✅ Vercel 部署完成
+3. ✅ EC2 部署完成
+4. ✅ Manus 完成所有手动配置
+5. ⏳ **[立即进行] 测试 OAuth 登录流程** ← 关键步骤
+6. ⏳ **[立即进行] 检查后端日志** ← 排查问题
 
-### 短期 (1-2 小时后)
-1. ❌ Manus 完成 nginx and OAuth 配置
-2. ❌ 运行部署验证脚本
-3. ❌ 手动测试 OAuth 登录流程
-
-### 验证 (完成后)
+### 中期 (完成后)
 1. ❌ 完整的端到端功能测试
-2. ❌ 生产环境监控
+2. ❌ 监控和日志检查
 3. ❌ 回滚计划 (如有问题)
+
+### 关键测试指南
+查看新建的 **`OAUTH_END_TO_END_TEST.md`** 了解：
+- 快速健康检查命令
+- Google OAuth 测试流程
+- GitHub OAuth 测试流程
+- 常见问题排查
+- 日志检查方法
 
 ---
 
@@ -216,6 +233,6 @@
 
 ---
 
-**最后更新**: 2026-02-19  
+**最后更新**: 2026-02-19 23:30 UTC  
 **负责人**: Assistant + Manus  
-**状态**: 🟡 In Progress
+**状态**: 🟢 All Systems Ready - **准备 OAuth 端对端测试**
