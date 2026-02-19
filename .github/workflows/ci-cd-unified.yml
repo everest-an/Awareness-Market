@@ -10,6 +10,7 @@ on:
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '10'
+  API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
 
 jobs:
   # ============================================
@@ -161,6 +162,8 @@ jobs:
     name: Build Frontend (Verify)
     runs-on: ubuntu-latest
     needs: [lint-and-typecheck]
+    environment:
+      name: production-backend
 
     steps:
       - name: Checkout code
@@ -187,7 +190,7 @@ jobs:
         run: pnpm exec vite build
         env:
           NODE_ENV: production
-          VITE_API_URL: https://api.awareness.market
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
 
       - name: Check build size
         run: |
@@ -251,7 +254,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production-backend
-      url: https://api.awareness.market/api-docs/
+      url: ${{ format('{0}/api-docs/', vars.VITE_API_URL || 'https://api.awareness.market') }}
 
     steps:
       - name: Checkout code
@@ -320,14 +323,16 @@ jobs:
           ENDSSH
 
       - name: Health Check
+        env:
+          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
           echo "⏳ Waiting for server to start..."
           sleep 15
 
           for i in {1..5}; do
-            if curl -f -s https://api.awareness.market/api-docs/ > /dev/null; then
+            if curl -f -s "$API_BASE_URL/api-docs/" > /dev/null; then
               echo "✅ Backend deployment successful!"
-              echo "🔗 API Docs: https://api.awareness.market/api-docs/"
+              echo "🔗 API Docs: $API_BASE_URL/api-docs/"
               exit 0
             fi
             echo "⏳ Attempt $i/5: Waiting for server..."
@@ -361,6 +366,8 @@ jobs:
 
     steps:
       - name: Build Summary
+        env:
+          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
           echo "## 🚀 Deployment Summary"
           echo ""
@@ -370,7 +377,7 @@ jobs:
           echo "**Triggered by**: ${{ github.actor }}"
           echo ""
           echo "### 🔗 Links"
-          echo "- Backend API: https://api.awareness.market/api-docs/"
+          echo "- Backend API: $API_BASE_URL/api-docs/"
           echo "- Frontend: https://awareness-network-v2.vercel.app/"
           echo ""
           echo "### ℹ️ Notes"

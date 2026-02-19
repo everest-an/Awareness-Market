@@ -1,9 +1,9 @@
 import OpenAI from "openai";
 import type { ChatCompletionCreateParamsNonStreaming, ChatCompletionTool, ChatCompletionMessageToolCall } from "openai/resources/chat/completions";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openaiApiKey = process.env.OPENAI_API_KEY;
+const isTestEnv = process.env.NODE_ENV === "test" || process.env.VITEST === "true" || process.env.CI === "true";
+const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
 export interface Message {
   role: "system" | "user" | "assistant" | "tool" | "function";
@@ -81,6 +81,26 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   if (tool_choice) {
     requestParams.tool_choice = tool_choice as any;
+  }
+
+  // Fallback for CI/test without real API key: return deterministic mock response
+  if (!openai) {
+    if (isTestEnv) {
+      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+      return {
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: lastUser?.content ? `Mock reply (no OPENAI_API_KEY): ${typeof lastUser.content === "string" ? lastUser.content : "(structured content)"}` : "Mock reply (no OPENAI_API_KEY)",
+            },
+            finish_reason: "stop",
+          },
+        ],
+        usage: undefined,
+      };
+    }
+    throw new Error("OPENAI_API_KEY is not set; cannot call OpenAI API");
   }
 
   const response = await openai.chat.completions.create(requestParams);

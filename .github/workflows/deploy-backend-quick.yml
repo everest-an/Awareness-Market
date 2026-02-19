@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production-backend
-      url: https://api.awareness.market/api-docs/
+      url: ${{ format('{0}/api-docs/', vars.VITE_API_URL || 'https://api.awareness.market') }}
 
     steps:
       - name: Checkout code
@@ -82,9 +82,11 @@ jobs:
           ENDSSH
 
       - name: Verify deployment
+        env:
+          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
           sleep 10
-          if curl -f https://api.awareness.market/api-docs/; then
+          if curl -f "$API_BASE_URL/api-docs/"; then
             echo "✅ Deployment successful!"
           else
             echo "❌ Deployment verification failed"
@@ -92,10 +94,12 @@ jobs:
           fi
 
       - name: Show deployment info
+        env:
+          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
           echo "## ✅ Deployment Complete"
           echo ""
-          echo "🔗 API URL: https://api.awareness.market/api-docs/"
+          echo "🔗 API URL: $API_BASE_URL/api-docs/"
           echo "⏰ Deployed at: $(date)"
           echo "👤 Deployed by: ${{ github.actor }}"
           echo "📝 Commit: ${{ github.sha }}"
