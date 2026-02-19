@@ -34,9 +34,15 @@ const agentSchema = z.object({
   name: z.string().min(1, 'Agent name is required').max(100),
   role: z.string().min(1, 'Agent role is required').max(50),
   model: z.string().min(1, 'Model is required').max(100),
-  integration: z.enum(['mcp', 'rest']),
+  integration: z.enum(['mcp', 'rest', 'windows_mcp']),
   permissions: z.array(z.enum(['read', 'write', 'propose', 'execute'])).min(1, 'At least one permission required').default(['read', 'write']),
   description: z.string().max(500).optional(),
+  goal: z.string().max(500).optional(),
+  backstory: z.string().max(5000).optional(),
+  tools: z.array(z.string().max(50)).max(20).default([]),
+  priority: z.number().int().min(1).max(10).default(5),
+  endpoint: z.string().url().max(512).optional().or(z.literal('')),
+  config: z.record(z.string(), z.unknown()).optional(),
 });
 
 const createSchema = z.object({
@@ -103,6 +109,15 @@ interface AgentRecord {
   integration: string;
   permissions: string[];
   description: string | null;
+  goal: string | null;
+  backstory: string | null;
+  tools: string[];
+  priority: number;
+  endpoint: string | null;
+  authTokenEnc: string | null;
+  connectionStatus: string;
+  lastSeenAt: Date | null;
+  config: Record<string, unknown> | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -199,6 +214,12 @@ export const workspaceRouter = router({
               integration: a.integration,
               permissions: a.permissions,
               description: a.description?.trim() || null,
+              goal: a.goal?.trim() || null,
+              backstory: a.backstory?.trim() || null,
+              tools: a.tools || [],
+              priority: a.priority ?? 5,
+              endpoint: a.endpoint || null,
+              config: a.config || null,
             })),
           },
         },
@@ -317,6 +338,14 @@ export const workspaceRouter = router({
           integration: a.integration,
           permissions: a.permissions,
           description: a.description,
+          goal: a.goal,
+          backstory: a.backstory,
+          tools: a.tools || [],
+          priority: a.priority ?? 5,
+          endpoint: a.endpoint,
+          connectionStatus: a.connectionStatus || 'disconnected',
+          lastSeenAt: a.lastSeenAt?.toISOString() || null,
+          config: a.config,
         })),
         createdAt: workspace.createdAt.toISOString(),
         status: workspace.status,
@@ -456,6 +485,12 @@ export const workspaceRouter = router({
           integration: input.agent.integration,
           permissions: input.agent.permissions,
           description: input.agent.description?.trim() || null,
+          goal: input.agent.goal?.trim() || null,
+          backstory: input.agent.backstory?.trim() || null,
+          tools: input.agent.tools || [],
+          priority: input.agent.priority ?? 5,
+          endpoint: input.agent.endpoint || null,
+          config: input.agent.config || null,
         },
       });
 
@@ -832,6 +867,14 @@ export const workspaceRouter = router({
       // Also check individual agent context keys
       const agents = workspace.agents.map((a: AgentRecord) => {
         const activity = agentActivity[a.role] || agentActivity[a.name];
+        // Determine connection status based on lastSeenAt
+        let connStatus = a.connectionStatus || 'disconnected';
+        if (a.lastSeenAt) {
+          const ageMs = Date.now() - new Date(a.lastSeenAt).getTime();
+          if (ageMs < 90_000) connStatus = 'connected'; // within 90s
+          else if (ageMs < 300_000) connStatus = 'idle'; // within 5min
+          else connStatus = 'disconnected';
+        }
         return {
           id: a.id,
           name: a.name,
@@ -839,7 +882,10 @@ export const workspaceRouter = router({
           model: a.model,
           integration: a.integration,
           permissions: a.permissions,
-          lastSeen: activity?.lastSeen || null,
+          goal: a.goal,
+          priority: a.priority ?? 5,
+          connectionStatus: connStatus,
+          lastSeen: a.lastSeenAt?.toISOString() || activity?.lastSeen || null,
           lastContext: activity?.lastContext || null,
         };
       });
@@ -1008,5 +1054,159 @@ export const workspaceRouter = router({
       lines.push('Continue from where the team left off. Check the decisions above and coordinate with other agents through Awareness.');
 
       return { markdown: lines.join('\n') };
+    }),
+
+  /**
+   * Update a single agent's configuration (all editable fields)
+   */
+  updateAgent: protectedProcedure
+    .input(z.object({
+      workspaceId: z.string().min(1),
+      agentId: z.string().min(1),
+      data: z.object({
+        name: z.string().min(1).max(100).optional(),
+        role: z.string().min(1).max(50).optional(),
+        model: z.string().min(1).max(100).optional(),
+        integration: z.enum(['mcp', 'rest', 'windows_mcp']).optional(),
+        permissions: z.array(z.enum(['read', 'write', 'propose', 'execute'])).min(1).optional(),
+        description: z.string().max(500).optional().nullable(),
+        goal: z.string().max(500).optional().nullable(),
+        backstory: z.string().max(5000).optional().nullable(),
+        tools: z.array(z.string().max(50)).max(20).optional(),
+        priority: z.number().int().min(1).max(10).optional(),
+        endpoint: z.string().max(512).optional().nullable(),
+        config: z.record(z.string(), z.unknown()).optional().nullable(),
+      }),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+      });
+
+      if (!workspace) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+      }
+
+      const agent: AgentRecord | null = await orm.workspaceAgent.findFirst({
+        where: { id: input.agentId, workspaceId: workspace.id },
+      });
+
+      if (!agent) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
+      }
+
+      const updateData: Record<string, unknown> = {};
+      const d = input.data;
+      if (d.name !== undefined) updateData.name = d.name.trim();
+      if (d.role !== undefined) updateData.role = d.role;
+      if (d.model !== undefined) updateData.model = d.model;
+      if (d.integration !== undefined) updateData.integration = d.integration;
+      if (d.permissions !== undefined) updateData.permissions = d.permissions;
+      if (d.description !== undefined) updateData.description = d.description?.trim() || null;
+      if (d.goal !== undefined) updateData.goal = d.goal?.trim() || null;
+      if (d.backstory !== undefined) updateData.backstory = d.backstory?.trim() || null;
+      if (d.tools !== undefined) updateData.tools = d.tools;
+      if (d.priority !== undefined) updateData.priority = d.priority;
+      if (d.endpoint !== undefined) updateData.endpoint = d.endpoint || null;
+      if (d.config !== undefined) updateData.config = d.config || null;
+
+      const updated: AgentRecord = await orm.workspaceAgent.update({
+        where: { id: input.agentId },
+        data: updateData,
+      });
+
+      // Update permissions map if permissions changed
+      if (d.permissions !== undefined) {
+        const allAgents: AgentRecord[] = await orm.workspaceAgent.findMany({
+          where: { workspaceId: workspace.id },
+        });
+        const permMap: Record<string, string[]> = {};
+        for (const a of allAgents) {
+          permMap[a.role] = a.permissions;
+        }
+        await db.upsertAIMemory({
+          userId: ctx.user.id,
+          memoryKey: `${workspace.memoryKey}:__permissions`,
+          data: permMap,
+          ttlDays: 365,
+        });
+      }
+
+      await logWorkspaceAudit(ctx.user.id, input.workspaceId, 'agent_updated', {
+        agentId: input.agentId,
+        agentName: updated.name,
+        fields: Object.keys(updateData),
+      });
+
+      return {
+        success: true,
+        agent: {
+          id: updated.id,
+          name: updated.name,
+          role: updated.role,
+          model: updated.model,
+          integration: updated.integration,
+          permissions: updated.permissions,
+          description: updated.description,
+          goal: updated.goal,
+          backstory: updated.backstory,
+          tools: updated.tools || [],
+          priority: updated.priority ?? 5,
+          endpoint: updated.endpoint,
+          connectionStatus: updated.connectionStatus || 'disconnected',
+          lastSeenAt: updated.lastSeenAt?.toISOString() || null,
+          config: updated.config,
+        },
+      };
+    }),
+
+  /**
+   * Agent heartbeat — called periodically by MCP/REST agents to report online status
+   */
+  heartbeat: protectedProcedure
+    .input(z.object({
+      workspaceId: z.string().min(1),
+      agentId: z.string().min(1),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+      });
+
+      if (!workspace) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+      }
+
+      const agent: AgentRecord | null = await orm.workspaceAgent.findFirst({
+        where: { id: input.agentId, workspaceId: workspace.id },
+      });
+
+      if (!agent) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
+      }
+
+      const now = new Date();
+      await orm.workspaceAgent.update({
+        where: { id: input.agentId },
+        data: {
+          connectionStatus: 'connected',
+          lastSeenAt: now,
+        },
+      });
+
+      // Broadcast real-time status via WebSocket
+      try {
+        const { broadcastAgentStatus } = await import('../socket-events.js');
+        broadcastAgentStatus({
+          workspaceId: input.workspaceId,
+          agentId: input.agentId,
+          agentName: agent.name,
+          role: agent.role,
+          connectionStatus: 'connected',
+          lastSeenAt: now.toISOString(),
+        });
+      } catch { /* non-critical */ }
+
+      return { success: true, status: 'connected' };
     }),
 });

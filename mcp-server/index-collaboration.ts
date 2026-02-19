@@ -468,6 +468,27 @@ async function askQuestion(params: any): Promise<any> {
   };
 }
 
+// ── Heartbeat ────────────────────────────────────────────────────────────
+// Fire-and-forget heartbeat after every tool call to update connection status
+
+async function sendHeartbeat(): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/api/collab/heartbeat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-MCP-Token': MCP_TOKEN,
+      },
+      body: JSON.stringify({
+        workspace: MEMORY_KEY,
+        role: AGENT_ROLE,
+      }),
+    });
+  } catch {
+    // Non-critical — don't fail the tool call
+  }
+}
+
 // Create MCP Server
 const server = new Server(
   {
@@ -523,6 +544,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
+
+    // Fire-and-forget heartbeat after successful tool call
+    sendHeartbeat();
 
     return {
       content: [{

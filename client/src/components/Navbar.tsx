@@ -66,7 +66,7 @@ const navLinks = [
     children: [
       { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
-      { label: "Workflow Performance", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
+      { label: "Control Center", href: "/workflow-performance", icon: BarChart3, description: "Agents, performance & collaboration" },
       { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
       { label: "Workspace", href: "/workspace", icon: Settings, description: "Multi-AI workspace hub" },
       { label: "W-Matrix Tools", href: "/w-matrix-tools", icon: Box, description: "Model compatibility & training" },
@@ -221,6 +221,12 @@ export default function Navbar() {
               <>
                 <span className="text-white/30 mx-1">/</span>
                 <span className="text-cyan-400 font-medium">Settings</span>
+              </>
+            )}
+            {location === '/workflow-performance' && (
+              <>
+                <span className="text-white/30 mx-1">/</span>
+                <span className="text-cyan-400 font-medium">Control Center</span>
               </>
             )}
             {location.startsWith('/workspace') && (

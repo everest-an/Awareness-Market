@@ -14,10 +14,56 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import * as db from '../db';
+import { prisma } from '../db-prisma';
 import { validateApiKey, AuthenticatedRequest } from '../ai-auth-api';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('Collab:REST');
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const orm = prisma as any;
+
+/**
+ * Auto-update agent heartbeat when an agent interacts via the collab API.
+ * Matches by workspace memoryKey + agent role to find the WorkspaceAgent record.
+ */
+async function touchAgentHeartbeat(userId: number, memoryKey: string, role: string): Promise<void> {
+  try {
+    // memoryKey format: "workspace:ws_xxxx" — extract workspace id
+    const wsIdMatch = memoryKey.match(/^workspace:(ws_[a-f0-9]+)/);
+    if (!wsIdMatch) return;
+    const wsId = wsIdMatch[1];
+    // Find the agent by workspace + role
+    const agent = await orm.workspaceAgent.findFirst({
+      where: {
+        workspace: { id: wsId, userId },
+        role,
+      },
+      select: { id: true, name: true },
+    });
+    if (agent) {
+      const now = new Date();
+      await orm.workspaceAgent.update({
+        where: { id: agent.id },
+        data: { connectionStatus: 'connected', lastSeenAt: now },
+      });
+      // Broadcast via WebSocket
+      try {
+        const { broadcastAgentStatus } = await import('../socket-events.js');
+        broadcastAgentStatus({
+          workspaceId: wsId,
+          agentId: agent.id,
+          agentName: agent.name,
+          role,
+          connectionStatus: 'connected',
+          lastSeenAt: now.toISOString(),
+        });
+      } catch { /* non-critical */ }
+    }
+  } catch {
+    // Non-critical — don't fail the request
+  }
+}
 
 const collabRouter = Router();
 
@@ -196,6 +242,9 @@ collabRouter.post('/share', flexAuth, async (req, res) => {
       ttlDays: 30,
     });
 
+    // Auto-heartbeat: mark agent as connected
+    touchAgentHeartbeat(user.userId, memoryKey, body.role);
+
     logger.info('REST context shared', {
       workspace: body.workspace,
       role: body.role,
@@ -330,6 +379,9 @@ collabRouter.post('/decision', flexAuth, async (req, res) => {
       ttlDays: 30,
     });
 
+    // Auto-heartbeat
+    touchAgentHeartbeat(user.userId, memoryKey, body.role);
+
     logger.info('REST decision proposed', {
       workspace: body.workspace,
       role: body.role,
@@ -419,6 +471,9 @@ collabRouter.post('/progress', flexAuth, async (req, res) => {
       ttlDays: 30,
     });
 
+    // Auto-heartbeat
+    touchAgentHeartbeat(user.userId, memoryKey, body.role);
+
     res.json({
       success: true,
       message: `Progress synced by ${body.role}: ${body.completedTasks.length} tasks completed`,
@@ -490,6 +545,39 @@ collabRouter.get('/status', flexAuth, async (req, res) => {
   } catch (error) {
     logger.error('Status fetch failed:', { error });
     res.status(500).json({ error: 'Failed to fetch workspace status' });
+  }
+});
+
+// ============================================================================
+// POST /api/collab/heartbeat — Agent heartbeat (connection status update)
+// ============================================================================
+
+const heartbeatSchema = z.object({
+  workspace: z.string().min(1).max(200),
+  role: z.string().min(1).max(50),
+});
+
+collabRouter.post('/heartbeat', flexAuth, async (req, res) => {
+  try {
+    const user = await resolveUser(req);
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication failed' });
+    }
+
+    const body = heartbeatSchema.parse(req.body);
+    const memoryKey = body.workspace.startsWith('client:')
+      ? body.workspace
+      : `workspace:${body.workspace}`;
+
+    await touchAgentHeartbeat(user.userId, memoryKey, body.role);
+
+    res.json({ success: true, status: 'connected' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Invalid request', details: error.issues });
+    }
+    logger.error('Heartbeat failed:', { error });
+    res.status(500).json({ error: 'Heartbeat failed' });
   }
 });
 
