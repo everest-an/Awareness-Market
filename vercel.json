@@ -3,6 +3,9 @@
   "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
   "framework": null,
+  "env": {
+    "VITE_API_URL": "https://api.awareness.market"
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],

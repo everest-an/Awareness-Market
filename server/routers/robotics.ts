@@ -19,7 +19,8 @@ import { getROS2Bridge } from '../robotics/ros2-bridge';
 import { getVRController } from '../robotics/vr-controller';
 import { getMultiRobotCoordinator } from '../robotics/multi-robot-coordinator';
 
-const API_BASE_URL = process.env.API_URL || 'http://localhost:5000';
+// API Base URL - priority: API_BASE_URL > API_URL > BACKEND_URL > localhost fallback
+const API_BASE_URL = process.env.API_BASE_URL || process.env.API_URL || process.env.BACKEND_URL || 'http://localhost:3001';
 const USE_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.ROBOTICS_USE_PRODUCTION === 'true';
 
 // 根据环境选择实现
