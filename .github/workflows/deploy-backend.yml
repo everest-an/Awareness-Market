@@ -19,6 +19,9 @@ jobs:
   deploy:
     name: Build and Deploy Backend
     runs-on: ubuntu-latest
+    environment:
+      name: production-backend
+      url: ${{ format('{0}/api-docs/', vars.VITE_API_URL || 'https://api.awareness.market') }}
     
     steps:
       - name: Checkout code
@@ -54,6 +57,8 @@ jobs:
         run: |
           pnpm run copy:docs
           pnpm run build:client
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
       
       - name: Configure SSH
         env:
@@ -97,15 +102,19 @@ jobs:
           ENDSSH
       
       - name: Verify deployment
+        env:
+          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
           sleep 10
-          curl -f https://api.awareness.market/api-docs/ || exit 1
+          curl -f "$API_BASE_URL/api-docs/" || exit 1
       
       - name: Notify success
         if: success( )
+        env:
+          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
           echo "✅ Backend deployment successful!"
-          echo "API URL: https://api.awareness.market/api-docs/"
+          echo "API URL: $API_BASE_URL/api-docs/"
       
       - name: Notify failure
         if: failure( )

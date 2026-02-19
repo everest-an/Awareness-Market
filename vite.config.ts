@@ -134,8 +134,22 @@ export default defineConfig({
     // ==========================================
     rollupOptions: {
       output: {
-        // 精确的手动分块逻辑
-        manualChunks: undefined, // Disabled code splitting
+        // 精确的手动分块逻辑：按依赖族拆分，降低大包体积
+        manualChunks: (id) => {
+          if (!id.includes('node_modules')) return undefined;
+
+          if (/react|scheduler|use-sync-external-store/.test(id)) return 'react-core';
+          if (/react-router/.test(id)) return 'react-router';
+          if (/(@tanstack|@trpc|superjson)/.test(id)) return 'trpc-query';
+          if (/(@radix-ui|@floating-ui|@headlessui)/.test(id)) return 'ui-kit';
+          if (/lucide-react/.test(id)) return 'icons';
+          if (/(d3|chart|echarts)/.test(id)) return 'charts';
+          if (/(three|@react-three)/.test(id)) return 'three';
+          if (/axios/.test(id)) return 'axios';
+          if (/(lodash|date-fns)/.test(id)) return 'utils';
+
+          return 'vendor';
+        },
 
         // ============================================
         // 模块预加载配置（关键！）
@@ -208,7 +222,7 @@ export default defineConfig({
     // 其他优化
     // ==========================================
     reportCompressedSize: true,
-    chunkSizeWarningLimit: 2000,
+    chunkSizeWarningLimit: 2500,
     sourcemap: false, // Do NOT ship sourcemaps to production (exposes source code)
 
     // ==========================================

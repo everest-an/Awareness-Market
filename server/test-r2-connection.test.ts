@@ -7,8 +7,16 @@
 import { describe, it, expect } from 'vitest';
 import { getR2Backend } from './storage/r2-backend';
 
+const hasR2Env = Boolean(
+  process.env.R2_ACCOUNT_ID &&
+  process.env.R2_ACCESS_KEY_ID &&
+  process.env.R2_SECRET_ACCESS_KEY &&
+  process.env.R2_BUCKET_NAME
+);
+const itMaybe = hasR2Env ? it : it.skip;
+
 describe('R2 Connection', () => {
-  it('should connect to R2 and perform basic operations', async () => {
+  itMaybe('should connect to R2 and perform basic operations', async () => {
     // Check if R2 credentials are configured
     expect(process.env.R2_ACCOUNT_ID).toBeDefined();
     expect(process.env.R2_ACCESS_KEY_ID).toBeDefined();

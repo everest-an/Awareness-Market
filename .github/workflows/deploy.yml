@@ -8,13 +8,14 @@ on:
 
 env:
   PNPM_VERSION: '10'
+  API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
 
 jobs:
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment: production
+    environment: production-backend
 
     steps:
       - uses: actions/checkout@v4
@@ -52,9 +53,11 @@ jobs:
             pm2 restart awareness-network || pm2 start ecosystem.config.js
 
       - name: Health Check
+        env:
+          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
           sleep 30
-          curl -f https://awareness.market/api/health || exit 1
+          curl -f "$API_BASE_URL/api/health" || exit 1
         continue-on-error: true
 
       - name: Notify on Success

@@ -106,12 +106,9 @@ describe('Logger', () => {
 
       logger.error('Operation failed', { error });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Operation failed')
-      );
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Test error')
-      );
+      const firstCall = consoleErrorSpy.mock.calls[0]?.join(' ') || '';
+      expect(firstCall).toContain('Operation failed');
+      expect(firstCall).toContain('Test error');
     });
   });
 
