@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { lazy, Suspense } from "react";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -9,7 +10,6 @@ import { Web3Provider } from "./contexts/Web3Context";
 import Home from "./pages/Home";
 import Marketplace from "./pages/Marketplace";
 import VectorDetail from "./pages/VectorDetail";
-import CreatorDashboard from "./pages/CreatorDashboard";
 import UploadVector from "./pages/UploadVector";
 import ConsumerDashboard from "./pages/ConsumerDashboard";
 import Profile from "./pages/Profile";
@@ -34,9 +34,7 @@ import MemoryMarketplace from "./pages/MemoryMarketplace";
 import MemoryNFTDetail from "./pages/MemoryNFTDetail";
 import ApiKeys from "./pages/ApiKeys";
 import ProviderKeys from "./pages/ProviderKeys";
-import AdminPanel from "./pages/AdminPanel";
 import ServiceHealth from "./pages/ServiceHealth";
-import UsageAnalytics from "./pages/UsageAnalytics";
 import KVCacheDemo from "./pages/KVCacheDemo";
 import MemoryProvenance from "./pages/MemoryProvenance";
 import UploadVectorPackage from "./pages/UploadVectorPackage";
@@ -56,8 +54,6 @@ import NeuralCortex from "./pages/NeuralCortex";
 import OAuthCallback from "./pages/OAuthCallback";
 import EmailVerification from "./pages/EmailVerification";
 import AgentAuth from "./pages/AgentAuth";
-import PrivacySettings from "./pages/PrivacySettings";
-import ZKPDashboard from "./pages/ZKPDashboard";
 import UploadMultimodalPackage from "./pages/UploadMultimodalPackage";
 import CrossModalSearch from "./pages/CrossModalSearch";
 // import AudioToText from "./pages/AudioToText";
@@ -94,6 +90,12 @@ import WMatrixMarketplace from "./pages/WMatrixMarketplace";
 import LatentMASMarketplace from "./pages/LatentMASMarketplace";
 import WMatrixTools from "./pages/WMatrixTools";
 import DevDashboard from "./pages/DevDashboard";
+
+const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const UsageAnalytics = lazy(() => import("./pages/UsageAnalytics"));
+const PrivacySettings = lazy(() => import("./pages/PrivacySettings"));
+const ZKPDashboard = lazy(() => import("./pages/ZKPDashboard"));
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -227,7 +229,9 @@ function App() {
           <NotificationProvider>
             <TooltipProvider>
               <Toaster />
-              <Router />
+              <Suspense fallback={null}>
+                <Router />
+              </Suspense>
             </TooltipProvider>
           </NotificationProvider>
         </Web3Provider>
