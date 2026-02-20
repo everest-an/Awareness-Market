@@ -104,7 +104,7 @@ describe('Logger', () => {
       const logger = new Logger({ level: LogLevel.ERROR, enableColors: false, jsonOutput: false });
       const error = new Error('Test error');
 
-      logger.error('Operation failed', { error });
+      logger.error('Operation failed', { error: error.message });
 
       const firstCall = consoleErrorSpy.mock.calls[0]?.join(' ') || '';
       expect(firstCall).toContain('Operation failed');
