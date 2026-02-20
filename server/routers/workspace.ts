@@ -183,9 +183,26 @@ export const workspaceRouter = router({
   create: protectedProcedure
     .input(createSchema)
     .mutation(async ({ input, ctx }) => {
+      // Pre-flight: check that workspace tables exist
+      try {
+        const tableCheck: any[] = await prisma.$queryRawUnsafe(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'workspaces'`,
+        );
+        if (tableCheck.length === 0) {
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: 'Workspace tables not found in database. Please run database migrations first: npx tsx scripts/run-migrations.ts',
+          });
+        }
+      } catch (err) {
+        if (err instanceof TRPCError) throw err;
+        logger.error('Failed to check workspace table existence', { error: err });
+      }
+
       const workspaceId = generateId('ws');
-      const mcpToken = generateToken();
       const memoryKey = `workspace:${workspaceId}`;
+      // Note: generateToken() was previously called here but unused;
+      // the actual token comes from db.createMcpToken() below.
 
       // Create MCP token in database
       const tokenData = await db.createMcpToken({
@@ -196,35 +213,46 @@ export const workspaceRouter = router({
       });
 
       // Create workspace in dedicated table
-      const workspace: WsRecord = await orm.workspace.create({
-        data: {
-          id: workspaceId,
-          userId: ctx.user.id,
-          name: input.name.trim(),
-          description: input.description?.trim() || null,
-          mcpTokenEncrypted: encryptKey(tokenData.token),
-          mcpTokenMask: maskToken(tokenData.token),
-          memoryKey,
-          agents: {
-            create: input.agents.map((a) => ({
-              id: generateId('agent'),
-              name: a.name.trim(),
-              role: a.role,
-              model: a.model,
-              integration: a.integration,
-              permissions: a.permissions,
-              description: a.description?.trim() || null,
-              goal: a.goal?.trim() || null,
-              backstory: a.backstory?.trim() || null,
-              tools: a.tools || [],
-              priority: a.priority ?? 5,
-              endpoint: a.endpoint || null,
-              config: a.config || null,
-            })),
+      let workspace: WsRecord;
+      try {
+        workspace = await orm.workspace.create({
+          data: {
+            id: workspaceId,
+            userId: ctx.user.id,
+            name: input.name.trim(),
+            description: input.description?.trim() || null,
+            mcpTokenEncrypted: encryptKey(tokenData.token),
+            mcpTokenMask: maskToken(tokenData.token),
+            memoryKey,
+            agents: {
+              create: input.agents.map((a) => ({
+                id: generateId('agent'),
+                name: a.name.trim(),
+                role: a.role,
+                model: a.model,
+                integration: a.integration,
+                permissions: a.permissions,
+                description: a.description?.trim() || null,
+                goal: a.goal?.trim() || null,
+                backstory: a.backstory?.trim() || null,
+                tools: a.tools || [],
+                priority: a.priority ?? 5,
+                endpoint: a.endpoint || null,
+                config: a.config || null,
+              })),
+            },
           },
-        },
-        include: { agents: true },
-      });
+          include: { agents: true },
+        });
+      } catch (dbErr: any) {
+        logger.error('Failed to create workspace in database', { error: dbErr.message, workspaceId });
+        const msg = dbErr.message?.includes('does not exist')
+          ? 'Workspace database tables not found. Run migrations: npx tsx scripts/run-migrations.ts'
+          : dbErr.message?.includes('Unique constraint')
+            ? 'A workspace with this configuration already exists'
+            : `Failed to create workspace: ${dbErr.message?.substring(0, 100)}`;
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: msg });
+      }
 
       // Store permissions map for the REST collab API
       const permMap: Record<string, string[]> = {};
@@ -272,7 +300,9 @@ export const workspaceRouter = router({
       const limit = input?.limit ?? 20;
       const cursor = input?.cursor;
 
-      const workspaces: WsRecord[] = await orm.workspace.findMany({
+      let workspaces: WsRecord[];
+      try {
+        workspaces = await orm.workspace.findMany({
         where: { userId: ctx.user.id },
         include: {
           agents: {
@@ -288,6 +318,13 @@ export const workspaceRouter = router({
         take: limit + 1,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       });
+      } catch (dbErr: any) {
+        if (dbErr.message?.includes('does not exist') || dbErr.message?.includes('relation')) {
+          logger.warn('Workspace tables not found — returning empty list');
+          return { workspaces: [], nextCursor: undefined };
+        }
+        throw dbErr;
+      }
 
       let nextCursor: string | undefined;
       if (workspaces.length > limit) {
