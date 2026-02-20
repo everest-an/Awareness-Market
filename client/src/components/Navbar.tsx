@@ -97,6 +97,14 @@ export default function Navbar() {
   const [location] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
 
+  const currentOrgId =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("orgId")
+      : null;
+
+  const orgLink = (path: string) =>
+    currentOrgId ? `${path}?orgId=${encodeURIComponent(currentOrgId)}` : "/org/dashboard";
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -361,19 +369,19 @@ export default function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/org/dashboard" className="flex items-center gap-2 cursor-pointer">
+                    <Link href={orgLink("/org/dashboard")} className="flex items-center gap-2 cursor-pointer">
                       <Building2 className="w-4 h-4" />
                       Enterprise Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/org/analytics" className="flex items-center gap-2 cursor-pointer">
+                    <Link href={orgLink("/org/analytics")} className="flex items-center gap-2 cursor-pointer">
                       <BarChart3 className="w-4 h-4" />
                       Org Analytics
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/org/billing" className="flex items-center gap-2 cursor-pointer">
+                    <Link href={orgLink("/org/billing")} className="flex items-center gap-2 cursor-pointer">
                       <CreditCard className="w-4 h-4" />
                       Org Billing
                     </Link>
