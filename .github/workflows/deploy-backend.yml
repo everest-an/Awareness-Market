@@ -107,6 +107,22 @@ jobs:
         run: |
           sleep 10
           curl -f "$API_BASE_URL/api-docs/" || exit 1
+
+      - name: Collect diagnostics on verify failure
+        if: failure()
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+            set +e
+            cd /home/ec2-user/Awareness-Market
+            echo "=== PM2 Status ==="
+            pm2 status
+            echo "=== Local backend check (127.0.0.1:3001) ==="
+            curl -i --max-time 10 http://127.0.0.1:3001/api-docs/ || true
+            echo "=== PM2 recent logs ==="
+            pm2 logs awareness-market-api --lines 120 --nostream || true
+            echo "=== Nginx error log tail ==="
+            sudo tail -n 120 /var/log/nginx/error.log || true
+          ENDSSH
       
       - name: Notify success
         if: success( )

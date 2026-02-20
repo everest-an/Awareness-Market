@@ -8,7 +8,7 @@ module.exports = {
       exec_mode: 'cluster',
       env: {
         NODE_ENV: 'production',
-        PORT: process.env.PORT || 3001,
+        PORT: 3001,
       },
       max_memory_restart: process.env.PM2_MAX_MEMORY || '1G',
       max_restarts: 10,
