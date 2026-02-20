@@ -27,7 +27,6 @@ import LatentTest from "./pages/LatentTest";
 import AgentRegistry from "./pages/AgentRegistry";
 import SDKPage from "./pages/SDKPage";
 import AuthPage from "./pages/AuthPage";
-import Dashboard from "./pages/Dashboard";
 import LatentMASv2Demo from "./pages/LatentMASv2Demo";
 import BlogLatentMASPaper from "./pages/BlogLatentMASPaper";
 import MemoryMarketplace from "./pages/MemoryMarketplace";
@@ -36,7 +35,6 @@ import ApiKeys from "./pages/ApiKeys";
 import ProviderKeys from "./pages/ProviderKeys";
 import ServiceHealth from "./pages/ServiceHealth";
 import KVCacheDemo from "./pages/KVCacheDemo";
-import MemoryProvenance from "./pages/MemoryProvenance";
 import UploadVectorPackage from "./pages/UploadVectorPackage";
 import UploadMemoryPackage from "./pages/UploadMemoryPackage";
 import UploadChainPackage from "./pages/UploadChainPackage";
@@ -44,11 +42,7 @@ import PackageDetail from "./pages/PackageDetail";
 import VectorPackageMarket from "./pages/VectorPackageMarket";
 import ChainPackageMarketplace from "./pages/ChainPackageMarketplace";
 import WorkflowDemo from "./pages/WorkflowDemo";
-import { WorkflowHistory } from "./pages/WorkflowHistory";
-import { WorkflowSessionDetail } from "./pages/WorkflowSessionDetail";
-import { WorkflowPlayback } from "./pages/WorkflowPlayback";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
-import { WorkflowPerformance } from "./pages/WorkflowPerformance";
 import GolemVisualizerPage from "./pages/GolemVisualizerPage";
 import NeuralCortex from "./pages/NeuralCortex";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -72,9 +66,6 @@ import OrgDashboard from "./pages/OrgDashboard";
 import DecisionAudit from "./pages/DecisionAudit";
 // v3 Phase 4: Verification + Evidence
 import VerificationDashboard from "./pages/VerificationDashboard";
-// v3 Phase 5: Analytics + Billing
-import OrgAnalytics from "./pages/OrgAnalytics";
-import BillingDashboard from "./pages/BillingDashboard";
 import ConflictResolution from "./pages/ConflictResolution";
 import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
 import { Redirect } from "wouter";
@@ -91,11 +82,20 @@ import LatentMASMarketplace from "./pages/LatentMASMarketplace";
 import WMatrixTools from "./pages/WMatrixTools";
 import DevDashboard from "./pages/DevDashboard";
 
+// Lazy-load pages that potentially use charts/visualization libraries
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const WorkflowHistory = lazy(() => import("./pages/WorkflowHistory").then(m => ({ default: m.WorkflowHistory })));
+const WorkflowSessionDetail = lazy(() => import("./pages/WorkflowSessionDetail").then(m => ({ default: m.WorkflowSessionDetail })));
+const WorkflowPlayback = lazy(() => import("./pages/WorkflowPlayback").then(m => ({ default: m.WorkflowPlayback })));
+const WorkflowPerformance = lazy(() => import("./pages/WorkflowPerformance").then(m => ({ default: m.WorkflowPerformance })));
+const OrgAnalytics = lazy(() => import("./pages/OrgAnalytics"));
+const BillingDashboard = lazy(() => import("./pages/BillingDashboard"));
 const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const UsageAnalytics = lazy(() => import("./pages/UsageAnalytics"));
 const PrivacySettings = lazy(() => import("./pages/PrivacySettings"));
 const ZKPDashboard = lazy(() => import("./pages/ZKPDashboard"));
+const MemoryProvenance = lazy(() => import("./pages/MemoryProvenance"));
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
