@@ -96,7 +96,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
             cd /home/ec2-user/Awareness-Market
-            pnpm install --prod --frozen-lockfile
+            pnpm install --frozen-lockfile
             pnpm exec prisma generate
             pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs
             pm2 status
