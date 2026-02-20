@@ -2,11 +2,12 @@ import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { ForbiddenError } from "@shared/_core/errors";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import type { User } from "@prisma/client";
 import * as db from "../db";
 import { ENV } from "./env";
+import { getSessionCookieOptions } from "./cookies";
 import { createLogger } from "../utils/logger";
 const logger = createLogger("SDK:OAuth");
 import type {
@@ -258,7 +259,7 @@ class SDKServer {
     } as GetUserInfoWithJwtResponse;
   }
 
-  async authenticateRequest(req: Request): Promise<User> {
+  async authenticateRequest(req: Request, res?: Response): Promise<User> {
     const cookies = this.parseCookies(req.headers.cookie);
     
     // Try JWT token first (new auth system) — from cookie or Authorization: Bearer header
@@ -273,6 +274,29 @@ class SDKServer {
         }
       } catch (error) {
         logger.error(" JWT token validation failed:", { error });
+      }
+    }
+
+    // Silent refresh flow: if access token expired, try refresh token cookie
+    const refreshToken = cookies.get('jwt_refresh');
+    if (refreshToken) {
+      try {
+        const authStandalone = await import('../auth-standalone');
+        const refreshed = await authStandalone.refreshAccessToken(refreshToken);
+
+        if (refreshed.success && refreshed.accessToken) {
+          const userResult = await authStandalone.getUserFromToken(refreshed.accessToken);
+
+          if (userResult.success && userResult.user) {
+            if (res) {
+              const cookieOptions = getSessionCookieOptions(req);
+              res.cookie('jwt_token', refreshed.accessToken, cookieOptions);
+            }
+            return userResult.user as User;
+          }
+        }
+      } catch (error) {
+        logger.error(" Refresh token flow failed:", { error });
       }
     }
 
