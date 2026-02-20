@@ -226,6 +226,53 @@ async function startServer() {
   // Initialize BullMQ background workers (decay, arbitration, reputation, verification)
   await initializeWorkers();
 
+  // ─── Database table health check ─────────────────────────────────────
+  try {
+    const missingTables: string[] = [];
+    const criticalTables = [
+      'workspaces', 'workspace_agents', 'mcp_tokens', 'ai_memory',
+      'memory_entries', 'memory_policies',
+    ];
+    for (const table of criticalTables) {
+      const result: any[] = await prisma.$queryRawUnsafe(
+        `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1`,
+        table,
+      );
+      if (result.length === 0) missingTables.push(table);
+    }
+    if (missingTables.length > 0) {
+      logger.warn('Missing database tables detected — some features will not work', {
+        missingTables,
+        fix: 'Run: npx tsx scripts/run-migrations.ts',
+      });
+      // Auto-apply workspace migrations if missing
+      if (missingTables.includes('workspaces') || missingTables.includes('workspace_agents')) {
+        logger.info('Attempting to auto-apply workspace migrations...');
+        try {
+          const fs = await import('fs');
+          const path = await import('path');
+          const migrationFiles = ['06_add_workspaces.sql', '07_enhance_workspace_agents.sql'];
+          for (const file of migrationFiles) {
+            const filePath = path.resolve(__dirname, '../../prisma/migrations', file);
+            if (fs.existsSync(filePath)) {
+              const sql = fs.readFileSync(filePath, 'utf-8');
+              await prisma.$executeRawUnsafe(sql);
+              logger.info(`Applied migration: ${file}`);
+            }
+          }
+        } catch (migErr: any) {
+          logger.warn('Auto-migration partial failure (may already be applied)', {
+            error: migErr.message?.substring(0, 200),
+          });
+        }
+      }
+    } else {
+      logger.info('Database table health check passed', { tables: criticalTables.length });
+    }
+  } catch (dbCheckErr: any) {
+    logger.warn('Database health check failed (non-blocking)', { error: dbCheckErr.message?.substring(0, 200) });
+  }
+
   const host = process.env.HOST || '0.0.0.0';
   server.listen(port, host, () => {
     logger.info("Server started successfully", {

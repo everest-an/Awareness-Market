@@ -176,7 +176,17 @@ export default function WorkspaceSetup() {
       setStep('configs');
       toast({ title: 'Workspace created', description: `${name} is ready` });
     } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      console.error('[WorkspaceSetup] create failed:', err);
+      const message =
+        err.message === 'An unexpected error occurred'
+          ? 'Server error — database tables may need migration. Check server logs.'
+          : err.message || 'Failed to create workspace';
+      toast({
+        title: 'Failed to create workspace',
+        description: message,
+        variant: 'destructive',
+        duration: 8000,
+      });
     }
   }
 
