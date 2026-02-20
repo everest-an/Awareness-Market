@@ -143,7 +143,7 @@ export default defineConfig({
           if (/(@tanstack|@trpc|superjson)/.test(id)) return 'trpc-query';
           if (/(@radix-ui|@floating-ui|@headlessui)/.test(id)) return 'ui-kit';
           if (/lucide-react/.test(id)) return 'icons';
-          if (/(d3|chart|echarts)/.test(id)) return 'charts';
+          if (/(d3|recharts|echarts)/.test(id)) return 'charts';
           if (/(three|@react-three)/.test(id)) return 'three';
           if (/axios/.test(id)) return 'axios';
           if (/(lodash|date-fns)/.test(id)) return 'utils';
@@ -228,28 +228,7 @@ export default defineConfig({
     // ==========================================
     // 模块预加载策略
     // ==========================================
-    modulePreload: {
-      // 自定义预加载逻辑
-      resolveDependencies: (filename, deps, { hostId, hostType }) => {
-        // React 核心必须最先预加载
-        const sortedDeps = deps.sort((a, b) => {
-          const getPriority = (path: string): number => {
-            if (path.includes('react-core')) return 1;
-            if (path.includes('react-router')) return 2;
-            if (path.includes('react-ecosystem')) return 3;
-            if (path.includes('ui-components')) return 4;
-            if (path.includes('charts')) return 5;
-            if (path.includes('utils')) return 6;
-            if (path.includes('vendor')) return 7;
-            return 10;
-          };
-
-          return getPriority(a) - getPriority(b);
-        });
-
-        return sortedDeps;
-      },
-    },
+    modulePreload: false, // Disable auto preload to prevent eager loading of lazy chunks
   },
   assetsInclude: ['**/*.wasm'],
   server: {
