@@ -18,7 +18,7 @@
  * 文档: 查看 PM2_GUIDE.md
  */
 
-module.exports = {
+const ecosystemConfig = {
   apps: [
     {
       name: 'awareness-market-api',
@@ -180,3 +180,5 @@ module.exports = {
     },
   },
 };
+
+export default ecosystemConfig;
