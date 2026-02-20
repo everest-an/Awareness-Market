@@ -323,6 +323,7 @@ export default function AuthPage() {
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-email"
+                        name="email"
                         type="email"
                         placeholder="you@example.com"
                         value={loginForm.email}
@@ -346,6 +347,7 @@ export default function AuthPage() {
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-password"
+                        name="password"
                         type="password"
                         placeholder="••••••••"
                         value={loginForm.password}
@@ -457,6 +459,7 @@ export default function AuthPage() {
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="register-name"
+                        name="name"
                         type="text"
                         placeholder="Your Name"
                         value={registerForm.name}
@@ -474,6 +477,7 @@ export default function AuthPage() {
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="register-email"
+                        name="email"
                         type="email"
                         placeholder="you@example.com"
                         value={registerForm.email}
@@ -496,6 +500,7 @@ export default function AuthPage() {
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="register-password"
+                        name="password"
                         type="password"
                         placeholder="••••••••"
                         value={registerForm.password}
