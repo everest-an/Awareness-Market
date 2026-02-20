@@ -1,0 +1,31 @@
+module.exports = {
+  apps: [
+    {
+      name: 'awareness-market-api',
+      script: './dist/index.js',
+      cwd: './',
+      instances: process.env.PM2_INSTANCES || 'max',
+      exec_mode: 'cluster',
+      env: {
+        NODE_ENV: 'production',
+        PORT: process.env.PORT || 3001,
+      },
+      max_memory_restart: process.env.PM2_MAX_MEMORY || '1G',
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+      watch: false,
+      error_file: './logs/pm2-error.log',
+      out_file: './logs/pm2-out.log',
+      log_file: './logs/pm2-combined.log',
+      time: true,
+      kill_timeout: 5000,
+      listen_timeout: 3000,
+      merge_logs: false,
+      autorestart: true,
+      max_sequential_restarts: 5,
+      stop_exit_codes: [0],
+      node_args: ['--max-old-space-size=2048', '--enable-source-maps'],
+    },
+  ],
+};

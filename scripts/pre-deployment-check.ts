@@ -109,10 +109,10 @@ check(
 );
 
 check(
-  'ecosystem.config.js',
-  () => fs.existsSync('./ecosystem.config.js'),
+  'ecosystem config',
+  () => fs.existsSync('./ecosystem.config.cjs') || fs.existsSync('./ecosystem.config.js'),
   'PM2 config exists',
-  'ecosystem.config.js missing'
+  'ecosystem.config.cjs missing'
 );
 
 check('logs/ directory', () => {

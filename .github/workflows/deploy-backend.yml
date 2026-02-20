@@ -77,7 +77,7 @@ jobs:
           scp -i ~/.ssh/awareness-key.pem package.json ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
           scp -i ~/.ssh/awareness-key.pem -r prisma ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
           scp -i ~/.ssh/awareness-key.pem -r scripts ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
-          scp -i ~/.ssh/awareness-key.pem ecosystem.config.js ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
+          scp -i ~/.ssh/awareness-key.pem ecosystem.config.cjs ec2-user@44.220.181.78:/home/ec2-user/Awareness-Market/
       
       - name: Run database migrations on EC2
         run: |
@@ -97,7 +97,7 @@ jobs:
             cd /home/ec2-user/Awareness-Market
             pnpm install --prod --frozen-lockfile
             pnpm exec prisma generate
-            pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
+            pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs
             pm2 status
           ENDSSH
       
