@@ -147,9 +147,10 @@ router.post("/register", async (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
-    // Return Prisma error details for debugging
-    const detail = error?.code ? `${error.code}: ${error?.meta?.target || error?.meta?.cause || error.message}` : (error?.message || 'Unknown');
-    return res.status(500).json({ error: "Registration failed", detail });
+    if (error?.code === 'P2002') {
+      return res.status(409).json({ error: "Agent with this email already exists" });
+    }
+    return res.status(500).json({ error: "Registration failed" });
   }
 });
 
