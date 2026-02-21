@@ -142,12 +142,14 @@ router.post("/register", async (req, res) => {
       apiKey: rawApiKey, // Only returned once during registration
       message: "AI agent registered successfully. Store your API key securely - it won't be shown again.",
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(" Registration error:", { error });
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Invalid request", details: error.issues });
     }
-    return res.status(500).json({ error: "Registration failed" });
+    // Return Prisma error details for debugging
+    const detail = error?.code ? `${error.code}: ${error?.meta?.target || error?.meta?.cause || error.message}` : (error?.message || 'Unknown');
+    return res.status(500).json({ error: "Registration failed", detail });
   }
 });
 
