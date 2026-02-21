@@ -407,8 +407,11 @@ export const workspaceRouter = router({
       const apiBaseUrl = process.env.VITE_APP_URL || 'https://awareness.market';
       const rawToken = resolveToken(workspace.mcpTokenEncrypted);
 
+      // Cloud MCP server URL (no local process needed)
+      const mcpCloudUrl = `${apiBaseUrl}/mcp`;
+
       const configs = workspace.agents.map((agent: AgentRecord) => {
-        if (agent.integration === 'mcp') {
+        if (agent.integration === 'mcp' || agent.integration === 'windows_mcp') {
           return {
             agentId: agent.id,
             agentName: agent.name,
@@ -416,8 +419,27 @@ export const workspaceRouter = router({
             model: agent.model,
             integration: 'mcp' as const,
             config: {
+              // Cloud MCP — recommended (no local process needed)
               mcpServers: {
                 [`awareness-collab-${workspace.id}`]: {
+                  type: 'streamable-http',
+                  url: mcpCloudUrl,
+                  headers: {
+                    'Authorization': `Bearer ${rawToken}`,
+                    'X-Agent-Role': agent.role,
+                    'X-Workspace-Key': workspace.memoryKey,
+                  },
+                  description: `${workspace.name} — ${agent.name} (${agent.role})`,
+                  autoApprove: [
+                    'share_reasoning',
+                    'get_other_agent_context',
+                    'sync_progress',
+                  ],
+                },
+              },
+              // Fallback: local stdio MCP server (if cloud is unreachable)
+              mcpServersLocal: {
+                [`awareness-collab-${workspace.id}-local`]: {
                   command: 'node',
                   args: ['./mcp-server/dist/index-collaboration.js'],
                   env: {
@@ -429,12 +451,6 @@ export const workspaceRouter = router({
                     MEMORY_KEY: workspace.memoryKey,
                     AGENT_PERMISSIONS: JSON.stringify(agent.permissions),
                   },
-                  description: `${workspace.name} — ${agent.name} (${agent.role})`,
-                  autoApprove: [
-                    'share_reasoning',
-                    'get_other_agent_context',
-                    'sync_progress',
-                  ],
                 },
               },
             },
