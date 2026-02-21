@@ -22,6 +22,7 @@ import { initializeWorkflowWebSocket } from "../workflow-websocket";
 import { setupGoServiceProxies, createHealthCheckRouter } from "../middleware/go-service-proxy";
 import communityRouter from "../community-assistant";
 import collabRouter from "../routers/workspace-collab";
+import mcpCloudRouter from "../mcp-cloud";
 import { erc8004Router } from "../erc8004-api";
 import inferenceRouter from "../inference-api";
 import { createLogger } from "../utils/logger";
@@ -143,7 +144,11 @@ async function startServer() {
   app.get("/api/collab/context", collabReadLimiter);
   app.get("/api/collab/status", collabReadLimiter);
   app.use("/api/collab", collabRouter);
-  
+
+  // Cloud-hosted MCP Server (Streamable HTTP transport)
+  // Clients connect via: POST/GET/DELETE https://api.awareness.market/mcp
+  app.use("/mcp", mcpCloudRouter);
+
   // LatentMAS Transformer API
   app.use("/api/latentmas", latentmasRouter);
   
