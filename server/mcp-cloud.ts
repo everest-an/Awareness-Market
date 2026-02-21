@@ -1,20 +1,25 @@
 /**
- * Cloud-Hosted MCP Server (Streamable HTTP Transport)
+ * Cloud-Hosted MCP Server (Stateless Streamable HTTP Transport)
  *
  * Provides the same 6 collaboration tools as the local stdio MCP server,
  * but runs inside the Express process using the MCP Streamable HTTP transport.
  *
+ * STATELESS MODE: Each request creates a fresh MCP server instance.
+ * This is required because PM2 runs in cluster mode (multiple processes),
+ * so session state cannot be kept in-memory.
+ *
  * Users configure their MCP client to point to:
  *   POST https://api.awareness.market/mcp
- *   GET  https://api.awareness.market/mcp  (SSE stream)
- *   DELETE https://api.awareness.market/mcp (close session)
  *
  * Auth: Bearer <mcp_token> in the Authorization header
  *       (or custom header X-MCP-Token for backwards compat)
+ *
+ * Custom headers for workspace context:
+ *   X-Agent-Role: frontend|backend|designer|...
+ *   X-Workspace-Key: workspace:ws_xxxxx
  */
 
 import { Router, Request, Response } from 'express';
-import { randomUUID } from 'crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
@@ -26,32 +31,6 @@ const logger = createLogger('MCP:Cloud');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const orm = prisma as any;
-
-// ─── Session storage ────────────────────────────────────────────────────
-// Maps sessionId → { transport, server, userId, workspaceId, role, permissions, lastActivity }
-interface McpSession {
-  transport: StreamableHTTPServerTransport;
-  server: McpServer;
-  userId: number;
-  memoryKey: string;
-  role: string;
-  permissions: string[];
-  lastActivity: number;
-}
-
-const sessions = new Map<string, McpSession>();
-
-// Cleanup stale sessions every 10 minutes
-setInterval(() => {
-  const cutoff = Date.now() - 30 * 60 * 1000; // 30min idle
-  for (const [id, session] of sessions) {
-    if (session.lastActivity < cutoff) {
-      try { session.transport.close(); } catch { /* ignore */ }
-      sessions.delete(id);
-      logger.info('Cleaned up stale MCP session', { sessionId: id });
-    }
-  }
-}, 10 * 60 * 1000);
 
 // ─── Auth helper ────────────────────────────────────────────────────────
 
@@ -244,7 +223,6 @@ function createCollaborationMcpServer(
 
       const data = JSON.parse(existing.memoryData);
       const history = Array.isArray(data.history) ? data.history : [];
-      // Filter out own entries, show others
       const otherEntries = history
         .filter((e: any) => e.agent_role !== role)
         .slice(-(params.limit || 10));
@@ -351,7 +329,6 @@ function createCollaborationMcpServer(
       const data = JSON.parse(existing.memoryData);
       let history = Array.isArray(data.history) ? data.history : [];
 
-      // Apply filters
       if (params.filterBy === 'decisions') {
         history = history.filter((e: any) => e.type === 'decision_proposal');
       } else if (params.filterBy === 'questions') {
@@ -508,7 +485,7 @@ function createCollaborationMcpServer(
 
 const mcpCloudRouter = Router();
 
-// Middleware: authenticate + extract workspace context from headers
+// Middleware: authenticate
 async function mcpAuthMiddleware(req: Request, res: Response, next: () => void) {
   const auth = await authenticateMcpRequest(req);
   if (!auth) {
@@ -525,58 +502,41 @@ async function mcpAuthMiddleware(req: Request, res: Response, next: () => void) 
 
 mcpCloudRouter.use(mcpAuthMiddleware);
 
-// POST /mcp — Handle MCP JSON-RPC requests (initialize, tool calls, etc.)
+/**
+ * POST /mcp — Stateless MCP handler
+ *
+ * Each request creates a fresh McpServer + StreamableHTTPServerTransport.
+ * This works with PM2 cluster mode (no shared in-memory sessions).
+ * The trade-off is slightly higher latency per request (~5ms overhead)
+ * but perfect compatibility with multi-process deployments.
+ */
 mcpCloudRouter.post('/', async (req: Request, res: Response) => {
   const auth = (req as any)._mcpAuth as AuthResult;
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
   // Extract workspace context from custom headers
   const agentRole = (req.headers['x-agent-role'] as string) || 'default';
   const workspaceKey = (req.headers['x-workspace-key'] as string) || '';
+  const memoryKey = workspaceKey || `workspace:default_${auth.userId}`;
 
   try {
-    if (sessionId && sessions.has(sessionId)) {
-      // Existing session — route request
-      const session = sessions.get(sessionId)!;
-      session.lastActivity = Date.now();
-      await session.transport.handleRequest(req, res, req.body);
-    } else {
-      // New session — create MCP server + transport
-      const memoryKey = workspaceKey || `workspace:default_${auth.userId}`;
+    // Create a fresh server + transport for each request (stateless)
+    const mcpServer = createCollaborationMcpServer(
+      auth.userId,
+      memoryKey,
+      agentRole,
+      auth.permissions,
+    );
 
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (newSessionId: string) => {
-          sessions.set(newSessionId, {
-            transport,
-            server: mcpServer,
-            userId: auth.userId,
-            memoryKey,
-            role: agentRole,
-            permissions: auth.permissions,
-            lastActivity: Date.now(),
-          });
-          logger.info('MCP cloud session created', {
-            sessionId: newSessionId,
-            userId: auth.userId,
-            role: agentRole,
-            memoryKey,
-          });
-        },
-      });
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined, // stateless — no sessions
+    });
 
-      const mcpServer = createCollaborationMcpServer(
-        auth.userId,
-        memoryKey,
-        agentRole,
-        auth.permissions,
-      );
-
-      await mcpServer.connect(transport);
-      await transport.handleRequest(req, res, req.body);
-    }
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+    await transport.close();
+    await mcpServer.close();
   } catch (error: any) {
-    logger.error('MCP cloud request failed', { error: error.message, sessionId });
+    logger.error('MCP cloud request failed', { error: error.message });
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',
@@ -587,43 +547,17 @@ mcpCloudRouter.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /mcp — SSE stream for server-to-client notifications
-mcpCloudRouter.get('/', async (req: Request, res: Response) => {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
-
-  if (!sessionId || !sessions.has(sessionId)) {
-    res.status(400).json({
-      jsonrpc: '2.0',
-      error: { code: -32000, message: 'Invalid or missing session. Send a POST first to initialize.' },
-      id: null,
-    });
-    return;
-  }
-
-  const session = sessions.get(sessionId)!;
-  session.lastActivity = Date.now();
-
-  try {
-    await session.transport.handleRequest(req, res);
-  } catch (error: any) {
-    logger.error('MCP SSE stream error', { error: error.message, sessionId });
-    if (!res.headersSent) {
-      res.status(500).end();
-    }
-  }
+// GET /mcp — Not supported in stateless mode
+mcpCloudRouter.get('/', (_req: Request, res: Response) => {
+  res.status(405).json({
+    jsonrpc: '2.0',
+    error: { code: -32000, message: 'SSE streaming not available in stateless mode. Use POST for all requests.' },
+    id: null,
+  });
 });
 
-// DELETE /mcp — Close session
-mcpCloudRouter.delete('/', async (req: Request, res: Response) => {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
-
-  if (sessionId && sessions.has(sessionId)) {
-    const session = sessions.get(sessionId)!;
-    try { await session.transport.close(); } catch { /* ignore */ }
-    sessions.delete(sessionId);
-    logger.info('MCP cloud session closed', { sessionId });
-  }
-
+// DELETE /mcp — No-op in stateless mode
+mcpCloudRouter.delete('/', (_req: Request, res: Response) => {
   res.status(200).json({ success: true });
 });
 
