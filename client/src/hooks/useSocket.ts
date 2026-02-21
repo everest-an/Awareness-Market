@@ -15,9 +15,11 @@ export function useSocket(userId?: string) {
       return;
     }
 
-    // Create socket connection
-    const socket = io(window.location.origin, {
+    // Connect to the API server (may differ from frontend origin on Vercel)
+    const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const socket = io(apiUrl, {
       transports: ["websocket", "polling"],
+      withCredentials: true,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,

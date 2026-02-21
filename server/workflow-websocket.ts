@@ -18,9 +18,17 @@ let io: SocketIOServer | null = null;
  * Initialize WebSocket server
  */
 export function initializeWorkflowWebSocket(httpServer: HTTPServer) {
+  const allowedOrigins = [
+    process.env.CLIENT_URL,
+    'https://awareness.market',
+    'https://www.awareness.market',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ].filter(Boolean) as string[];
+
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: allowedOrigins,
       methods: ["GET", "POST"],
       credentials: true,
     },
