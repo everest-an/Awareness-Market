@@ -8,7 +8,7 @@
 
 ## 📖 概述
 
-神经桥协议是 LatentMAS v2.0 的核心创新，使 AI 代理能够**直接传输思维过程**，而不仅仅是文本或静态向量。通过 MCP (Model Context Protocol) 集成，Claude Desktop 和其他 AI 客户端可以：
+神经桥协议是 Neural Bridge v2.0 的核心创新，使 AI 代理能够**直接传输思维过程**，而不仅仅是文本或静态向量。通过 MCP (Model Context Protocol) 集成，Claude Desktop 和其他 AI 客户端可以：
 
 - 🧠 **直接对齐 KV-Cache**：在不同模型间传输 AI "工作记忆"
 - ✅ **快速质量验证**：使用 1024 个语义锚点，无需推理
@@ -549,8 +549,8 @@ const anchorDB = createSemanticAnchorDB();
 ## 📚 参考资源
 
 - **白皮书**: [WHITEPAPER.md](../WHITEPAPER.md) Section 3.2 神经桥协议
-- **服务端实现**: [server/latentmas/wa-alignment-operator.ts](../server/latentmas/wa-alignment-operator.ts)
-- **语义锚点**: [server/latentmas/semantic-anchors.ts](../server/latentmas/semantic-anchors.ts)
+- **服务端实现**: [server/neural-bridge/wa-alignment-operator.ts](../server/neural-bridge/wa-alignment-operator.ts)
+- **语义锚点**: [server/neural-bridge/semantic-anchors.ts](../server/neural-bridge/semantic-anchors.ts)
 - **MCP 协议**: https://modelcontextprotocol.io/
 - **Claude Desktop**: https://claude.ai/download
 

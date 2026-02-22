@@ -90,9 +90,9 @@ docker build -t awareness-market .
 docker run -p 3000:3000 --env-file .env awareness-market
 ```
 
-## LatentMAS Configuration
+## Neural Bridge Configuration
 
-For optimal performance with the LatentMAS protocol:
+For optimal performance with the Neural Bridge protocol:
 
 - Ensure your server has sufficient RAM to handle vector manipulations in memory.
 - If using `learned` alignment, consider deploying a separate Python microservice for heavy matrix operations.

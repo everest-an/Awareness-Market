@@ -1,17 +1,17 @@
-# LatentMAS 技术研究分析
+# Neural Bridge 技术研究分析
 
 ## 🎯 研究目的
 
-分析三个先进的 LatentMAS 变种，提取核心思想，为 Awareness Market 的 AI 协作功能提供技术参考。
+分析三个先进的 Neural Bridge 变种，提取核心思想，为 Awareness Market 的 AI 协作功能提供技术参考。
 
 ---
 
-## 📚 三个 LatentMAS 变种
+## 📚 三个 Neural Bridge 变种
 
-### 1. Science-LatentMAS
+### 1. Science-Neural Bridge
 **作者**: Markus J. Buehler 教授和 MIT LAMM 小组
-**仓库**: https://github.com/Gen-Verse/LatentMAS/tree/Science-LatentMAS
-**原始代码**: https://github.com/lamm-mit/LatentMAS/tree/flexible_agents
+**仓库**: https://github.com/Gen-Verse/Neural Bridge/tree/Science-Neural Bridge
+**原始代码**: https://github.com/lamm-mit/Neural Bridge/tree/flexible_agents
 
 #### 核心创新
 - **灵活的代理类型**: 支持多种专业化代理（不仅限于通用 LLM）
@@ -41,7 +41,7 @@ class AgentType(Enum):
 
 ---
 
-### 2. KNN-LatentMAS
+### 2. KNN-Neural Bridge
 **作者**: Bookmaster9
 **博客**: https://bookmaster9.github.io/kNN-latentMAS/
 **代码**: https://github.com/Bookmaster9/kNN-latentMAS
@@ -92,9 +92,9 @@ class CollaborationMemoryIndex {
 
 ---
 
-### 3. Hybrid-LatentMAS
+### 3. Hybrid-Neural Bridge
 **作者**: nhminle
-**代码**: https://github.com/nhminle/LatentMAS-Hybrid
+**代码**: https://github.com/nhminle/Neural Bridge-Hybrid
 
 #### 核心创新
 - **异构代理协作**: LLM + 非 LLM 代理（工具、执行器、传感器）
@@ -166,17 +166,17 @@ LLM代理 (Claude)
 
 ## 🎯 核心思想总结
 
-### 1. Science-LatentMAS 的核心
+### 1. Science-Neural Bridge 的核心
 **问题**: 通用 LLM 在专业领域表现不佳
 **解决**: 让每个代理专精一个领域，通过潜在空间共享知识
 **关键**: 代理类型系统 + 领域特定的潜在通信协议
 
-### 2. KNN-LatentMAS 的核心
+### 2. KNN-Neural Bridge 的核心
 **问题**: 长时间协作时，历史消息太多，内存爆炸
 **解决**: 不检索全部历史，只检索与当前任务最相关的 k 条
 **关键**: 向量相似性搜索 + 智能缓存管理
 
-### 3. Hybrid-LatentMAS 的核心
+### 3. Hybrid-Neural Bridge 的核心
 **问题**: LLM 不擅长执行具体操作（运行代码、调用 API）
 **解决**: 引入专门的工具代理，LLM 负责规划，工具负责执行
 **关键**: 模块化架构 + 任务路由系统
@@ -187,17 +187,17 @@ LLM代理 (Claude)
 
 ### 短期实施（MVP）
 ✅ **立即可做**:
-1. **代理类型系统** (参考 Science-LatentMAS)
+1. **代理类型系统** (参考 Science-Neural Bridge)
    - 前端代理、后端代理、全栈代理
    - 每个代理声明自己的能力范围
 
-2. **基础潜在通信** (现有 LatentMAS)
+2. **基础潜在通信** (现有 Neural Bridge)
    - 使用 W-Matrix 转换消息到潜在空间
    - 代理之间共享压缩的 KV-Cache
 
 ### 中期优化（V2）
 📅 **2-3 个月后**:
-1. **kNN 检索系统** (参考 KNN-LatentMAS)
+1. **kNN 检索系统** (参考 KNN-Neural Bridge)
    - 集成向量数据库（Qdrant/FAISS）
    - 实现智能历史消息检索
    - 预期效果：70% 内存节省
@@ -208,7 +208,7 @@ LLM代理 (Claude)
 
 ### 长期扩展（V3）
 🚀 **6 个月后**:
-1. **混合代理系统** (参考 Hybrid-LatentMAS)
+1. **混合代理系统** (参考 Hybrid-Neural Bridge)
    - LLM代理：Manus (前端) + Claude (后端)
    - 工具代理：代码执行器、测试运行器
    - 数据代理：数据库查询器、API 客户端
@@ -300,14 +300,14 @@ class HybridCoordinator {
 
 ## 📊 性能预期
 
-### Memory Usage (参考 KNN-LatentMAS)
+### Memory Usage (参考 KNN-Neural Bridge)
 | 协作时长 | 无优化 | kNN优化 | 节省 |
 |---------|-------|---------|------|
 | 1 小时  | 500MB | 150MB   | 70%  |
 | 4 小时  | 2GB   | 400MB   | 80%  |
 | 8 小时  | 4GB   | 600MB   | 85%  |
 
-### Response Time (参考 KNN-LatentMAS)
+### Response Time (参考 KNN-Neural Bridge)
 | 消息数量 | 全检索 | kNN检索 | 提升 |
 |---------|-------|---------|------|
 | 100     | 50ms  | 10ms    | 5x   |
@@ -319,14 +319,14 @@ class HybridCoordinator {
 ## 🎓 学习资源
 
 ### 必读论文
-1. **LatentMAS 原论文**: 理解潜在空间多代理通信基础
-2. **kNN-LatentMAS 博客**: https://bookmaster9.github.io/kNN-latentMAS/
-3. **Hybrid-LatentMAS README**: 混合代理系统架构
+1. **Neural Bridge 原论文**: 理解潜在空间多代理通信基础
+2. **kNN-Neural Bridge 博客**: https://bookmaster9.github.io/kNN-latentMAS/
+3. **Hybrid-Neural Bridge README**: 混合代理系统架构
 
 ### 代码参考
-1. **Science-LatentMAS**: `flexible_agents/agent_types.py`
-2. **KNN-LatentMAS**: `knn_retrieval/vector_index.py`
-3. **Hybrid-LatentMAS**: `hybrid/coordinator.py`
+1. **Science-Neural Bridge**: `flexible_agents/agent_types.py`
+2. **KNN-Neural Bridge**: `knn_retrieval/vector_index.py`
+3. **Hybrid-Neural Bridge**: `hybrid/coordinator.py`
 
 ---
 
@@ -334,7 +334,7 @@ class HybridCoordinator {
 
 ### P0 (立即实施)
 - [ ] 代理类型系统（前端/后端/全栈）
-- [ ] 基础潜在通信（现有 LatentMAS）
+- [ ] 基础潜在通信（现有 Neural Bridge）
 
 ### P1 (2-3 个月)
 - [ ] kNN 检索系统集成

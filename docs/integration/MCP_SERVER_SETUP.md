@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to configure and test the LatentMAS MCP Server in Claude Desktop or other MCP-compatible clients.
+This guide explains how to configure and test the Neural Bridge MCP Server in Claude Desktop or other MCP-compatible clients.
 
 ## Prerequisites
 
@@ -19,14 +19,14 @@ The configuration file is located at:
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 - **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
-### 1.2 Add LatentMAS MCP Server
+### 1.2 Add Neural Bridge MCP Server
 
 Edit the configuration file and add:
 
 ```json
 {
   "mcpServers": {
-    "latentmas-marketplace": {
+    "neural-bridge-marketplace": {
       "command": "node",
       "args": [
         "/home/ubuntu/latentmind-marketplace/mcp-server/index.ts"
@@ -55,12 +55,12 @@ In Claude Desktop, type:
 What tools do you have access to?
 ```
 
-You should see 5 LatentMAS tools:
-1. `search_latentmas_memories` - Search for W-Matrix and KV-Cache memories
+You should see 5 Neural Bridge tools:
+1. `search_neural-bridge_memories` - Search for W-Matrix and KV-Cache memories
 2. `check_model_compatibility` - Check if models are compatible
 3. `get_wmatrix_details` - Get detailed W-Matrix information
 4. `estimate_performance_gain` - Estimate TTFT reduction and bandwidth savings
-5. `purchase_latentmas_package` - Purchase complete LatentMAS package
+5. `purchase_neural-bridge_package` - Purchase complete Neural Bridge package
 
 ### 2.2 Test Basic Search
 
@@ -85,7 +85,7 @@ I'm using GPT-4 for my task. Can you find the best memory to improve performance
 ```
 
 Claude should:
-1. Call `search_latentmas_memories` with `targetModel: "gpt-4"`
+1. Call `search_neural-bridge_memories` with `targetModel: "gpt-4"`
 2. Present top results with epsilon and quality scores
 
 ### 3.2 Check Compatibility
@@ -113,11 +113,11 @@ Claude should:
 ### 3.4 Purchase Memory (Test Mode)
 
 ```
-Purchase the GPT-3.5 → GPT-4 LatentMAS package
+Purchase the GPT-3.5 → GPT-4 Neural Bridge package
 ```
 
 Claude should:
-1. Call `purchase_latentmas_package`
+1. Call `purchase_neural-bridge_package`
 2. Confirm purchase details
 3. Return download URL for W-Matrix and KV-Cache
 
@@ -146,8 +146,8 @@ Compare the performance of different W-Matrices for my use case
 ### Issue: MCP Server Not Loading
 
 **Solution**: Check the logs in Claude Desktop:
-- macOS: `~/Library/Logs/Claude/mcp-server-latentmas-marketplace.log`
-- Windows: `%APPDATA%\Claude\Logs\mcp-server-latentmas-marketplace.log`
+- macOS: `~/Library/Logs/Claude/mcp-server-neural-bridge-marketplace.log`
+- Windows: `%APPDATA%\Claude\Logs\mcp-server-neural-bridge-marketplace.log`
 
 ### Issue: API Connection Failed
 
@@ -167,7 +167,7 @@ After successful setup, you should be able to:
 - ✅ Check model compatibility automatically
 - ✅ Get detailed W-Matrix information (epsilon, quality, version)
 - ✅ Estimate performance gains before purchase
-- ✅ Purchase complete LatentMAS packages (W-Matrix + KV-Cache)
+- ✅ Purchase complete Neural Bridge packages (W-Matrix + KV-Cache)
 
 ## Next Steps
 
@@ -179,6 +179,6 @@ After successful setup, you should be able to:
 ## Support
 
 For issues or questions:
-- Check the [LatentMAS Documentation](../docs/LATENTMAS_PAPER_COMPLIANCE.md)
+- Check the [Neural Bridge Documentation](../docs/NEURAL_BRIDGE_PAPER_COMPLIANCE.md)
 - Review the [MCP Server Source Code](../mcp-server/index.ts)
 - Open an issue on GitHub

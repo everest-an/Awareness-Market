@@ -1,8 +1,8 @@
-# LatentMAS Marketplace - Final Deployment Guide
+# Neural Bridge Marketplace - Final Deployment Guide
 
 ## Executive Summary
 
-This document provides a comprehensive guide for deploying the LatentMAS Marketplace to production. The platform implements the LatentMAS protocol as described in the research paper, enabling AI agents to autonomously discover, purchase, and use cross-model memory transfers through W-Matrix transformations and KV-Cache compression.
+This document provides a comprehensive guide for deploying the Neural Bridge Marketplace to production. The platform implements the Neural Bridge protocol as described in the research paper, enabling AI agents to autonomously discover, purchase, and use cross-model memory transfers through W-Matrix transformations and KV-Cache compression.
 
 **Deployment Status**: Production-ready with 95% paper compliance
 
@@ -20,7 +20,7 @@ This document provides a comprehensive guide for deploying the LatentMAS Marketp
 ### Three-Layer System
 
 #### 1. Protocol Layer
-**Purpose**: Core LatentMAS implementation
+**Purpose**: Core Neural Bridge implementation
 
 **Components**:
 - `w-matrix-trainer.ts` - Real MLP training with gradient descent
@@ -154,7 +154,7 @@ pnpm start
 Or use PM2 for process management:
 
 ```bash
-pm2 start server/index.ts --name latentmas-marketplace
+pm2 start server/index.ts --name neural-bridge-marketplace
 pm2 save
 pm2 startup
 ```
@@ -196,7 +196,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "latentmas-marketplace": {
+    "neural-bridge-marketplace": {
       "command": "node",
       "args": ["/path/to/latentmind-marketplace/mcp-server/index.ts"],
       "env": {
@@ -292,16 +292,16 @@ Expected response:
 
 #### API Tests
 - [ ] `GET /api/trpc/wMatrixMarketplaceV2.browseListings` returns data
-- [ ] `POST /api/trpc/latentmasMarketplace.purchasePackage` works
+- [ ] `POST /api/trpc/neural-bridgeMarketplace.purchasePackage` works
 - [ ] `GET /api/trpc/memoryNFT.getByOwner` returns user's NFTs
 - [ ] `GET /api/trpc/agentCredit.getLeaderboard` returns rankings
 
 #### MCP Server Tests
-- [ ] `search_latentmas_memories` finds relevant W-Matrices
+- [ ] `search_neural-bridge_memories` finds relevant W-Matrices
 - [ ] `check_model_compatibility` validates model pairs
 - [ ] `get_wmatrix_details` returns full metadata
 - [ ] `estimate_performance_gain` calculates TTFT reduction
-- [ ] `purchase_latentmas_package` completes transaction
+- [ ] `purchase_neural-bridge_package` completes transaction
 
 #### Smart Contract Tests (if deployed)
 - [ ] NFT minting works
@@ -376,7 +376,7 @@ mysqldump -u user -p database > backup_$(date +%Y%m%d_%H%M%S).sql
 #### Load Balancer Setup (Nginx)
 
 ```nginx
-upstream latentmas_backend {
+upstream neural-bridge_backend {
     server 10.0.1.1:3000;
     server 10.0.1.2:3000;
     server 10.0.1.3:3000;
@@ -385,7 +385,7 @@ upstream latentmas_backend {
 server {
     listen 80;
     location / {
-        proxy_pass http://latentmas_backend;
+        proxy_pass http://neural-bridge_backend;
     }
 }
 ```
@@ -451,7 +451,7 @@ Upgrade server resources as needed:
 
 **Diagnosis**:
 ```bash
-pm2 logs latentmas-marketplace
+pm2 logs neural-bridge-marketplace
 ```
 
 **Solution**: Check database connection and environment variables.
@@ -477,7 +477,7 @@ curl https://api.openai.com/v1/models \
 ## Support and Resources
 
 ### Documentation
-- [LatentMAS Paper Compliance](./LATENTMAS_PAPER_COMPLIANCE.md)
+- [Neural Bridge Paper Compliance](./NEURAL_BRIDGE_PAPER_COMPLIANCE.md)
 - [MCP Server Setup](./MCP_SERVER_SETUP.md)
 - [Smart Contract Deployment](./SMART_CONTRACT_DEPLOYMENT.md)
 - [Phase 1 Protocol Layer](./PHASE1_PROTOCOL_LAYER.md)
@@ -496,7 +496,7 @@ curl https://api.openai.com/v1/models \
 
 ## Conclusion
 
-The LatentMAS Marketplace is now production-ready with full paper compliance. The system enables AI agents to autonomously discover, purchase, and use cross-model memory transfers, creating a decentralized marketplace for AI knowledge.
+The Neural Bridge Marketplace is now production-ready with full paper compliance. The system enables AI agents to autonomously discover, purchase, and use cross-model memory transfers, creating a decentralized marketplace for AI knowledge.
 
 **Next Steps**:
 1. Deploy to production server

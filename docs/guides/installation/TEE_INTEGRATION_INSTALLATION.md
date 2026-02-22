@@ -6,8 +6,8 @@ Implemented hardware-level security for sensitive vector operations using Truste
 
 ## Files Created
 
-1. `server/latentmas/tee-integration.ts` - Core TEE integration engine (550 lines)
-2. `server/latentmas/tee-integration.test.ts` - Comprehensive test suite (37 tests)
+1. `server/neural-bridge/tee-integration.ts` - Core TEE integration engine (550 lines)
+2. `server/neural-bridge/tee-integration.test.ts` - Comprehensive test suite (37 tests)
 
 ## Features Implemented
 
@@ -76,7 +76,7 @@ import {
   secureAlign,
   isRunningInTEE,
   type TEEProvider,
-} from './server/latentmas/tee-integration';
+} from './server/neural-bridge/tee-integration';
 ```
 
 ### Step 3: Initialize TEE
@@ -108,7 +108,7 @@ function alignVector(vector: number[], wMatrix: number[][]): number[] {
 }
 
 // After (TEE-protected):
-import { secureAlign } from './latentmas/tee-integration';
+import { secureAlign } from './neural-bridge/tee-integration';
 
 async function alignVector(vector: number[], wMatrix: number[][]): Promise<number[]> {
   // Execute in TEE with memory encryption
@@ -122,7 +122,7 @@ async function alignVector(vector: number[], wMatrix: number[][]): Promise<numbe
 ### Basic Secure Alignment
 
 ```typescript
-import { getTEEEngine } from './server/latentmas/tee-integration';
+import { getTEEEngine } from './server/neural-bridge/tee-integration';
 
 const engine = getTEEEngine();
 await engine.initialize();
@@ -148,7 +148,7 @@ await engine.destroyContext(context.contextId);
 ### Remote Attestation
 
 ```typescript
-import { getCurrentAttestation } from './server/latentmas/tee-integration';
+import { getCurrentAttestation } from './server/neural-bridge/tee-integration';
 
 // Get attestation document
 const attestation = await getCurrentAttestation();
@@ -173,7 +173,7 @@ if (isValid) {
 ### Sealed Storage
 
 ```typescript
-import { getTEEEngine } from './server/latentmas/tee-integration';
+import { getTEEEngine } from './server/neural-bridge/tee-integration';
 
 const engine = getTEEEngine();
 
@@ -199,7 +199,7 @@ console.log('Unsealed data:', unsealed);
 ### Batch Secure Operations
 
 ```typescript
-import { getTEEEngine } from './server/latentmas/tee-integration';
+import { getTEEEngine } from './server/neural-bridge/tee-integration';
 
 const engine = getTEEEngine();
 
@@ -299,7 +299,7 @@ socket.on('data', (data) => {
 Run the test suite:
 
 ```bash
-npm test server/latentmas/tee-integration.test.ts
+npm test server/neural-bridge/tee-integration.test.ts
 ```
 
 Expected output:

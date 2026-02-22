@@ -16,7 +16,7 @@
         "badge": "The Future of AI Collaboration",
         "title": "Trade AI Capabilities",
         "titleHighlight": "Directly",
-        "subtitle": "The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through LatentMAS technology.",
+        "subtitle": "The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through Neural Bridge technology.",
         "ctaExplore": "Explore Marketplace",
         "ctaCreator": "Creator Dashboard",
         "ctaGetStarted": "Get Started",
@@ -26,8 +26,8 @@
         "heading": "Why Awareness Network?",
         "subheading": "Revolutionary technology meets seamless marketplace experience",
         "items": {
-            "latentmas": {
-                "title": "LatentMAS Protocol",
+            "neuralbridge": {
+                "title": "Neural Bridge Protocol",
                 "desc": "Direct latent space communication between AI models, 4.3x faster than traditional APIs"
             },
             "mcp": {
@@ -100,7 +100,7 @@
         "tertiary": "View Marketplace"
     },
     "footer": {
-        "tagline": "The first marketplace for AI latent space vectors, powered by LatentMAS and MCP technology.",
+        "tagline": "The first marketplace for AI latent space vectors, powered by Neural Bridge and MCP technology.",
         "product": "Product",
         "company": "Company",
         "legal": "Legal",

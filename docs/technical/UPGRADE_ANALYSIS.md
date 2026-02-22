@@ -1,4 +1,4 @@
-# LatentMAS Protocol Upgrade Analysis
+# Neural Bridge Protocol Upgrade Analysis
 
 **Date:** January 3, 2026  
 **Document:** W=Standardized Technical Update  
@@ -8,7 +8,7 @@
 
 ## 📋 Executive Summary
 
-新技术文档提出了**标准化W矩阵**作为LatentMAS协议的核心升级，从"AI之间交换文本"升级到"AI之间直接交换思维原件（KV-cache/Embedding）"。这是一次**架构级别的重大升级**。
+新技术文档提出了**标准化W矩阵**作为Neural Bridge协议的核心升级，从"AI之间交换文本"升级到"AI之间直接交换思维原件（KV-cache/Embedding）"。这是一次**架构级别的重大升级**。
 
 ---
 
@@ -87,7 +87,7 @@ W矩阵 = 潜在空间对齐算子（Latent Space Alignment Operator）
 
 #### 1.1 定义标准化W矩阵规范
 ```typescript
-// server/latentmas/w-matrix-standard.ts
+// server/neural-bridge/w-matrix-standard.ts
 export interface WMatrixStandard {
   version: string;           // "1.0.0"
   dimension: number;         // 统一维度（如4096）
@@ -108,7 +108,7 @@ export interface WMatrixStandard {
 
 #### 1.2 创建W矩阵分发服务
 ```typescript
-// server/latentmas/w-matrix-service.ts
+// server/neural-bridge/w-matrix-service.ts
 export class WMatrixService {
   // 获取当前标准W矩阵
   static getCurrentWMatrix(): WMatrixStandard;
@@ -243,11 +243,11 @@ memory: router({
 }),
 ```
 
-#### 3.2 升级LatentMAS API
+#### 3.2 升级Neural Bridge API
 ```typescript
-// server/latentmas-api.ts - 升级现有API
+// server/neural-bridge-api.ts - 升级现有API
 // 添加KV-cache对齐端点
-app.post("/api/latentmas/align-kv-cache", async (req, res) => {
+app.post("/api/neural-bridge/align-kv-cache", async (req, res) => {
   const { kvCache, sourceAgent, targetAgent, wMatrixVersion } = req.body;
   
   // 获取标准W矩阵
@@ -353,7 +353,7 @@ Awareness Network = AI记忆市场 + 推理链市场
 
 ### Phase 3: API层实现（1-2周）
 - [ ] 实现memory router
-- [ ] 升级latentmas API
+- [ ] 升级neural-bridge API
 - [ ] 添加W矩阵版本管理
 - [ ] API文档更新
 

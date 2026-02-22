@@ -170,7 +170,7 @@ npx hardhat verify --network mumbai <CONTRACT_ADDRESS>
 
 After successful deployment, update the backend with the contract address:
 
-### 7.1 Update `server/latentmas/erc6551-tba.ts`
+### 7.1 Update `server/neural-bridge/erc6551-tba.ts`
 
 ```typescript
 // Line 8-10

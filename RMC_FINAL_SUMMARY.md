@@ -24,7 +24,7 @@
 |------|------|------|
 | **Schema 更新** | prisma/schema.prisma | ✅ |
 | - EntityTag 表 | 支持反向查询实体 | ✅ NEW |
-| - latentState 字段 | LatentMAS 集成 | ✅ NEW |
+| - latentState 字段 | Neural Bridge 集成 | ✅ NEW |
 | - NFT 元数据 | 支持推理路径交易 | ✅ NEW |
 | **索引优化** | scripts/create-rmc-indexes.sql | ✅ NEW |
 | - 10 个优化索引 | 性能提升 95%+ | ✅ |
@@ -109,7 +109,7 @@
 2. ✅ `normalizedName` 去重（"Elon Musk" = "elon_musk"）
 3. ✅ `mentionCount` 索引（热门实体）
 
-### 问题 5: LatentMAS 集成 ✅ 已完成
+### 问题 5: Neural Bridge 集成 ✅ 已完成
 
 **新增功能**:
 - ✅ `latentState` 字段（存储 Hidden State）
@@ -430,7 +430,7 @@ ORDER BY (strength * time_decay_factor) DESC
 2. **月度成本**: 从 $1,994 降低到 **$420**（79% ↓）
 3. **检索性能**: 提升 **95-99%**
 4. **可扩展性**: 支持 **1000 万节点**（单 PostgreSQL）
-5. **商业模式**: 支持推理路径 NFT 化（LatentMAS 集成）
+5. **商业模式**: 支持推理路径 NFT 化（Neural Bridge 集成）
 
 ---
 

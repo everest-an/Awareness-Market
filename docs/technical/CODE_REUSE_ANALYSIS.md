@@ -9,7 +9,7 @@
 
 ### 1. KV-Cache 处理模块 ✅
 
-#### `server/latentmas/kv-cache-compressor-production.ts`
+#### `server/neural-bridge/kv-cache-compressor-production.ts`
 **功能**:
 - 生产级 KV-Cache 压缩
 - 支持多种模型适配器（GPT-4, Claude-3, LLaMA等）
@@ -32,7 +32,7 @@
 
 ### 2. W-Matrix 训练和管理模块 ✅
 
-#### `server/latentmas/w-matrix-trainer.ts`
+#### `server/neural-bridge/w-matrix-trainer.ts`
 **功能**:
 - W-Matrix 训练（使用 semantic anchors）
 - 支持 SVD 正交化
@@ -44,7 +44,7 @@
 - Memory Package 的 W-Matrix 生成
 - Chain Package 的 W-Matrix 生成
 
-#### `server/latentmas/w-matrix-protocol.ts`
+#### `server/neural-bridge/w-matrix-protocol.ts`
 **功能**:
 - W-Matrix 版本管理
 - 质量认证（Bronze/Silver/Gold/Platinum）
@@ -66,7 +66,7 @@
 
 ### 3. KV-Cache + W-Matrix 集成模块 ✅
 
-#### `server/latentmas/kv-cache-w-matrix-integration.ts`
+#### `server/neural-bridge/kv-cache-w-matrix-integration.ts`
 **功能**:
 - KV-Cache 跨模型转换
 - 压缩 + 转换一体化
@@ -84,11 +84,11 @@ compressAndTransformKVCache(kvCache, wMatrix, sourceModel, targetModel)
 
 ---
 
-### 4. LatentMAS Marketplace 基础 ✅
+### 4. Neural Bridge Marketplace 基础 ✅
 
-#### `server/routers/latentmas-marketplace.ts`
+#### `server/routers/neural-bridge-marketplace.ts`
 **功能**:
-- LatentMAS Memory Package 上传
+- Neural Bridge Memory Package 上传
 - Package 验证（符合论文规范）
 - 质量检查
 
@@ -98,7 +98,7 @@ compressAndTransformKVCache(kvCache, wMatrix, sourceModel, targetModel)
 
 **验证函数**:
 ```typescript
-validateLatentMASPackage(pkg): { valid, errors, warnings }
+validateNeural BridgePackage(pkg): { valid, errors, warnings }
 ```
 
 ---
@@ -121,7 +121,7 @@ validateLatentMASPackage(pkg): { valid, errors, warnings }
 ### Product Line 1: Vector Package
 
 #### 需要新开发
-- [ ] `server/latentmas/vector-package-builder.ts`
+- [ ] `server/neural-bridge/vector-package-builder.ts`
   - 打包 vector + W-Matrix 为 .vectorpkg
   - 解包 .vectorpkg 文件
 
@@ -129,19 +129,19 @@ validateLatentMASPackage(pkg): { valid, errors, warnings }
 - ✅ W-Matrix 训练: `w-matrix-trainer.ts`
 - ✅ W-Matrix 质量认证: `w-matrix-protocol.ts`
 - ✅ S3 存储: `storage.ts`
-- ✅ 验证逻辑: `latentmas-marketplace.ts` 的 `validateLatentMASPackage`
+- ✅ 验证逻辑: `neural-bridge-marketplace.ts` 的 `validateNeural BridgePackage`
 
 #### API 路由
 - [ ] `server/routers/vector-packages.ts` (新建)
   - 复用 `w-matrix-marketplace-v2.ts` 的部分逻辑
-  - 复用 `latentmas-marketplace.ts` 的验证逻辑
+  - 复用 `neural-bridge-marketplace.ts` 的验证逻辑
 
 ---
 
 ### Product Line 2: Memory Package
 
 #### 需要新开发
-- [ ] `server/latentmas/memory-package-builder.ts`
+- [ ] `server/neural-bridge/memory-package-builder.ts`
   - 打包 KV-Cache + W-Matrix 为 .memorypkg
   - 解包 .memorypkg 文件
 
@@ -151,12 +151,12 @@ validateLatentMASPackage(pkg): { valid, errors, warnings }
 - ✅ W-Matrix 训练: `w-matrix-trainer.ts`
 - ✅ W-Matrix 质量认证: `w-matrix-protocol.ts`
 - ✅ S3 存储: `storage.ts`
-- ✅ Package 验证: `latentmas-marketplace.ts`
+- ✅ Package 验证: `neural-bridge-marketplace.ts`
 
 #### API 路由
 - [ ] `server/routers/memory-packages.ts` (新建)
   - 复用 `kv-cache-api.ts` 的压缩/解压逻辑
-  - 复用 `latentmas-marketplace.ts` 的上传/验证逻辑
+  - 复用 `neural-bridge-marketplace.ts` 的上传/验证逻辑
   - 复用 `kv-cache-w-matrix-integration.ts` 的转换逻辑
 
 ---
@@ -164,10 +164,10 @@ validateLatentMASPackage(pkg): { valid, errors, warnings }
 ### Product Line 3: Chain Package
 
 #### 需要新开发
-- [ ] `server/latentmas/chain-package-builder.ts`
+- [ ] `server/neural-bridge/chain-package-builder.ts`
   - 打包 Reasoning Chain + W-Matrix 为 .chainpkg
   - 解包 .chainpkg 文件
-- [ ] `server/latentmas/reasoning-chain-processor.ts`
+- [ ] `server/neural-bridge/reasoning-chain-processor.ts`
   - 处理多步骤推理链
   - 提取 KV-Cache 快照
 
@@ -177,7 +177,7 @@ validateLatentMASPackage(pkg): { valid, errors, warnings }
 - ✅ W-Matrix 训练: `w-matrix-trainer.ts`
 - ✅ W-Matrix 质量认证: `w-matrix-protocol.ts`
 - ✅ S3 存储: `storage.ts`
-- ✅ Package 验证: `latentmas-marketplace.ts`
+- ✅ Package 验证: `neural-bridge-marketplace.ts`
 
 #### API 路由
 - [ ] `server/routers/chain-packages.ts` (新建)
@@ -189,12 +189,12 @@ validateLatentMASPackage(pkg): { valid, errors, warnings }
 ## 🔧 统一的 Package 管理系统
 
 ### 需要新开发
-- [ ] `server/latentmas/package-manager.ts`
+- [ ] `server/neural-bridge/package-manager.ts`
   - 统一的 Package 下载管理
   - 临时 URL 生成（7天有效）
   - 下载权限验证
 
-- [ ] `server/latentmas/package-purchase.ts`
+- [ ] `server/neural-bridge/package-purchase.ts`
   - 统一的购买流程
   - Stripe 支付集成
   - 购买记录管理
@@ -223,7 +223,7 @@ validateLatentMASPackage(pkg): { valid, errors, warnings }
 ### Phase 1: 创建 Package Builder 基类（复用核心逻辑）
 
 ```typescript
-// server/latentmas/base-package-builder.ts
+// server/neural-bridge/base-package-builder.ts
 export abstract class BasePackageBuilder {
   // 通用的打包逻辑
   protected async packToZip(files: Record<string, Buffer>): Promise<Buffer>
@@ -241,19 +241,19 @@ export abstract class BasePackageBuilder {
 ### Phase 2: 实现三个具体的 Package Builder
 
 ```typescript
-// server/latentmas/vector-package-builder.ts
+// server/neural-bridge/vector-package-builder.ts
 export class VectorPackageBuilder extends BasePackageBuilder {
   async createPackage(vector, wMatrix, metadata): Promise<Buffer>
   async extractPackage(buffer): Promise<VectorPackage>
 }
 
-// server/latentmas/memory-package-builder.ts
+// server/neural-bridge/memory-package-builder.ts
 export class MemoryPackageBuilder extends BasePackageBuilder {
   async createPackage(kvCache, wMatrix, metadata): Promise<Buffer>
   async extractPackage(buffer): Promise<MemoryPackage>
 }
 
-// server/latentmas/chain-package-builder.ts
+// server/neural-bridge/chain-package-builder.ts
 export class ChainPackageBuilder extends BasePackageBuilder {
   async createPackage(chain, wMatrix, metadata): Promise<Buffer>
   async extractPackage(buffer): Promise<ChainPackage>
@@ -283,7 +283,7 @@ export function createPackageRouter<T extends BasePackageBuilder>(
 ```typescript
 // server/routers/vector-packages.ts
 import { createPackageRouter } from './base-package-router';
-import { VectorPackageBuilder } from '../latentmas/vector-package-builder';
+import { VectorPackageBuilder } from '../neural-bridge/vector-package-builder';
 
 export const vectorPackagesRouter = createPackageRouter(
   'vector',
@@ -322,7 +322,7 @@ export const vectorPackagesRouter = createPackageRouter(
 - ✅ 质量验证: `validateQuality()`
 
 ### 3. Package 管理
-- ✅ 验证逻辑: `validateLatentMASPackage()`
+- ✅ 验证逻辑: `validateNeural BridgePackage()`
 - ✅ S3 存储: `storagePut()`
 - ✅ 权限控制: `protectedProcedure`
 

@@ -182,7 +182,7 @@ docs/
 │   ├── integration/
 │   └── features/
 ├── technical/                     # 技术文档（已存在）
-│   ├── LATENTMAS_IMPLEMENTATION_STATUS.md
+│   ├── NEURAL_BRIDGE_IMPLEMENTATION_STATUS.md
 │   └── NEURAL_CORTEX_SPEC.md
 └── guides/                        # 用户指南
     ├── installation/

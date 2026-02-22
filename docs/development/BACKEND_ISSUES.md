@@ -23,8 +23,8 @@ This document outlines the critical issues identified in the backend codebase th
 **Files:**
 - `server/socket-events.ts`
 - `server/auth-phantom.ts`
-- `server/latentmas-upload.ts`
-- `server/latentmas-resonance.ts`
+- `server/neural-bridge-upload.ts`
+- `server/neural-bridge-resonance.ts`
 
 **Analysis:**
 - These files use imports like `from './logger.js'` instead of `from './utils/logger'`.

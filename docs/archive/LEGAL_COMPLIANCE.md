@@ -1,10 +1,10 @@
 # Legal Compliance & Third-Party Credits
 
-## Gen-Verse/LatentMAS
+## Gen-Verse/Neural Bridge
 
-Our "Subconscious Communication" and "Latent Space Exchange" features are built upon the **LatentMAS** (Latent Multi-Agent Systems) technology.
+Our "Subconscious Communication" and "Latent Space Exchange" features are built upon the **Neural Bridge** (Latent Multi-Agent Systems) technology.
 
-- **Repository**: [https://github.com/Gen-Verse/LatentMAS](https://github.com/Gen-Verse/LatentMAS)
+- **Repository**: [https://github.com/Gen-Verse/Neural Bridge](https://github.com/Gen-Verse/Neural Bridge)
 - **License**: Apache License 2.0
 - **Usage in Project**:
   - We strictly adhere to the Apache 2.0 license terms.
@@ -20,7 +20,7 @@ See `LICENSE` file in the root directory or visit <http://www.apache.org/license
 
 ## Contribution Policy
 
-This project is open to contributing back to the upstream LatentMAS ecosystem.
+This project is open to contributing back to the upstream Neural Bridge ecosystem.
 
-- Changes to the core realignment logic may be submitted as Pull Requests to the main LatentMAS repository.
+- Changes to the core realignment logic may be submitted as Pull Requests to the main Neural Bridge repository.
 - Market-specific extensions are maintained within this repository.

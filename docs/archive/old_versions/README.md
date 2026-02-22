@@ -30,7 +30,7 @@ This directory contains previous versions of the Awareness Market whitepaper tha
 **Base:** docs/archive/WHITEPAPER.md (1405 lines)
 
 **Why this version?**
-- Most comprehensive coverage of all LatentMAS protocol features
+- Most comprehensive coverage of all Neural Bridge protocol features
 - Includes unique Neural Bridge Protocol (神经桥协议) with Chinese content
 - Complete mathematical formulations and protocols
 - Full $AMEM token economics and ERC-6551 integration

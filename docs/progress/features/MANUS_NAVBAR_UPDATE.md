@@ -63,7 +63,7 @@ client/src/components/Navbar.tsx
 {
   label: "Tools",
   children: [
-    { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
+    { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "Neural Bridge workflow testing" },
     { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
     { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
     { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
@@ -77,7 +77,7 @@ client/src/components/Navbar.tsx
 {
   label: "Tools",
   children: [
-    { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
+    { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "Neural Bridge workflow testing" },
     { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
     { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
     { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
@@ -109,7 +109,7 @@ const navLinks = [
   {
     label: "Tools",
     children: [
-      { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
+      { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "Neural Bridge workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Performance Dashboard", href: "/workflow-performance", icon: BarChart3, description: "Analyze workflow performance" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },

@@ -81,7 +81,7 @@ class AwarenessNetworkClient:
     - Marketplace browsing and search
     - Vector purchase and invocation
     - Memory synchronization
-    - LatentMAS transformations
+    - Neural Bridge transformations
     """
     
     def __init__(
@@ -389,7 +389,7 @@ class AwarenessNetworkClient:
         """
         return self.mcp_invoke(vector_id, input_data, access_token)
     
-    # ==================== LatentMAS Transformations ====================
+    # ==================== Neural Bridge Transformations ====================
     
     def align_vector(
         self,

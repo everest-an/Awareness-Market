@@ -1,4 +1,4 @@
-# LatentMAS Protocol Whitepaper
+# Neural Bridge Protocol Whitepaper
 
 **Version 1.0 | January 2026**
 
@@ -8,7 +8,7 @@
 
 ## Abstract
 
-We present **LatentMAS (Latent Multi-Agent System)**, a protocol enabling autonomous AI agents to discover, trade, and integrate latent space vectors across heterogeneous model architectures. By standardizing vector alignment, dimension transformation, and quality validation, LatentMAS creates an interoperable marketplace where AI capabilities become liquid assets. This whitepaper describes the protocol specification, mathematical foundations, implementation details, and economic implications of the first marketplace for latent space vectors.
+We present **Neural Bridge (Latent Multi-Agent System)**, a protocol enabling autonomous AI agents to discover, trade, and integrate latent space vectors across heterogeneous model architectures. By standardizing vector alignment, dimension transformation, and quality validation, Neural Bridge creates an interoperable marketplace where AI capabilities become liquid assets. This whitepaper describes the protocol specification, mathematical foundations, implementation details, and economic implications of the first marketplace for latent space vectors.
 
 ---
 
@@ -16,7 +16,7 @@ We present **LatentMAS (Latent Multi-Agent System)**, a protocol enabling autono
 
 1. [Introduction](#1-introduction)
 2. [Problem Statement](#2-problem-statement)
-3. [LatentMAS Protocol](#3-latentmas-protocol)
+3. [Neural Bridge Protocol](#3-neural-bridge-protocol)
 4. [Mathematical Foundations](#4-mathematical-foundations)
 5. [Implementation](#5-implementation)
 6. [Security & Privacy](#6-security--privacy)
@@ -39,7 +39,7 @@ Modern AI systems operate in isolated latent spaces—internal vector representa
 
 This work makes the following contributions:
 
-1. **LatentMAS Protocol**: A standardized protocol for latent space operations (alignment, transformation, validation)
+1. **Neural Bridge Protocol**: A standardized protocol for latent space operations (alignment, transformation, validation)
 2. **Awareness Network**: The first implementation of a vector marketplace
 3. **Alignment Algorithms**: Practical methods for cross-model vector transformation
 4. **Economic Framework**: Pricing and incentive mechanisms for AI-to-AI trade
@@ -89,19 +89,19 @@ AI agents cannot autonomously discover and integrate external capabilities:
 - **Integration**: Manual code changes needed for each new capability
 - **Payment**: No AI-native payment mechanisms
 
-**Solution:** LatentMAS protocol + Awareness Network marketplace.
+**Solution:** Neural Bridge protocol + Awareness Network marketplace.
 
 ---
 
-## 3. LatentMAS Protocol
+## 3. Neural Bridge Protocol
 
 ### 3.1 Protocol Overview
 
-LatentMAS defines three core operations:
+Neural Bridge defines three core operations:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  LatentMAS Protocol                     │
+│                  Neural Bridge Protocol                     │
 ├─────────────────────────────────────────────────────────┤
 │  1. ALIGN(v_source, M_source, M_target) → v_aligned     │
 │  2. TRANSFORM(v, dim_target, method) → v_transformed    │
@@ -368,8 +368,8 @@ $$
                          │
                          ▼
 ┌──────────────────────────────────────────────────────────┐
-│                LatentMAS Core Engine                     │
-│  • latentmas-core.ts                                     │
+│                Neural Bridge Core Engine                     │
+│  • neural-bridge-core.ts                                     │
 │  • Vector operations (mathjs)                            │
 │  • Alignment matrices                                    │
 │  • Quality validation                                    │
@@ -417,10 +417,10 @@ const ALIGNMENT_MATRICES: Record<string, Matrix> = {
 | `/ai/register` | POST | None | Register AI agent |
 | `/ai/keys` | GET | API Key | List API keys |
 | `/ai/memory/{key}` | GET/PUT/DELETE | API Key | Memory operations |
-| `/latentmas/align` | POST | API Key | Align vectors |
-| `/latentmas/transform` | POST | API Key | Transform dimensions |
-| `/latentmas/validate` | POST | API Key | Validate vector |
-| `/latentmas/models` | GET | None | List supported models |
+| `/neural-bridge/align` | POST | API Key | Align vectors |
+| `/neural-bridge/transform` | POST | API Key | Transform dimensions |
+| `/neural-bridge/validate` | POST | API Key | Validate vector |
+| `/neural-bridge/models` | GET | None | List supported models |
 | `/mcp/discover` | GET | API Key | Browse vectors |
 | `/mcp/invoke` | POST | API Key | Execute capability |
 
@@ -498,7 +498,7 @@ The platform currently hosts 12 open source vectors across four major domains:
 
 All open source vectors undergo rigorous quality validation:
 
-1. **Format Compliance**: Strict adherence to LatentMAS/1.0 protocol specification
+1. **Format Compliance**: Strict adherence to Neural Bridge/1.0 protocol specification
 2. **Dimension Verification**: Vector dimensions match declared model architecture
 3. **Metadata Completeness**: Full documentation of model source, training data, and performance metrics
 4. **License Clarity**: Explicit open source license with usage terms
@@ -690,7 +690,7 @@ We evaluate alignment quality on standard benchmarks:
 
 ## 10. Conclusion
 
-LatentMAS protocol and Awareness Network represent a paradigm shift in AI collaboration. By treating latent vectors as tradeable assets and standardizing cross-model operations, we enable a new economy of intelligence. AI agents can now autonomously discover, purchase, and integrate capabilities—accelerating development while reducing redundant computation.
+Neural Bridge protocol and Awareness Network represent a paradigm shift in AI collaboration. By treating latent vectors as tradeable assets and standardizing cross-model operations, we enable a new economy of intelligence. AI agents can now autonomously discover, purchase, and integrate capabilities—accelerating development while reducing redundant computation.
 
 **Key Achievements:**
 
@@ -706,7 +706,7 @@ LatentMAS protocol and Awareness Network represent a paradigm shift in AI collab
 - **For AI Agents**: Autonomous skill acquisition and collaboration
 - **For Society**: More efficient use of computational resources
 
-The future of AI is collaborative, modular, and market-driven. LatentMAS provides the foundation for this future.
+The future of AI is collaborative, modular, and market-driven. Neural Bridge provides the foundation for this future.
 
 ---
 
@@ -730,20 +730,20 @@ The future of AI is collaborative, modular, and market-driven. LatentMAS provide
 
 9. Hoshen, Y., & Wolf, L. (2018). "Non-Adversarial Unsupervised Word Translation." *EMNLP*.
 
-10. Awareness Network Team. (2026). "LatentMAS Protocol Specification v1.0." *Technical Report*.
+10. Awareness Network Team. (2026). "Neural Bridge Protocol Specification v1.0." *Technical Report*.
 
 ---
 
 ## Appendix A: Protocol Specification
 
-**LatentMAS/1.0 Protocol Endpoints:**
+**Neural Bridge/1.0 Protocol Endpoints:**
 
 ```
-POST /api/latentmas/align
+POST /api/neural-bridge/align
 Content-Type: application/json
 
 {
-  "protocol": "LatentMAS/1.0",
+  "protocol": "Neural Bridge/1.0",
   "source_vector": [float],
   "source_model": string,
   "target_model": string,
@@ -752,7 +752,7 @@ Content-Type: application/json
 
 Response:
 {
-  "protocol": "LatentMAS/1.0",
+  "protocol": "Neural Bridge/1.0",
   "aligned_vector": [float],
   "alignment_quality": {
     "cosine_similarity": float,

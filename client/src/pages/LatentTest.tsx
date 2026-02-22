@@ -70,9 +70,9 @@ export default function LatentTest() {
               <FlaskConical className="h-6 w-6 text-white" />
             </div>
             <h1 className="text-4xl font-bold">Latent Test</h1>
-            <Badge variant="secondary">LatentMAS v2.0</Badge>
+            <Badge variant="secondary">Neural Bridge v2.0</Badge>
           </div>
-          <p className="text-muted-foreground">LatentMAS Workflow Testing Tool</p>
+          <p className="text-muted-foreground">Neural Bridge Workflow Testing Tool</p>
         </div>
       </div>
       <div className="container py-8">
@@ -106,7 +106,7 @@ export default function LatentTest() {
                 <div><Label>Input Text</Label><Textarea placeholder="Enter text content..." value={inputText} onChange={e => setInputText(e.target.value)} className="mt-1" /></div>
                 <Button onClick={runWorkflow} disabled={isProcessing} className="w-full">
                   {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
-                  Generate LatentMAS Package
+                  Generate Neural Bridge Package
                 </Button>
                 {result && <pre className="p-4 bg-muted rounded text-xs overflow-auto max-h-60">{JSON.stringify(result, null, 2)}</pre>}
               </CardContent>
@@ -126,7 +126,7 @@ export default function LatentTest() {
           </TabsContent>
           <TabsContent value="docs" className="mt-6">
             <Card>
-              <CardHeader><CardTitle>LatentMAS Protocol Documentation</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Neural Bridge Protocol Documentation</CardTitle></CardHeader>
               <CardContent className="prose dark:prose-invert">
                 <p>The W-Matrix protocol enables direct KV-Cache exchange between different AI models, allowing AI agents to share reasoning processes.</p>
                 <h4>How it works</h4>

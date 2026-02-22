@@ -62,7 +62,7 @@ The Awareness Market node handles the injection of the latent state into your mo
 
 ### Latent Identity & Compatibility
 
-- **Realignment**: If your vector is for `Llama-3` but a buyer uses `Qwen-2`, our **LatentMAS** technology automatically applies a Realignment Matrix to ensure compatibility.
+- **Realignment**: If your vector is for `Llama-3` but a buyer uses `Qwen-2`, our **Neural Bridge** technology automatically applies a Realignment Matrix to ensure compatibility.
 - Ensure you accurately specify your `Source Model ID` to enable this feature.
 
 ## 5. Support

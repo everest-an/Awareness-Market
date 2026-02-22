@@ -25,7 +25,7 @@
 
 ### 现有实现
 
-**文件**: `server/latentmas/differential-privacy.ts` (11,897字节)
+**文件**: `server/neural-bridge/differential-privacy.ts` (11,897字节)
 
 **已实现功能**:
 ```typescript
@@ -118,13 +118,13 @@ simulatePrivacy: protectedProcedure
 
 #### 2. 向量上传自动加噪（1小时）
 
-**文件**: `server/routers/latentmas-marketplace.ts`
+**文件**: `server/routers/neural-bridge-marketplace.ts`
 
 **修改端点**: `uploadPackage`
 
 **新增输入参数**:
 ```typescript
-.input(LatentMASPackageSchema.extend({
+.input(Neural BridgePackageSchema.extend({
   applyPrivacy: z.boolean().optional()
   privacyLevel: z.enum(['low', 'medium', 'high']).optional()
   customPrivacyConfig: z.object({
@@ -185,7 +185,7 @@ return {
 
 #### 3. 买家隐私信息展示（0.5小时）
 
-**文件**: `server/routers/latentmas-marketplace.ts`
+**文件**: `server/routers/neural-bridge-marketplace.ts`
 
 **新增端点**:
 ```typescript
@@ -432,7 +432,7 @@ ALTER TABLE users ADD COLUMN privacy_settings JSON;
 
 ### 现有实现
 
-**文件**: `server/latentmas/gpu-acceleration.ts` (13,760字节)
+**文件**: `server/neural-bridge/gpu-acceleration.ts` (13,760字节)
 
 **已实现功能**:
 ```typescript
@@ -820,7 +820,7 @@ const { data: estimate } = trpc.wMatrixMarketplace.estimateTrainingTime.useQuery
 
 ### 现有实现
 
-**文件**: `server/latentmas/zkp-verification.ts` (17,157字节)
+**文件**: `server/neural-bridge/zkp-verification.ts` (17,157字节)
 
 **已实现功能**:
 ```typescript
@@ -1425,7 +1425,7 @@ ZKP_CACHE_SIZE=10000
 
 ### 现有实现
 
-**文件**: `server/latentmas/multimodal-vectors.ts` (14,791字节)
+**文件**: `server/neural-bridge/multimodal-vectors.ts` (14,791字节)
 
 **已实现功能**:
 ```typescript

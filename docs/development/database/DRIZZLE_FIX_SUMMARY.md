@@ -89,12 +89,12 @@ import {
 
 ---
 
-### 3. schema-latentmas-packages-pg.ts
+### 3. schema-neural-bridge-packages-pg.ts
 **修复内容**: 4 处错误
 
 **修改前**:
 ```typescript
-export const latentmasVectorPackages = pgTable('...', {
+export const neural-bridgeVectorPackages = pgTable('...', {
   id: integer('id').autoincrement().primaryKey(), // ❌ 错误
   ...
 });
@@ -104,16 +104,16 @@ export const latentmasVectorPackages = pgTable('...', {
 ```typescript
 import { serial, ... } from "drizzle-orm/pg-core"; // ✅ 添加 serial
 
-export const latentmasVectorPackages = pgTable('...', {
+export const neural-bridgeVectorPackages = pgTable('...', {
   id: serial('id').primaryKey(), // ✅ 正确
   ...
 });
 ```
 
 **修复的表**:
-- `latentmasVectorPackages` (第 42 行)
-- `latentmasMemoryPackages` (第 90 行)
-- `latentmasChainPackages` (第 138 行)
+- `neural-bridgeVectorPackages` (第 42 行)
+- `neural-bridgeMemoryPackages` (第 90 行)
+- `neural-bridgeChainPackages` (第 138 行)
 - `userLatentSpaces` (第 214 行)
 
 ---
@@ -182,7 +182,7 @@ export const packageAccessLog = pgTable('...', {
 |------|---------|------|
 | schema-api-usage-pg.ts | 3 | ✅ 已修复 |
 | schema-mcp-tokens-pg.ts | 1 | ✅ 已修复 |
-| schema-latentmas-packages-pg.ts | 4 | ✅ 已修复 |
+| schema-neural-bridge-packages-pg.ts | 4 | ✅ 已修复 |
 | schema-memory-nft-pg.ts | 5 | ✅ 已修复 |
 | schema-storage-tiers-pg.ts | 3 | ✅ 已修复 |
 | **总计** | **16 处** | **✅ 全部修复** |

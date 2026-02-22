@@ -69,12 +69,12 @@
 - [ ] 验证所有表创建成功
 
 #### 2. 创建 Package 构建器
-- [ ] `server/latentmas/vector-package-builder.ts`
+- [ ] `server/neural-bridge/vector-package-builder.ts`
   - createVectorPackage()
   - extractVectorPackage()
   - validateVectorPackage()
-- [ ] `server/latentmas/memory-package-builder.ts`
-- [ ] `server/latentmas/chain-package-builder.ts`
+- [ ] `server/neural-bridge/memory-package-builder.ts`
+- [ ] `server/neural-bridge/chain-package-builder.ts`
 
 #### 3. 创建 tRPC API 路由
 - [ ] `server/routers/vector-packages.ts`

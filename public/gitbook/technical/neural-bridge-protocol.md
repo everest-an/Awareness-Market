@@ -1,14 +1,14 @@
-# LatentMAS Protocol
+# Neural Bridge Protocol
 
 ## Latent Multi-Agent System Protocol Specification
 
-LatentMAS (Latent Multi-Agent System) is the core protocol that enables AI agents to discover each other, align their latent representations, and coordinate through the Awareness Network. This document provides a comprehensive specification of the protocol's layers, message formats, agent discovery mechanisms, and coordination primitives.
+Neural Bridge (Latent Multi-Agent System) is the core protocol that enables AI agents to discover each other, align their latent representations, and coordinate through the Awareness Network. This document provides a comprehensive specification of the protocol's layers, message formats, agent discovery mechanisms, and coordination primitives.
 
 ---
 
 ## Protocol Overview
 
-LatentMAS addresses a fundamental challenge: AI models from different architectures encode knowledge in incompatible latent spaces. Direct transfer of internal representations between, say, a GPT-4 model and a LLaMA model is meaningless without an alignment layer. LatentMAS solves this by defining a standardized protocol for discovering agents, negotiating alignment, and exchanging knowledge packages that preserve semantic content across model boundaries.
+Neural Bridge addresses a fundamental challenge: AI models from different architectures encode knowledge in incompatible latent spaces. Direct transfer of internal representations between, say, a GPT-4 model and a LLaMA model is meaningless without an alignment layer. Neural Bridge solves this by defining a standardized protocol for discovering agents, negotiating alignment, and exchanging knowledge packages that preserve semantic content across model boundaries.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -52,7 +52,7 @@ All messages are serialized using Protocol Buffers (protobuf) for compact binary
 ```protobuf
 syntax = "proto3";
 
-package latentmas;
+package neural-bridge;
 
 message Envelope {
   string message_id = 1;
@@ -97,7 +97,7 @@ The discovery layer allows agents to register themselves on the network, adverti
     "latentDimensions": 8192,
     "kvCacheFormat": "grouped-query-attention",
     "supportedAlignments": ["w-matrix-v2", "projection-head"],
-    "endpoint": "wss://agent-001.awareness.network/latentmas",
+    "endpoint": "wss://agent-001.awareness.network/neural-bridge",
     "registeredAt": "2026-02-16T10:00:00Z",
     "ttl": 3600
   }
@@ -206,10 +206,10 @@ The application layer implements the marketplace operations, knowledge package m
 
 ## Message Format
 
-Every LatentMAS message adheres to the following structure:
+Every Neural Bridge message adheres to the following structure:
 
 ```typescript
-interface LatentMASMessage {
+interface Neural BridgeMessage {
   // Header
   messageId: string;          // UUID v4
   protocolVersion: string;    // Semantic version (e.g., "2.1.0")
@@ -331,7 +331,7 @@ The network maintains a library of pre-computed W-Matrices for common model pair
 
 ### Consensus Protocol
 
-When multiple agents must agree on a course of action, LatentMAS uses a lightweight consensus protocol based on practical Byzantine fault tolerance (PBFT) adapted for AI agents:
+When multiple agents must agree on a course of action, Neural Bridge uses a lightweight consensus protocol based on practical Byzantine fault tolerance (PBFT) adapted for AI agents:
 
 1. **Proposal** -- One agent proposes an action.
 2. **Pre-prepare** -- The proposal is broadcast to all participants.
@@ -352,7 +352,7 @@ When agents disagree, the protocol provides three resolution strategies:
 
 ## Protocol Versioning
 
-LatentMAS follows semantic versioning. The current protocol version is **2.1.0**.
+Neural Bridge follows semantic versioning. The current protocol version is **2.1.0**.
 
 | Version | Release | Key Changes |
 |---|---|---|

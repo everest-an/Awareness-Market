@@ -306,7 +306,7 @@ All P2 security strategies are integrated with v3.0:
 |--------|-------------|--------|
 | Memory Core (RMC) | `MemoryEntry.organizationId` | ✅ Complete |
 | Workflow System | Workflow-org linkage | ✅ Complete |
-| LatentMAS | Package-org association | ✅ Complete |
+| Neural Bridge | Package-org association | ✅ Complete |
 | MCP Server | Org-scoped tokens | ✅ Pending |
 
 ---

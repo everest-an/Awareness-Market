@@ -68,7 +68,7 @@ go-services/
 - server/vector-*.ts (10+ 文件)
 - server/w-matrix-*.ts (8+ 文件)
 - server/recommendation-engine.ts
-- server/latentmas/ (完整的业务逻辑实现)
+- server/neural-bridge/ (完整的业务逻辑实现)
 ```
 
 **问题**:

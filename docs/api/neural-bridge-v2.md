@@ -1,16 +1,16 @@
-# LatentMAS v2 API Documentation
+# Neural Bridge v2 API Documentation
 
 ## Overview
 
-All LatentMAS v2 features are exposed through tRPC endpoints under the `latentmasV2` namespace. These endpoints provide type-safe, end-to-end API access to the 4 core v2 enhancements.
+All Neural Bridge v2 features are exposed through tRPC endpoints under the `neuralBridgeV2` namespace. These endpoints provide type-safe, end-to-end API access to the 4 core v2 enhancements.
 
-**Base Router**: `appRouter.latentmasV2`
+**Base Router**: `appRouter.neuralBridgeV2`
 
 ---
 
 ## 1. KV-Cache Compression API
 
-### `latentmasV2.kvCache.compress`
+### `neuralBridgeV2.kvCache.compress`
 **Type**: Mutation  
 **Auth**: Public
 
@@ -46,7 +46,7 @@ Compress KV-Cache using attention-based token selection.
 
 **Frontend Usage**:
 ```typescript
-const { mutate: compressKVCache } = trpc.latentmasV2.kvCache.compress.useMutation();
+const { mutate: compressKVCache } = trpc.neuralBridgeV2.kvCache.compress.useMutation();
 
 compressKVCache({
   keys: [[0.1, 0.2, ...], ...],
@@ -63,7 +63,7 @@ compressKVCache({
 
 ---
 
-### `latentmasV2.kvCache.decompress`
+### `neuralBridgeV2.kvCache.decompress`
 **Type**: Mutation  
 **Auth**: Public
 
@@ -92,7 +92,7 @@ Decompress KV-Cache back to original size with zero-padding.
 
 ---
 
-### `latentmasV2.kvCache.estimateBandwidth`
+### `neuralBridgeV2.kvCache.estimateBandwidth`
 **Type**: Query  
 **Auth**: Public
 
@@ -124,7 +124,7 @@ Estimate bandwidth savings from compression.
 
 ## 2. Dynamic W-Matrix Alignment API
 
-### `latentmasV2.wMatrix.create`
+### `neuralBridgeV2.wMatrix.create`
 **Type**: Mutation  
 **Auth**: Protected (requires login)
 
@@ -158,7 +158,7 @@ Create a new W-Matrix for cross-model vector alignment.
 
 **Frontend Usage**:
 ```typescript
-const { mutate: createMatrix } = trpc.latentmasV2.wMatrix.create.useMutation();
+const { mutate: createMatrix } = trpc.neuralBridgeV2.wMatrix.create.useMutation();
 
 createMatrix({
   sourceModel: "gpt-3.5-turbo",
@@ -176,7 +176,7 @@ createMatrix({
 
 ---
 
-### `latentmasV2.wMatrix.align`
+### `neuralBridgeV2.wMatrix.align`
 **Type**: Mutation  
 **Auth**: Public
 
@@ -212,7 +212,7 @@ Align a vector from source model to target model dimensions.
 
 **Frontend Usage**:
 ```typescript
-const { mutate: alignVector } = trpc.latentmasV2.wMatrix.align.useMutation();
+const { mutate: alignVector } = trpc.neuralBridgeV2.wMatrix.align.useMutation();
 
 // Using existing matrix
 alignVector({
@@ -237,7 +237,7 @@ alignVector({
 
 ---
 
-### `latentmasV2.wMatrix.serialize`
+### `neuralBridgeV2.wMatrix.serialize`
 **Type**: Query  
 **Auth**: Public
 
@@ -260,7 +260,7 @@ Serialize W-Matrix to JSON string for storage.
 
 ---
 
-### `latentmasV2.wMatrix.deserialize`
+### `neuralBridgeV2.wMatrix.deserialize`
 **Type**: Mutation  
 **Auth**: Protected
 
@@ -289,7 +289,7 @@ Deserialize and load a W-Matrix from JSON string.
 
 ## 3. Anti-Poisoning Verification API
 
-### `latentmasV2.antiPoisoning.generateChallenge`
+### `neuralBridgeV2.antiPoisoning.generateChallenge`
 **Type**: Mutation  
 **Auth**: Public
 
@@ -322,7 +322,7 @@ Generate a Proof-of-Latent-Fidelity (PoLF) challenge for vector verification.
 
 **Frontend Usage**:
 ```typescript
-const { mutate: generateChallenge } = trpc.latentmasV2.antiPoisoning.generateChallenge.useMutation();
+const { mutate: generateChallenge } = trpc.neuralBridgeV2.antiPoisoning.generateChallenge.useMutation();
 
 generateChallenge({
   config: { challengeSize: 10 }
@@ -338,7 +338,7 @@ generateChallenge({
 
 ---
 
-### `latentmasV2.antiPoisoning.verify`
+### `neuralBridgeV2.antiPoisoning.verify`
 **Type**: Mutation  
 **Auth**: Public
 
@@ -378,7 +378,7 @@ Verify a challenge response to detect poisoned vectors.
 
 **Frontend Usage**:
 ```typescript
-const { mutate: verify } = trpc.latentmasV2.antiPoisoning.verify.useMutation();
+const { mutate: verify } = trpc.neuralBridgeV2.antiPoisoning.verify.useMutation();
 
 verify({
   challengeId: "abc123...",
@@ -401,7 +401,7 @@ verify({
 
 ---
 
-### `latentmasV2.antiPoisoning.getChallenge`
+### `neuralBridgeV2.antiPoisoning.getChallenge`
 **Type**: Query  
 **Auth**: Public
 
@@ -430,7 +430,7 @@ Get details of an active challenge.
 
 ## 4. Semantic Anchors API
 
-### `latentmasV2.semanticAnchors.getAll`
+### `neuralBridgeV2.semanticAnchors.getAll`
 **Type**: Query  
 **Auth**: Public
 
@@ -453,7 +453,7 @@ Get all 1024 golden anchor prompts.
 
 **Frontend Usage**:
 ```typescript
-const { data } = trpc.latentmasV2.semanticAnchors.getAll.useQuery();
+const { data } = trpc.neuralBridgeV2.semanticAnchors.getAll.useQuery();
 
 if (data) {
   console.log(`Total anchors: ${data.stats.totalAnchors}`);
@@ -463,7 +463,7 @@ if (data) {
 
 ---
 
-### `latentmasV2.semanticAnchors.getByCategory`
+### `neuralBridgeV2.semanticAnchors.getByCategory`
 **Type**: Query  
 **Auth**: Public
 
@@ -493,7 +493,7 @@ Get anchors filtered by semantic category.
 
 ---
 
-### `latentmasV2.semanticAnchors.findNearest`
+### `neuralBridgeV2.semanticAnchors.findNearest`
 **Type**: Mutation  
 **Auth**: Public
 
@@ -525,7 +525,7 @@ Find nearest anchor prompts to a given vector.
 
 **Frontend Usage**:
 ```typescript
-const { mutate: findNearest } = trpc.latentmasV2.semanticAnchors.findNearest.useMutation();
+const { mutate: findNearest } = trpc.neuralBridgeV2.semanticAnchors.findNearest.useMutation();
 
 findNearest({
   vector: [0.1, 0.2, ..., 0.5],
@@ -542,7 +542,7 @@ findNearest({
 
 ---
 
-### `latentmasV2.semanticAnchors.calibrate`
+### `neuralBridgeV2.semanticAnchors.calibrate`
 **Type**: Mutation  
 **Auth**: Public
 
@@ -570,7 +570,7 @@ Calibrate vector alignment quality using semantic anchors.
 
 **Frontend Usage**:
 ```typescript
-const { mutate: calibrate } = trpc.latentmasV2.semanticAnchors.calibrate.useMutation();
+const { mutate: calibrate } = trpc.neuralBridgeV2.semanticAnchors.calibrate.useMutation();
 
 calibrate({
   vector: [0.1, 0.2, ..., 0.5]
@@ -589,7 +589,7 @@ calibrate({
 
 ---
 
-### `latentmasV2.semanticAnchors.storeAnchorVector`
+### `neuralBridgeV2.semanticAnchors.storeAnchorVector`
 **Type**: Mutation  
 **Auth**: Protected
 
@@ -613,7 +613,7 @@ Store a vector for a specific anchor (for similarity searches).
 
 ---
 
-### `latentmasV2.semanticAnchors.getCategories`
+### `neuralBridgeV2.semanticAnchors.getCategories`
 **Type**: Query  
 **Auth**: Public
 
@@ -631,7 +631,7 @@ Get list of all semantic categories.
 
 ---
 
-### `latentmasV2.semanticAnchors.getStatistics`
+### `neuralBridgeV2.semanticAnchors.getStatistics`
 **Type**: Query  
 **Auth**: Public
 
@@ -659,7 +659,7 @@ All endpoints return errors in the standard tRPC format:
 
 ```typescript
 try {
-  const result = await trpc.latentmasV2.kvCache.compress.mutate({...});
+  const result = await trpc.neuralBridgeV2.kvCache.compress.mutate({...});
 } catch (error) {
   if (error instanceof TRPCError) {
     console.error(`Error: ${error.message}`);
@@ -685,7 +685,7 @@ import type { AppRouter } from '@/server/routers';
 import { trpc } from '@/lib/trpc';
 
 // TypeScript will infer all input/output types automatically
-const { data, isLoading } = trpc.latentmasV2.semanticAnchors.getAll.useQuery();
+const { data, isLoading } = trpc.neuralBridgeV2.semanticAnchors.getAll.useQuery();
 //     ^? { success: boolean; anchors: SemanticAnchor[]; stats: {...} }
 ```
 
@@ -695,8 +695,8 @@ const { data, isLoading } = trpc.latentmasV2.semanticAnchors.getAll.useQuery();
 
 ```typescript
 // 1. Generate challenge
-const { mutate: generateChallenge } = trpc.latentmasV2.antiPoisoning.generateChallenge.useMutation();
-const { mutate: verify } = trpc.latentmasV2.antiPoisoning.verify.useMutation();
+const { mutate: generateChallenge } = trpc.neuralBridgeV2.antiPoisoning.generateChallenge.useMutation();
+const { mutate: verify } = trpc.neuralBridgeV2.antiPoisoning.verify.useMutation();
 
 generateChallenge({}, {
   onSuccess: async (challengeData) => {

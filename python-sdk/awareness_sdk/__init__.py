@@ -1,5 +1,5 @@
 """
-Awareness SDK - Python client for LatentMAS Awareness Marketplace
+Awareness SDK - Python client for Neural Bridge Awareness Marketplace
 
 This SDK provides a unified interface to interact with:
 - Vector Packages (.vectorpkg) - Static AI capabilities

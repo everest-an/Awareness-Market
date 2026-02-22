@@ -276,12 +276,12 @@ export const docsStructure: DocItem[] = [
   {
     title: "Technical Deep Dives",
     path: "/documentation/technical",
-    file: "technical/latentmas-protocol.md",
+    file: "technical/neural-bridge-protocol.md",
     children: [
       {
-        title: "LatentMAS Protocol",
-        path: "/documentation/technical/latentmas",
-        file: "technical/latentmas-protocol.md"
+        title: "Neural Bridge Protocol",
+        path: "/documentation/technical/neural-bridge",
+        file: "technical/neural-bridge-protocol.md"
       },
       {
         title: "W-Matrix Theory",

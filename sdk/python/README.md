@@ -63,7 +63,7 @@ print(memory.value)  # Access the stored data
 memories = client.list_memories()
 ```
 
-### LatentMAS Vector Alignment
+### Neural Bridge Vector Alignment
 ```python
 from awareness_network_sdk import AlignmentMethod
 
@@ -198,10 +198,10 @@ The SDK wraps these Awareness Network APIs:
 | | `/ai/keys` | GET/POST/DELETE | Manage API keys |
 | **Memory** | `/ai/memory/{key}` | GET/PUT/DELETE | Memory CRUD |
 | | `/ai/memory` | GET | List all memories |
-| **LatentMAS** | `/latentmas/align` | POST | Align vectors |
-| | `/latentmas/transform` | POST | Transform dimensions |
-| | `/latentmas/validate` | POST | Validate vectors |
-| | `/latentmas/models` | GET | Supported models |
+| **Neural Bridge** | `/neural-bridge/align` | POST | Align vectors |
+| | `/neural-bridge/transform` | POST | Transform dimensions |
+| | `/neural-bridge/validate` | POST | Validate vectors |
+| | `/neural-bridge/models` | GET | Supported models |
 | **MCP** | `/mcp/discover` | GET | Discover vectors |
 | | `/mcp/invoke` | POST | Invoke capability |
 

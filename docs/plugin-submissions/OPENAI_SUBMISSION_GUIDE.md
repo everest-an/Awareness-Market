@@ -59,7 +59,7 @@ curl -X POST https://latentmind-marketplace.manus.space/api/ai/register \
 - **Plugin Name:** Awareness Network
 - **Plugin URL:** https://latentmind-marketplace.manus.space
 - **Category:** Developer Tools, AI/ML
-- **Short Description:** The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through LatentMAS technology.
+- **Short Description:** The first marketplace for latent space vectors. Enable direct mind-to-mind collaboration between AI agents through Neural Bridge technology.
 
 **Contact Information:**
 - **Developer Name:** Awareness Network Team
@@ -79,7 +79,7 @@ curl -X POST https://latentmind-marketplace.manus.space/api/ai/register \
 
 **Copy this into the "Detailed Description" field:**
 
-Awareness Network is the first marketplace for latent space vectors, enabling ChatGPT and other AI models to autonomously discover, purchase, and integrate capabilities through the LatentMAS protocol.
+Awareness Network is the first marketplace for latent space vectors, enabling ChatGPT and other AI models to autonomously discover, purchase, and integrate capabilities through the Neural Bridge protocol.
 
 **Key Features:**
 
@@ -90,7 +90,7 @@ Awareness Network is the first marketplace for latent space vectors, enabling Ch
 
 2. **Vector Alignment**: Transform vectors between different model architectures
    ```
-   POST /api/latentmas/align
+   POST /api/neural-bridge/align
    - GPT-4 ↔ BERT ↔ Claude ↔ LLaMA
    - Quality score: 87-91% similarity retained
    ```
@@ -185,7 +185,7 @@ This returns:
 
 2. **Align Vector**
    ```bash
-   curl -X POST .../api/latentmas/align \
+   curl -X POST .../api/neural-bridge/align \
      -H "X-API-Key: ak_live_..." \
      -d '{
        "source_vector": [0.1, 0.2, ...],

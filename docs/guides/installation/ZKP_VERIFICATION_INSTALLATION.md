@@ -6,8 +6,8 @@ Implemented zero-knowledge proof (ZKP) verification system for vector quality at
 
 ## Files Created
 
-1. `server/latentmas/zkp-verification.ts` - Core ZKP engine (~600 lines)
-2. `server/latentmas/zkp-verification.test.ts` - Comprehensive test suite (35 tests)
+1. `server/neural-bridge/zkp-verification.ts` - Core ZKP engine (~600 lines)
+2. `server/neural-bridge/zkp-verification.test.ts` - Comprehensive test suite (35 tests)
 
 ## Features Implemented
 
@@ -68,7 +68,7 @@ import {
   createCommitment,
   type ZKPConfig,
   type QualityProof,
-} from './server/latentmas/zkp-verification';
+} from './server/neural-bridge/zkp-verification';
 ```
 
 ### Step 2: Integrate with Package Upload
@@ -76,7 +76,7 @@ import {
 **Seller Side - Proof Generation:**
 
 ```typescript
-import { proveVectorQuality } from './server/latentmas/zkp-verification';
+import { proveVectorQuality } from './server/neural-bridge/zkp-verification';
 
 // When seller uploads a vector
 async function uploadVectorWithProof(vector: number[]) {
@@ -110,7 +110,7 @@ async function uploadVectorWithProof(vector: number[]) {
 **Buyer Side - Proof Verification:**
 
 ```typescript
-import { verifyVectorQuality } from './server/latentmas/zkp-verification';
+import { verifyVectorQuality } from './server/neural-bridge/zkp-verification';
 
 // On package details page
 async function displayPackageWithProof(packageId: string) {
@@ -144,7 +144,7 @@ async function displayPackageWithProof(packageId: string) {
 Show verified quality badges:
 
 ```typescript
-import { verifyVectorQuality } from './server/latentmas/zkp-verification';
+import { verifyVectorQuality } from './server/neural-bridge/zkp-verification';
 
 // In search results component
 function SearchResults({ packages }) {
@@ -171,7 +171,7 @@ function SearchResults({ packages }) {
 ### Basic Quality Proof
 
 ```typescript
-import { proveVectorQuality, verifyVectorQuality } from './server/latentmas/zkp-verification';
+import { proveVectorQuality, verifyVectorQuality } from './server/neural-bridge/zkp-verification';
 
 // Seller generates proof
 const vector = [0.1, 0.2, 0.3, /* ... 512 dimensions */];
@@ -191,7 +191,7 @@ console.log('Quality verified:', isValid); // true
 ### Custom ZKP Configuration
 
 ```typescript
-import { getZKPEngine, type ZKPConfig } from './server/latentmas/zkp-verification';
+import { getZKPEngine, type ZKPConfig } from './server/neural-bridge/zkp-verification';
 
 const engine = getZKPEngine();
 await engine.initialize({
@@ -207,7 +207,7 @@ const result = await engine.verifyQuality(proof);
 ### Batch Verification
 
 ```typescript
-import { getZKPEngine } from './server/latentmas/zkp-verification';
+import { getZKPEngine } from './server/neural-bridge/zkp-verification';
 
 const engine = getZKPEngine();
 
@@ -228,7 +228,7 @@ console.log('Batch results:', results);
 ### Vector Commitment Creation
 
 ```typescript
-import { createCommitment } from './server/latentmas/zkp-verification';
+import { createCommitment } from './server/neural-bridge/zkp-verification';
 
 // Create commitment before proof generation
 const commitment = await createCommitment(vector);
@@ -246,7 +246,7 @@ console.log('Created at:', commitment.createdAt);
 Run the test suite:
 
 ```bash
-npm test server/latentmas/zkp-verification.test.ts
+npm test server/neural-bridge/zkp-verification.test.ts
 ```
 
 Expected output:
@@ -271,7 +271,7 @@ Tests: 35 passed (35)
 
 ```typescript
 // server/upload-api.ts
-import { proveVectorQuality } from './latentmas/zkp-verification';
+import { proveVectorQuality } from './neural-bridge/zkp-verification';
 
 async function handlePackageUpload(req, res) {
   const { vectorData, name, description } = req.body;
@@ -304,7 +304,7 @@ async function handlePackageUpload(req, res) {
 
 ```typescript
 // server/marketplace-api.ts
-import { verifyVectorQuality } from './latentmas/zkp-verification';
+import { verifyVectorQuality } from './neural-bridge/zkp-verification';
 
 async function getPackageDetails(packageId: string) {
   const pkg = await db.query.packages.findFirst({
@@ -431,7 +431,7 @@ ZKP_ENABLE_BATCHING=true
 ### Runtime Configuration
 
 ```typescript
-import { getZKPEngine } from './server/latentmas/zkp-verification';
+import { getZKPEngine } from './server/neural-bridge/zkp-verification';
 
 const engine = getZKPEngine();
 
@@ -458,7 +458,7 @@ engine.resetStats();
 ### Track ZKP Metrics
 
 ```typescript
-import { getZKPEngine } from './server/latentmas/zkp-verification';
+import { getZKPEngine } from './server/neural-bridge/zkp-verification';
 
 // Log ZKP statistics periodically
 setInterval(() => {

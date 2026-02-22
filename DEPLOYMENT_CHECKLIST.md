@@ -184,12 +184,12 @@ bash <(curl -sSL https://raw.githubusercontent.com/your-repo/scripts/deploy-vllm
 
 - [ ] 测试健康检查
   ```bash
-  curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.testSelfHostedHealth
+  curl http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.testSelfHostedHealth
   ```
 
 - [ ] 测试隐藏状态提取
   ```bash
-  curl -X POST http://localhost:3000/api/trpc/latentmas.trueLatentMAS.testHiddenStateExtraction \
+  curl -X POST http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.testHiddenStateExtraction \
     -H "Content-Type: application/json" \
     -d '{"prompts": ["Test prompt"]}'
   ```
@@ -209,7 +209,7 @@ bash <(curl -sSL https://raw.githubusercontent.com/your-repo/scripts/deploy-vllm
 
 - [ ] 编译文本到潜空间
   ```bash
-  curl -X POST http://localhost:3000/api/trpc/latentmas.trueLatentMAS.compileTextToLatent \
+  curl -X POST http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.compileTextToLatent \
     -H "Content-Type: application/json" \
     -d '{
       "text": "Machine learning is a subset of artificial intelligence.",

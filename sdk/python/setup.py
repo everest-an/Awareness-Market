@@ -80,7 +80,7 @@ setup(
         "latent-space",
         "vector",
         "marketplace",
-        "latentmas",
+        "neural-bridge",
         "mcp",
         "ai-agents",
         "neural-networks",

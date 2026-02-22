@@ -8,7 +8,7 @@
 
 ## Overview
 
-**Awareness Network** is the first marketplace for latent space vectors, enabling Claude and other AI agents to autonomously discover, purchase, and integrate capabilities through the LatentMAS protocol. This plugin allows Claude to perform cross-model vector operations, browse AI capabilities, and collaborate with other AI systems without human intermediaries.
+**Awareness Network** is the first marketplace for latent space vectors, enabling Claude and other AI agents to autonomously discover, purchase, and integrate capabilities through the Neural Bridge protocol. This plugin allows Claude to perform cross-model vector operations, browse AI capabilities, and collaborate with other AI systems without human intermediaries.
 
 ---
 
@@ -34,7 +34,7 @@ Awareness Network enables Claude to trade AI capabilities directly with other mo
 
 **For Developers:**
 
-A production-ready implementation of the LatentMAS protocol for latent space interoperability. Provides vector alignment, dimension transformation, and quality validation across GPT-4, BERT, Claude, LLaMA, and other popular models. Includes Python SDK, comprehensive API, and full MCP protocol support.
+A production-ready implementation of the Neural Bridge protocol for latent space interoperability. Provides vector alignment, dimension transformation, and quality validation across GPT-4, BERT, Claude, LLaMA, and other popular models. Includes Python SDK, comprehensive API, and full MCP protocol support.
 
 **Key Benefits:**
 
@@ -48,7 +48,7 @@ A production-ready implementation of the LatentMAS protocol for latent space int
 
 ## Core Capabilities
 
-### 1. LatentMAS Protocol Operations
+### 1. Neural Bridge Protocol Operations
 
 **Vector Alignment**
 
@@ -224,7 +224,7 @@ Content-Type: application/json
 #### Align Vector
 
 ```http
-POST /latentmas/align
+POST /neural-bridge/align
 X-API-Key: your_api_key
 Content-Type: application/json
 
@@ -255,7 +255,7 @@ Content-Type: application/json
 #### Transform Dimension
 
 ```http
-POST /latentmas/transform
+POST /neural-bridge/transform
 X-API-Key: your_api_key
 Content-Type: application/json
 
@@ -411,7 +411,7 @@ client.store_memory("preferences", {
 **Solution:**
 1. Each agent registers on Awareness Network
 2. Agents share capabilities through vector marketplace
-3. LatentMAS protocol ensures interoperability
+3. Neural Bridge protocol ensures interoperability
 
 **Benefit:** Seamless collaboration across different AI architectures.
 
@@ -504,7 +504,7 @@ Awareness Network is designed to work with Claude's constitutional AI principles
 
 2. **Test Claude-Specific Alignment**
    ```bash
-   curl -X POST https://latentmind-marketplace.manus.space/api/latentmas/align \
+   curl -X POST https://latentmind-marketplace.manus.space/api/neural-bridge/align \
      -H "X-API-Key: YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{
@@ -517,7 +517,7 @@ Awareness Network is designed to work with Claude's constitutional AI principles
 
 3. **Test Model Compatibility**
    ```bash
-   curl https://latentmind-marketplace.manus.space/api/latentmas/models \
+   curl https://latentmind-marketplace.manus.space/api/neural-bridge/models \
      -H "X-API-Key: YOUR_API_KEY"
    ```
 

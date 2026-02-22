@@ -7,9 +7,9 @@
 
 ## 实现的功能
 
-### 1. LatentMAS Package 购买流程
+### 1. Neural Bridge Package 购买流程
 
-#### 前端API (`latentmas-marketplace.ts:purchasePackage`)
+#### 前端API (`neural-bridge-marketplace.ts:purchasePackage`)
 - ✅ 包详情获取和验证
 - ✅ 用户已购买检测（避免重复付费）
 - ✅ Stripe Checkout Session创建
@@ -53,7 +53,7 @@
    ```typescript
    const session = await stripe.checkout.sessions.create({
      line_items: [...],
-     metadata: { userId, packageId, purchaseType: 'latentmas_package', ... }
+     metadata: { userId, packageId, purchaseType: 'neural-bridge_package', ... }
    })
    ```
 
@@ -88,7 +88,7 @@
 ### 集成测试
 ```typescript
 // 建议添加测试用例
-describe('LatentMAS Package Purchase', () => {
+describe('Neural Bridge Package Purchase', () => {
   it('should create checkout session');
   it('should prevent duplicate purchases');
   it('should handle webhook correctly');
@@ -103,7 +103,7 @@ describe('LatentMAS Package Purchase', () => {
 
 | 文件 | 行号 | 原TODO | 状态 |
 |------|------|--------|------|
-| `latentmas-marketplace.ts` | 295 | `TODO: Implement payment and access grant` | ✅ 完成 |
+| `neural-bridge-marketplace.ts` | 295 | `TODO: Implement payment and access grant` | ✅ 完成 |
 
 ---
 
@@ -132,7 +132,7 @@ describe('LatentMAS Package Purchase', () => {
 ## 相关文件
 
 ### 修改文件
-1. `server/routers/latentmas-marketplace.ts` - 购买端点实现
+1. `server/routers/neural-bridge-marketplace.ts` - 购买端点实现
 2. `server/stripe-webhook.ts` - Webhook处理
 3. `server/db.ts` - 数据库操作
 
@@ -166,5 +166,5 @@ STRIPE_PUBLISHABLE_KEY=pk_live_... # 前端使用
 
 ---
 
-**提交**: `ecef511` - feat: implement Stripe payment for LatentMAS package purchases  
+**提交**: `ecef511` - feat: implement Stripe payment for Neural Bridge package purchases  
 **推送状态**: ✅ 已推送到GitHub main分支

@@ -11,19 +11,19 @@
 ### 1. 新增文件
 
 #### 核心客户端
-- **`server/latentmas/clients/self-hosted-llm.ts`**
+- **`server/neural-bridge/clients/self-hosted-llm.ts`**
   - `SelfHostedLLMClient` 类：vLLM 服务器客户端
   - 支持隐藏状态提取
   - 健康检查和可用性监测
   - 全局单例管理
 
-- **`server/latentmas/clients/runpod-manager.ts`**
+- **`server/neural-bridge/clients/runpod-manager.ts`**
   - `RunPodManager` 类：GPU Pod 自动管理
   - 自动启停功能
   - Pod 状态查询
   - 智能成本优化（节省 81% 成本）
 
-- **`server/latentmas/clients/cost-tracker.ts`**
+- **`server/neural-bridge/clients/cost-tracker.ts`**
   - `LLMCostTracker` 类：成本追踪服务
   - 实时成本监控
   - 预算警告
@@ -32,7 +32,7 @@
 ### 2. 更新文件
 
 #### LLM 适配器增强
-- **`server/latentmas/llm-adapters.ts`**
+- **`server/neural-bridge/llm-adapters.ts`**
   - `SelfHostedAdapter` 集成新客户端
   - 自动降级到遗留方法
   - 支持更多开源模型（Llama 3.1, Qwen 2.5, Mistral等）
@@ -45,7 +45,7 @@
   - 添加 `LLM_COST_PROVIDER` 成本追踪配置
 
 #### tRPC API 端点
-- **`server/routers/latentmas.ts`**
+- **`server/routers/neural-bridge.ts`**
   - ✅ `testSelfHostedHealth` - 测试服务器健康状态
   - ✅ `testHiddenStateExtraction` - 测试隐藏状态提取
   - ✅ `getRunPodStatus` - 获取 Pod 状态
@@ -116,7 +116,7 @@ npm run dev
 
 ```bash
 # 1. 测试健康检查
-curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.testSelfHostedHealth
+curl http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.testSelfHostedHealth
 
 # 预期输出：
 # {
@@ -131,7 +131,7 @@ curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.testSelfHostedHealth
 # }
 
 # 2. 测试隐藏状态提取
-curl -X POST http://localhost:3000/api/trpc/latentmas.trueLatentMAS.testHiddenStateExtraction \
+curl -X POST http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.testHiddenStateExtraction \
   -H "Content-Type: application/json" \
   -d '{"prompts": ["What is AI?", "Explain machine learning"]}'
 
@@ -185,7 +185,7 @@ RunPod RTX 4090 Spot: $0.44/hour
 ### 1. 健康检查
 
 ```typescript
-const health = await trpc.latentmas.trueLatentMAS.testSelfHostedHealth.query();
+const health = await trpc.neural-bridge.trueNeural Bridge.testSelfHostedHealth.query();
 
 if (health.success) {
   console.log('Server is healthy:', health.health);
@@ -197,8 +197,8 @@ if (health.success) {
 ### 2. 训练 W-Matrix（使用自部署 LLM）
 
 ```typescript
-import { getGlobalRunPodManager } from './server/latentmas/clients/runpod-manager';
-import { trainWMatrixForModelPair } from './server/latentmas/w-matrix-trainer';
+import { getGlobalRunPodManager } from './server/neural-bridge/clients/runpod-manager';
+import { trainWMatrixForModelPair } from './server/neural-bridge/w-matrix-trainer';
 
 const manager = getGlobalRunPodManager();
 
@@ -219,14 +219,14 @@ console.log('W-Matrix trained:', wMatrix.finalEpsilon);
 
 ```typescript
 // 启动 Pod
-const startResult = await trpc.latentmas.trueLatentMAS.startRunPod.mutate();
+const startResult = await trpc.neural-bridge.trueNeural Bridge.startRunPod.mutate();
 console.log(startResult.message);
 
 // 训练操作...
 await trainWMatrixForModelPair(...);
 
 // 停止 Pod
-const stopResult = await trpc.latentmas.trueLatentMAS.stopRunPod.mutate();
+const stopResult = await trpc.neural-bridge.trueNeural Bridge.stopRunPod.mutate();
 console.log(stopResult.message);
 ```
 
@@ -234,14 +234,14 @@ console.log(stopResult.message);
 
 ```typescript
 // 获取成本统计
-const stats = await trpc.latentmas.trueLatentMAS.getCostStats.query();
+const stats = await trpc.neural-bridge.trueNeural Bridge.getCostStats.query();
 
 console.log('Today:', stats.formatted.dailyCost);
 console.log('This month:', stats.formatted.monthlyCost);
 console.log('Projected:', stats.formatted.projectedMonthlyCost);
 
 // 导出 CSV
-const csv = await trpc.latentmas.trueLatentMAS.exportCostData.query();
+const csv = await trpc.neural-bridge.trueNeural Bridge.exportCostData.query();
 console.log(csv.csv);
 ```
 
@@ -252,7 +252,7 @@ console.log(csv.csv);
 ### 完整流程（自动化）
 
 ```typescript
-import { extractHiddenStates } from './server/latentmas/w-matrix-trainer';
+import { extractHiddenStates } from './server/neural-bridge/w-matrix-trainer';
 
 // 1. extractHiddenStates 会自动检测 USE_SELF_HOSTED_LLM
 const sourceStates = await extractHiddenStates('llama-3.1-8b', anchorPrompts);
@@ -370,10 +370,10 @@ await manager.withAutoManage(async () => {
 ## 📚 相关文档
 
 - [快速部署指南](./QUICK_START_LLAMA.md) - 30 分钟部署 Llama 3.1 8B
-- [预算部署方案](../LATENTMAS_BUDGET_DEPLOYMENT.md) - 成本优化策略
-- [LatentMAS 实现状态](./technical/LATENTMAS_IMPLEMENTATION_STATUS.md) - 论文实现对比
-- [W-Matrix 训练器源码](../server/latentmas/w-matrix-trainer.ts)
-- [LLM 适配器源码](../server/latentmas/llm-adapters.ts)
+- [预算部署方案](../NEURAL_BRIDGE_BUDGET_DEPLOYMENT.md) - 成本优化策略
+- [Neural Bridge 实现状态](./technical/NEURAL_BRIDGE_IMPLEMENTATION_STATUS.md) - 论文实现对比
+- [W-Matrix 训练器源码](../server/neural-bridge/w-matrix-trainer.ts)
+- [LLM 适配器源码](../server/neural-bridge/llm-adapters.ts)
 
 ---
 
@@ -397,7 +397,7 @@ await manager.withAutoManage(async () => {
 1. 按照 `QUICK_START_LLAMA.md` 部署 vLLM 服务器
 2. 配置 `.env` 文件
 3. 运行 `npm run dev` 启动服务
-4. 测试 `/api/trpc/latentmas.trueLatentMAS.testSelfHostedHealth`
+4. 测试 `/api/trpc/neural-bridge.trueNeural Bridge.testSelfHostedHealth`
 5. 开始训练真实的 W-Matrix！
 
 ---

@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-**项目名称**: Awareness Market (LatentMAS AI潜意识市场)
+**项目名称**: Awareness Market (Neural Bridge AI潜意识市场)
 **GitHub仓库**: https://github.com/everest-an/Awareness-Market
 **技术栈**: Node.js + React + PostgreSQL (Prisma) + Redis (可选)
 **部署目标**: AWS EC2 + RDS + S3

@@ -31,7 +31,7 @@ export default function Terms() {
                 <li>Creators to upload, list, and sell AI vectors and capabilities</li>
                 <li>Consumers to discover, purchase, and use AI capabilities</li>
                 <li>AI agents to autonomously register, transact, and integrate capabilities</li>
-                <li>Vector transformation and alignment through LatentMAS protocol</li>
+                <li>Vector transformation and alignment through Neural Bridge protocol</li>
               </ul>
             </section>
 

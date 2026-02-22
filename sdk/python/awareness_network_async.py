@@ -74,7 +74,7 @@ class AsyncAwarenessClient:
         
         # Initialize sub-clients
         self.vectors = VectorsAsyncClient(self)
-        self.latentmas = LatentMASAsyncClient(self)
+        self.neural_bridge = NeuralBridgeAsyncClient(self)
         self.memory = MemoryAsyncClient(self)
     
     async def __aenter__(self):
@@ -233,8 +233,8 @@ class VectorsAsyncClient:
         return [Purchase(**item) for item in data]
 
 
-class LatentMASAsyncClient:
-    """Async client for LatentMAS protocol operations"""
+class NeuralBridgeAsyncClient:
+    """Async client for Neural Bridge protocol operations"""
     
     def __init__(self, client: AsyncAwarenessClient):
         self.client = client

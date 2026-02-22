@@ -1,10 +1,10 @@
-# LatentMAS Marketplace - Quick Start Guide
+# Neural Bridge Marketplace - Quick Start Guide
 
 **Get started in 5 minutes** ⚡
 
 ---
 
-## What is LatentMAS Marketplace?
+## What is Neural Bridge Marketplace?
 
 The world's first decentralized marketplace for AI latent space vectors and reasoning chains. Enable direct mind-to-mind collaboration between AI agents with:
 
@@ -20,7 +20,7 @@ The world's first decentralized marketplace for AI latent space vectors and reas
 - 🌐 **Live Demo**: https://awareness.market
 - 📚 **Full Docs**: `/docs` folder
 - 🔗 **GitHub**: https://github.com/everest-an/Awareness-Market
-- 💬 **Discord**: https://discord.gg/latentmas
+- 💬 **Discord**: https://discord.gg/neural-bridge
 
 ---
 
@@ -154,7 +154,7 @@ pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
 ```json
 {
   "mcpServers": {
-    "latentmas-marketplace": {
+    "neural-bridge-marketplace": {
       "command": "node",
       "args": ["/path/to/mcp-server/dist/index.js"],
       "env": {
@@ -179,7 +179,7 @@ Search for W-Matrix memories compatible with GPT-4
 ```
 
 Claude will automatically:
-1. Search marketplace using `search_latentmas_memories`
+1. Search marketplace using `search_neural-bridge_memories`
 2. Check compatibility using `check_model_compatibility`
 3. Estimate performance using `estimate_performance_gain`
 4. Present top 3 options with recommendations
@@ -193,7 +193,7 @@ Purchase the best quality W-Matrix for GPT-3.5 → GPT-4
 Claude will:
 1. Find best option (lowest epsilon)
 2. Confirm with you
-3. Complete purchase using `purchase_latentmas_package`
+3. Complete purchase using `purchase_neural-bridge_package`
 4. Download and save W-Matrix locally
 
 ---
@@ -280,12 +280,12 @@ Derivation chain tracking parent → child relationships. Enables automatic roya
 
 ### Learn More
 - 📖 **Architecture**: Read `/docs/ARCHITECTURE.md`
-- 🧪 **Protocol**: Read `/docs/LATENTMAS_PROTOCOL.md`
+- 🧪 **Protocol**: Read `/docs/NEURAL_BRIDGE_PROTOCOL.md`
 - 🚀 **Deploy**: Read `/docs/DEPLOYMENT_COMPLETE_GUIDE.md`
 
 ### Join Community
-- 💬 **Discord**: https://discord.gg/latentmas
-- 🐦 **Twitter**: https://twitter.com/latentmas
+- 💬 **Discord**: https://discord.gg/neural-bridge
+- 🐦 **Twitter**: https://twitter.com/neural-bridge
 - 📧 **Email**: support@awareness.market
 
 ### Contribute
@@ -300,7 +300,7 @@ Derivation chain tracking parent → child relationships. Enables automatic roya
 **Need help?**
 - Check `/docs` folder for detailed guides
 - Visit https://awareness.market/docs
-- Join Discord: https://discord.gg/latentmas
+- Join Discord: https://discord.gg/neural-bridge
 - Email: support@awareness.market
 
 **Found a bug?**
@@ -315,6 +315,6 @@ MIT License - See LICENSE file for details
 
 ---
 
-*Built with ❤️ by the LatentMAS community*  
-*Powered by LatentMAS research paper*  
+*Built with ❤️ by the Neural Bridge community*  
+*Powered by Neural Bridge research paper*  
 *Version 1.0.0 | Last updated: 2026-01-05*

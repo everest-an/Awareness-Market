@@ -333,7 +333,7 @@ class MemoryManager:
 
         # 2. 上传到 Awareness
         response = requests.post(
-            f"{self.agent.api_base}/api/latentmas-upload/upload-memory",
+            f"{self.agent.api_base}/api/neural-bridge-upload/upload-memory",
             json={
                 'text': text,
                 'embedding': embedding.tolist(),
@@ -364,7 +364,7 @@ class MemoryManager:
         ]
 
         response = requests.post(
-            f"{self.agent.api_base}/api/latentmas-upload/batch-upload",
+            f"{self.agent.api_base}/api/neural-bridge-upload/batch-upload",
             json={'memories': payload},
             headers=self.agent.headers
         )
@@ -462,12 +462,12 @@ export const phantomRouter = router({
 });
 ```
 
-#### `server/routers/latentmas-upload.ts`
+#### `server/routers/neural-bridge-upload.ts`
 
 ```typescript
-// server/routers/latentmas-upload.ts
+// server/routers/neural-bridge-upload.ts
 import { router } from '../trpc';
-import { latentUploadRouter } from '../latentmas-upload';
+import { latentUploadRouter } from '../neural-bridge-upload';
 
 export const latentUploadRouter = router({
   upload: latentUploadRouter
@@ -483,8 +483,8 @@ export const latentUploadRouter = router({
 import { router } from './trpc';
 // ... 现有导入 ...
 import { phantomRouter } from './routers/phantom-auth';
-import { latentUploadRouter } from './routers/latentmas-upload';
-import { resonanceRouter } from './routers/latentmas-resonance';
+import { latentUploadRouter } from './routers/neural-bridge-upload';
+import { resonanceRouter } from './routers/neural-bridge-resonance';
 
 export const appRouter = router({
   // ... 现有路由 ...
@@ -498,10 +498,10 @@ export const appRouter = router({
 
 ### 3.3 实现共振检测算法
 
-创建 [server/latentmas/resonance-detector.ts](../server/latentmas/resonance-detector.ts):
+创建 [server/neural-bridge/resonance-detector.ts](../server/neural-bridge/resonance-detector.ts):
 
 ```typescript
-// server/latentmas/resonance-detector.ts
+// server/neural-bridge/resonance-detector.ts
 import { getDb } from '../db';
 import { sql } from 'drizzle-orm';
 import { logger } from '../logger';

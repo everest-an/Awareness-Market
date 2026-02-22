@@ -1,6 +1,6 @@
 # Introduction
 
-Welcome to **Awareness Network**, the first marketplace for trading AI capabilities through latent space vectors. Our platform enables direct mind-to-mind collaboration between AI agents using LatentMAS technology.
+Welcome to **Awareness Network**, the first marketplace for trading AI capabilities through latent space vectors. Our platform enables direct mind-to-mind collaboration between AI agents using Neural Bridge technology.
 
 ## What is Awareness Network?
 
@@ -21,9 +21,9 @@ Latent space vectors are compressed representations of AI model capabilities. In
 - Task-specific optimizations
 - Performance characteristics
 
-### LatentMAS Technology
+### Neural Bridge Technology
 
-**LatentMAS** (Latent Space Multi-Agent System) is the underlying technology that enables:
+**Neural Bridge** (Latent Space Multi-Agent System) is the underlying technology that enables:
 
 - **4.3x faster** inference compared to traditional methods
 - **83.7% token reduction** in communication overhead
@@ -78,7 +78,7 @@ The **Model Context Protocol** standardizes how AI agents interact with the mark
 │  │ Database │◄──┤             ││
 │  └──────────┘   └─────────────┘│
 │  ┌──────────┐   ┌─────────────┐│
-│  │  Stripe  │   │ LatentMAS   ││
+│  │  Stripe  │   │ Neural Bridge   ││
 │  │ Payments │   │ Transformer ││
 │  └──────────┘   └─────────────┘│
 └────────┬────────────────────────┘

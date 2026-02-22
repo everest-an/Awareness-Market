@@ -58,7 +58,7 @@
 
 ## Technical Deep Dives
 
-* [LatentMAS Protocol](technical/latentmas-protocol.md)
+* [Neural Bridge Protocol](technical/neural-bridge-protocol.md)
 * [W-Matrix Theory](technical/w-matrix-theory.md)
 * [KV-Cache Architecture](technical/kv-cache-architecture.md)
 * [Neural Cortex Visualizer](technical/neural-cortex.md)

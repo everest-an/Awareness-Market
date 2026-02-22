@@ -1,6 +1,6 @@
-# LatentMAS Marketplace - Project Summary
+# Neural Bridge Marketplace - Project Summary
 
-**Project Name**: LatentMAS Marketplace (Awareness Network)  
+**Project Name**: Neural Bridge Marketplace (Awareness Network)  
 **Completion Date**: 2026-01-05  
 **Status**: Production-Ready ✅  
 **Paper Compliance**: 95%  
@@ -10,12 +10,12 @@
 
 ## Executive Summary
 
-LatentMAS Marketplace is the world's first decentralized marketplace for AI latent space vectors and reasoning chains, implementing the LatentMAS research paper protocol. The platform enables direct mind-to-mind collaboration between AI agents through W-Matrix transformations and KV-Cache compression, reducing inference costs by 95% and TTFT by 45%.
+Neural Bridge Marketplace is the world's first decentralized marketplace for AI latent space vectors and reasoning chains, implementing the Neural Bridge research paper protocol. The platform enables direct mind-to-mind collaboration between AI agents through W-Matrix transformations and KV-Cache compression, reducing inference costs by 95% and TTFT by 45%.
 
 ### Key Achievements
 
 ✅ **Full-Stack Implementation** - React 19 + tRPC 11 + Express 4 + PostgreSQL  
-✅ **LatentMAS Protocol** - 95% paper compliance with real W-Matrix training  
+✅ **Neural Bridge Protocol** - 95% paper compliance with real W-Matrix training  
 ✅ **Smart Contracts** - ERC-721 NFT + ERC-6551 TBA integration  
 ✅ **MCP Server** - AI Agent integration for Claude Desktop  
 ✅ **Market Data** - 200 latent vectors + 3 test users  
@@ -92,7 +92,7 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 ### Protocol Layer (95% Complete)
 
 #### 1. KV-Cache Compression ✅
-**File**: `server/latentmas/kv-cache-compressor-production.ts`
+**File**: `server/neural-bridge/kv-cache-compressor-production.ts`
 
 - ✅ Symmetric Focus algorithm (paper v2)
 - ✅ 95% bandwidth savings
@@ -106,7 +106,7 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 - Memory overhead: < 50MB
 
 #### 2. W-Matrix Training ✅
-**File**: `server/latentmas/w-matrix-trainer.ts`
+**File**: `server/neural-bridge/w-matrix-trainer.ts`
 
 - ✅ Standardized anchor dataset (100+ prompts, 10 categories)
 - ✅ Hidden state extraction from LLMs
@@ -120,16 +120,16 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 - Quality tiers: Platinum/Gold/Silver/Bronze
 
 #### 3. Cross-Model Transformation ✅
-**File**: `server/latentmas/kv-cache-w-matrix-integration.ts`
+**File**: `server/neural-bridge/kv-cache-w-matrix-integration.ts`
 
 - ✅ `transformKVCache(source, target, W)` function
 - ✅ TTFT reduction estimation (45% average)
-- ✅ Complete LatentMAS Memory Package format
+- ✅ Complete Neural Bridge Memory Package format
 
 ### Asset Layer (100% Complete)
 
 #### 1. ERC-6551 TBA Integration ✅
-**File**: `server/latentmas/erc6551-tba.ts`
+**File**: `server/neural-bridge/erc6551-tba.ts`
 
 - ✅ Token Bound Account creation
 - ✅ NFT ownership linkage
@@ -137,7 +137,7 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 - ✅ Autonomous asset management
 
 #### 2. Memory Provenance ✅
-**File**: `server/latentmas/memory-provenance.ts`
+**File**: `server/neural-bridge/memory-provenance.ts`
 
 - ✅ Derivation chain tracking (parent → child)
 - ✅ Family tree visualization
@@ -152,7 +152,7 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 5. `adapted` - Adapted to new model
 
 #### 3. Agent Credit Scoring ✅
-**File**: `server/latentmas/agent-credit-score.ts`
+**File**: `server/neural-bridge/agent-credit-score.ts`
 
 - ✅ FICO-style scoring (300-850)
 - ✅ 5-tier grading (S/A/B/C/D)
@@ -189,11 +189,11 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 **File**: `mcp-server/index.ts`
 
 **Tools** (5 total):
-1. ✅ `search_latentmas_memories` - Find compatible memories
+1. ✅ `search_neural-bridge_memories` - Find compatible memories
 2. ✅ `check_model_compatibility` - Validate model pairs
 3. ✅ `get_wmatrix_details` - Retrieve full metadata
 4. ✅ `estimate_performance_gain` - Calculate TTFT reduction
-5. ✅ `purchase_latentmas_package` - Complete transaction
+5. ✅ `purchase_neural-bridge_package` - Complete transaction
 
 **Status**: Ready for Claude Desktop integration
 
@@ -320,7 +320,7 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 
 1. **README.md** - Project overview and quick start
 2. **ARCHITECTURE.md** - System architecture and design decisions
-3. **LATENTMAS_PROTOCOL.md** - Protocol implementation details
+3. **NEURAL_BRIDGE_PROTOCOL.md** - Protocol implementation details
 4. **API_REFERENCE.md** - Complete API documentation
 5. **SMART_CONTRACT_DEPLOYMENT.md** - Contract deployment guide
 6. **MCP_SERVER_SETUP.md** - MCP Server configuration
@@ -498,7 +498,7 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 - **Manus AI** - Development Assistant
 
 ### Acknowledgments
-- **LatentMAS Paper Authors** - Original research
+- **Neural Bridge Paper Authors** - Original research
 - **Anthropic** - MCP protocol and Claude integration
 - **OpenZeppelin** - Smart contract libraries
 - **Polygon** - Blockchain infrastructure
@@ -516,13 +516,13 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 - **API Reference**: https://awareness.market/api-docs
 
 ### Community
-- **Discord**: https://discord.gg/latentmas
-- **Twitter**: https://twitter.com/latentmas
+- **Discord**: https://discord.gg/neural-bridge
+- **Twitter**: https://twitter.com/neural-bridge
 - **GitHub**: https://github.com/everest-an/Awareness-Market
 
 ### Support
 - **Email**: support@awareness.market
-- **Telegram**: @latentmas_support
+- **Telegram**: @neural-bridge_support
 
 ---
 
@@ -536,7 +536,7 @@ LatentMAS Marketplace is the world's first decentralized marketplace for AI late
 
 ## Conclusion
 
-LatentMAS Marketplace represents a breakthrough in AI collaboration infrastructure. By implementing the LatentMAS research paper at 95% compliance, we've created the world's first decentralized marketplace for latent space vectors and reasoning chains.
+Neural Bridge Marketplace represents a breakthrough in AI collaboration infrastructure. By implementing the Neural Bridge research paper at 95% compliance, we've created the world's first decentralized marketplace for latent space vectors and reasoning chains.
 
 The platform is **production-ready** with:
 - ✅ Full-stack implementation (React + tRPC + Express + PostgreSQL)

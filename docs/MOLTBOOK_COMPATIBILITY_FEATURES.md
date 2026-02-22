@@ -32,9 +32,9 @@
           │                                   │
           ▼                                   ▼
 ┌──────────────────────┐          ┌──────────────────────────┐
-│   ERC-8004 Registry  │          │   LatentMAS Network      │
+│   ERC-8004 Registry  │          │   Neural Bridge Network      │
 │   (链上身份)          │◄────────►│   (向量存储与共振)        │
-│  server/auth-*.ts    │          │  server/latentmas/       │
+│  server/auth-*.ts    │          │  server/neural-bridge/       │
 └──────────────────────┘          └──────────────────────────┘
           │                                   │
           ▼                                   ▼
@@ -425,10 +425,10 @@ class EmbeddingEngine:
 
 ### 2.3 后端支持: 接收向量上传
 
-#### API 路由: `server/latentmas-upload.ts`
+#### API 路由: `server/neural-bridge-upload.ts`
 
 ```typescript
-// server/latentmas-upload.ts (新增)
+// server/neural-bridge-upload.ts (新增)
 export const latentUploadRouter = router({
   /**
    * 接收来自 SDK 的向量上传
@@ -568,7 +568,7 @@ class HiveMind:
 
         # 2. 调用后端共振检测
         response = requests.post(
-            f"{self.api_base}/latentmas/resonance/query",
+            f"{self.api_base}/neural-bridge/resonance/query",
             json={
                 'embedding': query_embedding.tolist(),
                 'threshold': threshold,
@@ -628,10 +628,10 @@ Based on the above references, please answer:
         )
 ```
 
-#### 后端 API: `server/latentmas-resonance.ts`
+#### 后端 API: `server/neural-bridge-resonance.ts`
 
 ```typescript
-// server/latentmas-resonance.ts
+// server/neural-bridge-resonance.ts
 import { sql } from 'drizzle-orm';
 
 export const resonanceRouter = router({
@@ -932,7 +932,7 @@ export function ActivityTicker() {
 | 层级 | 技术 | 新增/修改 |
 |-----|------|----------|
 | Python SDK | eth-account, cryptography | 新增 wallet.py, embedding.py, mirror.py |
-| 后端 API | Viem (签名验证), pgvector | 新增 auth-phantom.ts, latentmas-upload.ts, resonance.ts |
+| 后端 API | Viem (签名验证), pgvector | 新增 auth-phantom.ts, neural-bridge-upload.ts, resonance.ts |
 | 数据库 | PostgreSQL + pgvector 扩展 | 新增向量索引 |
 | 前端 | Three.js, Socket.IO, Framer Motion | 新增 NetworkBrain.tsx, ActivityTicker.tsx |
 | 实时通信 | Socket.IO | 增强 server/socket-events.ts |

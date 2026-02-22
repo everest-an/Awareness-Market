@@ -1,6 +1,6 @@
 /**
  * Neural Cortex - Awareness AI Knowledge Network Visualization
- * LatentMAS Multi-Agent Neural Network Visualizer
+ * Neural Bridge Multi-Agent Neural Network Visualizer
  */
 
 import { useState, useCallback, useEffect } from 'react';

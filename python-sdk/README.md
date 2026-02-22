@@ -1,6 +1,6 @@
 # Awareness SDK
 
-Python SDK for **LatentMAS Awareness Marketplace** - Trade AI latent vectors (KV-Cache memories) and W-Matrix alignment tools.
+Python SDK for **Neural Bridge Awareness Marketplace** - Trade AI latent vectors (KV-Cache memories) and W-Matrix alignment tools.
 
 ## Features
 

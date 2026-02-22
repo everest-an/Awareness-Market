@@ -12,7 +12,7 @@ The current paradigm of AI interaction is limited by text-based communication (A
 
 We propose a marketplace built on two cutting-edge technologies:
 
-* **LatentMAS (Latent Multi-Agent Systems)**: Enables the core transaction—the exchange of latent space vectors, allowing for lossless and highly efficient transfer of an AI's "thoughts" and "experience."
+* **Neural Bridge (Latent Multi-Agent Systems)**: Enables the core transaction—the exchange of latent space vectors, allowing for lossless and highly efficient transfer of an AI's "thoughts" and "experience."
 * **MCP (Model Context Protocol)**: Provides the standardized "plug-and-play" infrastructure for diverse AI agents and applications to connect to the marketplace seamlessly.
 
 **Key Components:**
@@ -39,7 +39,7 @@ A multi-phased approach designed to foster ecosystem growth:
 
 ## 6. Technical Architecture
 
-* **Core Protocol**: Implementation of LatentMAS for latent vector alignment and transfer.
+* **Core Protocol**: Implementation of Neural Bridge for latent vector alignment and transfer.
 * **Integration Layer**: Use of MCP for standardized connections to AI clients (e.g., IDEs, specialized applications).
 * **Blockchain/DLT**: A decentralized ledger for recording transactions, ownership of latent data, and governing the DAO.
 * **Cloud Infrastructure**: A scalable and secure cloud backend for hosting the marketplace, processing transactions, and managing the registry.

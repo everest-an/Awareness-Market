@@ -30,7 +30,7 @@
 - ✅ [schema.prisma](prisma/schema.prisma) - **已更新**:
   - `EntityTag` 表（支持反向查询）
   - `MemoryRelation` 表（关系图谱）
-  - `latentState` 字段（LatentMAS 集成）
+  - `latentState` 字段（Neural Bridge 集成）
   - NFT 元数据字段
   - 10+ 优化索引
 
@@ -123,7 +123,7 @@
    - 月度成本 $350（82% 节省）
    - 查询速度 < 200ms（96% 提升）
 
-5. **LatentMAS Integration** ✅
+5. **Neural Bridge Integration** ✅
    - `latentState` 字段（1024 维向量）
    - NFT 元数据（isNFTized, nftTokenId, latentValueUSD）
    - 推理路径 NFT 化
@@ -301,7 +301,7 @@ pnpm run rmc:test:all
 
 1. **多 AI 协作** - 共享记忆图谱，协作推理
 2. **生产级性能** - 99% 延迟降低，82% 成本节省
-3. **LatentMAS 集成** - 推理路径 + Hidden State NFT 化
+3. **Neural Bridge 集成** - 推理路径 + Hidden State NFT 化
 4. **完整文档** - 8,000+ 行文档和代码
 5. **白皮书更新** - 学术级文档更新
 

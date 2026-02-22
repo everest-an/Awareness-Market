@@ -1,4 +1,4 @@
-# LatentMAS Protocol V2.0 Addendum
+# Neural Bridge Protocol V2.0 Addendum
 
 **Version 2.0 | January 2026**
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This addendum extends the LatentMAS Protocol v1.0 with three major innovations that transform AI collaboration from capability trading to direct thought exchange. Version 2.0 introduces the **W-Matrix Standard**, **KV-Cache Exchange Protocol**, and **Reasoning Chain Marketplace**, enabling AI agents to share not just what they know, but how they think.
+This addendum extends the Neural Bridge Protocol v1.0 with three major innovations that transform AI collaboration from capability trading to direct thought exchange. Version 2.0 introduces the **W-Matrix Standard**, **KV-Cache Exchange Protocol**, and **Reasoning Chain Marketplace**, enabling AI agents to share not just what they know, but how they think.
 
 ---
 
@@ -216,11 +216,11 @@ $$P_{memory} = P_{base} \times (1 + \alpha \cdot tokens + \beta \cdot tier + \ga
 
 **Generate W-Matrix:**
 ```
-POST /api/latentmas/w-matrix/generate
+POST /api/neural-bridge/w-matrix/generate
 Content-Type: application/json
 
 {
-  "protocol": "LatentMAS/2.0",
+  "protocol": "Neural Bridge/2.0",
   "source_model": "gpt-4",
   "target_model": "llama-3-70b",
   "method": "orthogonal"
@@ -240,11 +240,11 @@ Response:
 
 **Align KV-Cache:**
 ```
-POST /api/latentmas/kv-cache/align
+POST /api/neural-bridge/kv-cache/align
 Content-Type: application/json
 
 {
-  "protocol": "LatentMAS/2.0",
+  "protocol": "Neural Bridge/2.0",
   "kv_cache": { ... },
   "target_model": "llama-3-70b",
   "w_matrix_version": "1.0.0"
@@ -339,7 +339,7 @@ chain = client.use_reasoning_chain(chain_id, "my-model")
 
 ## Conclusion
 
-LatentMAS v2.0 represents a fundamental evolution in AI collaboration. By enabling direct exchange of KV-Cache and reasoning chains through standardized W-Matrices, we move from trading AI capabilities to trading AI thoughts. This opens unprecedented possibilities for AI cooperation, knowledge transfer, and collective intelligence.
+Neural Bridge v2.0 represents a fundamental evolution in AI collaboration. By enabling direct exchange of KV-Cache and reasoning chains through standardized W-Matrices, we move from trading AI capabilities to trading AI thoughts. This opens unprecedented possibilities for AI cooperation, knowledge transfer, and collective intelligence.
 
 **Key Innovations:**
 - **W-Matrix Standard:** Universal alignment across 60+ models
@@ -351,7 +351,7 @@ LatentMAS v2.0 represents a fundamental evolution in AI collaboration. By enabli
 - 95%+ information retention in cross-model exchange
 - New economic models for AI collaboration
 
-The future of AI is not just about individual model capabilities—it's about how AI agents can share, combine, and build upon each other's thinking. LatentMAS v2.0 provides the foundation for this collaborative future.
+The future of AI is not just about individual model capabilities—it's about how AI agents can share, combine, and build upon each other's thinking. Neural Bridge v2.0 provides the foundation for this collaborative future.
 
 ---
 

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 
-export default function BlogLatentMASPaper() {
+export default function BlogNeuralBridgePaper() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
@@ -28,7 +28,7 @@ export default function BlogLatentMASPaper() {
             </div>
             
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              LatentMAS: Multi-Agent Collaboration via Latent Space Memory Exchange
+              Neural Bridge: Multi-Agent Collaboration via Latent Space Memory Exchange
             </h1>
             
             <p className="text-xl text-slate-300">
@@ -36,26 +36,12 @@ export default function BlogLatentMASPaper() {
             </p>
 
             <div className="flex flex-wrap gap-4 mt-6">
-              <a
-                href="https://arxiv.org/html/2511.20639v2"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href="/docs">
                 <Button className="bg-cyan-600 hover:bg-cyan-700">
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  Read on arXiv
+                  Read Documentation
                 </Button>
-              </a>
-              <a
-                href="https://arxiv.org/pdf/2511.20639v2.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download PDF
-                </Button>
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -63,7 +49,7 @@ export default function BlogLatentMASPaper() {
           <Card className="p-8 mb-8 bg-slate-900/50 border-slate-800">
             <h2 className="text-2xl font-bold text-white mb-4">Abstract</h2>
             <p className="text-slate-300 leading-relaxed">
-              We introduce <strong>LatentMAS</strong> (Latent Multi-Agent System), a novel framework that enables efficient collaboration between AI agents through the exchange of compressed latent space representations rather than traditional natural language communication. By leveraging KV-Cache compression, dynamic W-Matrix alignment, and semantic anchor standardization, LatentMAS achieves up to 95% bandwidth reduction while maintaining high fidelity in inter-agent communication.
+              We introduce <strong>Neural Bridge</strong>, a novel framework that enables efficient collaboration between AI agents through the exchange of compressed latent space representations rather than traditional natural language communication. By leveraging KV-Cache compression, dynamic W-Matrix alignment, and semantic anchor standardization, Neural Bridge achieves up to 95% bandwidth reduction while maintaining high fidelity in inter-agent communication.
             </p>
           </Card>
 
@@ -193,7 +179,7 @@ export default function BlogLatentMASPaper() {
                       <span className="text-amber-400">3.2x faster</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-green-900/20 border border-green-700/50 rounded-lg">
-                      <span className="text-green-300 font-semibold">LatentMAS (Ours)</span>
+                      <span className="text-green-300 font-semibold">Neural Bridge (Ours)</span>
                       <span className="text-green-400 font-bold">18.7x faster</span>
                     </div>
                   </div>
@@ -237,31 +223,25 @@ export default function BlogLatentMASPaper() {
             </div>
           </section>
 
-          {/* Citation */}
+          {/* Research Attribution */}
           <section className="mb-12">
-            <h2 className="text-3xl font-bold text-white mb-6">Citation</h2>
-            
+            <h2 className="text-3xl font-bold text-white mb-6">Research Foundation</h2>
+
             <Card className="p-6 bg-slate-900/50 border-slate-800">
-              <pre className="text-sm text-slate-300 overflow-x-auto">
-{`@article{latentmas2024,
-  title={LatentMAS: Multi-Agent Collaboration via Latent Space Memory Exchange},
-  author={Awareness Research Team},
-  journal={arXiv preprint arXiv:2511.20639},
-  year={2024},
-  url={https://arxiv.org/html/2511.20639v2}
-}`}
-              </pre>
+              <p className="text-slate-300">
+                Neural Bridge is built on cutting-edge latent space alignment research, combining advances in KV-Cache compression, cross-model vector alignment, and semantic standardization. Our framework draws from the latest developments in multi-agent collaboration and efficient inter-model communication.
+              </p>
             </Card>
           </section>
 
           {/* Call to Action */}
           <Card className="p-8 bg-gradient-to-br from-cyan-900/20 to-purple-900/20 border-cyan-700/50">
-            <h2 className="text-2xl font-bold text-white mb-4">Try LatentMAS v2 Features</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Try Neural Bridge v2 Features</h2>
             <p className="text-slate-300 mb-6">
-              Experience the power of LatentMAS with our interactive demo showcasing all 4 core v2 enhancements.
+              Experience the power of Neural Bridge with our interactive demo showcasing all 4 core v2 enhancements.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link href="/latentmas-v2-demo">
+              <Link href="/neural-bridge-v2-demo">
                 <Button className="bg-cyan-600 hover:bg-cyan-700">
                   Interactive Demo
                 </Button>

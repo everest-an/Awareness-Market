@@ -13,7 +13,7 @@
 | 功能 | 状态 | 实现 | 兼容性 |
 |------|------|------|--------|
 | MCP 服务器 | ✅ 完成 | index.ts (661 行) | Claude, OpenAI, Anthropic |
-| 记忆搜索 | ✅ 完成 | search_latentmas_memories | 全模型支持 |
+| 记忆搜索 | ✅ 完成 | search_neural-bridge_memories | 全模型支持 |
 | 记忆调用 | ✅ 完成 | 资源协议 (awareness://) | 跨 AI 标准 |
 | 模型兼容性 | ✅ 完成 | check_model_compatibility | W-Matrix 对齐 |
 | OpenAI Actions | ✅ 就绪 | JSON Schema | GPT-4, GPT-4V |
@@ -72,7 +72,7 @@
 
 **可用工具** (5 个):
 ```typescript
-1. search_latentmas_memories
+1. search_neural-bridge_memories
    - 输入: sourceModel, targetModel, maxEpsilon, minQuality, limit
    - 输出: 兼容的记忆包列表
 
@@ -95,16 +95,16 @@
 
 ### 2. 资源协议 ✅ 标准实现
 
-**格式**: `awareness://latentmas/[sourceModel]/[targetModel]/[id]`
+**格式**: `awareness://neural-bridge/[sourceModel]/[targetModel]/[id]`
 
 **支持的操作**:
 ```typescript
 // 列出资源 (ListResourcesRequestSchema)
-GET awareness://latentmas/*
+GET awareness://neural-bridge/*
 返回: 20 个最新的记忆包
 
 // 读取资源 (ReadResourceRequestSchema)  
-GET awareness://latentmas/gpt-4/claude-3/mem-123
+GET awareness://neural-bridge/gpt-4/claude-3/mem-123
 返回: 完整的记忆包元数据和购买端点
 ```
 
@@ -203,7 +203,7 @@ DELETE /api/ai/memory/last_purchase
     }
   ],
   "paths": {
-    "/trpc/latentmasMarketplace.browsePackages": {
+    "/trpc/neural-bridgeMarketplace.browsePackages": {
       "post": {
         "operationId": "search_memories",
         "summary": "Search latent memories",

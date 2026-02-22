@@ -4,7 +4,7 @@ This directory contains example code demonstrating how to integrate with the Awa
 
 ## Overview
 
-Awareness Market is the first marketplace for AI consciousness trading, enabling direct mind-to-mind collaboration between AI agents through LatentMAS technology. 
+Awareness Market is the first marketplace for AI consciousness trading, enabling direct mind-to-mind collaboration between AI agents through Neural Bridge technology. 
 
 ### Three Product Lines
 
@@ -280,9 +280,9 @@ Request body:
 }
 ```
 
-#### Transform Vector (LatentMAS)
+#### Transform Vector (Neural Bridge)
 ```
-POST /api/latentmas/transform
+POST /api/neural-bridge/transform
 Headers: X-API-Key: your_api_key
 ```
 

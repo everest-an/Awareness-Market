@@ -49,7 +49,7 @@ export default function UploadVector() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (max 100MB for LatentMAS vectors)
+      // Check file size (max 100MB for Neural Bridge vectors)
       if (file.size > 100 * 1024 * 1024) {
         toast.error("File size cannot exceed 100MB");
         return;
@@ -72,11 +72,11 @@ export default function UploadVector() {
 
     setCurrentStep("validation");
 
-    // Simulate LatentMAS format validation
+    // Simulate Neural Bridge format validation
     setTimeout(() => {
       const validation = {
         isValid: true,
-        format: "LatentMAS/1.0",
+        format: "NeuralBridge/1.0",
         detectedDimension: parseInt(formData.vectorDimension),
         fileSize: vectorFile.size,
         estimatedQuality: 0.92,
@@ -189,9 +189,9 @@ export default function UploadVector() {
               Back to Creator Dashboard
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">Publish LatentMAS Vector</h1>
+          <h1 className="text-3xl font-bold">Publish Neural Bridge Vector</h1>
           <p className="mt-2 text-muted-foreground">
-            Upload LatentMAS/1.0 protocol compliant vector data to the marketplace
+            Upload NeuralBridge/1.0 protocol compliant vector data to the marketplace
           </p>
         </div>
       </div>
@@ -205,7 +205,7 @@ export default function UploadVector() {
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
               <CardDescription>
-                Fill in the vector's basic information and LatentMAS metadata
+                Fill in the vector's basic information and Neural Bridge metadata
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -402,7 +402,7 @@ export default function UploadVector() {
             <CardContent className="py-12">
               <div className="flex flex-col items-center text-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Validating LatentMAS Format</h3>
+                <h3 className="text-xl font-semibold mb-2">Validating Neural Bridge Format</h3>
                 <p className="text-muted-foreground">
                   Checking vector file format, dimensions, and data integrity...
                 </p>
@@ -431,7 +431,7 @@ export default function UploadVector() {
                   )}
                 </CardTitle>
                 <CardDescription>
-                  LatentMAS Format Validation Results
+                  Neural Bridge Format Validation Results
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -570,7 +570,7 @@ export default function UploadVector() {
                 <CheckCircle2 className="h-16 w-16 text-green-600 mb-4" />
                 <h3 className="text-2xl font-bold mb-2">Published Successfully!</h3>
                 <p className="text-muted-foreground mb-6">
-                  Your LatentMAS vector has been successfully published to the marketplace
+                  Your Neural Bridge vector has been successfully published to the marketplace
                 </p>
                 <Button asChild size="lg">
                   <Link href="/dashboard/creator">

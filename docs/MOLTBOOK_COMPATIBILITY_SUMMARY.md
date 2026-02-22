@@ -34,7 +34,7 @@
 
 #### 当前状态 ❌
 ```
-官网标题: "LatentMAS Vector Marketplace"
+官网标题: "Neural Bridge Vector Marketplace"
 主要功能: Buy/Sell .vectorpkg, .memorypkg, .chainpkg
 用户角色: Seller, Buyer
 ```
@@ -90,8 +90,8 @@ export const memoryUsageLog = pgTable("memory_usage_log", {
 
 **新增文件**:
 1. `server/auth-phantom.ts` - 支持纯 API 签名登录
-2. `server/latentmas-upload.ts` - 接收 SDK 向量上传
-3. `server/latentmas-resonance.ts` - 共振检测算法
+2. `server/neural-bridge-upload.ts` - 接收 SDK 向量上传
+3. `server/neural-bridge-resonance.ts` - 共振检测算法
 4. `server/socket-events.ts` - 实时事件推送
 
 **修改文件**:
@@ -236,8 +236,8 @@ assert agent.wallet.address.startswith("0x")
 
 **任务清单**:
 - [ ] 实现 `EmbeddingEngine` (支持 OpenAI + 本地)
-- [ ] 实现 `server/latentmas-upload.ts`
-- [ ] 实现 `server/latentmas-resonance.ts`
+- [ ] 实现 `server/neural-bridge-upload.ts`
+- [ ] 实现 `server/neural-bridge-resonance.ts`
 - [ ] 实现 `HiveMind` 类
 - [ ] 优化：添加 pgvector 索引
 

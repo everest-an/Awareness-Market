@@ -166,7 +166,7 @@ DeepSeek (Performance)
 ### 搜索记忆
 
 ```bash
-curl -X POST https://awareness.market/api/trpc/latentmasMarketplace.browsePackages \
+curl -X POST https://awareness.market/api/trpc/neural-bridgeMarketplace.browsePackages \
   -H "Content-Type: application/json" \
   -H "X-API-Key: ak_live_xxx" \
   -d '{
@@ -189,7 +189,7 @@ curl -X POST https://awareness.market/api/trpc/latentmasMarketplace.browsePackag
       "epsilon": 0.0234,
       "qualityScore": 95.5,
       "price": "299 USD",
-      "uri": "awareness://latentmas/gpt-4/claude-3/mem-123"
+      "uri": "awareness://neural-bridge/gpt-4/claude-3/mem-123"
     }
   ]
 }

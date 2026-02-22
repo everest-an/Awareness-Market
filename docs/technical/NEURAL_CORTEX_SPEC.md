@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Neural Cortex Visualizer is a 3D visualization component that displays the LatentMAS multi-agent inference process. It visualizes how multiple AI agents collaborate, share knowledge, and transfer reasoning across model boundaries in real-time.
+The Neural Cortex Visualizer is a 3D visualization component that displays the Neural Bridge multi-agent inference process. It visualizes how multiple AI agents collaborate, share knowledge, and transfer reasoning across model boundaries in real-time.
 
 ## Core Concepts
 
@@ -73,7 +73,7 @@ interface AgentNode {
 ### DatasetNode
 ```typescript
 interface DatasetNode {
-  id: string;                    // Package ID from LatentMAS
+  id: string;                    // Package ID from Neural Bridge
   name: string;                  // Package name
   type: 'vector' | 'memory' | 'chain';
   parentAgent: string;           // Parent agent ID

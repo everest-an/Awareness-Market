@@ -1,14 +1,14 @@
-# LatentMAS 白皮书公式与实现对比分析
+# Neural Bridge 白皮书公式与实现对比分析
 
 **生成时间**: 2026-01-06  
 **版本**: v1.0.0  
-**目的**: 验证实现代码与LatentMAS论文核心公式的一致性
+**目的**: 验证实现代码与Neural Bridge论文核心公式的一致性
 
 ---
 
 ## 执行摘要
 
-**核心发现**: 你的观察完全正确！**W-Matrix 不应该独立存在**，它必须与 KV-Cache 紧密结合才能实现 LatentMAS 的核心价值。
+**核心发现**: 你的观察完全正确！**W-Matrix 不应该独立存在**，它必须与 KV-Cache 紧密结合才能实现 Neural Bridge 的核心价值。
 
 **当前实现状态**:
 - ✅ **W-Matrix 训练算法**: 100% 符合论文规范
@@ -35,7 +35,7 @@ v_target = W * v_source + b
 min_{W,b} Σ ||v_t^(i) - (W * v_s^(i) + b)||² + λ||W||_F²
 ```
 
-**实际实现** (`server/latentmas/w-matrix-trainer.ts`):
+**实际实现** (`server/neural-bridge/w-matrix-trainer.ts`):
 
 ```typescript
 // Forward pass: y = W * x + b
@@ -70,7 +70,7 @@ W_ortho = U * V^T
 where U, Σ, V^T = SVD(W)
 ```
 
-**实际实现** (`server/latentmas/svd-orthogonalization.ts`):
+**实际实现** (`server/neural-bridge/svd-orthogonalization.ts`):
 
 ```typescript
 export function applySoftProcrustesConstraint(
@@ -104,7 +104,7 @@ export function applySoftProcrustesConstraint(
 ε = sqrt(Σ ||W * H_source^(i) - H_target^(i)||² / N)
 ```
 
-**实际实现** (`server/latentmas/w-matrix-trainer.ts`):
+**实际实现** (`server/neural-bridge/w-matrix-trainer.ts`):
 
 ```typescript
 // Calculate final epsilon (alignment loss on validation set)
@@ -135,7 +135,7 @@ Selected_Tokens = {t_i | Σ_j attention(t_i, t_j) > threshold}
 Compression_Ratio = |Selected_Tokens| / |All_Tokens|
 ```
 
-**实际实现** (`server/latentmas/kv-cache-compressor.ts`):
+**实际实现** (`server/neural-bridge/kv-cache-compressor.ts`):
 
 ```typescript
 export function compressKVCache(
@@ -185,7 +185,7 @@ where:
   W: ℝ^{d_s} → ℝ^{d_t}
 ```
 
-**实际实现** (`server/latentmas/kv-cache-w-matrix-integration.ts`):
+**实际实现** (`server/neural-bridge/kv-cache-w-matrix-integration.ts`):
 
 ```typescript
 export function transformKVCache(
@@ -242,7 +242,7 @@ export function transformKVCache(
 
 ### 3.2 实际实现流程
 
-**代码**: `server/latentmas/kv-cache-w-matrix-integration.ts`
+**代码**: `server/neural-bridge/kv-cache-w-matrix-integration.ts`
 
 ```typescript
 export async function compressAndTransformKVCache(
@@ -294,7 +294,7 @@ export async function compressAndTransformKVCache(
 ### 4.1 白皮书定义 (Section 8.5)
 
 ```typescript
-interface LatentMASMemoryPackage {
+interface Neural BridgeMemoryPackage {
   // Core Data
   kvCache: {
     keys: number[][][];
@@ -332,10 +332,10 @@ interface LatentMASMemoryPackage {
 
 ### 4.2 实际实现
 
-**代码**: `server/latentmas/latentmas-marketplace.ts`
+**代码**: `server/neural-bridge/neural-bridge-marketplace.ts`
 
 ```typescript
-export interface LatentMASMemoryPackage {
+export interface Neural BridgeMemoryPackage {
   // Core Data
   kvCache: CompressedKVCache;
   wMatrix: TrainingResult;
@@ -498,15 +498,15 @@ POST /api/memory-package/upload
   → 上传完整的 Memory Package
 
 GET /api/memory-package/:id/download
-  → 下载完整的 .latentmas 文件
+  → 下载完整的 .neural-bridge 文件
 ```
 
 ### 6.4 文件格式标准化
 
-**建议**: 创建 `.latentmas` 文件格式
+**建议**: 创建 `.neural-bridge` 文件格式
 
 ```
-memory_package_v1.latentmas
+memory_package_v1.neural-bridge
 ├── kv_cache/
 │   ├── keys.safetensors
 │   ├── values.safetensors
@@ -572,7 +572,7 @@ memory_package_v1.latentmas
 
 **优先级 2** (本周):
 4. 创建 Memory Package 上传流程
-5. 实现 `.latentmas` 文件格式
+5. 实现 `.neural-bridge` 文件格式
 6. 合并 W-Matrix 和 KV-Cache 购买流程
 
 **优先级 3** (下周):

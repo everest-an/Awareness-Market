@@ -35,7 +35,7 @@
 - [x] **Prisma Schema 更新**
   - [x] EntityTag 表 (支持反向查询)
   - [x] MemoryRelation 表 (关系图谱)
-  - [x] latentState 字段 (LatentMAS 集成)
+  - [x] latentState 字段 (Neural Bridge 集成)
   - [x] NFT 元数据 (isNFTized, nftTokenId, latentValueUSD)
 
 - [x] **优化脚本**

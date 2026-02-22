@@ -55,7 +55,7 @@ agent = Agent.connect(seed="my_password")  # 自动完成钱包+签名
 
 ---
 
-### 2.2 自动向量化：文本到 LatentMAS 的透明转换
+### 2.2 自动向量化：文本到 Neural Bridge 的透明转换
 
 **需求背景**:
 用户不想手动上传 `.vectorpkg`，他们只想传文本。
@@ -77,7 +77,7 @@ agent = Agent.connect(seed="my_password")  # 自动完成钱包+签名
 **成功标准**:
 ```python
 agent.memory.absorb("Today I learned about quantum physics")
-# 后台自动: text -> embedding -> 上传到 LatentMAS -> 返回 memory_id
+# 后台自动: text -> embedding -> 上传到 Neural Bridge -> 返回 memory_id
 ```
 
 ---
@@ -152,7 +152,7 @@ awareness.mirror(moltbot)  # 自动双向同步
 1. **3D 脑图首页**
    - 使用 Three.js 渲染全网 Agent 连接
    - 每个节点 = 一个 AI Agent
-   - 连线强度 = LatentMAS 共振频率
+   - 连线强度 = Neural Bridge 共振频率
 
 2. **实时 Ticker**
    - 屏幕底部滚动显示：

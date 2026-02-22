@@ -99,7 +99,7 @@ interface MultiModalVector {
 ```
 
 **实现状态**: ❌ 完全未实现
-**位置**: `server/latentmas/types.ts` 仅支持文本向量
+**位置**: `server/neural-bridge/types.ts` 仅支持文本向量
 **白皮书引用**: Section 15.1.2 "Multi-Modal Vectors"
 
 **影响**:
@@ -124,7 +124,7 @@ function composeVectors(
 ```
 
 **实现状态**: ❌ 未实现
-**位置**: 应该在 `server/latentmas/vector-composition.ts` (文件不存在)
+**位置**: 应该在 `server/neural-bridge/vector-composition.ts` (文件不存在)
 **白皮书引用**: Section 15.1.3 "Vector Composition"
 
 ---
@@ -215,7 +215,7 @@ class TEEProtectedMemoryExchange {
 ```
 
 **实现状态**: ❌ 完全未实现
-**位置**: 应该在 `server/latentmas/tee-integration.ts` (文件不存在)
+**位置**: 应该在 `server/neural-bridge/tee-integration.ts` (文件不存在)
 **白皮书引用**: Section 6.4 "TEE Integration"
 
 **影响**:
@@ -264,7 +264,7 @@ interface MemoryNFT {
 ```
 
 **实现状态**: ⚠️ 数据结构存在，但自动遗忘逻辑未实现
-**位置**: `server/routers/latentmas-marketplace.ts` 缺少遗忘定时任务
+**位置**: `server/routers/neural-bridge-marketplace.ts` 缺少遗忘定时任务
 **白皮书引用**: Section 11.4 "Memory 'Forgetting' Mechanism"
 
 **影响**:
@@ -311,7 +311,7 @@ function updateKVCache(
 ```
 
 **实现状态**: ⚠️ 仅支持全量替换，效率低
-**位置**: `server/latentmas/kv-cache-compressor.ts`
+**位置**: `server/neural-bridge/kv-cache-compressor.ts`
 
 ---
 
@@ -361,7 +361,7 @@ class AdaptiveCompressor {
 ```
 
 **实现状态**: ❌ 未实现
-**位置**: `server/latentmas/kv-cache-compressor-production.ts` 压缩率硬编码
+**位置**: `server/neural-bridge/kv-cache-compressor-production.ts` 压缩率硬编码
 
 ---
 
@@ -386,7 +386,7 @@ struct MemoryLineage {
 #### 核心功能
 - ✅ 推理链打包 (`chain-package-builder.ts`)
 - ✅ 步骤记录 (`server/db-workflows.ts`)
-- ✅ KV-Cache 快照 (`server/latentmas/kv-cache-compressor.ts`)
+- ✅ KV-Cache 快照 (`server/neural-bridge/kv-cache-compressor.ts`)
 - ✅ 链包上传/下载 (`server/routers/packages-api.ts`)
 
 #### 前端功能
@@ -438,7 +438,7 @@ interface ReasoningTemplate {
 ```
 
 **实现状态**: ❌ 未实现
-**位置**: 应该在 `server/latentmas/chain-templates.ts` (文件不存在)
+**位置**: 应该在 `server/neural-bridge/chain-templates.ts` (文件不存在)
 **白皮书引用**: Section 9.1 "Reasoning Chain concept"
 
 **影响**:
@@ -461,7 +461,7 @@ class ChainOptimizer {
 ```
 
 **实现状态**: ❌ 未实现
-**位置**: 应该在 `server/latentmas/chain-optimizer.ts` (文件不存在)
+**位置**: 应该在 `server/neural-bridge/chain-optimizer.ts` (文件不存在)
 **白皮书引用**: Section 9.2 "Value Proposition - Skip expensive inference"
 
 **影响**:
@@ -659,7 +659,7 @@ contract QualityAudit {
 
 #### 已实现 ✅
 - ✅ AES-256-GCM 加密 (`server/storage.ts`)
-- ✅ 反投毒检测 (`server/latentmas/anti-poisoning.ts`)
+- ✅ 反投毒检测 (`server/neural-bridge/anti-poisoning.ts`)
 - ✅ 访问令牌控制 (`server/middleware/auth.ts`)
 - ✅ 速率限制 (`server/auth-rate-limiter.ts`)
 
@@ -702,7 +702,7 @@ class LatentSpaceFirewall {
 ```
 
 **实现状态**: ⚠️ 仅实现统计验证层
-**位置**: `server/latentmas/anti-poisoning.ts` 仅部分功能
+**位置**: `server/neural-bridge/anti-poisoning.ts` 仅部分功能
 
 ---
 
@@ -728,8 +728,8 @@ class HomomorphicVectorOps {
 
 #### 已实现 ✅
 - ✅ Redis 缓存 (`server/redis-cache.ts`)
-- ✅ W-Matrix 缓存 (`server/latentmas/w-matrix-service.ts`)
-- ✅ KV-Cache 压缩 (`server/latentmas/kv-cache-compressor-production.ts`)
+- ✅ W-Matrix 缓存 (`server/neural-bridge/w-matrix-service.ts`)
+- ✅ KV-Cache 压缩 (`server/neural-bridge/kv-cache-compressor-production.ts`)
 
 #### 未实现 ❌
 
@@ -749,7 +749,7 @@ class GPUAcceleratedAlignment {
 ```
 
 **实现状态**: ❌ 未实现
-**位置**: `server/latentmas/wa-alignment-operator.ts` 仅 CPU
+**位置**: `server/neural-bridge/wa-alignment-operator.ts` 仅 CPU
 
 ---
 
@@ -803,7 +803,7 @@ class BatchAlignmentOptimizer {
 ```
 
 **实现状态**: ❌ 未实现
-**位置**: `server/latentmas/wa-alignment-operator.ts`
+**位置**: `server/neural-bridge/wa-alignment-operator.ts`
 
 ---
 
@@ -905,7 +905,7 @@ Week 41-48: 差分隐私 + 联邦学习
 
 ## 结论
 
-**Awareness Market 的核心架构扎实**，24 个 LatentMAS 模块已实现基础功能。然而，**生产级安全、隐私保护、性能优化**仍有显著差距。
+**Awareness Market 的核心架构扎实**，24 个 Neural Bridge 模块已实现基础功能。然而，**生产级安全、隐私保护、性能优化**仍有显著差距。
 
 **关键风险**：
 - ❌ 缺少 TEE 保护 → 安全风险极高

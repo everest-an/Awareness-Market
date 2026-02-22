@@ -8,7 +8,7 @@
 - **安全加固**: 移除Git历史中的AWS凭证
 
 ### 2. **Stripe支付集成** ✅ **重大突破！**
-- ✅ LatentMAS包购买完整流程
+- ✅ Neural Bridge包购买完整流程
 - ✅ Checkout Session创建
 - ✅ Webhook事件处理
 - ✅ 数据库状态管理
@@ -39,14 +39,14 @@
 ## ✅ 已完成任务（P0高优先级）
 
 ### 1. 支付系统 ✅
-- [x] Stripe集成（LatentMAS包）
+- [x] Stripe集成（Neural Bridge包）
 - [x] Checkout Session创建
 - [x] Webhook处理
 - [x] 数据库购买记录
 - [x] 邮件通知
 
 **文件修改**:
-- `server/routers/latentmas-marketplace.ts` - 购买端点
+- `server/routers/neural-bridge-marketplace.ts` - 购买端点
 - `server/stripe-webhook.ts` - Webhook处理
 - `server/db.ts` - 4个新数据库函数
 
@@ -54,7 +54,7 @@
 
 ### 2. 数据库集成 ✅ 
 - [x] agent-credit-api.ts **已使用真实数据库**（不是mock）
-- [x] latentmas-marketplace.ts **已完成**
+- [x] neural-bridge-marketplace.ts **已完成**
 - [ ] 其他API待检查
 
 ### 3. 安全 ✅
@@ -86,7 +86,7 @@
 - 影响成本优化，非上线阻塞项
 
 ### 2. ~~SVD W-Matrix算法~~ → **降为P1**  
-**位置**: `server/latentmas/svd-orthogonalization.ts`
+**位置**: `server/neural-bridge/svd-orthogonalization.ts`
 - 当前LEGACY实现可用
 - 技术正确性重要但不阻塞MVP
 
@@ -161,7 +161,7 @@
 
 ```
 c57eef1 docs: add payment integration implementation summary
-ecef511 feat: implement Stripe payment for LatentMAS package purchases
+ecef511 feat: implement Stripe payment for Neural Bridge package purchases
 d6e9f0c docs: add comprehensive logging migration summary
 d27dae5 feat: complete logging migration - final 18 files (33 calls)
 bc56353 feat: migrate logging in API layer (25 calls)

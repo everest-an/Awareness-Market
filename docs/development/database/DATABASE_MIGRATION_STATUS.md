@@ -9,8 +9,8 @@
 Fixed all logger statement syntax errors across 7 files:
 
 - **[auth-rate-limiter.ts](server/auth-rate-limiter.ts)**: 10 logger statements fixed
-- **[latentmas-api.ts](server/latentmas-api.ts)**: Malformed import fixed
-- **[latentmas-core.ts](server/latentmas-core.ts)**: Malformed import fixed
+- **[neural-bridge-api.ts](server/neural-bridge-api.ts)**: Malformed import fixed
+- **[neural-bridge-core.ts](server/neural-bridge-core.ts)**: Malformed import fixed
 - **[mcp-api.ts](server/mcp-api.ts)**: 7 logger statements fixed
 - **[middleware/api-usage-logger.ts](server/middleware/api-usage-logger.ts)**: 2 logger statements fixed
 - **[workflow-websocket.ts](server/workflow-websocket.ts)**: 6 template literals fixed
@@ -236,8 +236,8 @@ w_matrix_integrity (
 - `server/routers/w-matrix-marketplace-v2.ts` (database integration)
 - `server/routers/memory-nft-api.ts` (removed mocks)
 - `server/auth-rate-limiter.ts` (syntax fixes)
-- `server/latentmas-api.ts` (syntax fixes)
-- `server/latentmas-core.ts` (syntax fixes)
+- `server/neural-bridge-api.ts` (syntax fixes)
+- `server/neural-bridge-core.ts` (syntax fixes)
 - `server/mcp-api.ts` (syntax fixes)
 - `server/middleware/api-usage-logger.ts` (syntax fixes)
 - `server/workflow-websocket.ts` (syntax fixes)

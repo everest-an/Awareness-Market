@@ -27,8 +27,8 @@
 **现状**: ✅ **已完整实现，需集成到API**
 
 **现有文件**:
-- `server/latentmas/kv-cache-compressor-production.ts` (14,109字节)
-- `server/latentmas/kv-cache-w-matrix-integration.ts` (13,486字节)
+- `server/neural-bridge/kv-cache-compressor-production.ts` (14,109字节)
+- `server/neural-bridge/kv-cache-w-matrix-integration.ts` (13,486字节)
 - `server/routers/kv-cache-api.ts` (已有路由器)
 
 **已实现功能**:
@@ -65,7 +65,7 @@ alignKV: publicProcedure
   .mutation(async ({ input }) => {
     // 1. 先压缩（如果启用）
     if (input.compress) {
-      const compressor = await import('../latentmas/kv-cache-compressor-production');
+      const compressor = await import('../neural-bridge/kv-cache-compressor-production');
       input.kvCache = await compressor.compressKVCache(
         input.kvCache,
         input.compressionRatio
@@ -92,7 +92,7 @@ alignKV: publicProcedure
 **现状**: ✅ **已完整实现，需集成到上架流程**
 
 **现有文件**:
-- `server/latentmas/anti-poisoning.ts` (15,150字节)
+- `server/neural-bridge/anti-poisoning.ts` (15,150字节)
 - 已有完整测试：`anti-poisoning.test.ts`
 
 **已实现功能**:
@@ -452,8 +452,8 @@ function MemoryManagement() {
 **现状**: ✅ **协议已实现，需市场集成**
 
 **现有文件**:
-- `server/latentmas/w-matrix-protocol.ts` (15,477字节)
-- `server/latentmas/w-matrix-service.ts` (10,977字节)
+- `server/neural-bridge/w-matrix-protocol.ts` (15,477字节)
+- `server/neural-bridge/w-matrix-service.ts` (10,977字节)
 - `server/routers/w-matrix-marketplace.ts` (已有路由器)
 - `server/db-wmatrix.ts` (数据库层)
 
@@ -572,8 +572,8 @@ function WMatrixVersionSelector({ sourceModel, targetModel }) {
 **现状**: ✅ **已完整实现，需市场集成**
 
 **现有文件**:
-- `server/latentmas/chain-verification.ts` (18,624字节)
-- `server/latentmas/chain-package-builder.ts` (15,400字节)
+- `server/neural-bridge/chain-verification.ts` (18,624字节)
+- `server/neural-bridge/chain-package-builder.ts` (15,400字节)
 - 已有完整测试：`chain-verification.test.ts`
 
 **已实现功能**:
@@ -706,7 +706,7 @@ export const chainMarketplaceRouter = router({
 **现状**: ✅ **代码已实现，需数据预计算**
 
 **现有文件**:
-- `server/latentmas/semantic-anchors.ts` (14,525字节)
+- `server/neural-bridge/semantic-anchors.ts` (14,525字节)
 - 已有完整测试：`semantic-anchors.test.ts`
 - `scripts/precompute-semantic-anchors.ts` (新建，待执行)
 
@@ -807,7 +807,7 @@ class AnchorCache {
 **现状**: ✅ **已完整实现**
 
 **现有文件**:
-- `server/latentmas/differential-privacy.ts` (11,897字节)
+- `server/neural-bridge/differential-privacy.ts` (11,897字节)
 - 已有完整测试：`differential-privacy.test.ts`
 
 **已实现功能**:
@@ -838,7 +838,7 @@ class DifferentialPrivacy {
 **现状**: ✅ **已完整实现**
 
 **现有文件**:
-- `server/latentmas/gpu-acceleration.ts` (13,760字节)
+- `server/neural-bridge/gpu-acceleration.ts` (13,760字节)
 - 已有完整测试：`gpu-acceleration.test.ts`
 
 **已实现功能**:
@@ -864,7 +864,7 @@ class GPUAccelerator {
 **现状**: ✅ **已完整实现**
 
 **现有文件**:
-- `server/latentmas/zkp-verification.ts` (17,157字节)
+- `server/neural-bridge/zkp-verification.ts` (17,157字节)
 - 已有完整测试：`zkp-verification.test.ts`
 
 **已实现功能**:
@@ -890,7 +890,7 @@ class ZKPVerifier {
 **现状**: ✅ **已完整实现**
 
 **现有文件**:
-- `server/latentmas/multimodal-vectors.ts` (14,791字节)
+- `server/neural-bridge/multimodal-vectors.ts` (14,791字节)
 - 已有完整测试：`multimodal-vectors.test.ts`
 
 **已实现功能**:
@@ -1087,7 +1087,7 @@ npx tsx scripts/precompute-semantic-anchors.ts
 
 ### 现有代码文档
 - 各功能的 `.test.ts` 文件（使用示例）
-- `server/latentmas/README.md`（如果存在）
+- `server/neural-bridge/README.md`（如果存在）
 - 白皮书对应章节
 
 ### 集成指南

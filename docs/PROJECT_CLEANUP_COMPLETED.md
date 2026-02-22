@@ -140,7 +140,7 @@ Awareness-Network/
     │   └── sdk-comparison.md          ✅ SDK 对比指南
     │
     ├── technical/                     ✅ 技术文档
-    │   ├── LATENTMAS_IMPLEMENTATION_STATUS.md
+    │   ├── NEURAL_BRIDGE_IMPLEMENTATION_STATUS.md
     │   └── NEURAL_CORTEX_SPEC.md
     │
     ├── PROJECT_STRUCTURE_CLEANUP_PLAN.md
@@ -282,7 +282,7 @@ Awareness-Network/
 ✅ **易用**: 通过 INDEX.md 快速导航
 ✅ **专业**: 符合开源项目最佳实践
 
-**下一步**: 继续执行 LatentMAS 市场集成的剩余任务！
+**下一步**: 继续执行 Neural Bridge 市场集成的剩余任务！
 
 ---
 

@@ -243,8 +243,8 @@ stripeLogger.info('Webhook received', { eventType });
 const dbLogger = createLogger('Database');
 dbLogger.info('Connection established', { host });
 
-// server/latentmas/wa-alignment-operator.ts
-const alignmentLogger = createLogger('LatentMAS:Alignment');
+// server/neural-bridge/wa-alignment-operator.ts
+const alignmentLogger = createLogger('Neural Bridge:Alignment');
 alignmentLogger.debug('Computing W-matrix', { sourceDim, targetDim });
 ```
 
@@ -300,9 +300,9 @@ Track migration progress by file:
 - [ ] `server/stripe-webhook.ts` (21 instances)
 - [ ] `server/purchase-api.ts` (4 instances)
 
-### LatentMAS (Priority 4)
-- [ ] `server/latentmas-core.ts`
-- [ ] `server/latentmas/*` (various files)
+### Neural Bridge (Priority 4)
+- [ ] `server/neural-bridge-core.ts`
+- [ ] `server/neural-bridge/*` (various files)
 
 ### Storage (Priority 5)
 - [ ] `server/storage/*` (various backends)
@@ -377,7 +377,7 @@ logger.error('Payment failed', {
 - ⏳ Migrate database layer
 
 ### Phase 3: Features (Week 3)
-- ⏳ Migrate LatentMAS modules
+- ⏳ Migrate Neural Bridge modules
 - ⏳ Migrate API routers
 - ⏳ Migrate storage backends
 

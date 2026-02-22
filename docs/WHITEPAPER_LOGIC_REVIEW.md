@@ -36,7 +36,7 @@ $$\mathcal{L}_{reconstruction} = \|h_t - W h_s\|_2^2$$
 $$\mathcal{L}_{reconstruction} = \|W^T W - I\|_F^2$$
 ```
 - 含义：约束 $W$ 为正交矩阵，保证信息无损
-- 适用场景：无监督对齐（LatentMAS 的实际场景）
+- 适用场景：无监督对齐（Neural Bridge 的实际场景）
 
 **方案 C: 循环一致性损失**
 ```latex
@@ -309,10 +309,10 @@ class NeuralBridge:
 
 | 文件 | 对应白皮书章节 | 检查状态 |
 |------|----------------|----------|
-| `server/latentmas/wa-alignment-operator.ts` | Section 4.1 | ⏳ 待检查 |
-| `server/latentmas/semantic-anchors.ts` | Section 3.2 | ⏳ 待检查 |
-| `server/latentmas/anti-poisoning.ts` | Section 6 | ⏳ 待检查 |
-| `server/latentmas-core.ts` | Section 3.2 | ⏳ 待检查 |
+| `server/neural-bridge/wa-alignment-operator.ts` | Section 4.1 | ⏳ 待检查 |
+| `server/neural-bridge/semantic-anchors.ts` | Section 3.2 | ⏳ 待检查 |
+| `server/neural-bridge/anti-poisoning.ts` | Section 6 | ⏳ 待检查 |
+| `server/neural-bridge-core.ts` | Section 3.2 | ⏳ 待检查 |
 
 ---
 

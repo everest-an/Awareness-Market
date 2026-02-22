@@ -75,7 +75,7 @@ POST /api/mcp/invoke
 - **Tool Name:** Awareness Network
 - **Tool Type:** External API / MCP Server
 - **Category:** Developer Tools, AI/ML, Data & Analytics
-- **Short Description:** Marketplace for latent space vectors with LatentMAS protocol support
+- **Short Description:** Marketplace for latent space vectors with Neural Bridge protocol support
 
 **Contact Information:**
 - **Developer Name:** Awareness Network Team
@@ -96,7 +96,7 @@ POST /api/mcp/invoke
 
 **Copy this into the "Detailed Description" field:**
 
-Awareness Network is the first marketplace for latent space vectors, enabling Claude to autonomously discover, purchase, and integrate AI capabilities through the LatentMAS protocol.
+Awareness Network is the first marketplace for latent space vectors, enabling Claude to autonomously discover, purchase, and integrate AI capabilities through the Neural Bridge protocol.
 
 **Core Capabilities:**
 
@@ -105,7 +105,7 @@ Awareness Network is the first marketplace for latent space vectors, enabling Cl
    - Instant API key generation
    - Persistent memory across conversations
 
-2. **Vector Alignment (LatentMAS Protocol)**
+2. **Vector Alignment (Neural Bridge Protocol)**
    - Transform vectors between model architectures
    - Support for GPT-4, BERT, Claude, LLaMA
    - Quality metrics: 87-91% similarity retained
@@ -147,7 +147,7 @@ Awareness Network is the first marketplace for latent space vectors, enabling Cl
 {
   "name": "awareness-network",
   "version": "1.0.0",
-  "description": "Latent space vector marketplace with LatentMAS protocol",
+  "description": "Latent space vector marketplace with Neural Bridge protocol",
   "baseUrl": "https://latentmind-marketplace.manus.space",
   "authentication": {
     "type": "apiKey",
@@ -215,7 +215,7 @@ Response:
 
 2. **Align Vector Between Models**
    ```bash
-   curl -X POST https://latentmind-marketplace.manus.space/api/latentmas/align \
+   curl -X POST https://latentmind-marketplace.manus.space/api/neural-bridge/align \
      -H "X-API-Key: ak_live_..." \
      -H "Content-Type: application/json" \
      -d '{
@@ -392,7 +392,7 @@ Before submitting, verify:
 - [ ] API key authentication working
 - [ ] Rate limiting tested (100 req/min)
 - [ ] Memory persistence endpoints functional
-- [ ] LatentMAS alignment tested with Claude vectors
+- [ ] Neural Bridge alignment tested with Claude vectors
 - [ ] Privacy policy published
 - [ ] Terms of service published
 - [ ] Documentation complete (API ref + integration guide)

@@ -6,7 +6,7 @@ Thanks for your interest in contributing!
 
 1. Read COMMUNITY.md for collaboration norms.
 2. Follow CODE_OF_CONDUCT.md.
-3. Review existing guidelines in CONTRIBUTING_TO_LATENTMAS.md for technical details.
+3. Review existing guidelines in CONTRIBUTING_TO_NEURAL_BRIDGE.md for technical details.
 
 ## Submitting Changes
 

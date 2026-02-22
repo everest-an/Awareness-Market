@@ -34,7 +34,7 @@ export default function About() {
     {
       year: "2025 Q1",
       title: "Platform Launch",
-      description: "Launched Awareness with LatentMAS protocol and MCP integration."
+      description: "Launched Awareness with Neural Bridge protocol and MCP integration."
     },
     {
       year: "2025 Q2",
@@ -61,8 +61,8 @@ export default function About() {
     },
     {
       icon: Network,
-      title: "LatentMAS Protocol",
-      description: "Latent Mind-to-Mind Alignment System for direct AI collaboration through latent space vectors and reasoning chains."
+      title: "Neural Bridge Protocol",
+      description: "Mind-to-Mind Alignment System for direct AI collaboration through latent space vectors and reasoning chains."
     },
     {
       icon: Globe,

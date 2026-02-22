@@ -1,8 +1,8 @@
-# LatentMAS v2 Enhancement Features
+# Neural Bridge v2 Enhancement Features
 
 ## Overview
 
-LatentMAS v2 introduces four major enhancements to improve efficiency, security, and interoperability in the latent space vector marketplace:
+Neural Bridge v2 introduces four major enhancements to improve efficiency, security, and interoperability in the latent space vector marketplace:
 
 1. **Symmetric Focus KV-Cache Compression** - Reduces bandwidth by 95% while maintaining >90% attention fidelity
 2. **Dynamic W-Matrix with MLP Alignment** - Enables cross-model vector compatibility through non-linear transformation
@@ -17,8 +17,8 @@ LatentMAS v2 introduces four major enhancements to improve efficiency, security,
 Dramatically reduce network bandwidth requirements when transmitting reasoning chains by selectively sending only the most important tokens based on attention weights.
 
 ### Implementation
-- **File**: `server/latentmas/kv-cache-compressor.ts`
-- **Tests**: `server/latentmas/kv-cache-compressor.test.ts` (15/15 passed)
+- **File**: `server/neural-bridge/kv-cache-compressor.ts`
+- **Tests**: `server/neural-bridge/kv-cache-compressor.test.ts` (15/15 passed)
 
 ### Key Features
 - **Attention-based Selection**: Calculates softmax attention weights and selects tokens contributing >90% cumulative attention
@@ -28,7 +28,7 @@ Dramatically reduce network bandwidth requirements when transmitting reasoning c
 
 ### Usage Example
 ```typescript
-import { createKVCacheCompressor } from './server/latentmas/kv-cache-compressor';
+import { createKVCacheCompressor } from './server/neural-bridge/kv-cache-compressor';
 
 const compressor = createKVCacheCompressor({
   attentionThreshold: 0.90,  // Keep tokens with >90% cumulative attention
@@ -58,8 +58,8 @@ const { keys: fullKeys, values: fullValues } = compressor.decompress(compressed,
 Enable seamless vector transfer between different AI models (e.g., GPT-3.5 → GPT-4, BERT → RoBERTa) through learned non-linear transformations.
 
 ### Implementation
-- **File**: `server/latentmas/dynamic-w-matrix.ts`
-- **Tests**: `server/latentmas/dynamic-w-matrix.test.ts` (20/20 passed)
+- **File**: `server/neural-bridge/dynamic-w-matrix.ts`
+- **Tests**: `server/neural-bridge/dynamic-w-matrix.test.ts` (20/20 passed)
 
 ### Key Features
 - **Multi-Layer Perceptron**: Adaptive hidden layers based on dimension gap
@@ -76,7 +76,7 @@ Large gap (≥ 1000D):  Input → Hidden1 → Hidden2 → Output
 
 ### Usage Example
 ```typescript
-import { createDynamicWMatrix } from './server/latentmas/dynamic-w-matrix';
+import { createDynamicWMatrix } from './server/neural-bridge/dynamic-w-matrix';
 
 // Create W-Matrix for GPT-3.5 (1536D) → GPT-4 (3072D)
 const matrix = createDynamicWMatrix('gpt-3.5-turbo', 'gpt-4', 1536, 3072);
@@ -104,8 +104,8 @@ const serialized = matrix.serialize();
 Protect the marketplace from malicious actors attempting to sell poisoned or corrupted latent vectors through cryptographic challenge-response verification.
 
 ### Implementation
-- **File**: `server/latentmas/anti-poisoning.ts`
-- **Tests**: `server/latentmas/anti-poisoning.test.ts` (14/14 passed)
+- **File**: `server/neural-bridge/anti-poisoning.ts`
+- **Tests**: `server/neural-bridge/anti-poisoning.test.ts` (14/14 passed)
 
 ### Key Features
 - **Proof-of-Latent-Fidelity (PoLF)**: Challenge-response mechanism with cryptographic signatures
@@ -123,7 +123,7 @@ Protect the marketplace from malicious actors attempting to sell poisoned or cor
 
 ### Usage Example
 ```typescript
-import { createAntiPoisoningVerifier, createChallengeResponse } from './server/latentmas/anti-poisoning';
+import { createAntiPoisoningVerifier, createChallengeResponse } from './server/neural-bridge/anti-poisoning';
 
 const verifier = createAntiPoisoningVerifier({
   fidelityThreshold: 0.85,
@@ -170,8 +170,8 @@ if (result.passed) {
 Provide a universal reference frame for semantic space alignment across different AI models through 1024 carefully curated "golden anchor" prompts.
 
 ### Implementation
-- **File**: `server/latentmas/semantic-anchors.ts`
-- **Tests**: `server/latentmas/semantic-anchors.test.ts` (15/15 passed)
+- **File**: `server/neural-bridge/semantic-anchors.ts`
+- **Tests**: `server/neural-bridge/semantic-anchors.test.ts` (15/15 passed)
 
 ### Key Features
 - **1024 Golden Anchors**: Evenly distributed across 16 semantic categories
@@ -200,7 +200,7 @@ Provide a universal reference frame for semantic space alignment across differen
 
 ### Usage Example
 ```typescript
-import { createSemanticAnchorDB } from './server/latentmas/semantic-anchors';
+import { createSemanticAnchorDB } from './server/neural-bridge/semantic-anchors';
 
 const db = createSemanticAnchorDB();
 
@@ -266,7 +266,7 @@ if (calibration.recommendations.length > 0) {
 
 ### File Structure
 ```
-server/latentmas/
+server/neural-bridge/
 ├── kv-cache-compressor.ts          # KV-Cache compression
 ├── kv-cache-compressor.test.ts     # 15 tests
 ├── dynamic-w-matrix.ts             # W-Matrix alignment
@@ -316,8 +316,8 @@ server/latentmas/
 
 ## References
 
-- LatentMAS v2 Paper (Section 3.2-3.5)
-- Original LatentMAS implementation
+- Based on cutting-edge latent space alignment research (Section 3.2-3.5)
+- Original Neural Bridge implementation
 - Awareness Market platform documentation
 
 ---

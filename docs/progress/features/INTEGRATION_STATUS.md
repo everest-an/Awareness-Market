@@ -5,8 +5,8 @@
 ### 1. TypeScript Fixes (100%)
 Fixed 45 syntax errors across 7 files:
 - [server/auth-rate-limiter.ts](server/auth-rate-limiter.ts) - Fixed 10 logger statements
-- [server/latentmas-api.ts](server/latentmas-api.ts) - Fixed import structure
-- [server/latentmas-core.ts](server/latentmas-core.ts) - Fixed import structure
+- [server/neural-bridge-api.ts](server/neural-bridge-api.ts) - Fixed import structure
+- [server/neural-bridge-core.ts](server/neural-bridge-core.ts) - Fixed import structure
 - [server/mcp-api.ts](server/mcp-api.ts) - Fixed 7 logger statements
 - [server/middleware/api-usage-logger.ts](server/middleware/api-usage-logger.ts) - Fixed 2 logger statements
 - [server/workflow-websocket.ts](server/workflow-websocket.ts) - Fixed 6 template literals

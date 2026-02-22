@@ -328,7 +328,7 @@ trackBrowsing: protectedProcedure
 
 ```typescript
 // 添加导入和初始化
-import { SemanticAnchorDB } from "../latentmas/semantic-anchors";
+import { SemanticAnchorDB } from "../neural-bridge/semantic-anchors";
 const semanticAnchors = new SemanticAnchorDB();
 
 // 更新validateVector端点
@@ -413,7 +413,7 @@ createVectorPackage: protectedProcedure
 
 ### 现有实现
 
-**文件**: `server/latentmas/w-matrix-protocol.ts` (已完整实现)
+**文件**: `server/neural-bridge/w-matrix-protocol.ts` (已完整实现)
 
 **已实现功能**:
 ```typescript
@@ -454,7 +454,7 @@ import {
   QualityCertifier,
   type WMatrixVersion,
   type CertificationLevel,
-} from "../latentmas/w-matrix-protocol";
+} from "../neural-bridge/w-matrix-protocol";
 ```
 
 #### 2. listListings端点增强

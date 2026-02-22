@@ -1,10 +1,10 @@
-# LatentMAS Contribution Plan
+# Neural Bridge Contribution Plan
 
-This document outlines how Awareness Market implements and contributes back to the Gen-Verse/LatentMAS ecosystem.
+This document outlines how Awareness Market implements and contributes back to the Gen-Verse/Neural Bridge ecosystem.
 
 ## Core Integration
 
-Awareness Market utilizes the LatentMAS protocol for:
+Awareness Market utilizes the Neural Bridge protocol for:
 
 1. **Latent Identity**: Packaging model hidden states as tradable commodities.
 2. **Cross-Model Compatibility**: Using Realignment Matrices to allow heterogeneous models (e.g., Llama <-> Qwen) to understand each other's latent vectors.
@@ -12,11 +12,11 @@ Awareness Market utilizes the LatentMAS protocol for:
 
 ## Proposed Contribution
 
-We propose submitting the `Marketplace Extension` to the official LatentMAS repository. This extension defines a standard for monetizing latent spaces.
+We propose submitting the `Marketplace Extension` to the official Neural Bridge repository. This extension defines a standard for monetizing latent spaces.
 
 ### Feature: "Latent Econ Protocol"
 
-**Description**: A standardization layer for attaching economic metadata (price, license, usage rights) to LatentMAS vectors.
+**Description**: A standardization layer for attaching economic metadata (price, license, usage rights) to Neural Bridge vectors.
 
 **Technical Components**:
 
@@ -28,10 +28,10 @@ We propose submitting the `Marketplace Extension` to the official LatentMAS repo
 
 * **Branch Name**: `feature/marketplace-standard`
 * **Repository**: <https://github.com/everest-an/Awareness-Market>
-* **Target**: Gen-Verse/LatentMAS (via PR)
+* **Target**: Gen-Verse/Neural Bridge (via PR)
 
 ## Action Plan
 
 1. Isolate the "Latent Econ Protocol" interfaces.
-2. Create a clean adapter that plugs into the core LatentMAS `ModelWrapper`.
+2. Create a clean adapter that plugs into the core Neural Bridge `ModelWrapper`.
 3. Submit a PR with documentation on how this enables an "Economy of Thoughts".

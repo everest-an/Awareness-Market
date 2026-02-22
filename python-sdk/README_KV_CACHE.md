@@ -1,6 +1,6 @@
 # KV-Cache Compression API - Python SDK
 
-Production-grade KV-Cache compression for LatentMAS with model-specific optimization.
+Production-grade KV-Cache compression for Neural Bridge with model-specific optimization.
 
 ## Features
 

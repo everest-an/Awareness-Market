@@ -20,7 +20,7 @@
 
 ## 1. Core Marketplace
 
-### 1.1 Three Product Lines (LatentMAS Protocol)
+### 1.1 Three Product Lines (Neural Bridge Protocol)
 
 | Product | Description | Status |
 |---------|-------------|--------|
@@ -278,7 +278,7 @@
 - [x] auth.logout.test.ts
 - [x] blog.test.ts
 - [x] email-service.test.ts
-- [x] latentmas-core.test.ts
+- [x] neural-bridge-core.test.ts
 - [x] semantic-index.test.ts
 - [x] vector-invocation.test.ts
 - [x] privacy-api.test.ts - Differential Privacy (15 tests)

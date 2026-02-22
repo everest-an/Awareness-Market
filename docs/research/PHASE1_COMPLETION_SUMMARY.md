@@ -34,10 +34,10 @@ import {
   cosineSimilarity,      // kNN 检索核心
   euclideanDistance,     // 距离度量
   normalizeVector,       // 向量标准化
-} from '../latentmas-core';
+} from '../neural-bridge-core';
 
 // ✅ 复用现有 Embedding 服务
-import { embeddingService } from '../latentmas/embedding-service';
+import { embeddingService } from '../neural-bridge/embedding-service';
 ```
 
 #### 优化成果
@@ -65,7 +65,7 @@ private cosineSimilarity(a: number[], b: number[]): number {
 }
 
 // ✅ 现在: 直接复用
-import { cosineSimilarity } from '../latentmas-core';
+import { cosineSimilarity } from '../neural-bridge-core';
 
 const similarity = cosineSimilarity(queryEmbedding, memory.embedding);
 ```
@@ -332,7 +332,7 @@ try {
 #### 任务 D: KV-Cache 压缩 📦
 ```typescript
 // 集成现有的压缩+转换管道
-import { compressAndTransformKVCache } from '../latentmas/kv-cache-w-matrix-integration';
+import { compressAndTransformKVCache } from '../neural-bridge/kv-cache-w-matrix-integration';
 
 const compressed = await compressAndTransformKVCache(
   kvCache,
@@ -348,7 +348,7 @@ const compressed = await compressAndTransformKVCache(
 #### 任务 E: Neural Bridge 质量验证 🎯
 ```typescript
 // 集成语义锚点验证
-import { validateVector } from '../latentmas-core';
+import { validateVector } from '../neural-bridge-core';
 
 const validation = validateVector(memory.embedding);
 if (!validation.isValid) {

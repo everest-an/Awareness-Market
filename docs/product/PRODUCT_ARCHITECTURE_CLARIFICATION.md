@@ -1,4 +1,4 @@
-# LatentMAS 产品架构澄清
+# Neural Bridge 产品架构澄清
 
 **生成时间**: 2026-01-06  
 **版本**: v1.1  
@@ -17,7 +17,7 @@
 
 ## 答案：不冲突，是两条并行的产品线
 
-根据白皮书 Section 1.3 和 Section 8.4，LatentMAS 支持**三种不同层次**的交易：
+根据白皮书 Section 1.3 和 Section 8.4，Neural Bridge 支持**三种不同层次**的交易：
 
 ### 1. V1.0: 能力交易（Capability Trading）
 
@@ -84,7 +84,7 @@ DeepSeek 购买 GPT-4 解决某个数学证明的完整推理链
 ### 三条独立但互补的产品线
 
 ```
-LatentMAS Marketplace
+Neural Bridge Marketplace
 ├── 1. Latent Vector Market (V1.0)
 │   ├── 产品: 静态向量
 │   ├── 用途: 能力学习
@@ -250,7 +250,7 @@ reasoning_chain_v1.chainpkg
 ```
 ❌ 合并所有市场为一个 "Memory Package Marketplace"
 ❌ 移除 W-Matrix Marketplace
-❌ 只有一种 .latentmas 文件格式
+❌ 只有一种 .neural-bridge 文件格式
 ```
 
 ### 正确的方案

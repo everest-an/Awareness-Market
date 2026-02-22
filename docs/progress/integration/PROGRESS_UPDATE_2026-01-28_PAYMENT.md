@@ -79,7 +79,7 @@ if (process.env.NODE_ENV === 'production') {
 创建了**598行全面文档**，包含:
 
 #### 已完成集成
-- ✅ LatentMAS包市场 (完整Stripe + Webhook)
+- ✅ Neural Bridge包市场 (完整Stripe + Webhook)
 - ✅ W-Matrix市场 (完整Stripe + Webhook)
 - ✅ 向量包购买 (完整Stripe + Webhook)
 - ✅ 订阅系统 (Stripe Billing + Webhook)
@@ -134,7 +134,7 @@ if (process.env.NODE_ENV === 'production') {
 
 | 购买类型 | Stripe结账 | Webhook处理 | 邮件通知 | 生产就绪 |
 |---------|-----------|------------|---------|---------|
-| **LatentMAS包** | ✅ | ✅ | ✅ | ✅ |
+| **Neural Bridge包** | ✅ | ✅ | ✅ | ✅ |
 | **W-Matrix** | ✅ | ✅ | ✅ | ✅ |
 | **向量包** | ✅ | ✅ | ✅ | ✅ |
 | **订阅** | ✅ | ✅ | ✅ | ✅ |
@@ -151,7 +151,7 @@ a7d7da1 - feat(payment): Add W-Matrix webhook handling and secure AI agent API
   - Created comprehensive PAYMENT_SYSTEM_STATUS.md (598 lines)
 
 bc244ce - docs: Add comprehensive progress update and payment integration summary
-  - Payment integration for LatentMAS packages
+  - Payment integration for Neural Bridge packages
   - Logging migration 100% complete
   - Database functions for package purchases
 ```
@@ -161,7 +161,7 @@ bc244ce - docs: Add comprehensive progress update and payment integration summar
 ## 📊 技术债务更新
 
 ### 已解决 (P0)
-- ✅ **支付系统** - LatentMAS和W-Matrix完整集成
+- ✅ **支付系统** - Neural Bridge和W-Matrix完整集成
 - ✅ **Mock数据** - AI代理API已文档化并保护
 - ✅ **安全漏洞** - 生产环境检查已添加
 
@@ -180,7 +180,7 @@ bc244ce - docs: Add comprehensive progress update and payment integration summar
 ## 🚀 生产部署就绪清单
 
 ### 必需 (阻塞上线)
-- [x] LatentMAS包Stripe集成
+- [x] Neural Bridge包Stripe集成
 - [x] W-Matrix包Stripe集成
 - [x] 向量包Stripe集成
 - [x] Webhook签名验证
@@ -208,7 +208,7 @@ bc244ce - docs: Add comprehensive progress update and payment integration summar
 ### 立即可做 (本周)
 1. **手动测试所有支付流程**:
    - 使用Stripe测试卡 `4242 4242 4242 4242`
-   - 验证LatentMAS、W-Matrix、向量包购买
+   - 验证Neural Bridge、W-Matrix、向量包购买
    - 测试Webhook接收
    - 验证邮件发送
 
@@ -284,7 +284,7 @@ bc244ce - docs: Add comprehensive progress update and payment integration summar
    - Mock支付标记为测试专用
 
 ### 核心文件
-- **server/routers/latentmas-marketplace.ts** - LatentMAS支付
+- **server/routers/neural-bridge-marketplace.ts** - Neural Bridge支付
 - **server/routers/w-matrix-marketplace.ts** - W-Matrix支付
 - **server/stripe-client.ts** - Stripe辅助函数
 - **server/db.ts** - 数据库购买函数
@@ -294,7 +294,7 @@ bc244ce - docs: Add comprehensive progress update and payment integration summar
 ## 💡 经验总结
 
 ### 成功因素
-1. **遵循现有模式**: W-Matrix集成参考了LatentMAS实现
+1. **遵循现有模式**: W-Matrix集成参考了Neural Bridge实现
 2. **全面文档**: PAYMENT_SYSTEM_STATUS.md一站式参考
 3. **安全优先**: 生产环境检查防止Mock支付泄露
 4. **清晰沟通**: 代码注释和文档解释了每个决策

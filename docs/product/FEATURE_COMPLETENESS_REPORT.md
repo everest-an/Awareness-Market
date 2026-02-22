@@ -1,4 +1,4 @@
-# LatentMAS Marketplace - 功能完整性复盘报告
+# Neural Bridge Marketplace - 功能完整性复盘报告
 
 **生成时间**: 2026-01-06  
 **版本**: v1.0.0 (Checkpoint a8e8426c)  
@@ -24,7 +24,7 @@
 ## 1. W-Matrix 训练和验证 ✅ 100%
 
 ### 后端 API (17 个)
-**文件**: `server/routers/latentmas.ts`
+**文件**: `server/routers/neural-bridge.ts`
 
 | API | 状态 | 说明 |
 |-----|------|------|
@@ -47,14 +47,14 @@
 | `getWMatrixVersion` | ✅ | 获取特定版本 |
 
 ### 核心算法实现
-- ✅ **Hidden States 提取**: `server/latentmas/hidden-states-extractor.ts`
-- ✅ **W-Matrix 训练器**: `server/latentmas/w-matrix-trainer.ts`
-- ✅ **质量验证**: `server/latentmas/quality-validator.ts`
-- ✅ **Semantic Anchors**: `server/latentmas/semantic-anchors.ts`
-- ✅ **KV-Cache 压缩**: `server/latentmas/kv-cache-compressor.ts`
+- ✅ **Hidden States 提取**: `server/neural-bridge/hidden-states-extractor.ts`
+- ✅ **W-Matrix 训练器**: `server/neural-bridge/w-matrix-trainer.ts`
+- ✅ **质量验证**: `server/neural-bridge/quality-validator.ts`
+- ✅ **Semantic Anchors**: `server/neural-bridge/semantic-anchors.ts`
+- ✅ **KV-Cache 压缩**: `server/neural-bridge/kv-cache-compressor.ts`
 
 ### 测试覆盖
-- ✅ **45/45 tests passing** in `server/routers/latentmas.test.ts`
+- ✅ **45/45 tests passing** in `server/routers/neural-bridge.test.ts`
 - ✅ 覆盖所有核心算法
 - ✅ 包含边缘情况测试
 
@@ -245,7 +245,7 @@
 | `getCreditDistribution` | ✅ | 信用等级分布 |
 
 ### 信用评分算法
-**文件**: `server/latentmas/agent-credit-scorer.ts`
+**文件**: `server/neural-bridge/agent-credit-scorer.ts`
 
 - ✅ **5 个评分维度**
   1. 交易历史（40%）
@@ -318,7 +318,7 @@
 | `validateCompression` | ✅ | 验证压缩质量 |
 
 ### 核心算法
-**文件**: `server/latentmas/kv-cache-compressor.ts`
+**文件**: `server/neural-bridge/kv-cache-compressor.ts`
 
 - ✅ **Symmetric Focus 算法**
 - ✅ **95% 压缩率**
@@ -477,7 +477,7 @@
 
 ## 11. 结论
 
-**LatentMAS Marketplace 核心功能完成度: 82%**
+**Neural Bridge Marketplace 核心功能完成度: 82%**
 
 **已完成的核心功能**:
 - ✅ W-Matrix 训练和验证（100%）

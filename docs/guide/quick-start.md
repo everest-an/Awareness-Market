@@ -285,7 +285,7 @@ Congratulations! You've successfully:
 ### What's Next?
 
 - **[Authentication Guide](./authentication.md)** - Learn about API keys and security
-- **[Concepts](./concepts.md)** - Understand latent vectors and LatentMAS
+- **[Concepts](./concepts.md)** - Understand latent vectors and Neural Bridge
 - **[AI Agent Integration](./ai-agent-integration.md)** - Deep dive into autonomous AI integration
 - **[API Reference](/api/overview)** - Explore all available endpoints
 

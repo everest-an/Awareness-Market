@@ -44,8 +44,8 @@ async function alignAgentOutput(
 
 ---
 
-### 2. **LatentMAS Core** - 向量对齐与转换
-**文件**: [server/latentmas-core.ts](file:///e:/Awareness%20Market/Awareness-Network/server/latentmas-core.ts)
+### 2. **Neural Bridge Core** - 向量对齐与转换
+**文件**: [server/neural-bridge-core.ts](file:///e:/Awareness%20Market/Awareness-Network/server/neural-bridge-core.ts)
 
 #### 可复用功能
 | 功能 | 代码位置 | 用途 |
@@ -60,12 +60,12 @@ async function alignAgentOutput(
 
 #### 复用示例
 ```typescript
-import { alignVector, cosineSimilarity } from '../latentmas-core';
+import { alignVector, cosineSimilarity } from '../neural-bridge-core';
 
 // 在 SharedLatentMemoryManager 中使用
 class SharedLatentMemoryManager {
   async storeMemory(memory: LatentMemory) {
-    // 使用 LatentMAS Core 对齐到标准空间
+    // 使用 Neural Bridge Core 对齐到标准空间
     const aligned = alignVector(
       memory.rawVector,
       memory.sourceAgent,
@@ -96,7 +96,7 @@ class SharedLatentMemoryManager {
 ---
 
 ### 3. **KV-Cache W-Matrix Integration** - 压缩与转换
-**文件**: [server/latentmas/kv-cache-w-matrix-integration.ts](file:///e:/Awareness%20Market/Awareness-Network/server/latentmas/kv-cache-w-matrix-integration.ts)
+**文件**: [server/neural-bridge/kv-cache-w-matrix-integration.ts](file:///e:/Awareness%20Market/Awareness-Network/server/neural-bridge/kv-cache-w-matrix-integration.ts)
 
 #### 可复用功能
 | 功能 | 代码位置 | 用途 |
@@ -105,14 +105,14 @@ class SharedLatentMemoryManager {
 | **W-Matrix 应用** | `applyWMatrix()` (L87-102) | ✅ 底层矩阵变换 |
 | **压缩+转换** | `compressAndTransformKVCache()` (L123-165) | ✅ 优化协作带宽 (70%+ 节省) |
 | **注意力压缩** | `compressKVCacheByAttention()` (L171-234) | ✅ 智能选择重要 tokens |
-| **Memory Package** | `createLatentMASPackage()` (L287-330) | ✅ 打包共享记忆用于市场 |
+| **Memory Package** | `createNeural BridgePackage()` (L287-330) | ✅ 打包共享记忆用于市场 |
 
 #### 复用示例
 ```typescript
 import {
   transformKVCache,
   compressAndTransformKVCache
-} from '../latentmas/kv-cache-w-matrix-integration';
+} from '../neural-bridge/kv-cache-w-matrix-integration';
 
 // 在协作引擎中优化代理间通信
 async function shareKVCacheWithAgent(
@@ -254,8 +254,8 @@ async function getCollaborationProgress(workflowId: string) {
 
 ---
 
-### 6. **LatentMAS API** - 向量操作 REST 接口
-**文件**: [server/latentmas-api.ts](file:///e:/Awareness%20Market/Awareness-Network/server/latentmas-api.ts)
+### 6. **Neural Bridge API** - 向量操作 REST 接口
+**文件**: [server/neural-bridge-api.ts](file:///e:/Awareness%20Market/Awareness-Network/server/neural-bridge-api.ts)
 
 #### 可复用功能
 | 功能 | 代码位置 | 用途 |
@@ -316,14 +316,14 @@ export class CollaborationEngine {
 ```
 
 #### 2. **向量相似度计算** - kNN 检索
-- ✅ **cosineSimilarity()** ([latentmas-core.ts:58-69](file:///e:/Awareness%20Market/Awareness-Network/server/latentmas-core.ts#L58-L69))
-- ✅ **euclideanDistance()** ([latentmas-core.ts:74-85](file:///e:/Awareness%20Market/Awareness-Network/server/latentmas-core.ts#L74-L85))
+- ✅ **cosineSimilarity()** ([neural-bridge-core.ts:58-69](file:///e:/Awareness%20Market/Awareness-Network/server/neural-bridge-core.ts#L58-L69))
+- ✅ **euclideanDistance()** ([neural-bridge-core.ts:74-85](file:///e:/Awareness%20Market/Awareness-Network/server/neural-bridge-core.ts#L74-L85))
 
 **集成方案**:
 ```typescript
 // server/collaboration/shared-latent-memory.ts
 
-import { cosineSimilarity } from '../latentmas-core';
+import { cosineSimilarity } from '../neural-bridge-core';
 
 class InMemoryVectorStore {
   private cosineSimilarity(a: number[], b: number[]): number {
@@ -379,14 +379,14 @@ async routeAndExecuteTask(sessionId: string, task: string) {
 ### P1 - 2-3 个月复用 (性能优化)
 
 #### 4. **KV-Cache 压缩与转换** - 带宽优化
-- ✅ **compressAndTransformKVCache()** ([kv-cache-w-matrix-integration.ts:123-165](file:///e:/Awareness%20Market/Awareness-Network/server/latentmas/kv-cache-w-matrix-integration.ts#L123-L165))
+- ✅ **compressAndTransformKVCache()** ([kv-cache-w-matrix-integration.ts:123-165](file:///e:/Awareness%20Market/Awareness-Network/server/neural-bridge/kv-cache-w-matrix-integration.ts#L123-L165))
 - ✅ **70%+ 带宽节省** (已验证)
 
 **集成方案**:
 ```typescript
 // 在 SharedLatentMemoryManager 中优化存储
 
-import { compressAndTransformKVCache } from '../latentmas/kv-cache-w-matrix-integration';
+import { compressAndTransformKVCache } from '../neural-bridge/kv-cache-w-matrix-integration';
 
 async storeMemory(memory: LatentMemory) {
   // 压缩 KV-Cache 快照
@@ -530,7 +530,7 @@ async searchRelevant(query: number[], k: number) {
 
 ### ✅ 可以直接复用
 - **MCP Sync** - 多代理协作的核心已经完全实现！
-- **LatentMAS Core** - 所有向量操作工具已就绪
+- **Neural Bridge Core** - 所有向量操作工具已就绪
 - **Workflow 系统** - 编排逻辑无需重写
 - **质量验证** - Neural Bridge 的语义校准直接可用
 
@@ -541,7 +541,7 @@ async searchRelevant(query: number[], k: number) {
 
 ### 🎯 最佳实践
 1. **优先使用 MCP Sync** - 避免重新实现多代理协调
-2. **直接导入 latentmas-core** - 不要重写向量计算
+2. **直接导入 neural-bridge-core** - 不要重写向量计算
 3. **扩展现有 Workflow** - 而不是创建新的编排系统
 4. **集成 Neural Bridge 验证** - 确保协作质量
 

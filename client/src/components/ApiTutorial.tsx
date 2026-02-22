@@ -240,7 +240,7 @@ listVectors()
                   <li><code className="bg-muted px-1 py-0.5 rounded">GET /api/vectors/:id</code> - Get vector details</li>
                   <li><code className="bg-muted px-1 py-0.5 rounded">POST /api/vectors/purchase</code> - Purchase a vector</li>
                   <li><code className="bg-muted px-1 py-0.5 rounded">POST /api/vectors/invoke</code> - Invoke a vector</li>
-                  <li><code className="bg-muted px-1 py-0.5 rounded">POST /api/latentmas/align</code> - Align vectors</li>
+                  <li><code className="bg-muted px-1 py-0.5 rounded">POST /api/neural-bridge/align</code> - Align vectors</li>
                 </ul>
               </div>
             </CardContent>
@@ -275,7 +275,7 @@ listVectors()
                   <strong>Installation:</strong> <code className="bg-muted px-1 py-0.5 rounded">pip install awareness-network-sdk</code>
                   <br />
                   <a href="/sdk/python/README.md" target="_blank" className="text-primary hover:underline text-sm">
-                    View full Python SDK documentation â†?
+                    View full Python SDK documentation ï¿½?
                   </a>
                 </AlertDescription>
               </Alert>
@@ -375,22 +375,22 @@ listVectors()
           <ul className="space-y-2 text-sm">
             <li>
               <a href="/docs/AI_QUICK_START.md" target="_blank" className="text-primary hover:underline">
-                AI Quick Start Guide â†?
+                AI Quick Start Guide ï¿½?
               </a>
             </li>
             <li>
               <a href="/api-docs" target="_blank" className="text-primary hover:underline">
-                Full API Reference (Swagger UI) â†?
+                Full API Reference (Swagger UI) ï¿½?
               </a>
             </li>
             <li>
               <a href="/docs/WHITEPAPER.md" target="_blank" className="text-primary hover:underline">
-                LatentMAS Protocol Whitepaper â†?
+                Neural Bridge Protocol Whitepaper ï¿½?
               </a>
             </li>
             <li>
               <a href="https://github.com/everest-an/Awareness-Market" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                GitHub Repository â†?
+                GitHub Repository ï¿½?
               </a>
             </li>
           </ul>

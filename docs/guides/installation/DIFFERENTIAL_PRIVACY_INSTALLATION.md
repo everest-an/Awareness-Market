@@ -6,8 +6,8 @@ Implemented (ε, δ)-differential privacy protection for latent vectors using Ga
 
 ## Files Created
 
-1. `server/latentmas/differential-privacy.ts` - Core DP engine (330 lines)
-2. `server/latentmas/differential-privacy.test.ts` - Comprehensive test suite (37 tests)
+1. `server/neural-bridge/differential-privacy.ts` - Core DP engine (330 lines)
+2. `server/neural-bridge/differential-privacy.test.ts` - Comprehensive test suite (37 tests)
 
 ## Features Implemented
 
@@ -39,7 +39,7 @@ import {
   privatizeVector,
   type PrivacyLevel,
   type PrivacyConfig,
-} from './server/latentmas/differential-privacy';
+} from './server/neural-bridge/differential-privacy';
 ```
 
 ### Step 2: Integrate with Package Upload
@@ -47,7 +47,7 @@ import {
 Update package upload handler to add privacy protection:
 
 ```typescript
-import { privatizeVector } from './server/latentmas/differential-privacy';
+import { privatizeVector } from './server/neural-bridge/differential-privacy';
 
 // When seller uploads a vector
 async function uploadVector(originalVector: number[], privacyLevel: PrivacyLevel = 'medium') {
@@ -73,7 +73,7 @@ async function uploadVector(originalVector: number[], privacyLevel: PrivacyLevel
 Display privacy information to buyers:
 
 ```typescript
-import { createPrivacyDisclosure } from './server/latentmas/differential-privacy';
+import { createPrivacyDisclosure } from './server/neural-bridge/differential-privacy';
 
 // On package details page
 function PackageDetails({ packageId }) {
@@ -110,7 +110,7 @@ with probability greater than e^ε ≈ 2.72.
 Allow creators to choose privacy level:
 
 ```typescript
-import { getDPEngine } from './server/latentmas/differential-privacy';
+import { getDPEngine } from './server/neural-bridge/differential-privacy';
 
 // Creator upload form
 function UploadVectorForm() {
@@ -137,7 +137,7 @@ function UploadVectorForm() {
 ### Basic Usage
 
 ```typescript
-import { privatizeVector } from './server/latentmas/differential-privacy';
+import { privatizeVector } from './server/neural-bridge/differential-privacy';
 
 // Privatize a vector with default settings (medium privacy)
 const vector = [0.1, 0.2, 0.3, /* ... */];
@@ -151,7 +151,7 @@ console.log('Privacy metadata:', result.metadata);
 ### Custom Privacy Configuration
 
 ```typescript
-import { getDPEngine, type PrivacyConfig } from './server/latentmas/differential-privacy';
+import { getDPEngine, type PrivacyConfig } from './server/neural-bridge/differential-privacy';
 
 const engine = getDPEngine();
 
@@ -167,7 +167,7 @@ const result = engine.addNoise(vector, config);
 ### Batch Processing
 
 ```typescript
-import { getDPEngine } from './server/latentmas/differential-privacy';
+import { getDPEngine } from './server/neural-bridge/differential-privacy';
 
 const engine = getDPEngine();
 
@@ -179,7 +179,7 @@ const results = engine.addNoiseBatch(vectors, 'medium');
 ### Privacy Budget Composition
 
 ```typescript
-import { getDPEngine } from './server/latentmas/differential-privacy';
+import { getDPEngine } from './server/neural-bridge/differential-privacy';
 
 const engine = getDPEngine();
 
@@ -195,7 +195,7 @@ console.log(`Total privacy budget: ε = ${totalEpsilon}`); // 1.8
 Run the test suite:
 
 ```bash
-npm test server/latentmas/differential-privacy.test.ts
+npm test server/neural-bridge/differential-privacy.test.ts
 ```
 
 Expected output:
@@ -222,7 +222,7 @@ Tests: 37 passed (37)
 
 ```typescript
 // server/upload-api.ts
-import { privatizeVector } from './latentmas/differential-privacy';
+import { privatizeVector } from './neural-bridge/differential-privacy';
 
 async function handlePackageUpload(req, res) {
   const { vectorData, privacyLevel = 'medium' } = req.body;
@@ -255,7 +255,7 @@ Buyers should be informed about privacy protection:
 
 ```typescript
 // server/purchase-api.ts
-import { createPrivacyDisclosure } from './latentmas/differential-privacy';
+import { createPrivacyDisclosure } from './neural-bridge/differential-privacy';
 
 async function getPurchasedVector(packageId: string, buyerId: string) {
   const pkg = await getPackage(packageId);
@@ -346,7 +346,7 @@ ENABLE_DP_VERIFICATION=true
 ### Runtime Configuration
 
 ```typescript
-import { getDPEngine } from './server/latentmas/differential-privacy';
+import { getDPEngine } from './server/neural-bridge/differential-privacy';
 
 const engine = getDPEngine();
 
@@ -365,7 +365,7 @@ const hasSufficientPrivacy = engine.hasMinimumPrivacy(
 ### Track Privacy Metrics
 
 ```typescript
-import { getDPEngine } from './server/latentmas/differential-privacy';
+import { getDPEngine } from './server/neural-bridge/differential-privacy';
 
 // Log privacy statistics
 function logPrivacyMetrics(privatized: PrivatizedVector) {

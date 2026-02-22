@@ -167,7 +167,7 @@ Type 'string | null' is not assignable to type 'string'
 - `server/ab-test-framework.ts` (6个)
 - `server/middleware/go-service-proxy.ts` (5个)
 - `server/llm-aws.ts` (5个)
-- `server/latentmas-api.ts` (5个)
+- `server/neural-bridge-api.ts` (5个)
 - `server/ai-auth-api.ts` (5个)
 - `client/src/components/GlobalSearch.tsx` (1个)
 - 其他50+文件 (~80个)

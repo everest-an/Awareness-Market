@@ -1,4 +1,4 @@
-# LatentMAS Marketplace Complete Deployment Guide
+# Neural Bridge Marketplace Complete Deployment Guide
 
 **Last Updated**: 2026-01-05  
 **Status**: Production-Ready ✅
@@ -19,7 +19,7 @@
 
 ## Overview
 
-This guide walks you through deploying the complete LatentMAS Marketplace system:
+This guide walks you through deploying the complete Neural Bridge Marketplace system:
 
 - **Smart Contracts**: MemoryNFT (ERC-721) + ERC-6551 TBA integration
 - **MCP Server**: AI Agent integration for Claude Desktop
@@ -171,7 +171,7 @@ https://mumbai.polygonscan.com/address/0x1234567890abcdef1234567890abcdef1234567
 
 ### Step 5: Update Backend with Contract Address
 
-Edit `server/latentmas/erc6551-tba.ts`:
+Edit `server/neural-bridge/erc6551-tba.ts`:
 
 ```typescript
 // Line 15-20
@@ -222,7 +222,7 @@ Add MCP server configuration:
 ```json
 {
   "mcpServers": {
-    "latentmas-marketplace": {
+    "neural-bridge-marketplace": {
       "command": "node",
       "args": ["/home/ubuntu/latentmind-marketplace/mcp-server/dist/index.js"],
       "env": {
@@ -400,11 +400,11 @@ Search for the best quality option and purchase it for me.
 ```
 
 Expected behavior:
-1. Claude searches marketplace using `search_latentmas_memories`
+1. Claude searches marketplace using `search_neural-bridge_memories`
 2. Claude checks compatibility using `check_model_compatibility`
 3. Claude estimates performance using `estimate_performance_gain`
 4. Claude asks for confirmation
-5. Claude purchases using `purchase_latentmas_package`
+5. Claude purchases using `purchase_neural-bridge_package`
 6. Claude confirms NFT minting and TBA creation
 
 ### Test 3: Memory Provenance
@@ -459,7 +459,7 @@ Expected behavior:
 - [ ] Generate 200+ W-Matrices for market depth
 - [ ] Onboard first 10 creators
 - [ ] Create video tutorials
-- [ ] Write blog post about LatentMAS protocol
+- [ ] Write blog post about Neural Bridge protocol
 - [ ] Submit to Product Hunt
 - [ ] Apply for grants (Polygon, Ethereum Foundation)
 - [ ] Start community Discord server
@@ -515,13 +515,13 @@ Expected behavior:
 - **Smart Contracts**: https://github.com/everest-an/Awareness-Market/tree/main/contracts
 
 ### Community
-- **Discord**: https://discord.gg/latentmas
-- **Twitter**: https://twitter.com/latentmas
+- **Discord**: https://discord.gg/neural-bridge
+- **Twitter**: https://twitter.com/neural-bridge
 - **GitHub Issues**: https://github.com/everest-an/Awareness-Market/issues
 
 ### Contact
 - **Email**: support@awareness.market
-- **Telegram**: @latentmas_support
+- **Telegram**: @neural-bridge_support
 
 ---
 

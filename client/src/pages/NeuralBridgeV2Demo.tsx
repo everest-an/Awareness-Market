@@ -10,13 +10,13 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle2, XCircle, Zap, Shield, Anchor, Network } from 'lucide-react';
 
-export default function LatentMASv2Demo() {
+export default function NeuralBridgeV2Demo() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
       <div className="pt-20 container py-8 mt-20">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">LatentMAS v2 Features Demo</h1>
+          <h1 className="text-4xl font-bold mb-2">Neural Bridge v2 Features Demo</h1>
           <p className="text-muted-foreground">
             Interactive demonstrations of the 4 core v2 enhancements: KV-Cache Compression, Dynamic W-Matrix, 
             Anti-Poisoning Verification, and Semantic Anchors.

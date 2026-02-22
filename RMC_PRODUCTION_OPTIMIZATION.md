@@ -590,7 +590,7 @@ async function createMemoryWithEntities(content: string) {
 
 ---
 
-### 5. LatentMAS 集成：Hidden State 存储
+### 5. Neural Bridge 集成：Hidden State 存储
 
 #### ✅ Schema 更新
 

@@ -2,7 +2,7 @@
 
 **日期**: 2026-01-28
 **版本**: 1.0
-**分析目标**: 评估 LatentMAS 协议中 AI 直接推理的技术可行性与白皮书一致性
+**分析目标**: 评估 Neural Bridge 协议中 AI 直接推理的技术可行性与白皮书一致性
 
 ---
 
@@ -37,7 +37,7 @@
 - 则必然存在一个映射 $W: L_A → L_B$ 实现语义保留的转换
 
 **白皮书引用**: Section 4.1 "Linear Alignment"
-**实现状态**: ✅ `server/latentmas/wa-alignment-operator.ts`
+**实现状态**: ✅ `server/neural-bridge/wa-alignment-operator.ts`
 
 ---
 
@@ -90,7 +90,7 @@ Output Text → Tokenization → Embedding → [New Hidden States] → ...
 
 ---
 
-#### LatentMAS 协议（向量传输）
+#### Neural Bridge 协议（向量传输）
 ```
 模型 A 的推理:
 Input Text → Tokenization → Embedding → [Hidden States: h_s]
@@ -108,7 +108,7 @@ h_t → 继续解码 → Output
 3. **语义保留**: W-Matrix 保证 95% 余弦相似度
 
 **白皮书数据**: 保留 ~95% 信息
-**实现验证**: ✅ `server/latentmas/semantic-anchors.ts` 验证质量
+**实现验证**: ✅ `server/neural-bridge/semantic-anchors.ts` 验证质量
 
 ---
 
@@ -206,9 +206,9 @@ async function traditionalInference(input: string): Promise<string> {
 
 ---
 
-#### 场景 2: 跨模型推理（LatentMAS）
+#### 场景 2: 跨模型推理（Neural Bridge）
 ```typescript
-// LatentMAS 方式：模型 A 推理 → 模型 B 继续
+// Neural Bridge 方式：模型 A 推理 → 模型 B 继续
 async function latentInference(input: string): Promise<string> {
     // Step 1: 模型 A 推理并提取 hidden states
     const hiddenState = await modelA.encode(input);  // GPT-4
@@ -333,7 +333,7 @@ async function memorySharing(document: string, question: string): Promise<string
 #### 推理速度提升
 ```
 白皮书 Section 2.1:
-"LatentMAS improves inference speed by 4.3x compared to text-based methods"
+"Neural Bridge improves inference speed by 4.3x compared to text-based methods"
 ```
 
 **验证方法**:
@@ -342,7 +342,7 @@ async function memorySharing(document: string, question: string): Promise<string
 text_latency = encode_time + decode_time + network_time
              = 50ms + 100ms + 50ms = 200ms
 
-# 向量传输（LatentMAS）
+# 向量传输（Neural Bridge）
 latent_latency = alignment_time + network_time
                = 20ms + 10ms = 30ms
 
@@ -376,7 +376,7 @@ speedup = 200ms / 30ms = 6.67x
 - Claude 重新推理: 7000 tokens (重复处理同样内容)
 - 总计: 14,000 tokens
 
-LatentMAS 方式:
+Neural Bridge 方式:
 - GPT-4 推理: 7000 tokens
 - W-Matrix 对齐: 0 tokens (向量计算)
 - Claude 继续推理: ~1000 tokens (仅解码)
@@ -398,7 +398,7 @@ LatentMAS 方式:
 - 模型 B 重新分析: 7000 tokens
 - 总计: 14,000 tokens
 
-LatentMAS (KV-Cache):
+Neural Bridge (KV-Cache):
 - 模型 A 分析: 7000 tokens
 - KV-Cache 压缩: 7000 → 102 tokens (5%)
 - 模型 B 继续: 102 + 200 = 302 tokens
@@ -416,7 +416,7 @@ LatentMAS (KV-Cache):
 - 模型 B: 2000 tokens 输出
 - 总计: 4000 tokens
 
-LatentMAS（仅输出）:
+Neural Bridge（仅输出）:
 - 模型 A: 2000 tokens 输出
 - 模型 B: ~300 tokens 输出（基于 KV-Cache）
 - 总计: 2,300 tokens
@@ -591,7 +591,7 @@ Mistral:  Sliding Window Attention, 4096 window
 **1. API 价格战导致优势缩小**
 ```
 假设: OpenAI 将价格降低 50%
-LatentMAS 优势: 83.7% → 67.4% 成本节省
+Neural Bridge 优势: 83.7% → 67.4% 成本节省
 ```
 
 **白皮书未分析此场景**
@@ -605,7 +605,7 @@ LatentMAS 优势: 83.7% → 67.4% 成本节省
 当前流程:
 1. 注册 Awareness Market
 2. 上传向量或购买 W-Matrix
-3. 修改代码调用 LatentMAS API
+3. 修改代码调用 Neural Bridge API
 4. 测试和调优
 
 vs. 传统 API:
@@ -631,7 +631,7 @@ vs. 传统 API:
 OpenAI ToS:
 "不得将 API 输出用于训练其他 AI 模型"
 
-LatentMAS:
+Neural Bridge:
 使用 GPT-4 的 hidden states 训练 W-Matrix
 → 可能违反 ToS？
 ```
@@ -663,7 +663,7 @@ async function e2eValidation() {
         // 传统方式
         const baseline = await model.inference(task.input);
 
-        // LatentMAS 方式
+        // Neural Bridge 方式
         const latentResult = await latentInference(task.input);
 
         // 比较质量
@@ -743,12 +743,12 @@ async function ensembleInference(input: string) {
 ```markdown
 ## X. Limitations and Applicable Scenarios
 
-### X.1 When LatentMAS Works Best
+### X.1 When Neural Bridge Works Best
 - ✅ Multi-agent workflows
 - ✅ Repeated similar tasks
 - ✅ Long-context processing
 
-### X.2 When NOT to Use LatentMAS
+### X.2 When NOT to Use Neural Bridge
 - ❌ Single-shot queries
 - ❌ Creative/open-ended generation
 - ❌ Requires model-specific features
@@ -781,11 +781,11 @@ async function ensembleInference(input: string) {
 - Model pair: GPT-4 → LLaMA-3-70b
 - Task: Legal contract analysis (5000 tokens input)
 - Baseline: Sequential text-based inference
-- LatentMAS: Direct hidden state transfer
+- Neural Bridge: Direct hidden state transfer
 
 **Measurement**:
 - Baseline latency: 215ms (avg of 100 runs)
-- LatentMAS latency: 50ms (avg of 100 runs)
+- Neural Bridge latency: 50ms (avg of 100 runs)
 - Speedup: 215/50 = 4.3x
 
 ### Z.2 "83.7% Token Reduction"

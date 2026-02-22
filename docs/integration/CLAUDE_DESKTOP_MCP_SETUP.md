@@ -1,6 +1,6 @@
 # Claude Desktop MCP Server 配置指南
 
-**完整指南：配置 Awareness LatentMAS MCP Server 在 Claude Desktop**
+**完整指南：配置 Awareness Neural Bridge MCP Server 在 Claude Desktop**
 
 ---
 
@@ -43,7 +43,7 @@ open ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```json
 {
   "mcpServers": {
-    "awareness-latentmas": {
+    "awareness-neural-bridge": {
       "command": "node",
       "args": [
         "/Users/YOUR_USERNAME/latentmind-marketplace/mcp-server/dist/index.js"
@@ -67,7 +67,7 @@ notepad %APPDATA%\Claude\claude_desktop_config.json
 ```json
 {
   "mcpServers": {
-    "awareness-latentmas": {
+    "awareness-neural-bridge": {
       "command": "node",
       "args": [
         "C:\\Users\\YOUR_USERNAME\\latentmind-marketplace\\mcp-server\\dist\\index.js"
@@ -91,7 +91,7 @@ nano ~/.config/Claude/claude_desktop_config.json
 ```json
 {
   "mcpServers": {
-    "awareness-latentmas": {
+    "awareness-neural-bridge": {
       "command": "node",
       "args": [
         "/home/YOUR_USERNAME/latentmind-marketplace/mcp-server/dist/index.js"
@@ -115,10 +115,10 @@ nano ~/.config/Claude/claude_desktop_config.json
 在 Claude Desktop 中输入：
 
 ```
-Can you search for LatentMAS memories that convert GPT-3.5 to GPT-4?
+Can you search for Neural Bridge memories that convert GPT-3.5 to GPT-4?
 ```
 
-如果配置成功，Claude 会使用 `search_latentmas_memories` 工具查询市场。
+如果配置成功，Claude 会使用 `search_neural-bridge_memories` 工具查询市场。
 
 ---
 
@@ -126,7 +126,7 @@ Can you search for LatentMAS memories that convert GPT-3.5 to GPT-4?
 
 MCP Server 提供 5 个工具供 Claude 使用：
 
-### 1. search_latentmas_memories
+### 1. search_neural-bridge_memories
 
 搜索符合条件的记忆包。
 
@@ -134,7 +134,7 @@ MCP Server 提供 5 个工具供 Claude 使用：
 ```
 User: Find memory packages that align GPT-3.5-turbo with Claude-3.5-sonnet
 
-Claude: [使用 search_latentmas_memories 工具]
+Claude: [使用 search_neural-bridge_memories 工具]
 - sourceModel: "gpt-3.5-turbo"
 - targetModel: "claude-3.5-sonnet"
 - maxEpsilon: 0.05
@@ -236,7 +236,7 @@ Claude: [使用 list_my_memories 工具]
 ```json
 {
   "mcpServers": {
-    "awareness-latentmas": {
+    "awareness-neural-bridge": {
       "command": "node",
       "args": ["/path/to/mcp-server/dist/index.js"],
       "env": {
@@ -262,7 +262,7 @@ User: I'm using GPT-3.5-turbo but want GPT-4 quality outputs. Can you help me fi
 
 Claude: I'll search for memory packages that can align GPT-3.5-turbo with GPT-4.
 
-[使用 search_latentmas_memories]
+[使用 search_neural-bridge_memories]
 
 I found 5 memory packages:
 
@@ -318,7 +318,7 @@ User: I need to align my GPT-3.5 outputs to GPT-4. Find the best package under $
 
 Claude: I'll search for the best GPT-3.5 → GPT-4 memory package under $10.
 
-[使用 search_latentmas_memories]
+[使用 search_neural-bridge_memories]
 
 Found 3 packages under $10. The best one is:
 
@@ -346,7 +346,7 @@ Claude: [使用 purchase_memory]
 
 **Usage Instructions**:
 1. Download the W-Matrix file
-2. Load it in your LatentMAS SDK
+2. Load it in your Neural Bridge SDK
 3. Use it to align GPT-3.5 outputs to GPT-4
 
 Would you like me to show you the integration code?
@@ -443,7 +443,7 @@ curl https://awareness.market/api/health
 ```json
 {
   "mcpServers": {
-    "awareness-latentmas": {
+    "awareness-neural-bridge": {
       "command": "node",
       "args": ["dist/index.js"],
       "env": {
@@ -466,7 +466,7 @@ curl https://awareness.market/api/health
 ```json
 {
   "mcpServers": {
-    "awareness-latentmas": {
+    "awareness-neural-bridge": {
       "command": "node",
       "args": ["/path/to/mcp-server/dist/index.js"],
       "env": {
@@ -483,7 +483,7 @@ curl https://awareness.market/api/health
 ```json
 {
   "mcpServers": {
-    "awareness-latentmas": {
+    "awareness-neural-bridge": {
       "command": "node",
       "args": ["/path/to/mcp-server/dist/index.js"],
       "env": {
@@ -501,7 +501,7 @@ curl https://awareness.market/api/health
 ```json
 {
   "mcpServers": {
-    "awareness-latentmas": {
+    "awareness-neural-bridge": {
       "command": "node",
       "args": ["/path/to/mcp-server/dist/index.js"],
       "env": {
@@ -521,7 +521,7 @@ curl https://awareness.market/api/health
 - **API 文档**: https://awareness.market/api-docs
 - **用户指南**: https://awareness.market/docs
 - **Discord 社区**: https://discord.gg/awareness
-- **GitHub Issues**: https://github.com/awareness-market/latentmas/issues
+- **GitHub Issues**: https://github.com/awareness-market/neural-bridge/issues
 
 ---
 

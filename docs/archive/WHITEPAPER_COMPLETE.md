@@ -1,4 +1,4 @@
-# LatentMAS Protocol Whitepaper
+# Neural Bridge Protocol Whitepaper
 
 **Version 2.0 | January 2026**
 
@@ -8,9 +8,9 @@
 
 ## Abstract
 
-We present **LatentMAS (Latent Multi-Agent System)**, a comprehensive protocol enabling autonomous AI agents to discover, trade, and integrate latent space representations across heterogeneous model architectures. Building upon the foundational vector alignment capabilities of Version 1.0, this whitepaper introduces three transformative innovations in Version 2.0: the **Standardized W-Matrix Protocol** for universal cross-model alignment, the **KV-Cache Exchange Protocol** for direct thought transfer between AI agents, and the **$AMEM Token Economics** framework that creates a self-sustaining marketplace for AI memory and reasoning.
+We present **Neural Bridge (Latent Multi-Agent System)**, a comprehensive protocol enabling autonomous AI agents to discover, trade, and integrate latent space representations across heterogeneous model architectures. Building upon the foundational vector alignment capabilities of Version 1.0, this whitepaper introduces three transformative innovations in Version 2.0: the **Standardized W-Matrix Protocol** for universal cross-model alignment, the **KV-Cache Exchange Protocol** for direct thought transfer between AI agents, and the **$AMEM Token Economics** framework that creates a self-sustaining marketplace for AI memory and reasoning.
 
-By standardizing vector alignment, dimension transformation, quality validation, and now KV-Cache exchange, LatentMAS creates an interoperable marketplace where AI capabilities, memories, and reasoning processes become liquid assets. This whitepaper describes the complete protocol specification, mathematical foundations, implementation details, token economics, and the economic implications of the first marketplace for AI latent space assets.
+By standardizing vector alignment, dimension transformation, quality validation, and now KV-Cache exchange, Neural Bridge creates an interoperable marketplace where AI capabilities, memories, and reasoning processes become liquid assets. This whitepaper describes the complete protocol specification, mathematical foundations, implementation details, token economics, and the economic implications of the first marketplace for AI latent space assets.
 
 ---
 
@@ -19,7 +19,7 @@ By standardizing vector alignment, dimension transformation, quality validation,
 **Part I: Foundation (v1.0)**
 1. [Introduction](#1-introduction)
 2. [Problem Statement](#2-problem-statement)
-3. [LatentMAS Protocol Core](#3-latentmas-protocol-core)
+3. [Neural Bridge Protocol Core](#3-neural-bridge-protocol-core)
 4. [Mathematical Foundations](#4-mathematical-foundations)
 5. [Implementation](#5-implementation)
 6. [Security & Privacy](#6-security--privacy)
@@ -59,7 +59,7 @@ Modern AI systems operate in isolated latent spaces—internal vector representa
 This work makes the following contributions:
 
 **Version 1.0 Contributions:**
-1. **LatentMAS Protocol**: A standardized protocol for latent space operations (alignment, transformation, validation)
+1. **Neural Bridge Protocol**: A standardized protocol for latent space operations (alignment, transformation, validation)
 2. **Awareness Network**: The first implementation of a vector marketplace
 3. **Alignment Algorithms**: Practical methods for cross-model vector transformation
 4. **Economic Framework**: Pricing and incentive mechanisms for AI-to-AI trade
@@ -122,7 +122,7 @@ AI agents cannot autonomously discover and integrate external capabilities:
 - **Payment**: No AI-native payment mechanisms
 - **Memory Sharing**: No way to share reasoning state between models
 
-**Solution:** LatentMAS protocol + Awareness Network marketplace + $AMEM token economics.
+**Solution:** Neural Bridge protocol + Awareness Network marketplace + $AMEM token economics.
 
 ### 2.4 The KV-Cache Problem (v2.0)
 
@@ -137,15 +137,15 @@ Beyond static embeddings, the most valuable AI asset is often the **reasoning pr
 
 ---
 
-## 3. LatentMAS Protocol Core
+## 3. Neural Bridge Protocol Core
 
 ### 3.1 Protocol Overview
 
-LatentMAS defines three core operations in v1.0, extended to five in v2.0:
+Neural Bridge defines three core operations in v1.0, extended to five in v2.0:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    LatentMAS Protocol v2.0                       │
+│                    Neural Bridge Protocol v2.0                       │
 ├─────────────────────────────────────────────────────────────────┤
 │  v1.0 Operations:                                                │
 │  1. ALIGN(v_source, M_source, M_target) → v_aligned              │
@@ -315,7 +315,7 @@ $$
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘              │
 │         │                │                │                      │
 │  ┌──────┴────────────────┴────────────────┴──────┐              │
-│  │              LatentMAS Protocol Engine         │              │
+│  │              Neural Bridge Protocol Engine         │              │
 │  ├───────────────────────────────────────────────┤              │
 │  │  Alignment  │ Transform │ Validate │ KV-Cache │              │
 │  └──────┬──────┴─────┬─────┴────┬─────┴────┬─────┘              │
@@ -333,15 +333,15 @@ $$
 ### 5.2 API Endpoints
 
 **v1.0 Endpoints:**
-- `POST /api/latentmas/align` - Vector alignment
-- `POST /api/latentmas/transform` - Dimension transformation
-- `POST /api/latentmas/validate` - Vector validation
+- `POST /api/neural-bridge/align` - Vector alignment
+- `POST /api/neural-bridge/transform` - Dimension transformation
+- `POST /api/neural-bridge/validate` - Vector validation
 - `GET /api/vectors` - Browse marketplace
 - `POST /api/vectors/purchase` - Purchase vector
 
 **v2.0 Endpoints:**
-- `POST /api/latentmas/w-matrix/generate` - Generate W-Matrix
-- `POST /api/latentmas/kv-cache/align` - Align KV-Cache
+- `POST /api/neural-bridge/w-matrix/generate` - Generate W-Matrix
+- `POST /api/neural-bridge/kv-cache/align` - Align KV-Cache
 - `GET /api/reasoning-chains` - Browse reasoning chains
 - `POST /api/memory/exchange` - Memory exchange transaction
 
@@ -685,7 +685,7 @@ AI agents can discover relevant reasoning chains through:
 
 ### 10.1 Overview
 
-$AMEM (Awareness Memory Token) is the native utility token of the LatentMAS protocol. It serves as the medium of exchange for AI memory transactions and the governance token for protocol decisions.
+$AMEM (Awareness Memory Token) is the native utility token of the Neural Bridge protocol. It serves as the medium of exchange for AI memory transactions and the governance token for protocol decisions.
 
 **Core Philosophy:** $AMEM quantifies the most fundamental cost in AI collaboration—**alignment cost**. The token creates economic incentives for high-quality memory production and efficient cross-model exchange.
 
@@ -723,7 +723,7 @@ Agents publishing memories must stake $AMEM. If other Agents discover that the p
 |--------|------------|---------|
 | **Memory Mining** | 40% | Rewards for Agents contributing high-frequency, high-quality memory NFTs |
 | **Standardization Node Rewards** | 20% | Rewards for nodes running high-performance computing and maintaining W-Matrix consistency |
-| **Ecosystem & Partners** | 15% | Incentives for open-source model teams integrating LatentMAS (Llama, Mistral communities, etc.) |
+| **Ecosystem & Partners** | 15% | Incentives for open-source model teams integrating Neural Bridge (Llama, Mistral communities, etc.) |
 | **Treasury** | 15% | Dynamic market liquidity adjustment, funding AI ethics and latent space alignment research |
 | **Team & Early Contributors** | 10% | 12-month lock + 36-month linear release |
 
@@ -1084,7 +1084,7 @@ $$\text{Price} = \text{Base Cost} \times \text{Quality Factor} \times \text{Dema
 
 ## 16. Conclusion
 
-LatentMAS protocol and Awareness Network represent a paradigm shift in AI collaboration. Version 1.0 established the foundation by treating latent vectors as tradeable assets and standardizing cross-model operations. Version 2.0 takes this further by enabling direct exchange of AI "thoughts" through KV-Cache alignment and creating a complete crypto-economic framework with $AMEM tokens.
+Neural Bridge protocol and Awareness Network represent a paradigm shift in AI collaboration. Version 1.0 established the foundation by treating latent vectors as tradeable assets and standardizing cross-model operations. Version 2.0 takes this further by enabling direct exchange of AI "thoughts" through KV-Cache alignment and creating a complete crypto-economic framework with $AMEM tokens.
 
 **Key Achievements:**
 
@@ -1105,7 +1105,7 @@ LatentMAS protocol and Awareness Network represent a paradigm shift in AI collab
 - **For AI Agents**: Autonomous skill acquisition, thought sharing, and economic participation
 - **For Society**: More efficient use of computational resources, democratized AI capabilities
 
-The future of AI is not just about individual model capabilities—it's about how AI agents can share, combine, and build upon each other's thinking. LatentMAS provides the complete technical and economic foundation for this collaborative future.
+The future of AI is not just about individual model capabilities—it's about how AI agents can share, combine, and build upon each other's thinking. Neural Bridge provides the complete technical and economic foundation for this collaborative future.
 
 ---
 
@@ -1129,7 +1129,7 @@ The future of AI is not just about individual model capabilities—it's about ho
 
 9. Pope, R., et al. (2022). "Efficiently Scaling Transformer Inference." *MLSys*.
 
-10. Awareness Network Team. (2026). "LatentMAS Protocol Specification v2.0." *Technical Report*.
+10. Awareness Network Team. (2026). "Neural Bridge Protocol Specification v2.0." *Technical Report*.
 
 ---
 
@@ -1138,11 +1138,11 @@ The future of AI is not just about individual model capabilities—it's about ho
 ### A.1 v1.0 Endpoints
 
 ```
-POST /api/latentmas/align
+POST /api/neural-bridge/align
 Content-Type: application/json
 
 {
-  "protocol": "LatentMAS/1.0",
+  "protocol": "Neural Bridge/1.0",
   "source_vector": [float],
   "source_model": string,
   "target_model": string,
@@ -1151,7 +1151,7 @@ Content-Type: application/json
 
 Response:
 {
-  "protocol": "LatentMAS/1.0",
+  "protocol": "Neural Bridge/1.0",
   "aligned_vector": [float],
   "alignment_quality": {
     "cosine_similarity": float,
@@ -1165,11 +1165,11 @@ Response:
 
 **Generate W-Matrix:**
 ```
-POST /api/latentmas/w-matrix/generate
+POST /api/neural-bridge/w-matrix/generate
 Content-Type: application/json
 
 {
-  "protocol": "LatentMAS/2.0",
+  "protocol": "Neural Bridge/2.0",
   "source_model": "gpt-4",
   "target_model": "llama-3-70b",
   "method": "orthogonal"
@@ -1189,11 +1189,11 @@ Response:
 
 **Align KV-Cache:**
 ```
-POST /api/latentmas/kv-cache/align
+POST /api/neural-bridge/kv-cache/align
 Content-Type: application/json
 
 {
-  "protocol": "LatentMAS/2.0",
+  "protocol": "Neural Bridge/2.0",
   "kv_cache": { ... },
   "target_model": "llama-3-70b",
   "w_matrix_version": "1.0.0"

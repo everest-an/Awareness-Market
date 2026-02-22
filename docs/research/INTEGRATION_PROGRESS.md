@@ -17,10 +17,10 @@
 
 | 组件 | 原来的实现 | 现在复用 | 状态 |
 |------|----------|---------|------|
-| **向量相似度计算** | 自己实现的 `cosineSimilarity()` | ✅ `latentmas-core.ts` 的 `cosineSimilarity()` | 完成 |
-| **欧氏距离** | 未实现 | ✅ `latentmas-core.ts` 的 `euclideanDistance()` | 完成 |
-| **向量归一化** | 未实现 | ✅ `latentmas-core.ts` 的 `normalizeVector()` | 完成 |
-| **Embedding 服务** | Mock 实现 | ✅ `latentmas/embedding-service.ts` | 完成 |
+| **向量相似度计算** | 自己实现的 `cosineSimilarity()` | ✅ `neural-bridge-core.ts` 的 `cosineSimilarity()` | 完成 |
+| **欧氏距离** | 未实现 | ✅ `neural-bridge-core.ts` 的 `euclideanDistance()` | 完成 |
+| **向量归一化** | 未实现 | ✅ `neural-bridge-core.ts` 的 `normalizeVector()` | 完成 |
+| **Embedding 服务** | Mock 实现 | ✅ `neural-bridge/embedding-service.ts` | 完成 |
 
 #### 代码变更
 ```typescript
@@ -30,8 +30,8 @@ private cosineSimilarity(a: number[], b: number[]): number {
 }
 
 // 现在: 直接导入复用
-import { cosineSimilarity, euclideanDistance, normalizeVector } from '../latentmas-core';
-import { embeddingService } from '../latentmas/embedding-service';
+import { cosineSimilarity, euclideanDistance, normalizeVector } from '../neural-bridge-core';
+import { embeddingService } from '../neural-bridge/embedding-service';
 
 // 在 InMemoryVectorStore.search() 中:
 const withSimilarity = filtered.map(memory => ({
@@ -191,7 +191,7 @@ private async getMcpTokenForSession(sessionId: string): Promise<string> {
 #### 任务 D: 在 `storeReasoning()` 中添加压缩
 ```typescript
 // TODO: 在 collaboration-engine.ts 中
-import { compressAndTransformKVCache } from '../latentmas/kv-cache-w-matrix-integration';
+import { compressAndTransformKVCache } from '../neural-bridge/kv-cache-w-matrix-integration';
 
 async storeReasoning(sessionId: string, agentId: string, data: { kvSnapshot?: { keys: number[][][]; values: number[][][]; } }) {
   // 压缩 KV-Cache (节省 70%+ 带宽)
@@ -226,7 +226,7 @@ async storeReasoning(sessionId: string, agentId: string, data: { kvSnapshot?: { 
 #### 任务 E: 在 `storeMemory()` 前添加验证
 ```typescript
 // TODO: 在 shared-latent-memory.ts 中
-import { validateVector } from '../latentmas-core';
+import { validateVector } from '../neural-bridge-core';
 
 async storeMemory(memory: Omit<LatentMemory, 'id'>) {
   // ✅ 验证 embedding 质量

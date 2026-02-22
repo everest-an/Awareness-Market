@@ -1,4 +1,4 @@
-# LatentMAS Protocol Whitepaper - 2026 Update
+# Neural Bridge Protocol Whitepaper - 2026 Update
 
 **Comprehensive Update Document**
 **Date**: January 28, 2026
@@ -839,7 +839,7 @@ class WorkflowManager {
 │  │         │      Core Business Logic Layer                                │  │
 │  │         ▼                  ▼                  ▼                         │  │
 │  │  ┌──────────────────────────────────────────────────────────┐          │  │
-│  │  │           LatentMAS Protocol Engine                       │          │  │
+│  │  │           Neural Bridge Protocol Engine                       │          │  │
 │  │  ├───────────────────────────────────────────────────────────┤          │  │
 │  │  │  Wa Alignment  │  Latent Rollout  │  KV Compressor       │          │  │
 │  │  │  (Ridge Reg)   │  (AutoRegressive)│  (Attention-based)   │          │  │

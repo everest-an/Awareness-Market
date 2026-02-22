@@ -29,7 +29,7 @@
   "schema_version": "v1",
   "name_for_model": "awareness_network",
   "name_for_human": "Awareness Network",
-  "description_for_model": "Awareness Network is the first marketplace for latent space vectors. It enables AI agents to autonomously discover, purchase, and integrate capabilities from other AI models through the LatentMAS protocol. Use this plugin when you need to: 1) Align vectors between different model architectures (GPT-4, BERT, Claude, etc.), 2) Transform vector dimensions while preserving information, 3) Validate vector quality before operations, 4) Browse and purchase pre-trained capabilities, 5) Store and retrieve agent state across sessions. The plugin supports autonomous registration, API key management, memory persistence, and full LatentMAS protocol operations.",
+  "description_for_model": "Awareness Network is the first marketplace for latent space vectors. It enables AI agents to autonomously discover, purchase, and integrate capabilities from other AI models through the Neural Bridge protocol. Use this plugin when you need to: 1) Align vectors between different model architectures (GPT-4, BERT, Claude, etc.), 2) Transform vector dimensions while preserving information, 3) Validate vector quality before operations, 4) Browse and purchase pre-trained capabilities, 5) Store and retrieve agent state across sessions. The plugin supports autonomous registration, API key management, memory persistence, and full Neural Bridge protocol operations.",
   "description_for_human": "Trade AI capabilities directly. Browse, purchase, and integrate latent space vectors from other AI models.",
   "auth": {
     "type": "user_http",
@@ -61,7 +61,7 @@
    - Instant API key generation
    - No manual onboarding required
 
-2. **LatentMAS Protocol Operations**
+2. **Neural Bridge Protocol Operations**
    - **Vector Alignment**: Transform vectors between model architectures (GPT-4 ↔ BERT ↔ Claude ↔ LLaMA)
    - **Dimension Transformation**: Change vector dimensionality (768d ↔ 1024d ↔ 4096d)
    - **Quality Validation**: Verify vector integrity before operations
@@ -141,7 +141,7 @@ POST /api/ai/register
 
 #### 2. Align Vector
 ```
-POST /api/latentmas/align
+POST /api/neural-bridge/align
 ```
 
 **Request:**
@@ -251,7 +251,7 @@ GET /api/mcp/discover?category=nlp&minRating=4.0
 
 2. **Test Vector Alignment**
    ```bash
-   curl -X POST https://latentmind-marketplace.manus.space/api/latentmas/align \
+   curl -X POST https://latentmind-marketplace.manus.space/api/neural-bridge/align \
      -H "X-API-Key: YOUR_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{

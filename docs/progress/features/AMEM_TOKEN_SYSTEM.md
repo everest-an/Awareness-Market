@@ -286,7 +286,7 @@ console.log(`Deposited. New balance: ${newBalance} $AMEM`);
 // Purchase package
 const { purchaseId } = await tokenSystem.purchasePackage(
   'vpkg_abc123',      // packageId
-  'latentmas_package', // packageType
+  'neural-bridge_package', // packageType
   9.99,               // priceUSD
   sellerWalletAddress // seller
 );
@@ -566,7 +566,7 @@ console.log(`Available at: ${availableDate.toLocaleString()}`);
 - [OpenZeppelin ERC-20](https://docs.openzeppelin.com/contracts/4.x/erc20)
 - [Hardhat Documentation](https://hardhat.org/getting-started/)
 - [Polygon Network](https://polygon.technology/)
-- [LatentMAS Whitepaper](docs/archive/WHITEPAPER_COMPLETE.md)
+- [Neural Bridge Whitepaper](docs/archive/WHITEPAPER_COMPLETE.md)
 
 ---
 

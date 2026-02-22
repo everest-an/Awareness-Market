@@ -1,7 +1,7 @@
 # Security Audit Checklist
 
 ## Scope
-- /api/latentmas/*
+- /api/neural-bridge/*
 - /api/mcp/*
 - /api/ai/*
 - /api/trial/*

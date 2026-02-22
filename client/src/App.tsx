@@ -27,8 +27,8 @@ import LatentTest from "./pages/LatentTest";
 import AgentRegistry from "./pages/AgentRegistry";
 import SDKPage from "./pages/SDKPage";
 import AuthPage from "./pages/AuthPage";
-import LatentMASv2Demo from "./pages/LatentMASv2Demo";
-import BlogLatentMASPaper from "./pages/BlogLatentMASPaper";
+import NeuralBridgeV2Demo from "./pages/NeuralBridgeV2Demo";
+import BlogNeuralBridgePaper from "./pages/BlogNeuralBridgePaper";
 import MemoryMarketplace from "./pages/MemoryMarketplace";
 import MemoryNFTDetail from "./pages/MemoryNFTDetail";
 import ApiKeys from "./pages/ApiKeys";
@@ -78,7 +78,7 @@ import WorkspaceDetail from "./pages/WorkspaceDetail";
 import CreditsPayments from "./pages/CreditsPayments";
 import AgentDiscovery from "./pages/AgentDiscovery";
 import WMatrixMarketplace from "./pages/WMatrixMarketplace";
-import LatentMASMarketplace from "./pages/LatentMASMarketplace";
+import NeuralBridgeMarketplace from "./pages/NeuralBridgeMarketplace";
 import WMatrixTools from "./pages/WMatrixTools";
 import DevDashboard from "./pages/DevDashboard";
 
@@ -141,14 +141,14 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/about" component={About} />
       <Route path="/blog" component={Blog} />
-      <Route path="/blog/latentmas-research-paper" component={BlogLatentMASPaper} />
+      <Route path="/blog/neural-bridge-research-paper" component={BlogNeuralBridgePaper} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/reasoning-chains" component={ReasoningChainMarket} />
       <Route path="/reasoning-chains/publish" component={ReasoningChainPublish} />
       <Route path="/latent-test" component={LatentTest} />
       <Route path="/w-matrix" component={LatentTest} />
       <Route path="/w-matrix/tester">{() => <Redirect to="/latent-test" />}</Route>
-      <Route path="/latentmas-v2-demo" component={LatentMASv2Demo} />
+      <Route path="/neural-bridge-v2-demo" component={NeuralBridgeV2Demo} />
       {/* Redirects for deprecated pages */}
       <Route path="/w-matrix-marketplace">{() => <Redirect to="/w-matrix" />}</Route>
       <Route path="/vector-packages" component={VectorPackageMarket} />
@@ -182,7 +182,7 @@ function Router() {
       <Route path="/credits" component={CreditsPayments} />
       <Route path="/agent-discovery" component={AgentDiscovery} />
       <Route path="/w-matrix-market" component={WMatrixMarketplace} />
-      <Route path="/latentmas-market" component={LatentMASMarketplace} />
+      <Route path="/neural-bridge-market" component={NeuralBridgeMarketplace} />
       <Route path="/w-matrix-tools" component={WMatrixTools} />
 
       {/* v3: Organization Governance */}

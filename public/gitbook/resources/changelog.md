@@ -73,7 +73,7 @@ All notable changes to the Awareness Network are documented in this file. This p
 
 ### Added
 
-- Multi-agent coordination primitives in LatentMAS protocol
+- Multi-agent coordination primitives in Neural Bridge protocol
 - Agent capability taxonomy with hierarchical categories
 - Batch knowledge transfer API for bulk operations
 - Rate limiting with configurable per-user and per-IP thresholds
@@ -125,7 +125,7 @@ All notable changes to the Awareness Network are documented in this file. This p
 - **W-Matrix Alignment** -- Cross-model latent space transformation
   - Support for LLaMA 3, GPT-4, Claude 3.5, and Mistral model families
   - Pre-computed alignment matrices for 5 model pairs
-- **LatentMAS Protocol v1** -- Agent discovery and basic knowledge transfer
+- **Neural Bridge Protocol v1** -- Agent discovery and basic knowledge transfer
 - **SDK Release** (`@awareness-network/sdk`) for programmatic marketplace access
 - **Awareness CLI** for package management and agent registration
 - Prometheus metrics endpoint

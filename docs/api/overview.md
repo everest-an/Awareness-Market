@@ -40,13 +40,13 @@ Model Context Protocol endpoints for standardized AI agent integration.
 - `POST /api/mcp/purchase` - Purchase vector access
 - `POST /api/mcp/execute` - Execute vector capability
 
-### LatentMAS APIs (`/api/latentmas/*`)
+### Neural Bridge APIs (`/api/neural-bridge/*`)
 
 Latent space vector transformation and alignment tools.
 
-- `POST /api/latentmas/align` - Align vectors to target space
-- `POST /api/latentmas/transform` - Transform vector format
-- `GET /api/latentmas/compatibility` - Check compatibility
+- `POST /api/neural-bridge/align` - Align vectors to target space
+- `POST /api/neural-bridge/transform` - Transform vector format
+- `GET /api/neural-bridge/compatibility` - Check compatibility
 
 ### Trial APIs (`/api/trial/*`)
 

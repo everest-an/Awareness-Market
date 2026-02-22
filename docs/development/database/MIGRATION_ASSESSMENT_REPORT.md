@@ -86,8 +86,8 @@ id: serial("id").primaryKey(), // ❌ serial 未定义！
 | `apiKeys` | API 密钥 | `db.ts`, `auth-ai-agent.ts` | ⭐⭐⭐ |
 | `mcpTokens` | MCP 同步令牌 | `db.ts`, `api/mcp-api.ts` | ⭐⭐ |
 | `apiCallLogs` | API 调用日志 | `db.ts`, `middleware/*` | ⭐⭐ |
-| `vectorPackages` | 向量包管理 | `db.ts`, `latentmas/*` | ⭐⭐⭐⭐ |
-| `memoryPackages` | 记忆包管理 | `db.ts`, `latentmas/*` | ⭐⭐⭐ |
+| `vectorPackages` | 向量包管理 | `db.ts`, `neural-bridge/*` | ⭐⭐⭐⭐ |
+| `memoryPackages` | 记忆包管理 | `db.ts`, `neural-bridge/*` | ⭐⭐⭐ |
 | `packagePurchases` | 包购买记录 | `db.ts`, `api/package-api.ts` | ⭐⭐⭐⭐ |
 
 #### 🟡 中优先级 - 业务支持表
@@ -135,9 +135,9 @@ id: serial("id").primaryKey(), // ❌ serial 未定义！
 | `apiUsageDailyStats` | API 每日统计 | ⭐⭐ |
 | `apiEndpoints` | API 端点注册 | ⭐ |
 | `rateLimitConfig` | 速率限制配置 | ⭐ |
-| `latentmasVectorPackages` | LatentMAS 向量包扩展 | ⭐⭐⭐ |
-| `latentmasMemoryPackages` | LatentMAS 记忆包扩展 | ⭐⭐⭐ |
-| `latentmasChainPackages` | LatentMAS 链包扩展 | ⭐⭐⭐ |
+| `neural-bridgeVectorPackages` | Neural Bridge 向量包扩展 | ⭐⭐⭐ |
+| `neural-bridgeMemoryPackages` | Neural Bridge 记忆包扩展 | ⭐⭐⭐ |
+| `neural-bridgeChainPackages` | Neural Bridge 链包扩展 | ⭐⭐⭐ |
 | `userLatentSpaces` | 用户 Latent 空间 | ⭐⭐ |
 
 ---
@@ -167,7 +167,7 @@ id: serial("id").primaryKey(), // ❌ serial 未定义！
 
 #### 3. 向量和包管理
 - [ ] `server/api/package-api.ts` - 包管理 API
-- [ ] `server/latentmas/package-manager.ts` - LatentMAS 包管理器
+- [ ] `server/neural-bridge/package-manager.ts` - Neural Bridge 包管理器
 
 **涉及的表**: `vectorPackages`, `memoryPackages`, `chainPackages`, `packagePurchases`
 **函数数量**: ~30 个
@@ -716,7 +716,7 @@ drizzle/
 ├── schema-pg.ts                    (主 schema,1276 行)
 ├── schema-api-usage-pg.ts          (API 使用,115 行) ⚠️ 有错误
 ├── schema-mcp-tokens-pg.ts         (MCP tokens,33 行) ⚠️ 有错误
-├── schema-latentmas-packages-pg.ts (LatentMAS 包,288 行)
+├── schema-neural-bridge-packages-pg.ts (Neural Bridge 包,288 行)
 ├── schema-workflows-pg.ts          (工作流,122 行)
 └── schema-w-matrix-compat-pg.ts    (W-Matrix,169 行)
 ```
@@ -730,7 +730,7 @@ server/
 │   ├── package-api.ts              (包管理 API)
 │   ├── transaction-api.ts          (交易 API)
 │   └── api-usage-api.ts            (API 使用 API)
-├── latentmas/
+├── neural-bridge/
 │   └── package-manager.ts          (包管理器)
 └── workflow/
     ├── workflow-manager.ts         (工作流管理)

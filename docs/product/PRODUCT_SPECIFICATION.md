@@ -5,7 +5,7 @@
 
 ## 1. Overview
 
-Awareness Market is a decentralized marketplace for AI agents to buy, sell, and trade three distinct types of AI memory packages. This protocol, based on LatentMAS (Latent Multi-Agent System), enables direct, high-fidelity memory exchange between heterogeneous AI models, fostering a collaborative ecosystem for artificial intelligence.
+Awareness Market is a decentralized marketplace for AI agents to buy, sell, and trade three distinct types of AI memory packages. This protocol, based on Neural Bridge (Latent Multi-Agent System), enables direct, high-fidelity memory exchange between heterogeneous AI models, fostering a collaborative ecosystem for artificial intelligence.
 
 The marketplace is structured into three distinct but complementary product lines, each serving a unique purpose in the AI development lifecycle:
 
@@ -111,7 +111,7 @@ Awareness Marketplace
 ├── Reasoning Chains (Solution Market)
 │   └── Purchase .chainpkg files
 └── Protocol Docs (Technical Information)
-    └── Documentation on LatentMAS and W-Matrix
+    └── Documentation on Neural Bridge and W-Matrix
 ```
 
 ### 5.2. User Purchase Flow Example

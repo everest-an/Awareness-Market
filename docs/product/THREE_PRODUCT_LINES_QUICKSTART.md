@@ -344,5 +344,5 @@ CREATE TABLE chain_packages (
 ## 🔗 Related Documentation
 
 - [Whitepaper](./WHITEPAPER.md) - Technical architecture
-- [API Documentation](../LATENTMAS_V2_API.md) - Full API reference
+- [API Documentation](../NEURAL_BRIDGE_V2_API.md) - Full API reference
 - [Feature Completeness](./FEATURE_COMPLETENESS_REPORT.md) - Implementation status

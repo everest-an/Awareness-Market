@@ -70,7 +70,7 @@
 1. **语义索引** (`semanticIndex`) - 7 个端点 ✅
 2. **代理注册** (`agentRegistry`) - 6 个端点 ✅
 3. **对齐系统** (`alignment`) - 5 个端点 ✅
-4. **LatentMAS v2** (`latentmasV2`) - 4 个子路由器 ✅
+4. **Neural Bridge v2** (`neural-bridgeV2`) - 4 个子路由器 ✅
 5. **W-Matrix 市场** (`wMatrixMarketplace`) - 5 个端点 ✅
 6. **内存 NFT** (`memoryNFT`) - 5 个端点 ✅
 7. **代理信用** (`agentCredit`) - 3 个端点 ✅

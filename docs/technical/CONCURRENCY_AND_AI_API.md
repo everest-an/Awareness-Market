@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the multi-user concurrency safety mechanisms and AI-friendly API endpoints implemented in the LatentMAS Marketplace.
+This document describes the multi-user concurrency safety mechanisms and AI-friendly API endpoints implemented in the Neural Bridge Marketplace.
 
 **Date**: 2026-01-06  
 **Version**: 1.0.0  
@@ -812,7 +812,7 @@ DB_POOL_CONNECTION_TIMEOUT=5000
 
 ## Conclusion
 
-The LatentMAS Marketplace now supports:
+The Neural Bridge Marketplace now supports:
 - ✅ Multi-user concurrent access with connection pooling
 - ✅ Atomic transactions with automatic rollback
 - ✅ API rate limiting to prevent abuse

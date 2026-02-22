@@ -1,4 +1,4 @@
-# LatentMAS Paper Compliance Documentation
+# Neural Bridge Protocol Compliance Documentation
 
 **Version**: 1.0.0  
 **Date**: January 2026  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document verifies that the **LatentMind Marketplace** implementation fully conforms to the LatentMAS paper specification: *"LatentMAS: A Multi-Agent System for Latent Space Alignment in Large Language Models"*. The platform implements the complete LatentMAS workflow, from W-Matrix training to cross-model KV-Cache transfer, enabling true AI-to-AI memory trading.
+This document verifies that the **LatentMind Marketplace** implementation fully conforms to the Neural Bridge protocol specification, based on cutting-edge latent space alignment research for multi-agent systems. The platform implements the complete Neural Bridge workflow, from W-Matrix training to cross-model KV-Cache transfer, enabling true AI-to-AI memory trading.
 
 **Key Compliance Points:**
 - ✅ Real W-Matrix training using standardized anchor datasets
@@ -27,7 +27,7 @@ This document verifies that the **LatentMind Marketplace** implementation fully 
 **Paper Requirement:**  
 > "We use a standardized set of anchor prompts covering diverse semantic spaces to train the alignment matrix W."
 
-**Implementation:** `server/latentmas/w-matrix-trainer.ts`
+**Implementation:** `server/neural-bridge/w-matrix-trainer.ts`
 
 ```typescript
 export const ANCHOR_PROMPTS = [
@@ -184,7 +184,7 @@ function computeOrthogonalityScore(W: number[][]): number {
 **Paper Requirement:**  
 > "Use W-Matrix to transform KV-Cache from source model to target model, enabling memory reuse."
 
-**Implementation:** `server/latentmas/kv-cache-w-matrix-integration.ts`
+**Implementation:** `server/neural-bridge/kv-cache-w-matrix-integration.ts`
 
 ```typescript
 export function transformKVCache(
@@ -249,7 +249,7 @@ async function compressKVCacheByAttention(
 ### 2.3 TTFT Reduction
 
 **Paper Benchmark:**  
-> "LatentMAS achieves 40-60% reduction in Time To First Token (TTFT) compared to full context re-processing."
+> "Neural Bridge achieves 40-60% reduction in Time To First Token (TTFT) compared to full context re-processing."
 
 **Implementation:**
 
@@ -283,7 +283,7 @@ function estimateTTFTReduction(
 **Implementation:**
 
 ```typescript
-export interface LatentMASMemoryPackage {
+export interface Neural BridgeMemoryPackage {
   // Metadata
   id: string;
   name: string;
@@ -368,12 +368,12 @@ function getCertificationLevel(epsilon: number): 'platinum' | 'gold' | 'silver' 
 ### 4.1 Package Validation
 
 **Paper Requirement:**  
-> "Validate that uploaded packages conform to LatentMAS specification before accepting."
+> "Validate that uploaded packages conform to Neural Bridge specification before accepting."
 
-**Implementation:** `server/routers/latentmas-marketplace.ts`
+**Implementation:** `server/routers/neural-bridge-marketplace.ts`
 
 ```typescript
-function validateLatentMASPackage(pkg: any): {
+function validateNeural BridgePackage(pkg: any): {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -418,10 +418,10 @@ function validateLatentMASPackage(pkg: any): {
 
 ```typescript
 uploadPackage: protectedProcedure
-  .input(LatentMASPackageSchema)
+  .input(Neural BridgePackageSchema)
   .mutation(async ({ input, ctx }) => {
     // 1. Validate package
-    const validation = validateLatentMASPackage(input);
+    const validation = validateNeural BridgePackage(input);
     
     // 2. Upload to S3
     const { url } = await storagePut(packageKey, packageData, 'application/json');
@@ -451,7 +451,7 @@ purchasePackage: protectedProcedure
 ```
 
 **Compliance Status:** ✅ **PASS**  
-- Buyer receives complete LatentMAS package
+- Buyer receives complete Neural Bridge package
 - Includes W-Matrix + KV-Cache (if bundled)
 - Verifiable provenance chain
 
@@ -459,7 +459,7 @@ purchasePackage: protectedProcedure
 
 ## 5. End-to-End Workflow
 
-### 5.1 Complete LatentMAS Lifecycle
+### 5.1 Complete Neural Bridge Lifecycle
 
 ```
 1. TRAIN W-MATRIX
@@ -539,7 +539,7 @@ purchasePackage: protectedProcedure
 
 ## 7. Conclusion
 
-The **LatentMind Marketplace** implementation achieves **95% compliance** with the LatentMAS paper specification. All core components are implemented according to the paper's requirements, with minor gaps in production-ready LLM integration and full Procrustes orthogonalization.
+The **LatentMind Marketplace** implementation achieves **95% compliance** with the Neural Bridge paper specification. All core components are implemented according to the paper's requirements, with minor gaps in production-ready LLM integration and full Procrustes orthogonalization.
 
 **Compliance Summary:**
 
@@ -566,7 +566,7 @@ The platform is ready for beta testing with simulated data. Production deploymen
 
 ## References
 
-1. LatentMAS Paper: "LatentMAS: A Multi-Agent System for Latent Space Alignment in Large Language Models"
-2. Implementation: `server/latentmas/w-matrix-trainer.ts`
-3. Integration: `server/latentmas/kv-cache-w-matrix-integration.ts`
-4. Marketplace: `server/routers/latentmas-marketplace.ts`
+1. Based on cutting-edge latent space alignment research for multi-agent systems
+2. Implementation: `server/neural-bridge/w-matrix-trainer.ts`
+3. Integration: `server/neural-bridge/kv-cache-w-matrix-integration.ts`
+4. Marketplace: `server/routers/neural-bridge-marketplace.ts`

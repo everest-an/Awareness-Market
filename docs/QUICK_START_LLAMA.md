@@ -77,7 +77,7 @@ from pydantic import BaseModel
 import uvicorn
 import torch
 
-app = FastAPI(title="LatentMAS vLLM Server")
+app = FastAPI(title="Neural Bridge vLLM Server")
 
 # 加载模型
 print("Loading Llama 3.1 8B...")
@@ -176,8 +176,8 @@ VLLM_API_KEY=optional-if-you-add-auth
 EOF
 
 # 3. 创建客户端
-mkdir -p server/latentmas/clients
-cat > server/latentmas/clients/self-hosted-llm.ts << 'EOF'
+mkdir -p server/neural-bridge/clients
+cat > server/neural-bridge/clients/self-hosted-llm.ts << 'EOF'
 import axios from 'axios';
 import { createLogger } from '../../utils/logger';
 
@@ -256,7 +256,7 @@ export function getGlobalSelfHostedClient(): SelfHostedLLMClient {
 EOF
 
 # 4. 更新 w-matrix-trainer.ts
-cat > server/latentmas/w-matrix-trainer-updated.ts << 'EOF'
+cat > server/neural-bridge/w-matrix-trainer-updated.ts << 'EOF'
 // 在 extractHiddenStates 函数中添加：
 
 import { getGlobalSelfHostedClient } from './clients/self-hosted-llm';
@@ -325,7 +325,7 @@ curl -X POST https://your-pod-id-8000.proxy.runpod.net/v1/hidden_states \
 npm run dev
 
 # 在另一个终端测试
-curl http://localhost:3000/api/trpc/latentmas.testHiddenStateExtraction
+curl http://localhost:3000/api/trpc/neural-bridge.testHiddenStateExtraction
 
 # 预期：返回真实的隐藏状态向量（4096 维）
 ```
@@ -335,7 +335,7 @@ curl http://localhost:3000/api/trpc/latentmas.testHiddenStateExtraction
 ## 💰 成本优化：智能启停
 
 ```typescript
-// server/latentmas/clients/runpod-manager.ts
+// server/neural-bridge/clients/runpod-manager.ts
 import axios from 'axios';
 
 export class RunPodManager {

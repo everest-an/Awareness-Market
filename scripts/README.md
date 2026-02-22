@@ -167,7 +167,7 @@ bash scripts/test-integration.sh
 
 ```bash
 # 方法 1: 使用 tRPC API
-curl -X POST http://localhost:3000/api/trpc/latentmas.trueLatentMAS.compileTextToLatent \
+curl -X POST http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.compileTextToLatent \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Machine learning is a subset of artificial intelligence.",
@@ -255,7 +255,7 @@ for (const prompt of prompts) {
 ### 智能 Pod 管理
 
 ```typescript
-import { getGlobalRunPodManager } from './server/latentmas/clients/runpod-manager';
+import { getGlobalRunPodManager } from './server/neural-bridge/clients/runpod-manager';
 
 const manager = getGlobalRunPodManager();
 
@@ -274,7 +274,7 @@ const wMatrix = await manager.withAutoManage(async () => {
 
 ```bash
 # API 查询
-curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.getCostStats
+curl http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.getCostStats
 
 # 输出:
 # {
@@ -291,7 +291,7 @@ curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.getCostStats
 
 ```bash
 # 导出 CSV
-curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.exportCostData > cost-report.csv
+curl http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.exportCostData > cost-report.csv
 
 # 在 Excel/Google Sheets 中打开分析
 ```
@@ -336,8 +336,8 @@ nohup python /workspace/vllm_server.py > /workspace/vllm.log 2>&1 &
 
 - [集成总览](../docs/SELF_HOSTED_LLM_INTEGRATION.md)
 - [快速部署指南](../docs/QUICK_START_LLAMA.md)
-- [预算优化方案](../LATENTMAS_BUDGET_DEPLOYMENT.md)
-- [实现状态](../docs/technical/LATENTMAS_IMPLEMENTATION_STATUS.md)
+- [预算优化方案](../NEURAL_BRIDGE_BUDGET_DEPLOYMENT.md)
+- [实现状态](../docs/technical/NEURAL_BRIDGE_IMPLEMENTATION_STATUS.md)
 
 ---
 

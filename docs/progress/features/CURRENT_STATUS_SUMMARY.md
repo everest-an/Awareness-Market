@@ -53,7 +53,7 @@
 
 ### 5.1 ZKP 后端接入 ✅ 已改进
 - ✅ 支持配置远程 ZKP backend（无需本地 snarkjs）
-- **参考**: [server/latentmas/zkp-verification.ts](server/latentmas/zkp-verification.ts), [server/routers/zkp-api.ts](server/routers/zkp-api.ts)
+- **参考**: [server/neural-bridge/zkp-verification.ts](server/neural-bridge/zkp-verification.ts), [server/routers/zkp-api.ts](server/routers/zkp-api.ts)
 
 ### 5.2 ZKP 链上提交 ✅ 已改进
 - ✅ 可选接入链上提交 endpoint
@@ -67,15 +67,15 @@
 
 ### 6.1 TEE 远程证明接入 ✅ 已改进
 - ✅ 支持配置远程 attestation endpoint
-- **参考**: [server/latentmas/tee-integration.ts](server/latentmas/tee-integration.ts)
+- **参考**: [server/neural-bridge/tee-integration.ts](server/neural-bridge/tee-integration.ts)
 
 ### 6.2 TEE 远程初始化 ✅ 已改进
 - ✅ SGX/SEV 可通过远程证明端点启用
-- **参考**: [server/latentmas/tee-integration.ts](server/latentmas/tee-integration.ts)
+- **参考**: [server/neural-bridge/tee-integration.ts](server/neural-bridge/tee-integration.ts)
 
 ### 6.3 TEE 向量加解密 ✅ 已改进
 - ✅ AES-256-GCM 可逆加解密，使用持久密钥并携带 IV/Tag
-- **参考**: [server/latentmas/tee-integration.ts](server/latentmas/tee-integration.ts)
+- **参考**: [server/neural-bridge/tee-integration.ts](server/neural-bridge/tee-integration.ts)
 
 ### 7. 支付接入增强 ✅ 已完成
 - ✅ 稳定币充值（USDC/USDT）报价与交易验证已接入
@@ -85,9 +85,9 @@
 
 ### 8. 代理信用与隐私信息 ✅ 已改进
 - ✅ 代理信用评分按钱包地址匹配并生成真实历史
-- ✅ LatentMAS 隐私信息改为真实计算（非 mock）
+- ✅ Neural Bridge 隐私信息改为真实计算（非 mock）
 - ✅ avgEpsilon 从真实包数据计算
-- **参考**: [server/routers/agent-credit-api.ts](server/routers/agent-credit-api.ts), [server/routers/latentmas-marketplace.ts](server/routers/latentmas-marketplace.ts)
+- **参考**: [server/routers/agent-credit-api.ts](server/routers/agent-credit-api.ts), [server/routers/neural-bridge-marketplace.ts](server/routers/neural-bridge-marketplace.ts)
 
 ### 9. 多模态检索与模态抽取 ✅ 已完成
 - ✅ crossModalSearch 从真实多模态向量计算相似度
@@ -103,9 +103,9 @@
 - ✅ Memory/Chain 包上传使用 PoLF challenge-response 验证
 - **参考**: [server/routers/packages-api.ts](server/routers/packages-api.ts)
 
-### 10. LatentMAS 格式转换 ✅ 已完成
-- ✅ /api/latentmas/convert 使用真实转换脚本
-- **参考**: [server/latentmas-api.ts](server/latentmas-api.ts), [server/latentmas-converter.ts](server/latentmas-converter.ts)
+### 10. Neural Bridge 格式转换 ✅ 已完成
+- ✅ /api/neural-bridge/convert 使用真实转换脚本
+- **参考**: [server/neural-bridge-api.ts](server/neural-bridge-api.ts), [server/neural-bridge-converter.ts](server/neural-bridge-converter.ts)
 
 ### 10.5 向量索引 KV-Cache 提取 ✅ 已完成
 - ✅ KV-Cache 平均向量用于索引（非占位）
@@ -167,16 +167,16 @@
 
 ---
 
-### 3. 🧠 LatentMAS对齐算法（API路径）
+### 3. 🧠 Neural Bridge对齐算法（API路径）
 **状态**: ✅ 已改进
 **说明**: alignVector 使用 W-Matrix 服务与真实相似度指标替代随机矩阵/随机质量
-**参考**: [server/latentmas-core.ts](server/latentmas-core.ts)
+**参考**: [server/neural-bridge-core.ts](server/neural-bridge-core.ts)
 
 ---
 
-### 3. 🧮 LatentMAS核心算法
+### 3. 🧮 Neural Bridge核心算法
 **状态**: ✅ 已接入包上传与训练流程正交约束  
-**文件**: `server/latentmas/svd-orthogonalization.ts`
+**文件**: `server/neural-bridge/svd-orthogonalization.ts`
 
 **已完成**: 包上传与训练流程应用SVD正交约束并重算正交评分
 **需要**: 若存在独立更新流程，需同步接入正交化步骤
@@ -251,7 +251,7 @@
 ### 本周优先级（按顺序）
 
 1. **市场API数据库集成** (2天) - 核心功能
-   - 文件: `server/routers/latentmas-marketplace.ts`
+   - 文件: `server/routers/neural-bridge-marketplace.ts`
    - 替换所有TODO为真实数据库查询
 
 2. **测试覆盖率提升到60%** (2-3天)
@@ -305,7 +305,7 @@
 
 **关键TODO位置**:
 1. `server/routers.ts:564` - Stripe集成
-2. `docs/technical/LATENTMAS_PAPER_COMPLIANCE.md:162` - SVD算法
+2. `docs/technical/NEURAL_BRIDGE_PAPER_COMPLIANCE.md:162` - SVD算法
 
 ---
 

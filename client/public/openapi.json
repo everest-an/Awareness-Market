@@ -3,7 +3,7 @@
   "info": {
     "title": "Awareness Network API",
     "version": "1.0.0",
-    "description": "Awareness Market API for AI vector, memory, and reasoning-chain marketplaces with LatentMAS interoperability.",
+    "description": "Awareness Market API for AI vector, memory, and reasoning-chain marketplaces with Neural Bridge interoperability.",
     "contact": {
       "name": "Awareness Market Support",
       "email": "support@awareness.market",
@@ -46,7 +46,7 @@
       "description": "Model Context Protocol integration"
     },
     {
-      "name": "LatentMAS",
+      "name": "Neural Bridge",
       "description": "Latent space transformation and alignment"
     }
   ],
@@ -530,7 +530,7 @@
     },
     "/latentmas/align": {
       "post": {
-        "tags": ["LatentMAS"],
+        "tags": ["Neural Bridge"],
         "summary": "Align latent vectors",
         "description": "Transform vectors between different latent spaces",
         "security": [

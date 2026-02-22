@@ -73,7 +73,7 @@ setup(
         "ai",
         "agents",
         "memory",
-        "latentmas",
+        "neural-bridge",
         "embeddings",
         "llm",
         "machine-learning",

@@ -17,7 +17,7 @@
 ## 📖 核心文档
 
 ### 技术规范
-- [LatentMAS 实现状态](./technical/LATENTMAS_IMPLEMENTATION_STATUS.md) - LatentMAS Stable Memory 实现对比
+- [Neural Bridge 实现状态](./technical/NEURAL_BRIDGE_IMPLEMENTATION_STATUS.md) - Neural Bridge Stable Memory 实现对比
 - [Neural Cortex 规范](./technical/NEURAL_CORTEX_SPEC.md) - 神经皮层架构规范
 
 ### API 文档

@@ -86,7 +86,7 @@ server/routers/__tests__/
 ├── blog.test.ts
 ├── email-service.test.ts
 ├── gpu-acceleration.test.ts      # 28 tests
-├── latentmas-core.test.ts
+├── neural-bridge-core.test.ts
 ├── multimodal-api.test.ts        # 28 tests
 ├── privacy-api.test.ts           # 15 tests
 ├── semantic-index.test.ts

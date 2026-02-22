@@ -6,8 +6,8 @@ Implemented GPU-accelerated batch operations for latent vector alignment, normal
 
 ## Files Created
 
-1. `server/latentmas/gpu-acceleration.ts` - Core GPU acceleration engine (450 lines)
-2. `server/latentmas/gpu-acceleration.test.ts` - Comprehensive test suite (34 tests)
+1. `server/neural-bridge/gpu-acceleration.ts` - Core GPU acceleration engine (450 lines)
+2. `server/neural-bridge/gpu-acceleration.test.ts` - Comprehensive test suite (34 tests)
 
 ## Features Implemented
 
@@ -62,7 +62,7 @@ import {
   getGPUEngine,
   initializeGPU,
   type ComputeBackend,
-} from './server/latentmas/gpu-acceleration';
+} from './server/neural-bridge/gpu-acceleration';
 ```
 
 ### Step 3: Initialize GPU Engine
@@ -101,7 +101,7 @@ function alignVector(vector: number[], wMatrix: number[][]): number[] {
 }
 
 // After (GPU-accelerated):
-import { getGPUEngine } from './latentmas/gpu-acceleration';
+import { getGPUEngine } from './neural-bridge/gpu-acceleration';
 
 async function alignVector(vector: number[], wMatrix: number[][]): Promise<number[]> {
   const engine = getGPUEngine();
@@ -122,7 +122,7 @@ async function alignBatch(vectors: number[][], wMatrix: number[][]): Promise<num
 ### Basic Batch Alignment
 
 ```typescript
-import { getGPUEngine } from './server/latentmas/gpu-acceleration';
+import { getGPUEngine } from './server/neural-bridge/gpu-acceleration';
 
 const engine = getGPUEngine();
 await engine.initialize();
@@ -141,7 +141,7 @@ console.log(`Output dimensions: ${result.alignedVectors[0].length}`);
 ### Batch Normalization
 
 ```typescript
-import { getGPUEngine } from './server/latentmas/gpu-acceleration';
+import { getGPUEngine } from './server/neural-bridge/gpu-acceleration';
 
 const engine = getGPUEngine();
 
@@ -155,7 +155,7 @@ const normalized = await engine.normalizeBatch(vectors);
 ### Cosine Similarity Computation
 
 ```typescript
-import { getGPUEngine } from './server/latentmas/gpu-acceleration';
+import { getGPUEngine } from './server/neural-bridge/gpu-acceleration';
 
 const engine = getGPUEngine();
 
@@ -171,7 +171,7 @@ const similarities = await engine.cosineSimilarityBatch(queries, targets);
 ### Performance Benchmarking
 
 ```typescript
-import { benchmarkBackends } from './server/latentmas/gpu-acceleration';
+import { benchmarkBackends } from './server/neural-bridge/gpu-acceleration';
 
 const vectors = generateRandomVectors(100, 512);
 const wMatrix = generateRandomMatrix(768, 512);
@@ -209,12 +209,12 @@ console.log(`Speedup: ${benchmark.speedup}x`);
 | CPU (TensorFlow) | 3x vector size | Moderate |
 | GPU (CUDA) | 4x vector size | High (VRAM) |
 
-## Integration with LatentMAS
+## Integration with Neural Bridge
 
 ### Update W-Matrix Alignment Operator
 
 ```typescript
-// server/latentmas/wa-alignment-operator.ts
+// server/neural-bridge/wa-alignment-operator.ts
 
 import { getGPUEngine } from './gpu-acceleration';
 
@@ -247,7 +247,7 @@ export class WaAlignmentOperator {
 ```typescript
 // server/upload-api.ts
 
-import { getGPUEngine } from './latentmas/gpu-acceleration';
+import { getGPUEngine } from './neural-bridge/gpu-acceleration';
 
 async function processVectorBatch(vectors: number[][], wMatrix: number[][]) {
   const engine = getGPUEngine();
@@ -272,7 +272,7 @@ async function processVectorBatch(vectors: number[][], wMatrix: number[][]) {
 Run the test suite:
 
 ```bash
-npm test server/latentmas/gpu-acceleration.test.ts
+npm test server/neural-bridge/gpu-acceleration.test.ts
 ```
 
 Expected output:
@@ -310,7 +310,7 @@ GPU_PRECISION=float32  # 'float32' | 'float16'
 ### Runtime Configuration
 
 ```typescript
-import { initializeGPU } from './server/latentmas/gpu-acceleration';
+import { initializeGPU } from './server/neural-bridge/gpu-acceleration';
 
 const engine = await initializeGPU({
   backend: 'auto', // Auto-detect best backend
@@ -325,7 +325,7 @@ const engine = await initializeGPU({
 ### Track GPU Performance
 
 ```typescript
-import { getGPUEngine } from './server/latentmas/gpu-acceleration';
+import { getGPUEngine } from './server/neural-bridge/gpu-acceleration';
 
 const engine = getGPUEngine();
 

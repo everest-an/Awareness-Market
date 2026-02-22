@@ -37,7 +37,7 @@
 | Analytics.tsx | 14 | Loading 状态文字 `"…"` 被截断 |
 | AuthPage.tsx | 17 | 表单提示文字 |
 | Blog.tsx | 8 | 面包屑分隔符 `→` |
-| BlogLatentMASPaper.tsx | 2 | 面包屑分隔符 |
+| BlogNeural BridgePaper.tsx | 2 | 面包屑分隔符 |
 | Home.tsx | 2 | 统计数字占位符 |
 | ReviewSection.tsx | 5 | 星级显示 `★` |
 | VectorPackageMarket.tsx | 4 | 排序标签 `↑↓` |

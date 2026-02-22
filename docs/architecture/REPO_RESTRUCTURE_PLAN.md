@@ -78,7 +78,7 @@ LICENSE            # 许可证（如果有）
 ```bash
 # 从根目录移动
 seed-enterprise-vectors.mjs → scripts/seed/enterprise-vectors.mjs
-seed-latentmas-enterprise.ts → scripts/seed/latentmas-enterprise.ts
+seed-neural-bridge-enterprise.ts → scripts/seed/neural-bridge-enterprise.ts
 seed-opensource-vectors.ts → scripts/seed/opensource-vectors.ts
 seed-reasoning-chains.ts → scripts/seed/reasoning-chains.ts
 ```
@@ -167,7 +167,7 @@ Awareness-Network/
 ├── server/                    # 后端代码
 │   ├── _core/                 # 核心基础设施（保留）
 │   ├── routers/
-│   ├── latentmas/
+│   ├── neural-bridge/
 │   └── ...
 ├── shared/                    # 共享代码
 ├── drizzle/                   # 数据库

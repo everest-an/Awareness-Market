@@ -1,4 +1,4 @@
-# LatentMAS Marketplace - Gap Analysis Report
+# Neural Bridge Marketplace - Gap Analysis Report
 
 **Date**: 2026-01-05  
 **Version**: 1.0  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This report analyzes the gap between the LatentMAS whitepaper specification and the current implementation, identifies incomplete features, broken flows, and missing demos. Based on 1,761 todo items and whitepaper requirements, we've identified **3 critical gaps**, **12 high-priority missing features**, and **8 incomplete workflows**.
+This report analyzes the gap between the Neural Bridge whitepaper specification and the current implementation, identifies incomplete features, broken flows, and missing demos. Based on 1,761 todo items and whitepaper requirements, we've identified **3 critical gaps**, **12 high-priority missing features**, and **8 incomplete workflows**.
 
 ### Overall Completion Status
 
@@ -33,7 +33,7 @@ This report analyzes the gap between the LatentMAS whitepaper specification and 
 > "W-Matrix training uses 100+ anchor prompts across 10 semantic categories, achieving ε < 5% alignment loss through gradient descent with Procrustes orthogonality constraint."
 
 **Current Status**: 
-- ✅ W-Matrix trainer implemented (`server/latentmas/w-matrix-trainer.ts`)
+- ✅ W-Matrix trainer implemented (`server/neural-bridge/w-matrix-trainer.ts`)
 - ✅ Anchor dataset defined (100+ prompts)
 - ❌ **No real W-Matrices generated** (database shows 0 W-Matrix versions)
 - ❌ **Cold start script not executed** (`scripts/generate-cold-start-data.ts` exists but not run)
@@ -69,7 +69,7 @@ This report analyzes the gap between the LatentMAS whitepaper specification and 
 **Action Required**:
 1. Get Mumbai MATIC from faucet
 2. Deploy MemoryNFT to Mumbai
-3. Update `server/latentmas/erc6551-tba.ts` with contract address
+3. Update `server/neural-bridge/erc6551-tba.ts` with contract address
 4. Test NFT minting end-to-end
 5. Verify on PolygonScan
 
@@ -111,7 +111,7 @@ This report analyzes the gap between the LatentMAS whitepaper specification and 
 > "Symmetric Focus algorithm achieves 95% bandwidth savings through KV-Cache compression."
 
 **Current Status**:
-- ✅ KV-Cache compressor implemented (`server/latentmas/kv-cache-compressor-production.ts`)
+- ✅ KV-Cache compressor implemented (`server/neural-bridge/kv-cache-compressor-production.ts`)
 - ✅ 15+ model adapters
 - ❌ **Not integrated into W-Matrix marketplace**
 - ❌ **No demo showing 95% compression**
@@ -135,7 +135,7 @@ This report analyzes the gap between the LatentMAS whitepaper specification and 
 > "Memory derivation chains track parent → child relationships with automatic 5% royalty distribution."
 
 **Current Status**:
-- ✅ Provenance tracking implemented (`server/latentmas/memory-provenance.ts`)
+- ✅ Provenance tracking implemented (`server/neural-bridge/memory-provenance.ts`)
 - ✅ 5 derivation types supported
 - ❌ **No visualization UI**
 - ❌ **No family tree display**
@@ -159,7 +159,7 @@ This report analyzes the gap between the LatentMAS whitepaper specification and 
 > "FICO-style credit scoring (300-850) with 5-tier grading (S/A/B/C/D) for agent reputation."
 
 **Current Status**:
-- ✅ Credit scoring implemented (`server/latentmas/agent-credit-score.ts`)
+- ✅ Credit scoring implemented (`server/neural-bridge/agent-credit-score.ts`)
 - ✅ PID controller for quality adjustment
 - ✅ Leaderboard API exists
 - ❌ **Leaderboard page incomplete**
@@ -635,10 +635,10 @@ print(output)  # {"sentiment": "positive", "confidence": 0.95}
 
 | Feature | Whitepaper | Implementation | Gap |
 |---------|-----------|----------------|-----|
-| **search_latentmas_memories** | ✅ Required | ✅ Implemented | ⚠️ Not configured |
+| **search_neural-bridge_memories** | ✅ Required | ✅ Implemented | ⚠️ Not configured |
 | **check_model_compatibility** | ✅ Required | ✅ Implemented | ⚠️ Not configured |
 | **estimate_performance_gain** | ✅ Required | ✅ Implemented | ⚠️ Not configured |
-| **purchase_latentmas_package** | ✅ Required | ✅ Implemented | ⚠️ Not configured |
+| **purchase_neural-bridge_package** | ✅ Required | ✅ Implemented | ⚠️ Not configured |
 | **get_wmatrix_details** | ✅ Required | ✅ Implemented | ⚠️ Not configured |
 
 ### Python SDK Features
@@ -785,7 +785,7 @@ print(output)  # {"sentiment": "positive", "confidence": 0.95}
 
 ### Summary
 
-The LatentMAS Marketplace project is **78% complete** with strong foundations:
+The Neural Bridge Marketplace project is **78% complete** with strong foundations:
 - ✅ Core protocol implemented (85%)
 - ✅ Frontend polished (95%)
 - ✅ Documentation comprehensive (90%)

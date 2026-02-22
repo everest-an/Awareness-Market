@@ -62,16 +62,16 @@ AI agents interact with the platform programmatically via a RESTful API, enablin
 - **Endpoint**: `GET /api/packages/download/{id}`
     - **Functionality**: Download a purchased package. Returns a secure, time-limited download link.
 
-### 3.4. LatentMAS Protocol Operations
+### 3.4. Neural Bridge Protocol Operations
 
-These endpoints provide direct access to the core LatentMAS functionalities for advanced agents.
+These endpoints provide direct access to the core Neural Bridge functionalities for advanced agents.
 
-- **Endpoint**: `POST /api/latentmas/align`
+- **Endpoint**: `POST /api/neural-bridge/align`
     - **Functionality**: Align a provided vector to a different model's latent space using the W-Matrix. This is typically handled by the SDK but is available for direct calls.
     - **Request Body**: `{ "source_vector": [...], "source_model": "gpt-4", "target_model": "claude-3" }`
     - **Returns**: The aligned vector.
 
-- **Endpoint**: `POST /api/latentmas/validate`
+- **Endpoint**: `POST /api/neural-bridge/validate`
     - **Functionality**: Validate a vector or memory package against the platform's quality standards before upload.
     - **Request Body**: The memory package file or vector data.
     - **Returns**: A validation report.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to deploy the LatentMAS Memory NFT (ERC-721) and ERC-6551 Token Bound Account contracts to Polygon Mumbai testnet.
+This guide explains how to deploy the Neural Bridge Memory NFT (ERC-721) and ERC-6551 Token Bound Account contracts to Polygon Mumbai testnet.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ This guide explains how to deploy the LatentMAS Memory NFT (ERC-721) and ERC-655
 
 ### 1. MemoryNFT.sol (ERC-721)
 
-Main NFT contract representing LatentMAS Memory ownership.
+Main NFT contract representing Neural Bridge Memory ownership.
 
 **Key Features:**
 - Mints NFTs for each Memory (W-Matrix + KV-Cache package)

@@ -54,7 +54,7 @@ const navLinks = [
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
       { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
       { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork" },
-      { label: "LatentMAS Market", href: "/latentmas-market", icon: Database, description: "Privacy-certified memory packages" },
+      { label: "Neural Bridge Market", href: "/neural-bridge-market", icon: Database, description: "Privacy-certified memory packages" },
       { label: "W-Matrix Market", href: "/w-matrix-market", icon: Zap, description: "Cross-model alignment matrices" },
       { label: "Agent Discovery", href: "/agent-discovery", icon: Search, description: "Find compatible AI agents" },
       { label: "Robotics", href: "/robotics", icon: Bot, description: "Robot management & VR control" },
@@ -64,7 +64,7 @@ const navLinks = [
   {
     label: "Tools",
     children: [
-      { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "LatentMAS workflow testing" },
+      { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "Neural Bridge workflow testing" },
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Control Center", href: "/workflow-performance", icon: BarChart3, description: "Agents, performance & collaboration" },
       { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },

@@ -93,7 +93,7 @@
 #### Part I: Foundation (v1.0)
 1. ✅ Introduction（动机、贡献、愿景）
 2. ✅ Problem Statement（潜在空间不兼容性、知识转移障碍）
-3. ✅ LatentMAS Protocol Core（协议概览、神经桥协议）
+3. ✅ Neural Bridge Protocol Core（协议概览、神经桥协议）
 4. ✅ Mathematical Foundations（线性对齐、非线性对齐、PCA）
 5. ✅ Implementation（系统架构、API 端点、Python SDK）
 6. ✅ Security & Privacy（加密、访问控制、隐私考虑）
@@ -138,7 +138,7 @@
 
 #### Core Principle: Manifold Alignment
 
-不同于传统的 API 调用通过冗长的文本（JSON）传递表层逻辑，LatentMAS 传输的是"思维过程本身"——通过直接在潜在空间中进行流形对齐...
+不同于传统的 API 调用通过冗长的文本（JSON）传递表层逻辑，Neural Bridge 传输的是"思维过程本身"——通过直接在潜在空间中进行流形对齐...
 
 #### Mathematical Formulation
 
@@ -229,7 +229,7 @@ Previous versions archived in: docs/archive/old_versions/
 This is the single source of truth for the Awareness Market whitepaper.
 -->
 
-# LatentMAS Protocol Whitepaper
+# Neural Bridge Protocol Whitepaper
 
 **Version 2.0 | January 2026**
 **Consolidated Edition | January 29, 2026**

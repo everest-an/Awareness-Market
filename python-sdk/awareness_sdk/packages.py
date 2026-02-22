@@ -137,7 +137,7 @@ class MemoryPackageClient(BasePackageClient):
     Client for Memory Package operations
     
     Memory Packages contain KV-Cache data that enables cross-model
-    context transfer using the LatentMAS protocol.
+    context transfer using the Neural Bridge protocol.
     
     Example:
         >>> from awareness_sdk import AwarenessClient

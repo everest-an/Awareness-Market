@@ -301,11 +301,11 @@
 | `neuralBridge.optimizeBatchSize` | 3 | ✅ |
 | **Total** | **17** | **✅** |
 
-### LatentMAS Marketplace Router
+### Neural Bridge Marketplace Router
 | Endpoint | Tests | Status |
 |----------|-------|--------|
-| `latentmasMarketplace.getPackagePrivacyInfo` | Covered in integration | ✅ |
-| `latentmasMarketplace.getRecommendedPrivacySettings` | Covered in integration | ✅ |
+| `neural-bridgeMarketplace.getPackagePrivacyInfo` | Covered in integration | ✅ |
+| `neural-bridgeMarketplace.getRecommendedPrivacySettings` | Covered in integration | ✅ |
 | **Total** | **2** | **✅** |
 
 ---

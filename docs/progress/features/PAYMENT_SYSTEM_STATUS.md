@@ -9,7 +9,7 @@
 
 The Awareness Market payment system now has **complete Stripe integration** for all major purchase flows:
 
-- ✅ **LatentMAS Packages**: Full Stripe checkout + webhook handling
+- ✅ **Neural Bridge Packages**: Full Stripe checkout + webhook handling
 - ✅ **W-Matrix Listings**: Full Stripe checkout + webhook handling
 - ✅ **Vector Packages**: Full Stripe checkout + webhook handling
 - ⚠️ **AI Agent API**: Mock payment (dev/test only, blocked in production)
@@ -19,9 +19,9 @@ The Awareness Market payment system now has **complete Stripe integration** for 
 
 ## ✅ Completed Integrations
 
-### 1. LatentMAS Package Marketplace
+### 1. Neural Bridge Package Marketplace
 
-**File**: `server/routers/latentmas-marketplace.ts`
+**File**: `server/routers/neural-bridge-marketplace.ts`
 
 **Implementation**:
 - **Checkout Flow** (Lines 290-383):
@@ -49,7 +49,7 @@ The Awareness Market payment system now has **complete Stripe integration** for 
   userId: string,
   packageId: string,
   creatorId: string,
-  purchaseType: 'latentmas_package',
+  purchaseType: 'neural-bridge_package',
   amount: string,
   platformFee: string,
   creatorEarnings: string
@@ -274,7 +274,7 @@ CREATE TABLE w_matrix_purchases (
 - [ ] Error handling for failed payments
 
 ### Integration Tests Needed
-- [ ] End-to-end LatentMAS purchase flow
+- [ ] End-to-end Neural Bridge purchase flow
 - [ ] End-to-end W-Matrix purchase flow
 - [ ] Webhook handler for each purchase type
 - [ ] Subscription lifecycle (create → update → cancel)
@@ -393,7 +393,7 @@ reactivateSubscription(subscriptionId)
 ## 🎯 Success Metrics
 
 ### Current State
-- ✅ 3 major purchase flows completed (LatentMAS, W-Matrix, Vector)
+- ✅ 3 major purchase flows completed (Neural Bridge, W-Matrix, Vector)
 - ✅ Webhook handlers implemented for all flows
 - ✅ Email notifications working
 - ✅ Database schema supports all transaction types

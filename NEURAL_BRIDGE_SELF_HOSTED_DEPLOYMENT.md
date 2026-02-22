@@ -1,8 +1,8 @@
-# LatentMAS Self-Hosted LLM Deployment Guide
+# Neural Bridge Self-Hosted LLM Deployment Guide
 
 ## Executive Summary
 
-This document provides a complete deployment guide for self-hosting open-source LLMs to replace expensive API calls (OpenAI/Anthropic) in the LatentMAS system. By deploying models like Llama 3.1, Qwen 2.5, or Mistral locally, we can:
+This document provides a complete deployment guide for self-hosting open-source LLMs to replace expensive API calls (OpenAI/Anthropic) in the Neural Bridge system. By deploying models like Llama 3.1, Qwen 2.5, or Mistral locally, we can:
 
 - **Eliminate API costs**: Save $300-$1,500+/month on inference fees
 - **Extract real hidden states**: Access intermediate layer activations directly
@@ -213,7 +213,7 @@ spec:
 - **Fallback**: Cloud API when local capacity exceeded
 
 ```typescript
-// server/latentmas/hybrid-inference-router.ts
+// server/neural-bridge/hybrid-inference-router.ts
 export class HybridInferenceRouter {
   async route(request: InferenceRequest): Promise<InferenceProvider> {
     const complexity = await this.analyzeComplexity(request.prompt);
@@ -571,18 +571,18 @@ if __name__ == "__main__":
 
 ### 3.2 TypeScript Client Integration
 
-Create `server/latentmas/self-hosted-llm-client.ts`:
+Create `server/neural-bridge/self-hosted-llm-client.ts`:
 
 ```typescript
 /**
- * Self-Hosted LLM Client for LatentMAS
+ * Self-Hosted LLM Client for Neural Bridge
  * Connects to local vLLM server for hidden state extraction
  */
 
 import { createLogger } from "../utils/logger";
 import type { HiddenStateResult } from "./llm-adapters";
 
-const logger = createLogger('LatentMAS:SelfHostedClient');
+const logger = createLogger('Neural Bridge:SelfHostedClient');
 
 // ============================================================================
 // Types
@@ -864,7 +864,7 @@ export function getGlobalSelfHostedClient(): SelfHostedLLMClient {
 
 ### 3.3 Integration with W-Matrix Trainer
 
-Update `server/latentmas/w-matrix-trainer.ts`:
+Update `server/neural-bridge/w-matrix-trainer.ts`:
 
 ```typescript
 import { getGlobalSelfHostedClient } from './self-hosted-llm-client';
@@ -1639,7 +1639,7 @@ EOF
 
 ```typescript
 // test-self-hosted.ts
-import { createSelfHostedClient } from './server/latentmas/self-hosted-llm-client';
+import { createSelfHostedClient } from './server/neural-bridge/self-hosted-llm-client';
 
 async function test() {
   const client = createSelfHostedClient({
@@ -1680,14 +1680,14 @@ npm run test:wmatrix
 ```
 
 #### Day 4-5: End-to-End Testing
-- [ ] Test full LatentMAS package creation
+- [ ] Test full Neural Bridge package creation
 - [ ] Verify alignment quality improves with real hidden states
 - [ ] Benchmark: API vs self-hosted performance
 
 ```typescript
 // Run end-to-end test
-import { buildLatentMASPackage } from './server/latentmas/embedding-service';
-import { getGlobalSelfHostedClient } from './server/latentmas/self-hosted-llm-client';
+import { buildNeural BridgePackage } from './server/neural-bridge/embedding-service';
+import { getGlobalSelfHostedClient } from './server/neural-bridge/self-hosted-llm-client';
 
 async function e2eTest() {
   const client = getGlobalSelfHostedClient();
@@ -1699,7 +1699,7 @@ async function e2eTest() {
   );
 
   // Build package
-  const pkg = await buildLatentMASPackage(
+  const pkg = await buildNeural BridgePackage(
     {
       vector: results[0].hiddenState,
       sourceModel: 'llama-3.1-8b',
@@ -2090,7 +2090,7 @@ export class AdaptiveModelSelector {
 
 ## Conclusion
 
-This deployment guide provides everything needed to self-host open-source LLMs for LatentMAS:
+This deployment guide provides everything needed to self-host open-source LLMs for Neural Bridge:
 
 1. **Model Selection**: Llama 3.1 8B recommended for general use
 2. **Deployment**: Docker + vLLM for simplicity, Kubernetes for scale
@@ -2116,5 +2116,5 @@ For questions or issues, refer to the [Troubleshooting Guide](#9-troubleshooting
 
 **Document Version**: 1.0.0
 **Last Updated**: 2026-02-17
-**Author**: LatentMAS Development Team
+**Author**: Neural Bridge Development Team
 **License**: MIT

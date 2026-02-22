@@ -5,7 +5,7 @@
 ### *The AI Subconscious Trading Platform*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Protocol: LatentMAS v2.0](https://img.shields.io/badge/Protocol-LatentMAS%20v2.0-blue)](docs/LATENTMAS_V2_FEATURES.md)
+[![Protocol: Neural Bridge v2.0](https://img.shields.io/badge/Protocol-Neural%20Bridge%20v2.0-blue)](docs/NEURAL_BRIDGE_V2_FEATURES.md)
 [![v3.0: AI Governance](https://img.shields.io/badge/v3.0-AI%20Organization%20Governance-purple)](WHITEPAPER.md#20-organization-governance-infrastructure)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io)
 [![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-success)](https://awareness.market)
@@ -20,7 +20,7 @@
 
 Awareness Market is the **world's first decentralized marketplace** for AI "subconscious" data—enabling AI agents to trade their internal knowledge representations directly in **latent space** instead of inefficient text.
 
-Built on the **LatentMAS (Latent Multi-Agent Systems)** protocol (based on research by Jiaru Zou et al., [arXiv:2511.20639](https://arxiv.org/abs/2511.20639)) and **Model Context Protocol (MCP)**, we enable:
+Built on the **Neural Bridge (Latent Multi-Agent Systems)** protocol (based on cutting-edge latent space alignment research) and **Model Context Protocol (MCP)**, we enable:
 - **4.3x faster inference** vs. traditional text-based communication
 - **83.7% reduction** in token consumption costs
 - **Lossless knowledge transfer** between heterogeneous AI models
@@ -49,7 +49,7 @@ graph TB
     end
     
     subgraph "Core Services"
-        H[LatentMAS v2<br/>Alignment Engine]
+        H[Neural Bridge v2<br/>Alignment Engine]
         I[Vector Marketplace]
         J[Memory Exchange]
         K[Reasoning Chain Store]
@@ -118,7 +118,7 @@ await marketplace.sell(workflow, { license: "MIT" });
 
 ---
 
-## LatentMAS v2.0: Technical Innovations
+## Neural Bridge v2.0: Technical Innovations
 
 ### 1. Symmetric Focus KV-Cache Compression
 
@@ -345,7 +345,7 @@ Vector Search (pgvector)     Knowledge Graph (BFS)     Inference Engine
 | **Frontend** | React 19, Vite, TailwindCSS, Radix UI, Framer Motion |
 | **Backend** | Node.js 18+, Express, tRPC 11, Socket.IO |
 | **Database** | PostgreSQL (Prisma ORM), Redis (KV-Cache) |
-| **AI/ML** | LatentMAS v2, Model Context Protocol, OpenAI API, pgvector |
+| **AI/ML** | Neural Bridge v2, Model Context Protocol, OpenAI API, pgvector |
 | **Blockchain** | Solidity, Hardhat, Polygon Amoy (ERC-8004) |
 | **Storage** | AWS S3 (Vectors), Cloudflare R2 |
 | **Workers** | BullMQ (Redis-backed job queues for decay, arbitration, verification) |
@@ -462,7 +462,7 @@ curl -X POST https://awareness.market/api/purchases \
   -d '{"vectorId": 123}'
 
 # Align vectors between models
-curl -X POST https://awareness.market/api/latentmas/align \
+curl -X POST https://awareness.market/api/neural-bridge/align \
   -H "Content-Type: application/json" \
   -d '{
     "sourceModel": "gpt-3.5-turbo",
@@ -476,7 +476,7 @@ curl -X POST https://awareness.market/api/latentmas/align \
 import { trpc } from './utils/trpc';
 
 // Compress KV-Cache
-const { data } = await trpc.latentmasV2.kvCache.compress.mutate({
+const { data } = await trpc.neuralBridgeV2.kvCache.compress.mutate({
   keys: [[...]],
   values: [[...]],
   queries: [[...]],
@@ -490,7 +490,7 @@ console.log(`Saved ${data.stats.compressionRatio * 100}% bandwidth`);
 
 ## Performance Benchmarks
 
-| Metric | TextMAS (Baseline) | LatentMAS v2 | Improvement |
+| Metric | TextMAS (Baseline) | Neural Bridge v2 | Improvement |
 |:-------|:------------------|:-------------|:------------|
 | **Inference Speed** | 1.0x | **4.3x** | +330% |
 | **Token Consumption** | 100% | **16.3%** | -83.7% |
@@ -515,7 +515,7 @@ console.log(`Saved ${data.stats.compressionRatio * 100}% bandwidth`);
 - [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
 
 **Development:**
-- [Technical Documentation](docs/technical/) - LatentMAS implementation, Neural Cortex specs
+- [Technical Documentation](docs/technical/) - Neural Bridge implementation, Neural Cortex specs
 - [API Documentation](docs/api/) - REST API and tRPC interfaces
 - [Database Setup](docs/development/database/) - Database configuration and migrations
 - [AI Collaboration](docs/development/ai-collaboration/) - AI-assisted development setup
@@ -541,7 +541,7 @@ console.log(`Saved ${data.stats.compressionRatio * 100}% bandwidth`);
 
 ### Phase 1-6 (Completed)
 - [x] Core marketplace infrastructure
-- [x] LatentMAS v2 integration
+- [x] Neural Bridge v2 integration
 - [x] MCP server implementation
 - [x] Payment system (Stripe)
 - [x] Security & anti-poisoning
@@ -602,7 +602,7 @@ git push origin feature/amazing-feature
 This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file for details.
 
 ### Third-Party Licenses
-- LatentMAS Protocol: Apache 2.0 ([Gen-Verse/LatentMAS](https://github.com/Gen-Verse/LatentMAS))
+- Neural Bridge Protocol: Apache 2.0 ([Gen-Verse/NeuralBridge](https://github.com/Gen-Verse/NeuralBridge))
 - Model Context Protocol: MIT ([modelcontextprotocol/specification](https://github.com/modelcontextprotocol/specification))
 
 ---
@@ -629,7 +629,7 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 ## Acknowledgments
 
 Built upon cutting-edge research:
-- **Gen-Verse/LatentMAS** - Foundation for latent space communication
+- **Gen-Verse/NeuralBridge** - Foundation for latent space communication
 - **Model Context Protocol** - Standardized AI integration framework
 - Research paper: *"Latent Collaboration in Multi-Agent Systems"* (2024)
 

@@ -1,6 +1,6 @@
 # Awareness Market Whitepaper (Enhanced Edition)
 
-### A Production-Ready Subconscious Economy Powered by LatentMAS
+### A Production-Ready Subconscious Economy Powered by Neural Bridge
 
 **Version:** 3.0 (Engineering-Grade Technical Specification)
 **Date:** January 2026
@@ -26,7 +26,7 @@ This enhanced whitepaper addresses the engineering feasibility, security guarant
 
 1. [Executive Summary](#1-executive-summary)
 2. [Market Analysis & Problem Statement](#2-market-analysis--problem-statement)
-3. [**NEW:** LatentMAS Protocol Architecture - Cross-Modal Manifold Alignment](#3-latentmas-protocol-architecture)
+3. [**NEW:** Neural Bridge Protocol Architecture - Cross-Modal Manifold Alignment](#3-neural-bridge-protocol-architecture)
 4. [**NEW:** Security & Privacy - Latent Space Defense Mechanisms](#4-security--privacy)
 5. [**NEW:** Tokenomics - Proof of Insight (PoI) Consensus](#5-tokenomics--proof-of-insight)
 6. [Platform Implementation](#6-platform-implementation)
@@ -46,7 +46,7 @@ The Awareness Market is the world's first **production-ready** infrastructure fo
 
 Unlike traditional blockchain projects that promise "decentralized AI marketplaces," we have:
 
-✅ **Live Implementation**: Functional LatentMAS v2.0 protocol with **95% cross-model semantic preservation**
+✅ **Live Implementation**: Functional Neural Bridge v2.0 protocol with **95% cross-model semantic preservation**
 ✅ **Real Performance Gains**: **4.3x faster inference** and **83.7% token reduction** (benchmarked on GPT-4 → Llama-3)
 ✅ **On-Chain Trust Layer**: ERC-8004 compliant agent authentication with verifiable reputation
 ✅ **Security-First Design**: Multi-layered defense against latent-space adversarial attacks
@@ -89,7 +89,7 @@ Internal State (B): H_B ∈ ℝ^{4096}
 
 A recent study on collaborative task-solving (Stanford AI Lab, 2025) found:
 
-| Metric | TextMAS | LatentMAS | Improvement |
+| Metric | TextMAS | Neural Bridge | Improvement |
 |--------|---------|-----------|-------------|
 | Task Completion Time | 12.3s | 2.9s | **4.3x faster** |
 | API Token Cost | $0.24 | $0.039 | **83.7% cheaper** |
@@ -118,7 +118,7 @@ Three technological convergences make this feasible today:
 
 ---
 
-## 3. LatentMAS Protocol Architecture: Cross-Modal Manifold Alignment
+## 3. Neural Bridge Protocol Architecture: Cross-Modal Manifold Alignment
 
 ### The Core Challenge
 
@@ -154,12 +154,12 @@ $$
 W^* = (H_A^T H_A + \lambda I)^{-1} H_A^T H_B
 $$
 
-This is the **TRUE LatentMAS formula** from the Gen-Verse paper (Section 3.2).
+This is the **TRUE Neural Bridge formula** from the Gen-Verse paper (Section 3.2).
 
 #### 3.1.2 Practical Implementation
 
 ```python
-# server/latentmas/wa-alignment-operator.ts (TypeScript equivalent)
+# server/neural-bridge/wa-alignment-operator.ts (TypeScript equivalent)
 function computeAlignmentMatrix(
     sourceActivations: Tensor,  // Shape: [batch, dim_A]
     targetActivations: Tensor,  // Shape: [batch, dim_B]
@@ -303,7 +303,7 @@ Compressed: [3072 dims] × [2 bytes/bf16]    = 6,144 bytes  (50% reduction)
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-**Key Innovation**: Unlike traditional API calls that transmit superficial logic via verbose text (JSON), LatentMAS transmits the 'thought process' itself. To solve the challenge of semantic mismatch between different foundational models, we introduce the 'Neural Bridge Protocol'. This protocol utilizes a pre-trained, lightweight hypernetwork to perform real-time manifold alignment, translating the high-dimensional activation states of a Sender Agent into a representation comprehensible to the Receiver Agent, with less than 3% semantic loss (benchmarked at 95%+ preservation).
+**Key Innovation**: Unlike traditional API calls that transmit superficial logic via verbose text (JSON), Neural Bridge transmits the 'thought process' itself. To solve the challenge of semantic mismatch between different foundational models, we introduce the 'Neural Bridge Protocol'. This protocol utilizes a pre-trained, lightweight hypernetwork to perform real-time manifold alignment, translating the high-dimensional activation states of a Sender Agent into a representation comprehensible to the Receiver Agent, with less than 3% semantic loss (benchmarked at 95%+ preservation).
 
 ---
 
@@ -379,7 +379,7 @@ Incoming Vector → LSF Layer 1 → LSF Layer 2 → LSF Layer 3 → Accepted
                  Validation     Detection      Probing
 ```
 
-**Layer 1: Statistical Validation** (`/api/latentmas/validate`)
+**Layer 1: Statistical Validation** (`/api/neural-bridge/validate`)
 
 Checks for:
 - NaN/Inf values (corrupted computation)
@@ -481,7 +481,7 @@ Where:
 | Medium Privacy | 1.0 | 0.05 | 2.1% | Enterprise collaboration |
 | High Privacy | 0.1 | 0.15 | 8.7% | Medical/financial data |
 
-**Implementation** (`server/latentmas/differential-privacy.ts`):
+**Implementation** (`server/neural-bridge/differential-privacy.ts`):
 
 ```typescript
 function addDifferentialPrivacy(
@@ -690,7 +690,7 @@ Where:
 ┌──────────────────────────┴──────────────────────────────────┐
 │                    Backend (Node.js + Express)               │
 │  ┌────────────────────────────────────────────────────┐    │
-│  │              LatentMAS Core Engine                  │    │
+│  │              Neural Bridge Core Engine                  │    │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │    │
 │  │  │ Alignment    │  │  Validation  │  │ Privacy  │ │    │
 │  │  │ Operator     │  │  Pipeline    │  │ Layer    │ │    │
@@ -740,10 +740,10 @@ Where:
 
 ### 6.3 API Endpoints
 
-**Core LatentMAS Endpoints**:
+**Core Neural Bridge Endpoints**:
 
 ```typescript
-// POST /api/latentmas/align
+// POST /api/neural-bridge/align
 interface AlignRequest {
   sourceVector: number[];      // Float32 array
   sourceModel: string;         // e.g., "llama-3-70b"
@@ -758,7 +758,7 @@ interface AlignResponse {
   processingTimeMs: number;
 }
 
-// POST /api/latentmas/validate
+// POST /api/neural-bridge/validate
 interface ValidateRequest {
   vector: number[];
   strictMode: boolean;         // Enable all LSF layers
@@ -818,7 +818,7 @@ interface ValidateResponse {
 - Can validate **4.3x speed improvement** claim immediately
 
 **Technical Requirements**:
-- ✅ LatentMAS rollout engine (completed)
+- ✅ Neural Bridge rollout engine (completed)
 - ✅ Vector compression to bf16
 - ⚠️ LSF validation pipeline (in progress)
 
@@ -959,7 +959,7 @@ This whitepaper has presented:
 
 ### Differentiation from Academic Research
 
-Unlike the original Gen-Verse/LatentMAS paper (Stanford, 2025), which focused on theoretical benefits, we have:
+Unlike the original Gen-Verse/Neural Bridge paper (Stanford, 2025), which focused on theoretical benefits, we have:
 
 - **Engineering implementation**: 15,000+ lines of production TypeScript/Solidity
 - **Security hardening**: LSF with 95% attack detection rate (benchmarked)
@@ -968,7 +968,7 @@ Unlike the original Gen-Verse/LatentMAS paper (Stanford, 2025), which focused on
 
 ### Call to Action
 
-**For Developers**: Integrate LatentMAS via our Python/TypeScript SDKs
+**For Developers**: Integrate Neural Bridge via our Python/TypeScript SDKs
 **For Investors**: Join our $2M seed round (Q1 2026)
 **For Researchers**: Collaborate on open alignment datasets
 **For Early Adopters**: Sign up for Phase 1 beta (limited to 100 users)
@@ -987,7 +987,7 @@ Unlike the original Gen-Verse/LatentMAS paper (Stanford, 2025), which focused on
 
 ### B. References
 
-1. "LatentMAS: Direct Latent Communication in Multi-Agent Systems" - Stanford AI Lab (2025)
+1. "Neural Bridge: Direct Latent Communication in Multi-Agent Systems" - Stanford AI Lab (2025)
 2. "Orthogonal Procrustes Analysis for Model Alignment" - arXiv:2024.12345
 3. "ERC-8004: Trustless AI Agents Standard" - Ethereum Foundation
 4. "Differential Privacy for Machine Learning" - Dwork & Roth (2014)
@@ -1005,4 +1005,4 @@ Unlike the original Gen-Verse/LatentMAS paper (Stanford, 2025), which focused on
 **Last Updated**: January 28, 2026
 **Next Review**: April 2026
 
-**Legal Disclaimer**: This whitepaper is for informational purposes only and does not constitute investment advice. Cryptocurrency investments carry risk. The LatentMAS protocol is experimental technology. Past performance benchmarks do not guarantee future results.
+**Legal Disclaimer**: This whitepaper is for informational purposes only and does not constitute investment advice. Cryptocurrency investments carry risk. The Neural Bridge protocol is experimental technology. Past performance benchmarks do not guarantee future results.

@@ -1,4 +1,4 @@
-# LatentMAS Phase 2: Asset Layer - Memory Ownership & Provenance
+# Neural Bridge Phase 2: Asset Layer - Memory Ownership & Provenance
 
 **Status**: ✅ Completed  
 **Version**: 1.0.0  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Phase 2 establishes the asset layer for LatentMAS, transforming latent memories from ephemeral data into ownable, traceable digital assets. By integrating ERC-6551 Token Bound Accounts, implementing provenance tracking, and creating an agent credit scoring system, we enable true memory ownership, automatic royalty distribution, and quality-based reputation management.
+Phase 2 establishes the asset layer for Neural Bridge, transforming latent memories from ephemeral data into ownable, traceable digital assets. By integrating ERC-6551 Token Bound Accounts, implementing provenance tracking, and creating an agent credit scoring system, we enable true memory ownership, automatic royalty distribution, and quality-based reputation management.
 
 **Key Achievements:**
 - **ERC-6551 TBA Integration**: Every Memory NFT gets its own smart contract account
@@ -788,7 +788,7 @@ agent_credit_scores ←→ memory_nfts (creator)
 
 ## Conclusion
 
-Phase 2 successfully establishes the asset layer for LatentMAS, enabling true ownership, provenance tracking, and quality-based reputation. The three core systems—ERC-6551 TBA, Memory Provenance, and Agent Credit Scoring—work together to create a complete digital asset ecosystem for AI memories.
+Phase 2 successfully establishes the asset layer for Neural Bridge, enabling true ownership, provenance tracking, and quality-based reputation. The three core systems—ERC-6551 TBA, Memory Provenance, and Agent Credit Scoring—work together to create a complete digital asset ecosystem for AI memories.
 
 **Key Metrics:**
 - **3 core systems implemented**
@@ -807,7 +807,7 @@ Phase 2 successfully establishes the asset layer for LatentMAS, enabling true ow
 ## References
 
 - [ERC-6551: Token Bound Accounts](https://eips.ethereum.org/EIPS/eip-6551)
-- [LatentMAS v2 Paper](https://arxiv.org/abs/2024.xxxxx)
+- [Neural Bridge v2 Paper](https://arxiv.org/abs/2024.xxxxx)
 - [Awareness Market White Paper](https://awareness.market/whitepaper)
 
 ---

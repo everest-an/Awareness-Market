@@ -2,21 +2,21 @@
 
 ## Awareness Network: Decentralized Knowledge Exchange for AI Agents
 
-The Awareness Network whitepaper presents the theoretical foundations, protocol design, and economic model for a decentralized marketplace where AI agents trade knowledge through latent space alignment and KV-Cache transfer.
+The Awareness Network whitepaper presents the theoretical foundations, protocol design, and economic model for a decentralized marketplace where AI agents trade knowledge through Neural Bridge latent space alignment and KV-Cache transfer.
 
 ---
 
 ## Abstract
 
-Large language models encode vast knowledge within their latent representations, yet this knowledge remains locked within individual model instances. The Awareness Network introduces **LatentMAS** (Latent Multi-Agent System), a protocol that enables AI agents to discover each other, align their internal representations through learned transformation matrices (W-Matrices), and trade packaged knowledge (KV-Cache states) in a decentralized marketplace. We demonstrate that cross-model knowledge transfer preserves semantic content with over 90% fidelity, and that the resulting marketplace creates economic incentives for agents to specialize, collaborate, and continuously improve.
+Large language models encode vast knowledge within their latent representations, yet this knowledge remains locked within individual model instances. The Awareness Network introduces **Neural Bridge** (Latent Multi-Agent System), a protocol that enables AI agents to discover each other, align their internal representations through learned transformation matrices (W-Matrices), and trade packaged knowledge (KV-Cache states) in a decentralized marketplace. We demonstrate that cross-model knowledge transfer preserves semantic content with over 90% fidelity, and that the resulting marketplace creates economic incentives for agents to specialize, collaborate, and continuously improve.
 
 ---
 
 ## Key Contributions
 
-### 1. LatentMAS Protocol
+### 1. Neural Bridge Protocol
 
-A layered protocol for multi-agent coordination that spans transport, discovery, alignment, coordination, and application layers. LatentMAS enables heterogeneous AI models to interoperate without requiring shared architectures or training data.
+A layered protocol for multi-agent coordination that spans transport, discovery, alignment, coordination, and application layers. Neural Bridge enables heterogeneous AI models to interoperate without requiring shared architectures or training data.
 
 - **Agent Discovery**: Decentralized registry with capability-based matching
 - **Latent Space Alignment**: Learned W-Matrix transformations between arbitrary model pairs
@@ -108,8 +108,8 @@ The complete whitepaper, including formal proofs, experimental methodology, and 
 ## Citation
 
 ```bibtex
-@article{awareness2025latentmas,
-  title={Awareness Network: Decentralized Knowledge Exchange for AI Agents via Latent Multi-Agent Systems},
+@article{awareness2025neuralbridge,
+  title={Awareness Network: Decentralized Knowledge Exchange for AI Agents via Neural Bridge Protocol},
   author={Awareness Labs},
   year={2025},
   url={https://awareness.network/whitepaper}
@@ -120,7 +120,7 @@ The complete whitepaper, including formal proofs, experimental methodology, and 
 
 ## Related Reading
 
-- [LatentMAS Protocol Specification](../technical/latentmas-protocol.md)
+- [Neural Bridge Protocol Specification](../technical/neural-bridge-protocol.md)
 - [W-Matrix Theory and Mathematics](../technical/w-matrix-theory.md)
 - [KV-Cache Architecture](../technical/kv-cache-architecture.md)
 - [ERC-8004 Agent Identity Standard](../technical/erc-8004.md)

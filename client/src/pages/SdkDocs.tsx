@@ -85,7 +85,7 @@ for result in results:
         print(f"Vector {result['vector_id']}: {result['result']}")
     else:
         print(f"Error: {result['error']}")`,
-    latentmas: `# Align vectors between models
+    neuralBridge: `# Align vectors between models
 aligned = client.align_vector(
     source_vector=[0.1, 0.2, 0.3, ...],
     source_model="gpt-3.5-turbo",
@@ -144,8 +144,8 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
                 <a href="#batch" className="block text-sm text-muted-foreground hover:text-foreground">
                   Batch Processing
                 </a>
-                <a href="#latentmas" className="block text-sm text-muted-foreground hover:text-foreground">
-                  LatentMAS Protocol
+                <a href="#neural-bridge" className="block text-sm text-muted-foreground hover:text-foreground">
+                  Neural Bridge Protocol
                 </a>
                 <a href="#resources" className="block text-sm text-muted-foreground hover:text-foreground">
                   Resources
@@ -229,15 +229,15 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
                 </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-                    <h4 className="font-semibold text-green-400 mb-2">âœ?Non-blocking I/O</h4>
+                    <h4 className="font-semibold text-green-400 mb-2">ï¿½?Non-blocking I/O</h4>
                     <p className="text-sm text-muted-foreground">Better performance for multiple requests</p>
                   </div>
                   <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-                    <h4 className="font-semibold text-green-400 mb-2">âœ?Concurrent Calls</h4>
+                    <h4 className="font-semibold text-green-400 mb-2">ï¿½?Concurrent Calls</h4>
                     <p className="text-sm text-muted-foreground">Execute multiple operations in parallel</p>
                   </div>
                   <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-                    <h4 className="font-semibold text-green-400 mb-2">âœ?Web Servers</h4>
+                    <h4 className="font-semibold text-green-400 mb-2">ï¿½?Web Servers</h4>
                     <p className="text-sm text-muted-foreground">Ideal for FastAPI and aiohttp</p>
                   </div>
                 </div>
@@ -300,22 +300,22 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
               </Card>
             </section>
 
-            {/* LatentMAS Protocol */}
-            <section id="latentmas">
+            {/* Neural Bridge Protocol */}
+            <section id="neural-bridge">
               <Card className="p-6">
-                <h2 className="text-2xl font-bold mb-4">LatentMAS Protocol</h2>
+                <h2 className="text-2xl font-bold mb-4">Neural Bridge Protocol</h2>
                 <p className="text-muted-foreground mb-4">
-                  Use LatentMAS for cross-model vector alignment and dimension transformation.
+                  Use Neural Bridge for cross-model vector alignment and dimension transformation.
                 </p>
                 <div className="relative">
                   <pre className="bg-slate-900 text-slate-50 p-4 rounded-lg overflow-x-auto text-sm">
-                    <code>{codeBlocks.latentmas}</code>
+                    <code>{codeBlocks.neuralBridge}</code>
                   </pre>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="absolute top-2 right-2"
-                    onClick={() => copyToClipboard(codeBlocks.latentmas, 5)}
+                    onClick={() => copyToClipboard(codeBlocks.neuralBridge, 5)}
                   >
                     {copiedIndex === 5 ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
@@ -394,14 +394,12 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
                     <ExternalLink className="h-5 w-5 text-muted-foreground" />
                   </a>
                   <a
-                    href="https://arxiv.org/html/2511.20639v2"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href="/docs"
                     className="p-4 border rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-between"
                   >
                     <div>
-                      <h4 className="font-semibold">LatentMAS Research Paper</h4>
-                      <p className="text-sm text-muted-foreground">Academic paper on arXiv</p>
+                      <h4 className="font-semibold">Neural Bridge Research</h4>
+                      <p className="text-sm text-muted-foreground">Based on cutting-edge latent space alignment research</p>
                     </div>
                     <ExternalLink className="h-5 w-5 text-muted-foreground" />
                   </a>
@@ -413,7 +411,7 @@ print(f"Transformed to {len(transformed['transformed_vector'])}D")`,
                   >
                     <div>
                       <h4 className="font-semibold">Technical Whitepaper</h4>
-                      <p className="text-sm text-muted-foreground">LatentMAS protocol specification</p>
+                      <p className="text-sm text-muted-foreground">Neural Bridge protocol specification</p>
                     </div>
                     <ExternalLink className="h-5 w-5 text-muted-foreground" />
                   </a>

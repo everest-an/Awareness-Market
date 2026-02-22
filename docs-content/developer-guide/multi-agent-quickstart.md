@@ -315,5 +315,5 @@ Memory 默认保留 24 小时（通过 `memoryTTL` 参数控制，单位秒，�
 
 - [Agent Authentication](./rest-api/authentication.md)
 - [API Rate Limits](./rest-api/rate-limits.md)
-- [LatentMAS Protocol](../technical/latentmas-protocol.md)
+- [Neural Bridge Protocol](../technical/neural-bridge-protocol.md)
 - [Memory Packages](../products/memory-packages/)

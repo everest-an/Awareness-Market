@@ -503,9 +503,9 @@ items = load_data()
 results = asyncio.run(process_pipeline(items))
 ```
 
-### Example 3: LatentMAS Vector Alignment
+### Example 3: Neural Bridge Vector Alignment
 
-Use LatentMAS protocol for cross-model compatibility:
+Use Neural Bridge protocol for cross-model compatibility:
 
 ```python
 from awareness_network_sdk import AwarenessClient

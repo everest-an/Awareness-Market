@@ -10,13 +10,13 @@
 ### ✅ 代码集成（100% 完成）
 
 1. **核心模块** - 3 个新文件
-   - [server/latentmas/clients/self-hosted-llm.ts](server/latentmas/clients/self-hosted-llm.ts) - vLLM 客户端
-   - [server/latentmas/clients/runpod-manager.ts](server/latentmas/clients/runpod-manager.ts) - Pod 自动管理
-   - [server/latentmas/clients/cost-tracker.ts](server/latentmas/clients/cost-tracker.ts) - 成本追踪
+   - [server/neural-bridge/clients/self-hosted-llm.ts](server/neural-bridge/clients/self-hosted-llm.ts) - vLLM 客户端
+   - [server/neural-bridge/clients/runpod-manager.ts](server/neural-bridge/clients/runpod-manager.ts) - Pod 自动管理
+   - [server/neural-bridge/clients/cost-tracker.ts](server/neural-bridge/clients/cost-tracker.ts) - 成本追踪
 
 2. **更新模块** - 2 个文件
-   - [server/latentmas/llm-adapters.ts](server/latentmas/llm-adapters.ts) - LLM 适配器增强
-   - [server/routers/latentmas.ts](server/routers/latentmas.ts) - 8 个新 API 端点
+   - [server/neural-bridge/llm-adapters.ts](server/neural-bridge/llm-adapters.ts) - LLM 适配器增强
+   - [server/routers/neural-bridge.ts](server/routers/neural-bridge.ts) - 8 个新 API 端点
 
 3. **自动化脚本** - 3 个脚本
    - [scripts/deploy-vllm.sh](scripts/deploy-vllm.sh) - vLLM 服务器部署
@@ -159,14 +159,14 @@ bash scripts/test-integration.sh
 |------|------|---------|
 | [docs/SELF_HOSTED_LLM_INTEGRATION.md](docs/SELF_HOSTED_LLM_INTEGRATION.md) | 集成总览 | 开发者 |
 | [scripts/README.md](scripts/README.md) | 脚本使用说明 | 运维人员 |
-| [LATENTMAS_BUDGET_DEPLOYMENT.md](LATENTMAS_BUDGET_DEPLOYMENT.md) | 预算优化 | 财务/管理 |
+| [NEURAL_BRIDGE_BUDGET_DEPLOYMENT.md](NEURAL_BRIDGE_BUDGET_DEPLOYMENT.md) | 预算优化 | 财务/管理 |
 
 ### 技术文档
 
 | 文档 | 用途 | 适合人群 |
 |------|------|---------|
-| [docs/technical/LATENTMAS_IMPLEMENTATION_STATUS.md](docs/technical/LATENTMAS_IMPLEMENTATION_STATUS.md) | 实现状态 | 技术专家 |
-| [server/latentmas/w-matrix-trainer.ts](server/latentmas/w-matrix-trainer.ts) | W-Matrix 训练器 | 深度学习工程师 |
+| [docs/technical/NEURAL_BRIDGE_IMPLEMENTATION_STATUS.md](docs/technical/NEURAL_BRIDGE_IMPLEMENTATION_STATUS.md) | 实现状态 | 技术专家 |
+| [server/neural-bridge/w-matrix-trainer.ts](server/neural-bridge/w-matrix-trainer.ts) | W-Matrix 训练器 | 深度学习工程师 |
 
 ---
 
@@ -195,7 +195,7 @@ npm run dev
 
 ```bash
 # 健康检查
-curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.testSelfHostedHealth
+curl http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.testSelfHostedHealth
 
 # 预期响应（如果未配置）:
 # {
@@ -272,7 +272,7 @@ A:
 
 1. 📊 **监控成本**
    ```bash
-   curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.getCostStats
+   curl http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.getCostStats
    ```
 
 2. 🧪 **训练第一个 W-Matrix**
@@ -308,7 +308,7 @@ npm run dev
 bash scripts/test-integration.sh
 
 # 查看成本
-curl http://localhost:3000/api/trpc/latentmas.trueLatentMAS.getCostStats
+curl http://localhost:3000/api/trpc/neural-bridge.trueNeural Bridge.getCostStats
 ```
 
 ---

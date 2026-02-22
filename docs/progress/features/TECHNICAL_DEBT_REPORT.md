@@ -82,7 +82,7 @@ npx hardhat run scripts/deploy-stablecoin-payment.ts --network amoy
 
 **已修复**:
 
-1. ✅ **市场API** - `server/routers/latentmas-marketplace.ts`
+1. ✅ **市场API** - `server/routers/neural-bridge-marketplace.ts`
    - 现在使用 `db.createVectorPackage()` 保存数据
    - 使用 `db.browseVectorPackages()` 查询数据
    - 使用 `db.getVectorPackageByPackageId()` 获取详情
@@ -106,7 +106,7 @@ npx hardhat run scripts/deploy-stablecoin-payment.ts --network amoy
 
 ### 1.4 🧮 核心算法 ✅ 已完成
 
-**文件**: `server/latentmas/svd-orthogonalization.ts`
+**文件**: `server/neural-bridge/svd-orthogonalization.ts`
 
 **已实现**:
 - ✅ One-Sided Jacobi SVD 算法 (数值稳定)
@@ -173,7 +173,7 @@ npx hardhat run scripts/deploy-stablecoin-payment.ts --network amoy
   - ✅ `mcp-api.ts`: 添加 LLMResult 接口
   - ✅ `rate-limiter.ts`: 添加 RequestWithUser 接口
   - ✅ `api-key-manager.ts`: 添加 InsertResult 接口
-  - ✅ `latentmas-marketplace.ts`: 使用 Zod 推断类型
+  - ✅ `neural-bridge-marketplace.ts`: 使用 Zod 推断类型
   - ✅ `alignment-factory.ts`: 导入 WMatrixProtocol 类型
   - ✅ `db-persistence.ts`: 使用 Record<string, unknown>
   - ✅ `gpu-acceleration.ts`: 定义 TensorFlowModule 接口
@@ -248,7 +248,7 @@ logger.error('Operation failed', { error });
 - ✅ 内存同步 (`store_memory`, `retrieve_memory`, `list_memories`)
 - ✅ 市场浏览和搜索 (`search_vectors`, `get_vector_details`)
 - ✅ 向量购买和调用 (`purchase_vector`, `invoke_vector`)
-- ✅ LatentMAS转换 (`align_vector`, `transform_dimension`, `validate_vector`)
+- ✅ Neural Bridge转换 (`align_vector`, `transform_dimension`, `validate_vector`)
 - ✅ MCP协议支持 (`mcp_discover`, `mcp_invoke`)
 
 **状态**: SDK已完整实现，可用于真实集成
@@ -278,8 +278,8 @@ logger.error('Operation failed', { error });
 | 文件 | 功能 | 状态 |
 |------|------|------|
 | `server/auth-phantom.ts` | 纯 API 签名登录 | ✅ 已创建 |
-| `server/latentmas-upload.ts` | SDK 向量上传 | ✅ 已创建 |
-| `server/latentmas-resonance.ts` | 共振检测算法 | ✅ 已创建 |
+| `server/neural-bridge-upload.ts` | SDK 向量上传 | ✅ 已创建 |
+| `server/neural-bridge-resonance.ts` | 共振检测算法 | ✅ 已创建 |
 | `server/socket-events.ts` | 实时事件推送 | ✅ 已创建 |
 
 **前端组件** 🔄 部分完成:
@@ -443,7 +443,7 @@ logger.error('Operation failed', { error });
 | **可靠性风险** | 🔴 高 | Mock数据导致用户不信任 | 完成数据库集成 |
 | **扩展性风险** | 🟡 中 | 缺少缓存和优化 | 实现Redis缓存层 |
 | **维护风险** | 🟡 中 | 类型不安全，难以维护 | TypeScript类型改进 |
-| **合规风险** | 🟡 中 | LatentMAS不符合论文 | 实现SVD算法 |
+| **合规风险** | 🟡 中 | Neural Bridge不符合论文 | 实现SVD算法 |
 
 ---
 
@@ -545,10 +545,10 @@ Month 2-3:
 
 1. `.env` - 移除所有凭证 ⏳
 2. `server/routers.ts` - ~~Stripe集成~~ → ✅ 稳定币支付已实现
-3. `server/routers/latentmas-marketplace.ts` - ✅ 数据库查询已完成
+3. `server/routers/neural-bridge-marketplace.ts` - ✅ 数据库查询已完成
 4. `server/routers/agent-credit-api.ts` - ✅ 数据库查询已完成
 5. `server/storage/tier-migration-service.ts` - ✅ 迁移逻辑已完成
-6. `docs/technical/LATENTMAS_PAPER_COMPLIANCE.md` - ✅ SVD算法已完成
+6. `docs/technical/NEURAL_BRIDGE_PAPER_COMPLIANCE.md` - ✅ SVD算法已完成
 7. `sdk/python/awareness_network_sdk.py` - ✅ SDK已验证完整
 8. `client/src/pages/MyMemories.tsx` - ✅ 已使用tRPC查询真实数据
 

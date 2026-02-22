@@ -2,7 +2,7 @@
  * Awareness Neural Cortex Visualizer
  * 3D visualization of AI neural memory structures
  * 
- * Visual Elements mapped to LatentMAS data:
+ * Visual Elements mapped to Neural Bridge data:
  * - Points = Memory nodes (KV-cache entries, tokens)
  * - Colors = Agent/Domain ownership
  * - Activation pulse = Query hit / active inference

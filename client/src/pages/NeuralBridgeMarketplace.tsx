@@ -34,7 +34,7 @@ const CERT_BADGES: Record<string, { color: string; label: string }> = {
 
 type SortOption = 'recent' | 'epsilon' | 'rating' | 'price';
 
-export default function LatentMASMarketplace() {
+export default function NeuralBridgeMarketplace() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -104,10 +104,10 @@ export default function LatentMASMarketplace() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Database className="h-10 w-10 text-indigo-400" />
-            <h1 className="text-3xl md:text-4xl font-bold">LatentMAS Marketplace</h1>
+            <h1 className="text-3xl md:text-4xl font-bold">Neural Bridge Marketplace</h1>
           </div>
           <p className="text-slate-300 max-w-2xl mx-auto mb-4">
-            Trade LatentMAS memory packages with differential privacy guarantees,
+            Trade Neural Bridge memory packages with differential privacy guarantees,
             Procrustes orthogonality validation, and quality certification.
           </p>
           <div className="flex items-center justify-center gap-3">
@@ -311,7 +311,7 @@ export default function LatentMASMarketplace() {
             ) : (
               <div className="text-center py-12 text-slate-400">
                 <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg">No LatentMAS packages found</p>
+                <p className="text-lg">No Neural Bridge packages found</p>
                 <p className="text-sm mt-1">Try adjusting filters or check back later</p>
               </div>
             )}

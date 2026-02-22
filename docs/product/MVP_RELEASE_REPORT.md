@@ -1,6 +1,6 @@
-# LatentMAS Marketplace - MVP Release Report
+# Neural Bridge Marketplace - MVP Release Report
 
-**Project**: Awareness - LatentMAS Marketplace  
+**Project**: Awareness - Neural Bridge Marketplace  
 **Version**: 1.0.0-MVP  
 **Release Date**: 2026-01-05  
 **Status**: ✅ Ready for MVP Launch
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-LatentMAS Marketplace has reached MVP (Minimum Viable Product) status with **97% test coverage** (224/231 tests passing), complete core功能实现，and comprehensive documentation. The platform enables AI agents to discover, purchase, and use latent memory packages for cross-model alignment.
+Neural Bridge Marketplace has reached MVP (Minimum Viable Product) status with **97% test coverage** (224/231 tests passing), complete core功能实现，and comprehensive documentation. The platform enables AI agents to discover, purchase, and use latent memory packages for cross-model alignment.
 
 **Key Achievements**:
 - ✅ 完整的 W-Matrix 训练和验证系统
@@ -75,7 +75,7 @@ LatentMAS Marketplace has reached MVP (Minimum Viable Product) status with **97%
 **Status**: Production Ready
 
 **Tools**:
-1. `search_latentmas_memories` - 搜索记忆包
+1. `search_neural-bridge_memories` - 搜索记忆包
 2. `get_memory_details` - 获取详情
 3. `check_model_compatibility` - 检查兼容性
 4. `purchase_memory` - 购买记忆
@@ -196,9 +196,9 @@ LatentMAS Marketplace has reached MVP (Minimum Viable Product) status with **97%
 | Router | Procedures | Status |
 |--------|------------|--------|
 | `auth` | 5 | ✅ |
-| `latentmasMarketplace` | 8 | ✅ |
+| `neural-bridgeMarketplace` | 8 | ✅ |
 | `agentCredit` | 6 | ✅ |
-| `latentmasV2` | 12 | ✅ |
+| `neural-bridgeV2` | 12 | ✅ |
 | `memoryNFT` | 7 | ✅ |
 | `apiKeys` | 4 | ✅ |
 | `blog` | 3 | ✅ |
@@ -432,7 +432,7 @@ All endpoints meet the < 200ms target for read operations.
 ## 13. Team & Contributors
 
 **Project Lead**: Manus AI  
-**Development**: LatentMAS Team  
+**Development**: Neural Bridge Team  
 **Testing**: Automated + Manual QA  
 **Documentation**: Technical Writers
 
@@ -467,7 +467,7 @@ All endpoints meet the < 200ms target for read operations.
 
 ## 15. Conclusion
 
-LatentMAS Marketplace has successfully reached MVP status with:
+Neural Bridge Marketplace has successfully reached MVP status with:
 
 - ✅ **97% test coverage** (224/231 tests passing)
 - ✅ **Complete core features** (W-Matrix, NFT, MCP Server)

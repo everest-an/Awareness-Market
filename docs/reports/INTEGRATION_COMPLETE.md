@@ -47,7 +47,7 @@ Step 6: 代码清理 (可选)     ⏳ 0%
   - `memory` router: 5 个操作 (browse, publish, purchase, history, stats)
   - `reasoningChains` router: 3 个操作 (browse, publish, use)
   - `wMatrix` router: 1 个操作 (getVersions)
-- **迁移方式**: 所有 `latentmas.*` 调用 → `goServiceAdapter.*` 调用
+- **迁移方式**: 所有 `neural-bridge.*` 调用 → `goServiceAdapter.*` 调用
 
 ### 4. 服务器集成 ✅
 - **文件**: `server/_core/index.ts`

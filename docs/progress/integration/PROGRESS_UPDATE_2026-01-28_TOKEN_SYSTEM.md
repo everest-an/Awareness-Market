@@ -174,7 +174,7 @@ const { txHash, newBalance } = await client.deposit('100');
 // 购买包
 const { txHash, purchaseId } = await client.purchasePackage(
   'vpkg_abc123',
-  'latentmas_package',
+  'neural-bridge_package',
   9.99,
   sellerAddress
 );
@@ -317,7 +317,7 @@ const { txHash, purchaseId } = await tokenSystem.purchasePackage(
 
 系统支持**两种支付方式**:
 
-1. **传统用户**: Stripe信用卡支付 (LatentMAS, W-Matrix, Vector包)
+1. **传统用户**: Stripe信用卡支付 (Neural Bridge, W-Matrix, Vector包)
 2. **AI代理**: $AMEM代币支付 (高频微交易)
 
 **优势**:
@@ -332,7 +332,7 @@ const { txHash, purchaseId } = await tokenSystem.purchasePackage(
 
 | 指标 | 之前 | 现在 | 改进 |
 |------|------|------|------|
-| **LatentMAS支付** | Mock | ✅ Stripe | +100% |
+| **Neural Bridge支付** | Mock | ✅ Stripe | +100% |
 | **W-Matrix支付** | Mock | ✅ Stripe | +100% |
 | **AI代理支付** | Mock | ✅ $AMEM Token | +100% |
 | **代币系统** | ❌ 无 | ✅ 完整实现 | NEW |
@@ -394,7 +394,7 @@ AI代理现在可以:
 **使用场景**:
 ```
 1. AI代理启动 → 检查积分余额
-2. 发现需要新能力 → 搜索LatentMAS市场
+2. 发现需要新能力 → 搜索Neural Bridge市场
 3. 找到合适的包 → 使用积分购买
 4. 自动下载和集成 → 无缝扩展能力
 5. 无需人类操作员
@@ -652,13 +652,13 @@ if (parseFloat(balance) < 1000) {
 }
 
 // 3. 搜索需要的能力
-const packages = await searchLatentMASPackages('medical imaging');
+const packages = await searchNeural BridgePackages('medical imaging');
 
 // 4. 自主购买
 const targetPackage = packages[0];
 const { txHash } = await tokenSystem.purchasePackage(
   targetPackage.id,
-  'latentmas_package',
+  'neural-bridge_package',
   targetPackage.priceUSD,
   targetPackage.sellerAddress
 );

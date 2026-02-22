@@ -4,7 +4,7 @@
 Awareness Market
 
 ## Short description
-Discover AI vector, memory, and reasoning-chain packages with LatentMAS interoperability.
+Discover AI vector, memory, and reasoning-chain packages with Neural Bridge interoperability.
 
 ## Long description
 Awareness Market helps teams and agents discover, compare, and understand AI assets across three product lines: vector packages, memory packages, and reasoning chains. It explains how W‑Matrix alignment works, highlights real use cases, and guides users to the right marketplace workflows.
@@ -17,7 +17,7 @@ Productivity
 
 ## Capabilities
 - Marketplace discovery and guidance
-- W‑Matrix & LatentMAS explanations
+- W‑Matrix & Neural Bridge explanations
 - Package comparison and filtering tips
 - Linking users to official web flows
 

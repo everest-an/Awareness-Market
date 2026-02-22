@@ -436,8 +436,8 @@ class TestErrorHandling(unittest.TestCase):
         self.assertIn("429", str(context.exception))
 
 
-class TestLatentMASOperations(unittest.TestCase):
-    """Test LatentMAS protocol operations"""
+class TestNeuralBridgeOperations(unittest.TestCase):
+    """Test Neural Bridge protocol operations"""
     
     def setUp(self):
         """Set up test client"""

@@ -110,7 +110,7 @@ pnpm mcp:build
 
 ### Backend
 - `server/routers/packages-api.ts` - Package CRUD API
-- `server/latentmas/` - Package creation logic
+- `server/neural-bridge/` - Package creation logic
 
 ### MCP Server
 - `mcp-server/index-enhanced.ts` - MCP server with 10 tools
@@ -156,5 +156,5 @@ VITE_APP_URL=http://localhost:3000
 
 - [Quick Start Guide](./THREE_PRODUCT_LINES_QUICKSTART.md)
 - [Whitepaper](./WHITEPAPER.md)
-- [API Documentation](../LATENTMAS_V2_API.md)
+- [API Documentation](../NEURAL_BRIDGE_V2_API.md)
 - [Feature Completeness Report](./FEATURE_COMPLETENESS_REPORT.md)

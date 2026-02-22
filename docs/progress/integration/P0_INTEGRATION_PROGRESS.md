@@ -27,7 +27,7 @@
 
 #### 1. 添加导入
 ```typescript
-import { ProductionKVCacheCompressor } from "../latentmas/kv-cache-compressor-production";
+import { ProductionKVCacheCompressor } from "../neural-bridge/kv-cache-compressor-production";
 ```
 
 #### 2. 扩展API Input Schema
@@ -128,7 +128,7 @@ console.log(result.compression);
 
 #### 1. 添加导入和初始化
 ```typescript
-import { AntiPoisoningValidator } from '../latentmas/anti-poisoning';
+import { AntiPoisoningValidator } from '../neural-bridge/anti-poisoning';
 const poisonValidator = new AntiPoisoningValidator();
 ```
 

@@ -1,9 +1,9 @@
-# LatentMAS 实现状态报告
+# Neural Bridge 实现状态报告
 
-> 本文档对比 LatentMAS Stable Memory 论文规范与当前 Awareness Network 实现的差距，并说明局限性。
+> 本文档对比 Neural Bridge Stable Memory 论文规范与当前 Awareness Network 实现的差距，并说明局限性。
 
 **最后更新**: 2026-01-27
-**协议版本**: LatentMAS/2.1
+**协议版本**: Neural Bridge/2.1
 **状态**: ✅ 核心功能已实现
 
 ---
@@ -25,7 +25,7 @@
 
 ### 1.2 记忆形式对比
 
-| 记忆特征 | 论文 LatentMAS | 当前实现 (v2.1) |
+| 记忆特征 | 论文 Neural Bridge | 当前实现 (v2.1) |
 |---------|---------------|-----------------|
 | **物理存储** | 内部 KV 缓存 + 隐藏状态向量 | ✅ KV-Cache + 潜思维向量 |
 | **表示空间** | 连续高维潜在空间 | ✅ 连续高维潜在空间 |
@@ -39,7 +39,7 @@
 
 ### 2.1 Wa 对齐算子 ✅
 
-**实现文件**: `server/latentmas/wa-alignment-operator.ts`
+**实现文件**: `server/neural-bridge/wa-alignment-operator.ts`
 
 **论文公式**:
 ```
@@ -80,13 +80,13 @@ export function computeWaOperator(
 - ✅ 支持长程潜空间推理（最高 80 步）
 - ✅ 条件数和秩估计
 
-**API 端点**: `trpc.latentmasV2.trueLatentMAS.computeWaOperator`
+**API 端点**: `trpc.neuralBridgeV2.trueNeural Bridge.computeWaOperator`
 
 ---
 
 ### 2.2 潜空间滚动 (Latent Rollout) ✅
 
-**实现文件**: `server/latentmas/wa-alignment-operator.ts`
+**实现文件**: `server/neural-bridge/wa-alignment-operator.ts`
 
 **论文公式**:
 ```
@@ -139,13 +139,13 @@ export function executeLatentRollout(
 - ✅ 中间思维记录
 - ✅ 信息保留率计算
 
-**API 端点**: `trpc.latentmasV2.trueLatentMAS.executeLatentRollout`
+**API 端点**: `trpc.neuralBridgeV2.trueNeural Bridge.executeLatentRollout`
 
 ---
 
 ### 2.3 文本到潜空间编译 ✅
 
-**实现文件**: `server/latentmas/latent-rollout-engine.ts`
+**实现文件**: `server/neural-bridge/latent-rollout-engine.ts`
 
 **功能**:
 - ✅ 文本 Tokenization 模拟
@@ -154,13 +154,13 @@ export function executeLatentRollout(
 - ✅ 完整编译流程封装
 - ✅ 质量指标计算
 
-**API 端点**: `trpc.latentmasV2.trueLatentMAS.compileTextToLatent`
+**API 端点**: `trpc.neuralBridgeV2.trueNeural Bridge.compileTextToLatent`
 
 ---
 
 ### 2.4 跨智能体状态传递 ✅
 
-**实现文件**: `server/latentmas/latent-rollout-engine.ts`
+**实现文件**: `server/neural-bridge/latent-rollout-engine.ts`
 
 **功能**:
 - ✅ KV-Cache 合并
@@ -168,13 +168,13 @@ export function executeLatentRollout(
 - ✅ "数字感应"实现
 - ✅ 质量指标计算
 
-**API 端点**: `trpc.latentmasV2.trueLatentMAS.transferState`
+**API 端点**: `trpc.neuralBridgeV2.trueNeural Bridge.transferState`
 
 ---
 
 ### 2.5 KV-Cache 管理 ✅
 
-**实现文件**: `server/latentmas/wa-alignment-operator.ts`
+**实现文件**: `server/neural-bridge/wa-alignment-operator.ts`
 
 **功能**:
 - ✅ 空 KV-Cache 创建
@@ -182,26 +182,26 @@ export function executeLatentRollout(
 - ✅ 跨智能体 KV-Cache 合并
 - ✅ Wa 对齐后的 KV-Cache 传递
 
-**API 端点**: `trpc.latentmasV2.trueLatentMAS.mergeAgentKVCaches`
+**API 端点**: `trpc.neuralBridgeV2.trueNeural Bridge.mergeAgentKVCaches`
 
 ---
 
 ## 3. API 端点列表
 
-### TRUE LatentMAS (v2.1)
+### TRUE Neural Bridge (v2.1)
 
 | 端点 | 方法 | 描述 |
 |------|------|------|
-| `trueLatentMAS.computeWaOperator` | mutation | 计算 Wa 对齐算子 |
-| `trueLatentMAS.compileTextToLatent` | mutation | 文本到潜空间编译 |
-| `trueLatentMAS.executeLatentRollout` | mutation | 执行潜空间滚动 |
-| `trueLatentMAS.transferState` | mutation | 跨智能体状态传递 |
-| `trueLatentMAS.createAgentState` | mutation | 创建智能体状态 |
-| `trueLatentMAS.getAgentState` | query | 获取智能体状态 |
-| `trueLatentMAS.mergeAgentKVCaches` | mutation | 合并 KV-Cache |
-| `trueLatentMAS.getCompiledPackage` | query | 获取编译包详情 |
-| `trueLatentMAS.getSupportedModels` | query | 获取支持的模型 |
-| `trueLatentMAS.getPaperSpec` | query | 获取论文规范 |
+| `trueNeural Bridge.computeWaOperator` | mutation | 计算 Wa 对齐算子 |
+| `trueNeural Bridge.compileTextToLatent` | mutation | 文本到潜空间编译 |
+| `trueNeural Bridge.executeLatentRollout` | mutation | 执行潜空间滚动 |
+| `trueNeural Bridge.transferState` | mutation | 跨智能体状态传递 |
+| `trueNeural Bridge.createAgentState` | mutation | 创建智能体状态 |
+| `trueNeural Bridge.getAgentState` | query | 获取智能体状态 |
+| `trueNeural Bridge.mergeAgentKVCaches` | mutation | 合并 KV-Cache |
+| `trueNeural Bridge.getCompiledPackage` | query | 获取编译包详情 |
+| `trueNeural Bridge.getSupportedModels` | query | 获取支持的模型 |
+| `trueNeural Bridge.getPaperSpec` | query | 获取论文规范 |
 
 ---
 
@@ -242,7 +242,7 @@ export function executeLatentRollout(
 ## 5. 文件结构
 
 ```
-server/latentmas/
+server/neural-bridge/
 ├── wa-alignment-operator.ts    # ✅ Wa 算子核心实现
 ├── latent-rollout-engine.ts    # ✅ 潜空间滚动引擎
 ├── kv-cache-compressor.ts      # ✅ KV-Cache 压缩 (v2.0)
@@ -252,10 +252,10 @@ server/latentmas/
 └── embedding-service.ts        # ✅ Embedding 服务
 
 server/routers/
-└── latentmas.ts                # ✅ tRPC 路由 (v2.1 更新)
+└── neural-bridge.ts                # ✅ tRPC 路由 (v2.1 更新)
 
 server/
-└── latentmas-core.ts           # ✅ 核心功能 (已集成 v2.1)
+└── neural-bridge-core.ts           # ✅ 核心功能 (已集成 v2.1)
 
 client/src/pages/
 └── LatentTest.tsx              # ✅ UI (已更新)
