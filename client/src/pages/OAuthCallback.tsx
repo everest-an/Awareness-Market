@@ -1,11 +1,16 @@
 /**
  * OAuth Callback Page
- * 
+ *
  * Handles OAuth provider callbacks (GitHub, Google).
  * Exchanges authorization code for tokens and redirects to home.
+ *
+ * NOTE: In most deployments, the Express route at /api/auth/callback/:provider
+ * handles the callback server-side and redirects to /dashboard. This component
+ * serves as a fallback when the SPA receives the callback directly (e.g., CDN
+ * deployment that serves index.html for all routes before proxying to the API).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +23,8 @@ export default function OAuthCallback() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/api/auth/callback/:provider");
   const utils = trpc.useUtils();
-  
+  const mutationFired = useRef(false);
+
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -29,7 +35,6 @@ export default function OAuthCallback() {
       if (data.success) {
         setStatus("success");
         await utils.auth.me.invalidate();
-        // Redirect after short delay
         setTimeout(() => setLocation("/"), 1500);
       } else {
         setStatus("error");
@@ -43,7 +48,9 @@ export default function OAuthCallback() {
   });
 
   useEffect(() => {
-    // Parse URL parameters
+    // Prevent double-fire in React StrictMode
+    if (mutationFired.current) return;
+
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
     const state = urlParams.get("state");
@@ -52,17 +59,34 @@ export default function OAuthCallback() {
 
     if (error) {
       setStatus("error");
-      setErrorMessage(errorDescription || error || "OAuth authorization denied");
+      setErrorMessage(
+        error === "invalid_state"
+          ? "Login session expired. Please try again."
+          : errorDescription || error || "OAuth authorization denied"
+      );
       return;
     }
 
     if (!code || !state) {
-      setStatus("error");
-      setErrorMessage("Missing authorization code or state");
+      // No code/state params — user may have landed here after the Express
+      // route already handled the callback. Check if already authenticated.
+      utils.auth.me.fetch().then((user) => {
+        if (user) {
+          setStatus("success");
+          setTimeout(() => setLocation("/"), 500);
+        } else {
+          setStatus("error");
+          setErrorMessage("Missing authorization code. Please try signing in again.");
+        }
+      }).catch(() => {
+        setStatus("error");
+        setErrorMessage("Missing authorization code. Please try signing in again.");
+      });
       return;
     }
 
-    // Exchange code for tokens
+    // Exchange code for tokens via tRPC
+    mutationFired.current = true;
     oauthCallbackMutation.mutate({
       provider,
       code,
@@ -106,16 +130,16 @@ export default function OAuthCallback() {
             {status === "error" && errorMessage}
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent className="flex flex-col items-center gap-4">
           {status === "loading" && (
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           )}
-          
+
           {status === "success" && (
             <CheckCircle2 className="h-12 w-12 text-green-500" />
           )}
-          
+
           {status === "error" && (
             <>
               <XCircle className="h-12 w-12 text-destructive" />

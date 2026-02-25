@@ -16,6 +16,19 @@ function getQueryParam(req: Request, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+/**
+ * Derive the frontend redirect URL from the request origin.
+ * Priority: FRONTEND_URL env > OAUTH_CALLBACK_URL env > request origin.
+ */
+function getFrontendUrl(req: Request): string {
+  if (process.env.FRONTEND_URL) return process.env.FRONTEND_URL;
+  if (process.env.OAUTH_CALLBACK_URL) return process.env.OAUTH_CALLBACK_URL;
+  // Fall back to the origin of the current request (works in both dev and production)
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  return host ? `${proto}://${host}` : 'http://localhost:3000';
+}
+
 export function registerOAuthRoutes(app: Express) {
   // Handle OAuth callbacks from Google and GitHub
   // Route: /api/auth/callback/google or /api/auth/callback/github
@@ -35,25 +48,44 @@ export function registerOAuthRoutes(app: Express) {
       const error = getQueryParam(req, "error");
       const errorDescription = getQueryParam(req, "error_description");
       logger.error("[OAuth] Authorization denied", { provider, error, errorDescription });
-      res.status(400).json({ 
+      res.status(400).json({
         error: error || "code is required",
-        error_description: errorDescription, 
+        error_description: errorDescription,
       });
       return;
     }
+
+    // CSRF protection: validate state against oauth_state cookie
+    const storedState = req.cookies?.oauth_state;
+    if (!storedState || !state || storedState !== state) {
+      logger.warn("[OAuth] State parameter mismatch", {
+        provider,
+        hasStoredState: !!storedState,
+        hasState: !!state,
+      });
+      // Redirect to auth page with error instead of returning JSON
+      // (this is a browser redirect, not an API call)
+      const frontendUrl = getFrontendUrl(req);
+      res.redirect(302, `${frontendUrl}/auth?error=invalid_state`);
+      return;
+    }
+
+    // Clear the state cookie (single-use)
+    const cookieOptions = getSessionCookieOptions(req);
+    res.clearCookie('oauth_state', cookieOptions);
 
     try {
       const result = await handleOAuthCallback(provider, code);
 
       if (!result.success) {
         logger.error("[OAuth] Callback failed", { provider, error: result.error });
-        res.status(400).json({ error: result.error || "OAuth callback failed" });
+        const frontendUrl = getFrontendUrl(req);
+        res.redirect(302, `${frontendUrl}/auth?error=${encodeURIComponent(result.error || 'OAuth callback failed')}`);
         return;
       }
 
       // Set JWT tokens in HTTP-only cookies
       if (result.accessToken && result.refreshToken) {
-        const cookieOptions = getSessionCookieOptions(req);
         res.cookie('jwt_token', result.accessToken, cookieOptions);
         res.cookie('jwt_refresh', result.refreshToken, {
           ...cookieOptions,
@@ -62,11 +94,12 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       // Redirect to frontend dashboard
-      const frontendUrl = process.env.FRONTEND_URL || "https://awareness.market";
+      const frontendUrl = getFrontendUrl(req);
       res.redirect(302, `${frontendUrl}/dashboard`);
     } catch (error: unknown) {
       logger.error("[OAuth] Callback exception", { provider, error });
-      res.status(500).json({ error: "OAuth callback failed" });
+      const frontendUrl = getFrontendUrl(req);
+      res.redirect(302, `${frontendUrl}/auth?error=oauth_exception`);
     }
   });
 

@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import { parse as parseCookie } from "cookie";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
@@ -82,6 +83,44 @@ async function startServer() {
   // Security headers (CSP, HSTS, X-Frame-Options, etc.)
   app.use(securityHeaders(getSecurityConfig()));
   
+  // Cookie parser — populates req.cookies from Cookie header
+  // Uses the 'cookie' package (already a dependency via sdk.ts)
+  app.use((req, _res, next) => {
+    req.cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+    next();
+  });
+
+  // ─── CORS — Required for cross-origin API requests ──────────────────
+  // Production: frontend at awareness.market, API at api.awareness.market
+  // Development: same-origin (Vite integrated), CORS still safe
+  const allowedOrigins = new Set([
+    'https://awareness.market',
+    'https://www.awareness.market',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()) : []),
+  ]);
+
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+
+    if (origin && (allowedOrigins.has(origin) || process.env.NODE_ENV === 'development')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-MCP-Token, X-Agent-Role, X-Workspace-Key, X-Webhook-Signature, X-Webhook-Event, X-Workflow-Id');
+      res.setHeader('Access-Control-Max-Age', '86400'); // preflight cache 24h
+    }
+
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+
+    next();
+  });
+
   // Global rate limiter — plan-aware (100-3000 req/min based on org tier)
   app.use('/api', planAwareGlobalLimiter);
   

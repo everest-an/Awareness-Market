@@ -180,11 +180,18 @@ export const productionSecurityConfig: SecurityHeadersConfig = {
     'style-src': ["'self'", "'unsafe-inline'"], // unsafe-inline needed for dynamic styles
     'img-src': ["'self'", 'data:', 'https:'],
     'font-src': ["'self'"],
-    'connect-src': ["'self'", 'https://api.stripe.com'],
+    'connect-src': [
+      "'self'",
+      'https://api.awareness.market',   // Cross-origin API
+      'wss://api.awareness.market',     // WebSocket (Socket.IO)
+      'https://api.stripe.com',         // Stripe payments
+      'https://accounts.google.com',    // Google OAuth
+      'https://github.com',             // GitHub OAuth
+    ],
     'frame-src': ["'none'"],
     'frame-ancestors': ["'none'"],
     'base-uri': ["'self'"],
-    'form-action': ["'self'"],
+    'form-action': ["'self'", 'https://accounts.google.com', 'https://github.com'],
     'upgrade-insecure-requests': [],
   },
 
@@ -218,7 +225,7 @@ export const developmentSecurityConfig: SecurityHeadersConfig = {
     'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'data:', 'https:', 'http:'],
     'font-src': ["'self'", 'data:'],
-    'connect-src': ["'self'", 'ws:', 'wss:'], // Allow WebSocket for HMR
+    'connect-src': ["'self'", 'ws:', 'wss:', 'https:', 'http:'], // Allow WebSocket HMR + API calls
     'frame-ancestors': ["'self'"],
   },
 
