@@ -36,6 +36,13 @@ import {
   RefreshCw,
   Zap,
   Clock,
+  ClipboardList,
+  FileText,
+  ArrowRight,
+  CircleDot,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
@@ -48,7 +55,7 @@ const AVAILABLE_PERMISSIONS = [
 ];
 
 type Perm = 'read' | 'write' | 'propose' | 'execute';
-type Tab = 'agents' | 'sessions' | 'configs' | 'audit';
+type Tab = 'agents' | 'sessions' | 'tasks' | 'configs' | 'audit';
 
 export default function WorkspaceDetail() {
   const { toast } = useToast();
@@ -81,6 +88,16 @@ export default function WorkspaceDetail() {
   const sessionsQuery = trpc.agentCollaboration.listWorkflows.useQuery(
     { workspaceId },
     { enabled: activeTab === 'sessions' && !!workspaceId, refetchInterval: 5000 },
+  );
+
+  const tasksQuery = trpc.workspace.getTasks.useQuery(
+    { workspaceId, status: 'all' as const },
+    { enabled: activeTab === 'tasks' && !!workspaceId, refetchInterval: 5000 },
+  );
+
+  const artifactsQuery = trpc.workspace.getArtifacts.useQuery(
+    { workspaceId },
+    { enabled: activeTab === 'tasks' && !!workspaceId, refetchInterval: 10000 },
   );
 
   // Mutations
@@ -296,6 +313,7 @@ export default function WorkspaceDetail() {
           {([
             { id: 'agents' as Tab, label: 'Agents', icon: Users },
             { id: 'sessions' as Tab, label: 'Sessions', icon: Zap },
+            { id: 'tasks' as Tab, label: 'Tasks', icon: ClipboardList },
             { id: 'configs' as Tab, label: 'Configs', icon: Code },
             { id: 'audit' as Tab, label: 'Audit', icon: Shield },
           ]).map(({ id, label, icon: Icon }) => (
@@ -389,6 +407,186 @@ export default function WorkspaceDetail() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* ── Tasks & Artifacts Tab ──────────────────────────────────────── */}
+        {activeTab === 'tasks' && (
+          <div className="space-y-6">
+            {/* Task Queue */}
+            <Card className="bg-[#0a0a0f] border-white/10">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <ClipboardList className="w-5 h-5 text-cyan-400" />
+                    Task Queue
+                    {tasksQuery.data && tasksQuery.data.total > 0 && (
+                      <Badge className="bg-cyan-500/20 text-cyan-400 ml-2">{tasksQuery.data.total}</Badge>
+                    )}
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => tasksQuery.refetch()}
+                    className="bg-white/5 border-white/10"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${tasksQuery.isFetching ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {tasksQuery.isLoading && (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
+                  </div>
+                )}
+
+                {tasksQuery.data && tasksQuery.data.tasks.length === 0 && (
+                  <div className="text-center py-8">
+                    <ClipboardList className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                    <p className="text-slate-400 text-sm">No tasks yet. Agents can assign tasks via the <code className="bg-white/5 px-1 rounded">assign_task</code> MCP tool.</p>
+                  </div>
+                )}
+
+                {tasksQuery.data && tasksQuery.data.tasks.length > 0 && (
+                  <div className="space-y-2">
+                    {tasksQuery.data.tasks.map((task: any) => {
+                      const statusConfig: Record<string, { icon: typeof CheckCircle; color: string; bg: string }> = {
+                        pending: { icon: CircleDot, color: 'text-slate-400', bg: 'bg-slate-500/20' },
+                        in_progress: { icon: Loader2, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+                        done: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/20' },
+                        failed: { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/20' },
+                        blocked: { icon: AlertTriangle, color: 'text-yellow-400', bg: 'bg-yellow-500/20' },
+                      };
+                      const sc = statusConfig[task.status] || statusConfig.pending;
+                      const StatusIcon = sc.icon;
+                      const priorityColors: Record<string, string> = {
+                        urgent: 'text-red-400 bg-red-500/20',
+                        high: 'text-orange-400 bg-orange-500/20',
+                        medium: 'text-cyan-400 bg-cyan-500/20',
+                        low: 'text-slate-400 bg-slate-500/20',
+                      };
+
+                      return (
+                        <div key={task.id} className="p-3 rounded-lg border border-white/5 hover:border-white/15 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <StatusIcon className={`w-4 h-4 ${sc.color} shrink-0 ${task.status === 'in_progress' ? 'animate-spin' : ''}`} />
+                                <span className="text-sm text-white font-medium">{task.title}</span>
+                                <Badge className={`${sc.bg} ${sc.color} text-[10px]`}>{task.status}</Badge>
+                                <Badge className={`${priorityColors[task.priority] || priorityColors.medium} text-[10px]`}>{task.priority}</Badge>
+                                <Badge variant="outline" className="text-[10px] border-white/15">{task.type}</Badge>
+                              </div>
+                              {task.description && (
+                                <p className="text-xs text-slate-400 mt-1 line-clamp-2">{task.description}</p>
+                              )}
+                              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-slate-500">
+                                <span className="flex items-center gap-1">
+                                  <ArrowRight className="w-3 h-3" />
+                                  {task.from} <span className="text-slate-600">→</span> {task.to}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {new Date(task.createdAt).toLocaleString()}
+                                </span>
+                                {task.updatedBy && task.updatedAt !== task.createdAt && (
+                                  <span>updated by {task.updatedBy}</span>
+                                )}
+                              </div>
+                              {task.result && (
+                                <div className="mt-2 p-2 rounded bg-white/5 border border-white/5">
+                                  <p className="text-xs text-slate-300 whitespace-pre-wrap">{task.result}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Shared Artifacts */}
+            <Card className="bg-[#0a0a0f] border-white/10">
+              <CardHeader>
+                <CardTitle className="text-lg text-white flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-purple-400" />
+                  Shared Artifacts
+                  {artifactsQuery.data && artifactsQuery.data.total > 0 && (
+                    <Badge className="bg-purple-500/20 text-purple-400 ml-2">{artifactsQuery.data.total}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {artifactsQuery.isLoading && (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                  </div>
+                )}
+
+                {artifactsQuery.data && artifactsQuery.data.artifacts.length === 0 && (
+                  <div className="text-center py-6">
+                    <FileText className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                    <p className="text-slate-400 text-sm">No artifacts shared yet. Agents can share code, logs, and test results via the <code className="bg-white/5 px-1 rounded">share_artifact</code> MCP tool.</p>
+                  </div>
+                )}
+
+                {artifactsQuery.data && artifactsQuery.data.artifacts.length > 0 && (
+                  <div className="space-y-2">
+                    {artifactsQuery.data.artifacts.map((art: any) => {
+                      const typeColors: Record<string, string> = {
+                        code_patch: 'text-green-400 bg-green-500/20',
+                        test_result: 'text-blue-400 bg-blue-500/20',
+                        log: 'text-yellow-400 bg-yellow-500/20',
+                        report: 'text-purple-400 bg-purple-500/20',
+                        config: 'text-cyan-400 bg-cyan-500/20',
+                        screenshot: 'text-pink-400 bg-pink-500/20',
+                        other: 'text-slate-400 bg-slate-500/20',
+                      };
+
+                      return (
+                        <details key={art.id} className="group border border-white/5 rounded-lg hover:border-white/15 transition-colors">
+                          <summary className="flex items-center justify-between p-3 cursor-pointer">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <FileText className="w-4 h-4 text-purple-400 shrink-0" />
+                              <span className="text-sm text-white font-medium">{art.name}</span>
+                              <Badge className={`${typeColors[art.type] || typeColors.other} text-[10px]`}>{art.type}</Badge>
+                              <span className="text-[10px] text-slate-500">from {art.from}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-500">{new Date(art.createdAt).toLocaleString()}</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  copyToClipboard(art.content, art.name);
+                                }}
+                                className="text-slate-400 hover:text-white h-6 w-6 p-0"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </summary>
+                          <div className="px-3 pb-3">
+                            {art.message && (
+                              <p className="text-xs text-slate-400 mb-2">{art.message}</p>
+                            )}
+                            <pre className="bg-black/50 border border-white/10 rounded-lg p-3 text-xs text-green-300 overflow-x-auto whitespace-pre max-h-64">
+                              {art.content}
+                            </pre>
+                          </div>
+                        </details>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* ── Agents & Permissions ──────────────────────────────────────── */}

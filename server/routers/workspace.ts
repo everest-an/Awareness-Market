@@ -1262,4 +1262,87 @@ export const workspaceRouter = router({
 
       return { success: true, status: 'connected' };
     }),
+
+  // ─── Tasks & Artifacts (read namespaced AiMemory stores) ───────────────
+
+  /**
+   * Get tasks for this workspace (assigned via MCP assign_task tool)
+   */
+  getTasks: protectedProcedure
+    .input(z.object({
+      workspaceId: z.string(),
+      status: z.enum(['pending', 'in_progress', 'done', 'failed', 'blocked', 'all']).default('all'),
+    }))
+    .query(async ({ input, ctx }) => {
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+        select: { id: true, memoryKey: true },
+      });
+      if (!workspace) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+      }
+
+      const mem = await db.getAIMemoryByKey({
+        userId: ctx.user.id,
+        memoryKey: `${workspace.memoryKey}:tasks`,
+      });
+
+      let tasks: any[] = [];
+      if (mem?.memoryData) {
+        try {
+          const data = JSON.parse(mem.memoryData);
+          tasks = Array.isArray(data.items) ? data.items : [];
+        } catch { /* empty */ }
+      }
+
+      if (input.status !== 'all') {
+        tasks = tasks.filter((t: any) => t.status === input.status);
+      }
+
+      // Newest first
+      tasks.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      return { tasks, total: tasks.length };
+    }),
+
+  /**
+   * Get artifacts shared via MCP share_artifact tool
+   */
+  getArtifacts: protectedProcedure
+    .input(z.object({
+      workspaceId: z.string(),
+      type: z.string().optional(),
+      limit: z.number().min(1).max(50).default(20),
+    }))
+    .query(async ({ input, ctx }) => {
+      const workspace: WsRecord | null = await orm.workspace.findFirst({
+        where: { id: input.workspaceId, userId: ctx.user.id },
+        select: { id: true, memoryKey: true },
+      });
+      if (!workspace) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+      }
+
+      const mem = await db.getAIMemoryByKey({
+        userId: ctx.user.id,
+        memoryKey: `${workspace.memoryKey}:artifacts`,
+      });
+
+      let artifacts: any[] = [];
+      if (mem?.memoryData) {
+        try {
+          const data = JSON.parse(mem.memoryData);
+          artifacts = Array.isArray(data.items) ? data.items : [];
+        } catch { /* empty */ }
+      }
+
+      if (input.type) {
+        artifacts = artifacts.filter((a: any) => a.type === input.type);
+      }
+
+      // Newest first
+      artifacts.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      return { artifacts: artifacts.slice(0, input.limit), total: artifacts.length };
+    }),
 });

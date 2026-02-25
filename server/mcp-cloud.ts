@@ -1,7 +1,7 @@
 /**
  * Cloud-Hosted MCP Server (Stateless Streamable HTTP Transport)
  *
- * Provides the same 6 collaboration tools as the local stdio MCP server,
+ * Provides 10 collaboration tools (6 communication + 4 task/artifact):
  * but runs inside the Express process using the MCP Streamable HTTP transport.
  *
  * STATELESS MODE: Each request creates a fresh MCP server instance.
@@ -79,6 +79,10 @@ const TOOL_PERMISSION_MAP: Record<string, string> = {
   get_collaboration_history: 'read',
   sync_progress: 'write',
   ask_question: 'write',
+  assign_task: 'write',
+  get_tasks: 'read',
+  update_task: 'write',
+  share_artifact: 'write',
 };
 
 // Backwards-compatible mapping: workspace tokens were created with
@@ -491,6 +495,291 @@ function createCollaborationMcpServer(
             urgency: params.urgency,
             timestamp,
             message: 'Question sent. Other agents will see it in their context.',
+          }, null, 2),
+        }],
+      };
+    },
+  );
+
+  // ── Helper: read/write namespaced task/artifact stores ─────────────────
+  const tasksKey = `${memoryKey}:tasks`;
+  const artifactsKey = `${memoryKey}:artifacts`;
+
+  async function readStore(key: string): Promise<any[]> {
+    const existing = await db.getAIMemoryByKey({ userId, memoryKey: key });
+    if (!existing?.memoryData) return [];
+    try {
+      const data = JSON.parse(existing.memoryData);
+      return Array.isArray(data.items) ? data.items : [];
+    } catch { return []; }
+  }
+
+  async function writeStore(key: string, items: any[]): Promise<void> {
+    // Keep last 200 items max
+    const trimmed = items.length > 200 ? items.slice(-200) : items;
+    await db.upsertAIMemory({
+      userId,
+      memoryKey: key,
+      data: { items: trimmed, updated_at: new Date().toISOString() },
+      ttlDays: 30,
+    });
+  }
+
+  // ── Tool 7: assign_task ────────────────────────────────────────────────
+  server.tool(
+    'assign_task',
+    'Assign a task to another agent. Use this to delegate testing, code review, deployment verification, or any actionable work to a specific agent role.',
+    {
+      to: z.string().describe('Target agent role (e.g. "reviewer", "frontend", "backend")'),
+      type: z.enum(['test', 'review', 'deploy', 'fix', 'investigate', 'other']).describe('Task type'),
+      title: z.string().describe('Short task title'),
+      description: z.string().optional().describe('Detailed description of what needs to be done'),
+      spec: z.record(z.string(), z.any()).optional().describe('Structured spec (e.g. { endpoint, method, expectedStatus })'),
+      priority: z.enum(['low', 'medium', 'high', 'urgent']).optional().default('medium').describe('Task priority'),
+    },
+    async (params) => {
+      checkPermission('assign_task');
+      const timestamp = new Date().toISOString();
+      const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      const tasks = await readStore(tasksKey);
+      const task = {
+        id: taskId,
+        from: role,
+        to: params.to,
+        type: params.type,
+        title: params.title,
+        description: params.description,
+        spec: params.spec,
+        priority: params.priority || 'medium',
+        status: 'pending',
+        result: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      tasks.push(task);
+      await writeStore(tasksKey, tasks);
+
+      // Also push a notification into the main collab history
+      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
+      let history: unknown[] = [];
+      if (existing?.memoryData) {
+        try { const d = JSON.parse(existing.memoryData); history = Array.isArray(d.history) ? d.history : []; } catch { /* */ }
+      }
+      history.push({
+        type: 'task_assigned',
+        agent_role: role,
+        task_id: taskId,
+        task_title: params.title,
+        assigned_to: params.to,
+        priority: params.priority || 'medium',
+        source: 'cloud_mcp',
+        timestamp,
+      });
+      if (history.length > 100) history = history.slice(-100);
+      await db.upsertAIMemory({
+        userId, memoryKey,
+        data: { workspace: memoryKey, history, last_update: history[history.length - 1], updated_at: timestamp },
+        ttlDays: 30,
+      });
+
+      touchAgentHeartbeat(userId, memoryKey, role);
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            status: 'assigned',
+            taskId,
+            to: params.to,
+            title: params.title,
+            priority: params.priority || 'medium',
+            message: `Task assigned to ${params.to}. They will see it via get_tasks.`,
+          }, null, 2),
+        }],
+      };
+    },
+  );
+
+  // ── Tool 8: get_tasks ──────────────────────────────────────────────────
+  server.tool(
+    'get_tasks',
+    'Get tasks assigned to you or tasks you assigned to others. Check this regularly to pick up new work.',
+    {
+      filter: z.enum(['mine', 'assigned_by_me', 'all']).optional().default('mine').describe('Which tasks to retrieve'),
+      status: z.enum(['pending', 'in_progress', 'done', 'failed', 'all']).optional().default('all').describe('Filter by status'),
+    },
+    async (params) => {
+      checkPermission('get_tasks');
+      const allTasks = await readStore(tasksKey);
+
+      let filtered = allTasks;
+      if (params.filter === 'mine') {
+        filtered = allTasks.filter((t: any) => t.to === role);
+      } else if (params.filter === 'assigned_by_me') {
+        filtered = allTasks.filter((t: any) => t.from === role);
+      }
+
+      if (params.status && params.status !== 'all') {
+        filtered = filtered.filter((t: any) => t.status === params.status);
+      }
+
+      touchAgentHeartbeat(userId, memoryKey, role);
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            myRole: role,
+            filter: params.filter,
+            statusFilter: params.status,
+            tasks: filtered.slice(-50),
+            total: filtered.length,
+          }, null, 2),
+        }],
+      };
+    },
+  );
+
+  // ── Tool 9: update_task ────────────────────────────────────────────────
+  server.tool(
+    'update_task',
+    'Update the status of a task (accept it, mark as done, or report failure). Attach results, evidence, or error details.',
+    {
+      taskId: z.string().describe('The task ID to update'),
+      status: z.enum(['in_progress', 'done', 'failed', 'blocked']).describe('New task status'),
+      result: z.string().optional().describe('Result summary or error details'),
+      evidence: z.record(z.string(), z.any()).optional().describe('Structured evidence (e.g. { passed: true, response: "...", screenshot: "url" })'),
+    },
+    async (params) => {
+      checkPermission('update_task');
+      const timestamp = new Date().toISOString();
+      const tasks = await readStore(tasksKey);
+
+      const idx = tasks.findIndex((t: any) => t.id === params.taskId);
+      if (idx === -1) {
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ error: 'Task not found', taskId: params.taskId }) }],
+        };
+      }
+
+      tasks[idx] = {
+        ...tasks[idx],
+        status: params.status,
+        result: params.result || tasks[idx].result,
+        evidence: params.evidence || tasks[idx].evidence,
+        updatedAt: timestamp,
+        updatedBy: role,
+      };
+      await writeStore(tasksKey, tasks);
+
+      // Notify in main history
+      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
+      let history: unknown[] = [];
+      if (existing?.memoryData) {
+        try { const d = JSON.parse(existing.memoryData); history = Array.isArray(d.history) ? d.history : []; } catch { /* */ }
+      }
+      history.push({
+        type: 'task_updated',
+        agent_role: role,
+        task_id: params.taskId,
+        task_title: tasks[idx].title,
+        new_status: params.status,
+        result_summary: params.result,
+        source: 'cloud_mcp',
+        timestamp,
+      });
+      if (history.length > 100) history = history.slice(-100);
+      await db.upsertAIMemory({
+        userId, memoryKey,
+        data: { workspace: memoryKey, history, last_update: history[history.length - 1], updated_at: timestamp },
+        ttlDays: 30,
+      });
+
+      touchAgentHeartbeat(userId, memoryKey, role);
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            status: 'updated',
+            taskId: params.taskId,
+            newStatus: params.status,
+            title: tasks[idx].title,
+            message: `Task "${tasks[idx].title}" updated to ${params.status}.`,
+          }, null, 2),
+        }],
+      };
+    },
+  );
+
+  // ── Tool 10: share_artifact ────────────────────────────────────────────
+  server.tool(
+    'share_artifact',
+    'Share a file, code snippet, test result, log output, or any artifact with other agents. Use this to pass concrete deliverables between agents.',
+    {
+      type: z.enum(['code_patch', 'test_result', 'log', 'screenshot', 'config', 'report', 'other']).describe('Artifact type'),
+      name: z.string().describe('Artifact name (e.g. "fix-auth.patch", "api-test-results.json")'),
+      content: z.string().describe('Artifact content (code, logs, JSON, etc.)'),
+      message: z.string().optional().describe('Brief message explaining the artifact'),
+      relatedTaskId: z.string().optional().describe('Link this artifact to a specific task ID'),
+    },
+    async (params) => {
+      checkPermission('share_artifact');
+      const timestamp = new Date().toISOString();
+      const artifactId = `art_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      const artifacts = await readStore(artifactsKey);
+      const artifact = {
+        id: artifactId,
+        from: role,
+        type: params.type,
+        name: params.name,
+        content: params.content.slice(0, 50000), // 50KB max per artifact
+        message: params.message,
+        relatedTaskId: params.relatedTaskId,
+        createdAt: timestamp,
+      };
+      artifacts.push(artifact);
+      await writeStore(artifactsKey, artifacts);
+
+      // Notify in main history
+      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
+      let history: unknown[] = [];
+      if (existing?.memoryData) {
+        try { const d = JSON.parse(existing.memoryData); history = Array.isArray(d.history) ? d.history : []; } catch { /* */ }
+      }
+      history.push({
+        type: 'artifact_shared',
+        agent_role: role,
+        artifact_id: artifactId,
+        artifact_name: params.name,
+        artifact_type: params.type,
+        message: params.message,
+        related_task_id: params.relatedTaskId,
+        content_length: params.content.length,
+        source: 'cloud_mcp',
+        timestamp,
+      });
+      if (history.length > 100) history = history.slice(-100);
+      await db.upsertAIMemory({
+        userId, memoryKey,
+        data: { workspace: memoryKey, history, last_update: history[history.length - 1], updated_at: timestamp },
+        ttlDays: 30,
+      });
+
+      touchAgentHeartbeat(userId, memoryKey, role);
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            status: 'shared',
+            artifactId,
+            name: params.name,
+            type: params.type,
+            contentLength: params.content.length,
+            message: `Artifact "${params.name}" shared. Other agents can retrieve it via get_collaboration_history.`,
           }, null, 2),
         }],
       };
