@@ -737,27 +737,6 @@ export default function WorkspaceDetail() {
                           </div>
                         </div>
 
-                        {/* Local fallback (collapsed by default) */}
-                        {cfg.config.mcpServersLocal && (
-                          <details className="group">
-                            <summary className="text-[10px] text-slate-500 cursor-pointer hover:text-slate-300">
-                              Local fallback (stdio) — click to expand
-                            </summary>
-                            <div className="relative mt-1.5">
-                              <pre className="bg-black/50 border border-white/10 rounded-lg p-3 text-xs text-slate-400 overflow-x-auto whitespace-pre max-h-48">
-                                {JSON.stringify({ mcpServers: cfg.config.mcpServersLocal }, null, 2)}
-                              </pre>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => copyToClipboard(JSON.stringify({ mcpServers: cfg.config.mcpServersLocal }, null, 2), `${cfg.agentName} local config`)}
-                                className="absolute top-2 right-2 text-slate-400 hover:text-white"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </details>
-                        )}
                       </div>
                     ) : (
                       <div className="space-y-2">

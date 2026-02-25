@@ -437,22 +437,6 @@ export const workspaceRouter = router({
                   ],
                 },
               },
-              // Fallback: local stdio MCP server (if cloud is unreachable)
-              mcpServersLocal: {
-                [`awareness-collab-${workspace.id}-local`]: {
-                  command: 'node',
-                  args: ['./mcp-server/dist/index-collaboration.js'],
-                  env: {
-                    VITE_APP_URL: apiBaseUrl,
-                    MCP_COLLABORATION_TOKEN: rawToken,
-                    AGENT_ROLE: agent.role,
-                    PROJECT_ID: workspace.id,
-                    PROJECT_NAME: workspace.name,
-                    MEMORY_KEY: workspace.memoryKey,
-                    AGENT_PERMISSIONS: JSON.stringify(agent.permissions),
-                  },
-                },
-              },
             },
           };
         } else {
