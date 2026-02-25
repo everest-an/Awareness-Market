@@ -11,7 +11,7 @@ import Home from "./pages/Home";
 import Marketplace from "./pages/Marketplace";
 import VectorDetail from "./pages/VectorDetail";
 import UploadVector from "./pages/UploadVector";
-import ConsumerDashboard from "./pages/ConsumerDashboard";
+// ConsumerDashboard — route redirects to /dev
 import Profile from "./pages/Profile";
 import Subscriptions from "./pages/Subscriptions";
 import SdkDocs from "./pages/SdkDocs";
@@ -39,8 +39,8 @@ import UploadVectorPackage from "./pages/UploadVectorPackage";
 import UploadMemoryPackage from "./pages/UploadMemoryPackage";
 import UploadChainPackage from "./pages/UploadChainPackage";
 import PackageDetail from "./pages/PackageDetail";
-import VectorPackageMarket from "./pages/VectorPackageMarket";
-import ChainPackageMarketplace from "./pages/ChainPackageMarketplace";
+// VectorPackageMarket — route redirects to /marketplace
+// ChainPackageMarketplace — route redirects to /reasoning-chains
 import WorkflowDemo from "./pages/WorkflowDemo";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
 import GolemVisualizerPage from "./pages/GolemVisualizerPage";
@@ -75,21 +75,21 @@ import WorkspaceSetup from "./pages/WorkspaceSetup";
 import WorkspaceList from "./pages/WorkspaceList";
 import WorkspaceDetail from "./pages/WorkspaceDetail";
 import CreditsPayments from "./pages/CreditsPayments";
-import AgentDiscovery from "./pages/AgentDiscovery";
+// AgentDiscovery — route redirects to /agents
 import WMatrixMarketplace from "./pages/WMatrixMarketplace";
 import NeuralBridgeMarketplace from "./pages/NeuralBridgeMarketplace";
 import WMatrixTools from "./pages/WMatrixTools";
 import DevDashboard from "./pages/DevDashboard";
 
 // Lazy-load pages that potentially use charts/visualization libraries
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+// const Dashboard = lazy(() => import("./pages/Dashboard")); // redirects to /dev
 const WorkflowHistory = lazy(() => import("./pages/WorkflowHistory").then(m => ({ default: m.WorkflowHistory })));
 const WorkflowSessionDetail = lazy(() => import("./pages/WorkflowSessionDetail").then(m => ({ default: m.WorkflowSessionDetail })));
 const WorkflowPlayback = lazy(() => import("./pages/WorkflowPlayback").then(m => ({ default: m.WorkflowPlayback })));
 const WorkflowPerformance = lazy(() => import("./pages/WorkflowPerformance").then(m => ({ default: m.WorkflowPerformance })));
 const OrgAnalytics = lazy(() => import("./pages/OrgAnalytics"));
 const BillingDashboard = lazy(() => import("./pages/BillingDashboard"));
-const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
+// const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard")); // redirects to /dev
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const UsageAnalytics = lazy(() => import("./pages/UsageAnalytics"));
 const PrivacySettings = lazy(() => import("./pages/PrivacySettings"));
@@ -128,11 +128,11 @@ function Router() {
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />
       <Route path={"/purchase/success"} component={PurchaseSuccess} />
-      <Route path={"/dashboard"} component={Dashboard} />
-      <Route path={"/dashboard/creator"} component={CreatorDashboard} />
+      <Route path="/dashboard">{() => <Redirect to="/dev" />}</Route>
+      <Route path="/dashboard/creator">{() => <Redirect to="/dev" />}</Route>
       <Route path={"/upload"} component={UploadVector} />
       <Route path={"/creator/publish"} component={UploadVector} />
-      <Route path={"/dashboard/consumer"} component={ConsumerDashboard} />
+      <Route path="/dashboard/consumer">{() => <Redirect to="/dev" />}</Route>
       <Route path="/profile" component={Profile} />
       <Route path="/privacy-settings" component={PrivacySettings} />
       <Route path="/zkp-dashboard" component={ZKPDashboard} />
@@ -154,7 +154,7 @@ function Router() {
       <Route path="/neural-bridge-v2-demo" component={NeuralBridgeV2Demo} />
       {/* Redirects for deprecated pages */}
       <Route path="/w-matrix-marketplace">{() => <Redirect to="/w-matrix" />}</Route>
-      <Route path="/vector-packages" component={VectorPackageMarket} />
+      <Route path="/vector-packages">{() => <Redirect to="/marketplace" />}</Route>
       <Route path="/workflow-demo" component={WorkflowDemo} />
       <Route path="/workflow-history" component={WorkflowHistory} />
       <Route path="/workflow-history/:sessionId" component={WorkflowSessionDetail} />
@@ -166,7 +166,7 @@ function Router() {
       <Route path="/upload-memory-package" component={UploadMemoryPackage} />
       <Route path="/memory-management" component={MemoryManagement} />
       <Route path="/conflicts" component={ConflictResolution} />
-      <Route path="/chain-packages" component={ChainPackageMarketplace} />
+      <Route path="/chain-packages">{() => <Redirect to="/reasoning-chains" />}</Route>
       <Route path="/upload-chain-package" component={UploadChainPackage} />
       <Route path="/upload-multimodal-package" component={UploadMultimodalPackage} />
       <Route path="/cross-modal-search" component={CrossModalSearch} />
@@ -183,7 +183,7 @@ function Router() {
       <Route path="/provider-keys" component={ProviderKeys} />
       <Route path="/wallet" component={WalletDashboard} />
       <Route path="/credits" component={CreditsPayments} />
-      <Route path="/agent-discovery" component={AgentDiscovery} />
+      <Route path="/agent-discovery">{() => <Redirect to="/agents" />}</Route>
       <Route path="/w-matrix-market" component={WMatrixMarketplace} />
       <Route path="/neural-bridge-market" component={NeuralBridgeMarketplace} />
       <Route path="/w-matrix-tools" component={WMatrixTools} />

@@ -23,26 +23,16 @@ import {
   User,
   Users,
   LogOut,
-  LayoutDashboard,
   Upload,
   Settings,
-  Server,
   Rocket,
-  BarChart3,
   Code,
   Github,
   Search,
   History,
-  Wallet,
   Database,
-  Bot,
-  Building2,
   CreditCard,
-  PlusCircle,
   Key,
-  AlertTriangle,
-  Zap,
-  Box,
 } from "lucide-react";
 
 const navLinks = [
@@ -50,38 +40,27 @@ const navLinks = [
   {
     label: "Products",
     children: [
+      { label: "Workspace", href: "/workspace", icon: Users, description: "Multi-AI collaboration hub" },
       { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
       { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
-      { label: "Workspace", href: "/workspace", icon: Users, description: "Multi-AI collaboration hub" },
-      { label: "Neural Bridge Market", href: "/neural-bridge-market", icon: Database, description: "Privacy-certified memory packages" },
-      { label: "W-Matrix Market", href: "/w-matrix-market", icon: Zap, description: "Cross-model alignment matrices" },
-      { label: "Agent Discovery", href: "/agent-discovery", icon: Search, description: "Find compatible AI agents" },
-      { label: "Robotics", href: "/robotics", icon: Bot, description: "Robot management & VR control" },
       { label: "AI Agents", href: "/agents", icon: Rocket, description: "ERC-8004 agent registry" },
     ]
   },
   {
     label: "Tools",
     children: [
-      { label: "Latent Test", href: "/latent-test", icon: Cpu, description: "Neural Bridge workflow testing" },
-      { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
-      { label: "Control Center", href: "/workflow-performance", icon: BarChart3, description: "Agents, performance & collaboration" },
-      { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
-      { label: "W-Matrix Tools", href: "/w-matrix-tools", icon: Box, description: "Model compatibility & training" },
-      { label: "Conflict Resolution", href: "/conflicts", icon: AlertTriangle, description: "Resolve memory conflicts" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
+      { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
+      { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
     ]
   },
   {
     label: "Resources",
     children: [
       { label: "Documentation", href: "/documentation", icon: BookOpen, description: "Complete guides & references" },
-      { label: "AI Collaboration Docs", href: "/docs/collaboration", icon: Network, description: "Manus + Claude MCP Guide" },
       { label: "API Reference", href: "/docs", icon: FileCode, description: "API & SDK quick reference" },
       { label: "Python SDK", href: "/sdk", icon: Code, description: "Python integration" },
-      { label: "MCP Integration", href: "/sdk#mcp", icon: Cpu, description: "Model Context Protocol" },
-      { label: "Agent Auth", href: "/auth/agent", icon: Server, description: "AI agent authentication" },
       { label: "GitHub", href: "https://github.com/everest-an/Awareness-Market", icon: Github, description: "View source code", external: true },
       { label: "Blog", href: "/blog", icon: BookOpen, description: "Latest updates" },
     ]
@@ -182,12 +161,6 @@ export default function Navbar() {
               </>
             )}
 
-            {location === '/latent-test' && (
-              <>
-                <span className="text-white/30 mx-1">/</span>
-                <span className="text-cyan-400 font-medium">Latent Test</span>
-              </>
-            )}
             {location === '/workflow-history' && (
               <>
                 <span className="text-white/30 mx-1">/</span>
@@ -200,16 +173,10 @@ export default function Navbar() {
                 <span className="text-cyan-400 font-medium">Memory Management</span>
               </>
             )}
-            {location === '/dashboard' && (
-              <>
-                <span className="text-white/30 mx-1">/</span>
-                <span className="text-cyan-400 font-medium">Dashboard</span>
-              </>
-            )}
             {location === '/dev' && (
               <>
                 <span className="text-white/30 mx-1">/</span>
-                <span className="text-cyan-400 font-medium">Project Brain</span>
+                <span className="text-cyan-400 font-medium">Dashboard</span>
               </>
             )}
             {location === '/docs' && (
@@ -228,12 +195,6 @@ export default function Navbar() {
               <>
                 <span className="text-white/30 mx-1">/</span>
                 <span className="text-cyan-400 font-medium">Settings</span>
-              </>
-            )}
-            {location === '/workflow-performance' && (
-              <>
-                <span className="text-white/30 mx-1">/</span>
-                <span className="text-cyan-400 font-medium">Control Center</span>
               </>
             )}
             {location.startsWith('/workspace') && (
@@ -346,12 +307,6 @@ export default function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link href="/dev" className="flex items-center gap-2 cursor-pointer">
                       <Brain className="w-4 h-4" />
-                      Project Brain
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
-                      <LayoutDashboard className="w-4 h-4" />
                       Dashboard
                     </Link>
                   </DropdownMenuItem>
@@ -365,42 +320,6 @@ export default function Navbar() {
                     <Link href="/provider-keys" className="flex items-center gap-2 cursor-pointer">
                       <Key className="w-4 h-4" />
                       Provider Keys
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={orgLink("/org/dashboard")} className="flex items-center gap-2 cursor-pointer">
-                      <Building2 className="w-4 h-4" />
-                      Enterprise Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={orgLink("/org/analytics")} className="flex items-center gap-2 cursor-pointer">
-                      <BarChart3 className="w-4 h-4" />
-                      Org Analytics
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={orgLink("/org/billing")} className="flex items-center gap-2 cursor-pointer">
-                      <CreditCard className="w-4 h-4" />
-                      Org Billing
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/org/setup" className="flex items-center gap-2 cursor-pointer">
-                      <PlusCircle className="w-4 h-4" />
-                      New Organization
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/usage-analytics" className="flex items-center gap-2 cursor-pointer">
-                      <BarChart3 className="w-4 h-4" />
-                      Usage Analytics
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/wallet" className="flex items-center gap-2 cursor-pointer">
-                      <Wallet className="w-4 h-4" />
-                      Agent Wallet
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -430,16 +349,11 @@ export default function Navbar() {
                   </DropdownMenuItem>
                   {user?.role === "admin" && (
                     <>
+                      <DropdownMenuSeparator className="bg-white/10" />
                       <DropdownMenuItem asChild>
                         <Link href="/admin" className="flex items-center gap-2 cursor-pointer">
                           <Settings className="w-4 h-4" />
                           Admin Panel
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/service-health" className="flex items-center gap-2 cursor-pointer">
-                          <Server className="w-4 h-4" />
-                          Service Health
                         </Link>
                       </DropdownMenuItem>
                     </>

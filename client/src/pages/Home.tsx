@@ -20,9 +20,6 @@ import {
   Sparkles,
   ChevronRight,
   ExternalLink,
-  Users,
-  MessageSquare,
-  Bot
 } from "lucide-react";
 
 export default function Home() {
@@ -132,19 +129,19 @@ export default function Home() {
         <div className="container relative">
           <div className="text-center mb-16">
             <Badge className="mb-4 px-3 py-1 text-xs font-medium bg-accent/10 border-accent/20 text-accent">
-              Six Product Lines
+              Core Products
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Trade AI Thoughts in Six Ways
+              Trade AI Thoughts
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Choose how you want to share AI intelligence: manage multi-AI workspaces, trade capabilities (Vector), transfer reasoning states (Memory), replicate solution processes (Chain), collaborate with dual-AI (Collaboration), or control robots (Robotics).
+              Choose how you want to share AI intelligence: manage multi-AI workspaces, trade capabilities (Vector), transfer reasoning states (Memory), or replicate solution processes (Chain).
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             {/* NEW: Multi-AI Workspace Card — first product */}
-            <Link href="/dev" className="group">
+            <Link href="/workspace" className="group">
               <div className="glass-card-hover p-6 h-full border border-cyan-500/20">
                 <Badge className="mb-3 text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/20">Multi-AI Management</Badge>
                 <h3 className="text-xl font-semibold mb-2">AI Workspace</h3>
@@ -152,7 +149,7 @@ export default function Home() {
                   Stop re-explaining your codebase to AI. One workspace for Claude Code, Cursor, Kiro, v0, Windsurf, and Manus. Shared context, session resume, conflict detection.
                 </p>
                 <div className="flex items-center text-sm text-cyan-400">
-                  Open Project Brain
+                  Open Workspace
                   <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
@@ -203,35 +200,6 @@ export default function Home() {
               </div>
             </Link>
 
-            {/* AI Collaboration Card */}
-            <Link href="/ai-collaboration" className="group">
-              <div className="glass-card-hover p-6 h-full">
-                <Badge className="mb-3 text-xs bg-purple-500/10 text-purple-400 border-purple-500/20">Dual-AI Teamwork</Badge>
-                <h3 className="text-xl font-semibold mb-2">AI Collaboration</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Manus and Claude work together in real-time. Share thoughts, make decisions, and build faster with dual-AI collaboration.
-                </p>
-                <div className="flex items-center text-sm text-purple-400">
-                  Start Collaborating
-                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </Link>
-
-            {/* Robotics Card */}
-            <Link href="/robotics" className="group">
-              <div className="glass-card-hover p-6 h-full">
-                <Badge className="mb-3 text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/20">Robot Control</Badge>
-                <h3 className="text-xl font-semibold mb-2">Robotics</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Production-ready robot management middleware with VR control, multi-robot coordination, and 125x Redis-cached performance.
-                </p>
-                <div className="flex items-center text-sm text-cyan-400">
-                  Open Dashboard
-                  <ArrowRight className="ml-1.5 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </Link>
           </div>
 
         </div>
@@ -372,12 +340,11 @@ export default function Home() {
             <div>
               <h4 className="font-medium mb-4">Products</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/dev" className="hover:text-foreground transition-colors">AI Workspace</Link></li>
+                <li><Link href="/workspace" className="hover:text-foreground transition-colors">AI Workspace</Link></li>
                 <li><Link href="/marketplace" className="hover:text-foreground transition-colors">Vector Packages</Link></li>
                 <li><Link href="/memory-marketplace" className="hover:text-foreground transition-colors">Memory Packages</Link></li>
                 <li><Link href="/reasoning-chains" className="hover:text-foreground transition-colors">Reasoning Chains</Link></li>
-                <li><Link href="/ai-collaboration" className="hover:text-foreground transition-colors">AI Collaboration</Link></li>
-                <li><Link href="/robotics" className="hover:text-foreground transition-colors">Robotics</Link></li>
+                <li><Link href="/agents" className="hover:text-foreground transition-colors">AI Agents</Link></li>
               </ul>
             </div>
 

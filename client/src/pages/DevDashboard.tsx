@@ -23,6 +23,8 @@ import {
   FileText,
   RefreshCw,
   BarChart3,
+  Cpu,
+  Box,
 } from 'lucide-react';
 
 export default function DevDashboard() {
@@ -357,6 +359,36 @@ export default function DevDashboard() {
                     <Link href="/documentation">
                       <FileText className="h-4 w-4" />
                       Docs
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Developer Tools */}
+            <Card className="bg-slate-900/50 border-slate-800">
+              <CardContent className="p-4">
+                <div className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
+                  <Zap className="h-3 w-3" />
+                  Developer Tools
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild variant="outline" size="sm" className="gap-2">
+                    <Link href="/latent-test">
+                      <Cpu className="h-4 w-4" />
+                      Latent Test
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="gap-2">
+                    <Link href="/w-matrix-tools">
+                      <Box className="h-4 w-4" />
+                      W-Matrix Tools
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="gap-2">
+                    <Link href="/conflicts">
+                      <AlertTriangle className="h-4 w-4" />
+                      Conflict Resolution
                     </Link>
                   </Button>
                 </div>
