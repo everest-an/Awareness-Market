@@ -61,6 +61,23 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // ─── Startup env var validation ───────────────────────────────────
+  const requiredVars = ['JWT_SECRET', 'DATABASE_URL'];
+  const missing = requiredVars.filter(v => !process.env[v]);
+  if (missing.length > 0) {
+    logger.error('Missing required environment variables — server cannot start safely', { missing });
+    process.exit(1);
+  }
+  if (process.env.NODE_ENV === 'production') {
+    const prodWarnings: string[] = [];
+    if (!process.env.SESSION_SECRET) prodWarnings.push('SESSION_SECRET (falling back to JWT_SECRET)');
+    if (!process.env.PROVIDER_KEY_SECRET) prodWarnings.push('PROVIDER_KEY_SECRET (BYOK encryption)');
+    if (!process.env.FRONTEND_URL && !process.env.OAUTH_CALLBACK_URL) prodWarnings.push('FRONTEND_URL or OAUTH_CALLBACK_URL (OAuth redirect)');
+    if (prodWarnings.length > 0) {
+      logger.warn('Recommended production env vars not set', { missing: prodWarnings });
+    }
+  }
+
   const app = express();
   const server = createServer(app);
 

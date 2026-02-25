@@ -149,11 +149,16 @@ const DEFAULT_CONFIG: GhostTrapConfig = {
     (process.env.TRUSTED_IPS || '127.0.0.1,::1').split(',').map(s => s.trim())
   ),
   badUserAgents: [
+    // Offensive security / scanning tools
     /sqlmap/i, /nikto/i, /nmap/i, /masscan/i, /zgrab/i,
     /dirbuster/i, /gobuster/i, /wfuzz/i, /hydra/i,
-    /^python-requests/i, /^Go-http-client/i, /^curl\//i,
-    /httpclient/i, /scrapy/i, /phantom/i, /selenium/i,
-    /^$/,  // empty UA
+    // Scraping / headless browser automation
+    /scrapy/i, /phantom/i, /selenium/i,
+    // Empty UA (almost always bot/scanner)
+    /^$/,
+    // NOTE: python-requests, curl, Go-http-client, httpclient are intentionally
+    // NOT blocked — they are used by legitimate API clients, monitoring, CI/CD,
+    // and the SDK itself. Block these via rate limiting instead.
   ],
   honeypotPaths: [
     '/admin/login', '/wp-admin', '/wp-login.php', '/.env',
