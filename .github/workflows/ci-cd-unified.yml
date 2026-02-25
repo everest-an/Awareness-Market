@@ -199,6 +199,9 @@ jobs:
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/awareness_test
           REDIS_URL: redis://localhost:6379
+          JWT_SECRET: ci-test-jwt-secret-do-not-use-in-prod
+          SESSION_SECRET: ci-test-session-secret
+          OAUTH_SERVER_URL: http://localhost:5000
           NODE_ENV: test
           CI: true
 
@@ -442,11 +445,9 @@ jobs:
           echo "⚠️ Deployment failed, attempting rollback..."
           ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
             cd /home/ec2-user/Awareness-Market
-            git stash
-            git pull origin main~1
-            pnpm install --prod
-            pnpm exec prisma generate
-            pm2 restart awareness-network
+            echo "Restarting PM2 with existing code..."
+            pm2 restart awareness-network || pm2 start ecosystem.config.cjs --name awareness-network || echo "PM2 restart failed"
+            pm2 status
           ENDSSH
 
   # ============================================
