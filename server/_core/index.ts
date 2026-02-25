@@ -124,6 +124,21 @@ async function startServer() {
   ]);
 
   app.use((req, res, next) => {
+    const isProd = process.env.NODE_ENV === 'production';
+    const behindProxy = Boolean(req.headers['x-forwarded-proto'] || req.headers['x-forwarded-host']);
+    const proxyHandlesCors = isProd && behindProxy;
+
+    // In production behind reverse proxy (nginx), let proxy be the single
+    // source of CORS headers to avoid duplicate Access-Control-Allow-Origin.
+    if (proxyHandlesCors) {
+      if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+      }
+      next();
+      return;
+    }
+
     const origin = req.headers.origin;
 
     if (origin && (allowedOrigins.has(origin) || process.env.NODE_ENV === 'development')) {
@@ -132,6 +147,7 @@ async function startServer() {
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-MCP-Token, X-Agent-Role, X-Workspace-Key, X-Webhook-Signature, X-Webhook-Event, X-Workflow-Id');
       res.setHeader('Access-Control-Max-Age', '86400'); // preflight cache 24h
+      res.setHeader('Vary', 'Origin');
     }
 
     // Handle preflight
