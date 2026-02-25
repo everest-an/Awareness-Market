@@ -45,16 +45,34 @@ export async function initializeWorkers(): Promise<void> {
       { arbitrationQueue, arbitrationWorker },
       { reputationDecayQueue, reputationDecayWorker },
       { verificationQueue, verificationWorker },
+      { webhookInboundQueue, webhookInboundWorker },
+      { webhookOutboundQueue, webhookOutboundWorker },
     ] = await Promise.all([
       import('./rmc-worker'),
       import('./decay-worker'),
       import('./conflict-arbitration-worker'),
       import('./reputation-decay-worker'),
       import('./verification-worker'),
+      import('./webhook-inbound-worker'),
+      import('./webhook-outbound-worker'),
     ]);
 
-    activeQueues.push(rmcQueue, decayQueue, arbitrationQueue, reputationDecayQueue, verificationQueue);
-    activeWorkers.push(rmcWorker, decayWorker, arbitrationWorker, reputationDecayWorker, verificationWorker);
+    activeQueues.push(
+      rmcQueue, decayQueue, arbitrationQueue, reputationDecayQueue, verificationQueue,
+      webhookInboundQueue, webhookOutboundQueue,
+    );
+    activeWorkers.push(
+      rmcWorker, decayWorker, arbitrationWorker, reputationDecayWorker, verificationWorker,
+      webhookInboundWorker, webhookOutboundWorker,
+    );
+
+    // Register queues with webhook adapter for async routing
+    try {
+      const { setQueues } = await import('../collaboration/webhook-adapter');
+      setQueues({ inbound: webhookInboundQueue, outbound: webhookOutboundQueue });
+    } catch (err: any) {
+      logger.warn('Failed to register webhook adapter queues', { error: err.message });
+    }
 
     initialized = true;
     logger.info('All BullMQ workers initialized', {
@@ -64,6 +82,8 @@ export async function initializeWorkers(): Promise<void> {
         arbitrationQueue.name,
         reputationDecayQueue.name,
         verificationQueue.name,
+        webhookInboundQueue.name,
+        webhookOutboundQueue.name,
       ],
     });
   } catch (err: any) {

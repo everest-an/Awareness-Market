@@ -80,7 +80,11 @@ export async function dispatchWebhook(
 }
 
 /**
- * Fire-and-forget webhook dispatch for a workflow.
+ * Fire webhook dispatch for a workflow lifecycle event.
+ *
+ * Routes through BullMQ outbound queue when available (reliable delivery
+ * with retry and audit logging). Falls back to direct dispatch if Redis
+ * is unavailable — preserving backward compatibility.
  */
 export function fireWorkflowWebhook(
   workflowId: string,
@@ -91,12 +95,20 @@ export function fireWorkflowWebhook(
 ): void {
   if (!webhookUrl) return;
 
-  dispatchWebhook(webhookUrl, webhookSecret || null, {
-    event,
-    workflowId,
-    timestamp: new Date().toISOString(),
-    data,
-  }).catch((err) => {
-    logger.error('Background webhook dispatch failed', { workflowId, event, error: err });
-  });
+  // Use adapter's enqueueOutbound (BullMQ queue with retry + audit)
+  // Falls back to direct dispatch internally if Redis is down
+  try {
+    const { enqueueOutbound } = require('./webhook-adapter');
+    enqueueOutbound(workflowId, webhookUrl, webhookSecret, event, data);
+  } catch {
+    // If adapter module fails to load, fall back to direct dispatch
+    dispatchWebhook(webhookUrl, webhookSecret || null, {
+      event,
+      workflowId,
+      timestamp: new Date().toISOString(),
+      data,
+    }).catch((err) => {
+      logger.error('Background webhook dispatch failed', { workflowId, event, error: err });
+    });
+  }
 }

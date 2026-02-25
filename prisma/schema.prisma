@@ -1890,3 +1890,27 @@ model MemoryDependency {
   @@index([needsRevalidation])
   @@map("memory_dependencies")
 }
+
+// ─── Webhook Adapter Audit Log ───────────────────────────────────────
+
+model WebhookEvent {
+  id          String    @id @default(uuid())
+  workflowId  String    @map("workflow_id") @db.VarChar(64)
+  direction   String    @db.VarChar(10)   // "inbound" | "outbound"
+  event       String    @db.VarChar(64)   // e.g. "workflow.execute", "workflow.step.completed"
+  action      String?   @db.VarChar(32)   // inbound only: "propose"|"execute"|"stop"|"sync"|"tool"
+  requestId   String    @unique @map("request_id") @db.VarChar(64)
+  payload     Json?
+  status      String    @default("pending") @db.VarChar(16) // pending|processing|delivered|failed|dlq
+  attempts    Int       @default(0)
+  statusCode  Int?      @map("status_code")
+  error       String?   @db.Text
+  sourceIp    String?   @map("source_ip") @db.VarChar(45)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  processedAt DateTime? @map("processed_at")
+
+  @@index([workflowId])
+  @@index([direction, status])
+  @@index([createdAt])
+  @@map("webhook_events")
+}

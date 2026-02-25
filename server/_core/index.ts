@@ -36,6 +36,7 @@ import { ghostTrapMiddleware, ghostTrapStatsHandler } from "../middleware/ghost-
 import { cryptoAssetGuard, getCryptoGuardStats, CRYPTO_HONEYPOT_PATHS } from "../middleware/crypto-asset-guard";
 import { initializeWorkers, shutdownWorkers } from "../workers";
 import { prisma } from "../db-prisma";
+import webhookInboundRouter from "../routes/webhook-inbound";
 
 const logger = createLogger('Server');
 
@@ -91,7 +92,11 @@ async function startServer() {
   // Stripe webhook MUST be registered BEFORE express.json() middleware
   // to preserve raw body for signature verification
   app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
-  
+
+  // Webhook Adapter inbound endpoint — BEFORE express.json() for HMAC verification
+  // External systems POST here to trigger workflow actions (propose/execute/stop/sync/tool)
+  app.use("/api/webhooks/inbound", webhookInboundRouter);
+
   // Default body parser — 1MB limit for most routes (defense against memory DoS)
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ limit: "1mb", extended: true }));

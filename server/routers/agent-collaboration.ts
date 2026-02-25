@@ -349,9 +349,10 @@ async function executeStep(
 }
 
 /**
- * Execute workflow
+ * Execute workflow.
+ * Exported for use by the webhook-inbound-worker (async decoupled trigger).
  */
-async function executeWorkflow(workflowId: string): Promise<void> {
+export async function executeWorkflow(workflowId: string): Promise<void> {
   const workflow = await workflowDb.getWorkflow(workflowId);
   if (!workflow) return;
 
@@ -749,68 +750,9 @@ export const agentCollaborationRouter = router({
       };
     }),
 
-  /**
-   * Trigger a workflow action via webhook callback (Propose / Execute / Stop).
-   * External systems POST here to control the workflow.
-   */
-  triggerWebhook: publicProcedure
-    .input(z.object({
-      workflowId: z.string(),
-      webhookSecret: z.string(),
-      action: z.enum(['propose', 'execute', 'stop']),
-      data: z.record(z.string(), z.unknown()).optional(),
-    }))
-    .mutation(async ({ input }) => {
-      const workflow = await workflowDb.getWorkflow(input.workflowId);
-      if (!workflow) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workflow not found' });
-      }
-
-      // Verify webhook secret
-      if (workflow.webhookSecret !== input.webhookSecret) {
-        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid webhook secret' });
-      }
-
-      switch (input.action) {
-        case 'propose': {
-          // Store proposal in shared memory
-          const proposals = (workflow.sharedMemory as any)?._proposals ?? [];
-          proposals.push({
-            ...input.data,
-            proposedAt: new Date().toISOString(),
-          });
-          await workflowDb.updateSharedMemory(input.workflowId, {
-            ...workflow.sharedMemory,
-            _proposals: proposals,
-          });
-
-          fireWorkflowWebhook(input.workflowId, workflow.webhookUrl, workflow.webhookSecret, 'workflow.propose', {
-            proposal: input.data,
-          });
-
-          return { success: true, message: 'Proposal recorded' };
-        }
-        case 'execute': {
-          if (workflow.status !== 'pending') {
-            return { success: false, message: `Cannot execute workflow in ${workflow.status} state` };
-          }
-
-          fireWorkflowWebhook(input.workflowId, workflow.webhookUrl, workflow.webhookSecret, 'workflow.execute', {});
-
-          executeWorkflow(input.workflowId).catch((err) => {
-            logger.error(`[Collaboration] Webhook-triggered execution error:`, { error: err });
-          });
-
-          return { success: true, message: 'Execution triggered' };
-        }
-        case 'stop': {
-          await workflowDb.updateWorkflowStatus(input.workflowId, 'cancelled', {
-            completedAt: new Date(),
-          });
-          return { success: true, message: 'Workflow stopped' };
-        }
-      }
-    }),
+  // NOTE: triggerWebhook procedure removed — replaced by POST /api/webhooks/inbound
+  // External systems now use the Webhook Adapter Layer (async, queued, rate-limited)
+  // See: server/routes/webhook-inbound.ts + server/workers/webhook-inbound-worker.ts
 
   /**
    * List user's workflows (optionally filtered by workspace)
