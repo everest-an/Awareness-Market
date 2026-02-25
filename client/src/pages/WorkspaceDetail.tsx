@@ -34,6 +34,8 @@ import {
   Play,
   CheckCircle2,
   RefreshCw,
+  Zap,
+  Clock,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
@@ -46,6 +48,7 @@ const AVAILABLE_PERMISSIONS = [
 ];
 
 type Perm = 'read' | 'write' | 'propose' | 'execute';
+type Tab = 'agents' | 'sessions' | 'configs' | 'audit';
 
 export default function WorkspaceDetail() {
   const { toast } = useToast();
@@ -53,6 +56,7 @@ export default function WorkspaceDetail() {
   const [, params] = useRoute('/workspace/:id');
   const workspaceId = params?.id ?? '';
 
+  const [activeTab, setActiveTab] = useState<Tab>('agents');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [rotateDialogOpen, setRotateDialogOpen] = useState(false);
   const [showConfigs, setShowConfigs] = useState(false);
@@ -72,6 +76,11 @@ export default function WorkspaceDetail() {
   const auditQuery = trpc.workspace.getAuditLog.useQuery(
     { workspaceId, limit: 50 },
     { enabled: showAudit && !!workspaceId },
+  );
+
+  const sessionsQuery = trpc.agentCollaboration.listWorkflows.useQuery(
+    { workspaceId },
+    { enabled: activeTab === 'sessions' && !!workspaceId, refetchInterval: 5000 },
   );
 
   // Mutations
@@ -282,8 +291,108 @@ export default function WorkspaceDetail() {
           </div>
         </div>
 
+        {/* ── Tabs ──────────────────────────────────────────────────────── */}
+        <div className="flex gap-1 mb-6 border-b border-white/10 pb-px">
+          {([
+            { id: 'agents' as Tab, label: 'Agents', icon: Users },
+            { id: 'sessions' as Tab, label: 'Sessions', icon: Zap },
+            { id: 'configs' as Tab, label: 'Configs', icon: Code },
+            { id: 'audit' as Tab, label: 'Audit', icon: Shield },
+          ]).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => {
+                setActiveTab(id);
+                if (id === 'configs') setShowConfigs(true);
+                if (id === 'audit') setShowAudit(true);
+              }}
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === id
+                  ? 'text-cyan-400 bg-white/5 border-b-2 border-cyan-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Sessions Tab ──────────────────────────────────────────────── */}
+        {activeTab === 'sessions' && (
+          <Card className="bg-[#0a0a0f] border-white/10 mb-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg text-white flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-cyan-400" />
+                  Collaboration Sessions
+                </CardTitle>
+                <Link href={`/workspace/${workspaceId}/session/new`}>
+                  <Button size="sm" className="bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600">
+                    <Play className="w-3.5 h-3.5 mr-1.5" />
+                    Start Session
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {sessionsQuery.isLoading && (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
+                </div>
+              )}
+
+              {sessionsQuery.data && sessionsQuery.data.workflows.length === 0 && (
+                <div className="text-center py-8">
+                  <Zap className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                  <p className="text-slate-400 text-sm">No sessions yet. Start one to let your agents collaborate.</p>
+                </div>
+              )}
+
+              {sessionsQuery.data && sessionsQuery.data.workflows.length > 0 && (
+                <div className="space-y-2">
+                  {sessionsQuery.data.workflows.map((w: any) => (
+                    <Link key={w.id} href={`/workspace/${workspaceId}/session/${w.id}`}>
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-white/5 hover:border-white/15 transition-colors cursor-pointer">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-white font-medium truncate">{w.task}</span>
+                            <Badge
+                              className={
+                                w.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                                w.status === 'running' ? 'bg-blue-500/20 text-blue-400' :
+                                w.status === 'failed' ? 'bg-red-500/20 text-red-400' :
+                                'bg-slate-500/20 text-slate-400'
+                              }
+                            >
+                              {w.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                            <span>{w.agentCount} agents</span>
+                            <span>{w.orchestration}</span>
+                            {w.executionTime && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {Math.round(w.executionTime / 1000)}s
+                              </span>
+                            )}
+                            {w.startedAt && (
+                              <span>{new Date(w.startedAt).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* ── Agents & Permissions ──────────────────────────────────────── */}
-        <Card className="bg-[#0a0a0f] border-white/10 mb-6">
+        {activeTab === 'agents' && <Card className="bg-[#0a0a0f] border-white/10 mb-6">
           <CardHeader>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-cyan-400" />
@@ -347,10 +456,10 @@ export default function WorkspaceDetail() {
               </table>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* ── Config Panels ────────────────────────────────────────────── */}
-        <Card className="bg-[#0a0a0f] border-white/10">
+        {activeTab === 'configs' && <Card className="bg-[#0a0a0f] border-white/10">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg text-white flex items-center gap-2">
@@ -487,10 +596,10 @@ export default function WorkspaceDetail() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* ── Audit Log ──────────────────────────────────────────────── */}
-        <Card className="bg-[#0a0a0f] border-white/10 mt-6">
+        {activeTab === 'audit' && <Card className="bg-[#0a0a0f] border-white/10 mt-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg text-white flex items-center gap-2">
@@ -544,7 +653,7 @@ export default function WorkspaceDetail() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* ── Rotate Token Dialog ──────────────────────────────────────── */}
         <Dialog open={rotateDialogOpen} onOpenChange={setRotateDialogOpen}>

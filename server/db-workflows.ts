@@ -45,6 +45,7 @@ export interface WorkflowData {
   completedAt?: Date;
   totalExecutionTime?: number;
   createdBy: number;
+  workspaceId?: string;
   recordOnChain: boolean;
 }
 
@@ -61,6 +62,7 @@ export async function createWorkflow(data: {
   maxExecutionTime?: number;
   recordOnChain: boolean;
   createdBy: number;
+  workspaceId?: string;
   sharedMemory?: Record<string, any>;
   steps: Array<{ agentId: string; agentName: string }>;
 }): Promise<void> {
@@ -80,6 +82,7 @@ export async function createWorkflow(data: {
         maxExecutionTime: data.maxExecutionTime || 600,
         recordOnChain: data.recordOnChain,
         createdBy: data.createdBy,
+        workspaceId: data.workspaceId,
         sharedMemory: data.sharedMemory || {},
       },
     });
@@ -118,14 +121,18 @@ export async function getWorkflow(workflowId: string): Promise<WorkflowData | nu
 
   if (!workflow) return null;
 
+  return mapWorkflow(workflow);
+}
+
+function mapWorkflow(workflow: any): WorkflowData {
   return {
     id: workflow.id,
     task: workflow.task,
     description: workflow.description || undefined,
     status: workflow.status,
     orchestration: workflow.orchestration,
-    memorySharing: workflow.memorySharing === MemorySharing.enabled,
-    steps: workflow.steps.map(step => ({
+    memorySharing: workflow.memorySharing === MemorySharing.enabled || workflow.memorySharing === 'enabled',
+    steps: (workflow.steps || []).map((step: any) => ({
       agentId: step.agentId,
       agentName: step.agentName || '',
       status: step.status,
@@ -142,6 +149,7 @@ export async function getWorkflow(workflowId: string): Promise<WorkflowData | nu
     completedAt: workflow.completedAt || undefined,
     totalExecutionTime: workflow.totalExecutionTime || undefined,
     createdBy: workflow.createdBy,
+    workspaceId: workflow.workspaceId || undefined,
     recordOnChain: workflow.recordOnChain,
   };
 }
@@ -280,30 +288,28 @@ export async function listWorkflowsByUser(
     take: limit,
   });
 
-  return workflows.map(workflow => ({
-    id: workflow.id,
-    task: workflow.task,
-    description: workflow.description || undefined,
-    status: workflow.status,
-    orchestration: workflow.orchestration,
-    memorySharing: workflow.memorySharing === MemorySharing.enabled,
-    steps: workflow.steps.map(step => ({
-      agentId: step.agentId,
-      agentName: step.agentName || '',
-      status: step.status,
-      startedAt: step.startedAt || undefined,
-      completedAt: step.completedAt || undefined,
-      input: step.input,
-      output: step.output,
-      error: step.error || undefined,
-      memoryKeys: step.memoryKeys as string[] | undefined,
-      executionTime: step.executionTime || undefined,
-    })),
-    sharedMemory: (workflow.sharedMemory as Record<string, any>) || {},
-    startedAt: workflow.startedAt || new Date(),
-    completedAt: workflow.completedAt || undefined,
-    totalExecutionTime: workflow.totalExecutionTime || undefined,
-    createdBy: workflow.createdBy,
-    recordOnChain: workflow.recordOnChain,
-  }));
+  return workflows.map(mapWorkflow);
+}
+
+/**
+ * List workflows by workspace
+ */
+export async function listWorkflowsByWorkspace(
+  workspaceId: string,
+  limit: number = 50
+): Promise<WorkflowData[]> {
+  const db = getPrisma();
+
+  const workflows = await db.workflow.findMany({
+    where: { workspaceId },
+    include: {
+      steps: {
+        orderBy: { stepIndex: 'asc' },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  return workflows.map(mapWorkflow);
 }

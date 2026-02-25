@@ -52,7 +52,6 @@ import UploadMultimodalPackage from "./pages/UploadMultimodalPackage";
 import CrossModalSearch from "./pages/CrossModalSearch";
 // import AudioToText from "./pages/AudioToText";
 import AiCollaborationDocs from "./pages/AiCollaborationDocs";
-import AiCollaborationHub from "./pages/AiCollaboration";
 import NewCollaborationSession from "./pages/AiCollaboration/NewSession";
 import SessionConnect from "./pages/AiCollaboration/SessionConnect";
 import SessionsList from "./pages/AiCollaboration/SessionsList";
@@ -116,11 +115,15 @@ function Router() {
       <Route path="/workspace" component={WorkspaceList} />
       <Route path="/workspace/new" component={WorkspaceSetup} />
       <Route path="/workspace/:id" component={WorkspaceDetail} />
+      <Route path="/workspace/:id/session/new" component={NewCollaborationSession} />
+      <Route path="/workspace/:id/sessions" component={SessionsList} />
+      <Route path="/workspace/:id/session/:sessionId" component={SessionConnect} />
 
-      <Route path="/ai-collaboration" component={AiCollaborationHub} />
-      <Route path="/ai-collaboration/new" component={NewCollaborationSession} />
-      <Route path="/ai-collaboration/sessions" component={SessionsList} />
-      <Route path="/ai-collaboration/connect/:sessionId" component={SessionConnect} />
+      {/* Backward compat redirects for old /ai-collaboration routes */}
+      <Route path="/ai-collaboration">{() => <Redirect to="/workspace" />}</Route>
+      <Route path="/ai-collaboration/new">{() => <Redirect to="/workspace" />}</Route>
+      <Route path="/ai-collaboration/sessions">{() => <Redirect to="/workspace" />}</Route>
+      <Route path="/ai-collaboration/connect/:sessionId">{() => <Redirect to="/workspace" />}</Route>
 
       <Route path={"/marketplace"} component={Marketplace} />
       <Route path={"/marketplace/:id"} component={VectorDetail} />

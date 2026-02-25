@@ -53,7 +53,7 @@ const navLinks = [
       { label: "Vector Packages", href: "/marketplace", icon: Brain, description: "Trade AI capabilities" },
       { label: "Memory Packages", href: "/memory-marketplace", icon: Cpu, description: "Transfer reasoning states" },
       { label: "Reasoning Chains", href: "/reasoning-chains", icon: Network, description: "Share solution processes" },
-      { label: "AI Collaboration", href: "/ai-collaboration", icon: Users, description: "Manus + Claude teamwork" },
+      { label: "Workspace", href: "/workspace", icon: Users, description: "Multi-AI collaboration hub" },
       { label: "Neural Bridge Market", href: "/neural-bridge-market", icon: Database, description: "Privacy-certified memory packages" },
       { label: "W-Matrix Market", href: "/w-matrix-market", icon: Zap, description: "Cross-model alignment matrices" },
       { label: "Agent Discovery", href: "/agent-discovery", icon: Search, description: "Find compatible AI agents" },
@@ -68,7 +68,6 @@ const navLinks = [
       { label: "Workflow History", href: "/workflow-history", icon: History, description: "Browse and replay workflows" },
       { label: "Control Center", href: "/workflow-performance", icon: BarChart3, description: "Agents, performance & collaboration" },
       { label: "Memory Management", href: "/memory-management", icon: Database, description: "Manage and analyze memories" },
-      { label: "Workspace", href: "/workspace", icon: Settings, description: "Multi-AI workspace hub" },
       { label: "W-Matrix Tools", href: "/w-matrix-tools", icon: Box, description: "Model compatibility & training" },
       { label: "Conflict Resolution", href: "/conflicts", icon: AlertTriangle, description: "Resolve memory conflicts" },
       { label: "Neural Cortex", href: "/neural-cortex", icon: Brain, description: "AI neural network visualizer" },
@@ -320,14 +319,14 @@ export default function Navbar() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
-            {/* AI Collaboration CTA Button - Glass Style */}
-            <Link href="/ai-collaboration/new">
+            {/* Workspace CTA Button - Glass Style */}
+            <Link href="/workspace">
               <Button
                 size="sm"
                 variant="ghost"
                 className="hidden md:flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/[0.1] text-white/80 hover:bg-white/[0.12] hover:text-white hover:border-white/[0.18] transition-all"
               >
-                AI Collab
+                Workspace
               </Button>
             </Link>
 

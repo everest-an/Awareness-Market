@@ -37,7 +37,7 @@ import WorkflowResultsDialog from '@/components/WorkflowResultsDialog';
 type WorkflowStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export default function SessionConnect() {
-  const { sessionId } = useParams<{ sessionId: string }>();
+  const { sessionId, id: workspaceId } = useParams<{ sessionId: string; id: string }>();
   const [copiedToken, setCopiedToken] = useState(false);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
@@ -180,7 +180,7 @@ export default function SessionConnect() {
               {error?.message || 'Workflow not found'}
             </AlertDescription>
           </Alert>
-          <Link href="/ai-collaboration">
+          <Link href={workspaceId ? `/workspace/${workspaceId}` : '/workspace'}>
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Collaboration Hub
@@ -198,7 +198,7 @@ export default function SessionConnect() {
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/ai-collaboration">
+          <Link href={workspaceId ? `/workspace/${workspaceId}` : '/workspace'}>
             <Button variant="ghost" className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -335,7 +335,7 @@ export default function SessionConnect() {
             </Button>
           )}
 
-          <Link href="/ai-collaboration">
+          <Link href={workspaceId ? `/workspace/${workspaceId}` : '/workspace'}>
             <Button variant="outline">
               View All Sessions
             </Button>

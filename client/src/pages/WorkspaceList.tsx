@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Link } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Settings2, Users, Loader2, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
+import { Plus, Settings2, Users, Loader2, AlertCircle, RefreshCw, ChevronDown, Zap, Brain } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
 export default function WorkspaceList() {
@@ -14,6 +14,26 @@ export default function WorkspaceList() {
 
   const { data, isLoading, error, refetch } = trpc.workspace.list.useQuery({ limit: 20 });
   const utils = trpc.useUtils();
+
+  // Fetch collaboration stats
+  const { data: workflowData } = trpc.agentCollaboration.listWorkflows.useQuery(undefined, {
+    refetchInterval: 30000,
+  });
+
+  const stats = useMemo(() => {
+    const workspaces = data?.workspaces ?? [];
+    const workflows = workflowData?.workflows ?? [];
+    const totalAgents = workspaces.reduce((sum: number, ws: any) => sum + (ws.agentCount || 0), 0);
+    const activeSessions = workflows.filter(
+      (w: any) => w.status === 'running' || w.status === 'pending'
+    ).length;
+    return {
+      workspaces: workspaces.length,
+      totalAgents,
+      activeSessions,
+      totalSessions: workflows.length,
+    };
+  }, [data, workflowData]);
 
   const allWorkspaces = [
     ...(data?.workspaces ?? []),
@@ -52,6 +72,28 @@ export default function WorkspaceList() {
             </Button>
           </Link>
         </div>
+
+        {/* Stats Overview */}
+        {!isLoading && !error && allWorkspaces.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+            <div className="bg-[#0a0a0f] border border-white/10 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-purple-400">{stats.workspaces}</div>
+              <div className="text-xs text-slate-500 mt-1">Workspaces</div>
+            </div>
+            <div className="bg-[#0a0a0f] border border-white/10 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-cyan-400">{stats.totalAgents}</div>
+              <div className="text-xs text-slate-500 mt-1">Total Agents</div>
+            </div>
+            <div className="bg-[#0a0a0f] border border-white/10 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-green-400">{stats.activeSessions}</div>
+              <div className="text-xs text-slate-500 mt-1">Active Sessions</div>
+            </div>
+            <div className="bg-[#0a0a0f] border border-white/10 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-400">{stats.totalSessions}</div>
+              <div className="text-xs text-slate-500 mt-1">Total Sessions</div>
+            </div>
+          </div>
+        )}
 
         {isLoading && (
           <div className="flex justify-center py-16">

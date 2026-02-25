@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import { trpc } from '@/lib/trpc';
 
 export default function NewCollaborationSession() {
   const [, setLocation] = useLocation();
+  const [, params] = useRoute('/workspace/:id/session/new');
+  const workspaceId = params?.id ?? '';
   const [isCreating, setIsCreating] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -37,7 +39,7 @@ export default function NewCollaborationSession() {
   const createCollaboration = trpc.agentCollaboration.collaborate.useMutation({
     onSuccess: (data) => {
       toast.success('Collaboration session created successfully!');
-      setLocation(`/ai-collaboration/connect/${data.workflowId}`);
+      setLocation(`/workspace/${workspaceId}/session/${data.workflowId}`);
     },
     onError: (error) => {
       toast.error(`Failed to create session: ${error.message}`);
@@ -109,6 +111,7 @@ export default function NewCollaborationSession() {
       const payload = {
         task: formData.name,
         description: formData.description || `${formData.type} collaboration session`,
+        workspaceId: workspaceId || undefined,
         agents: agentConfig.agents,
         orchestration: agentConfig.orchestration as 'sequential' | 'parallel',
         memorySharing: formData.privacy === 'shared',
@@ -510,7 +513,7 @@ export default function NewCollaborationSession() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setLocation('/ai-collaboration')}
+                onClick={() => setLocation(workspaceId ? `/workspace/${workspaceId}` : '/workspace')}
                 className="border-slate-700"
               >
                 Cancel

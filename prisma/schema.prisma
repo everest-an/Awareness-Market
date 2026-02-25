@@ -106,6 +106,8 @@ model Workflow {
   // Relations
   createdBy           Int               @map("created_by")
   creator             User              @relation(fields: [createdBy], references: [id])
+  workspaceId         String?           @map("workspace_id") @db.VarChar(32)
+  workspace           Workspace?        @relation(fields: [workspaceId], references: [id])
   steps               WorkflowStep[]
   interactions        OnChainInteraction[]
 
@@ -115,6 +117,7 @@ model Workflow {
   @@index([createdBy])
   @@index([status])
   @@index([createdAt])
+  @@index([workspaceId])
   @@map("workflows")
 }
 
@@ -1004,6 +1007,7 @@ model Workspace {
 
   // Relations
   agents              WorkspaceAgent[]
+  workflows           Workflow[]
 
   @@index([userId])
   @@index([status])

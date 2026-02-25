@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useRoute } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,13 +33,15 @@ type WorkflowStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelle
 
 export default function SessionsList() {
   const [, setLocation] = useLocation();
+  const [, params] = useRoute('/workspace/:id/sessions');
+  const workspaceId = params?.id;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [orchestrationFilter, setOrchestrationFilter] = useState<string>('all');
 
-  // Fetch user's workflows
+  // Fetch workflows filtered by workspace
   const { data: workflowData, isLoading, error, refetch } = trpc.agentCollaboration.listWorkflows.useQuery(
-    undefined,
+    workspaceId ? { workspaceId } : undefined,
     {
       refetchInterval: 5000, // Refresh every 5 seconds
     }
@@ -100,10 +102,10 @@ export default function SessionsList() {
       <div className="pt-20 container mx-auto px-4 py-16 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/ai-collaboration">
+          <Link href={workspaceId ? `/workspace/${workspaceId}` : '/workspace'}>
             <Button variant="ghost" className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Hub
+              Back to Workspace
             </Button>
           </Link>
 
@@ -225,7 +227,7 @@ export default function SessionsList() {
                   : 'Try adjusting your search or filters'}
               </p>
               {workflowData?.workflows.length === 0 && (
-                <Link href="/ai-collaboration/new">
+                <Link href={workspaceId ? `/workspace/${workspaceId}/session/new` : '/workspace'}>
                   <Button className="bg-gradient-to-r from-purple-500 to-cyan-500">
                     <Play className="w-4 h-4 mr-2" />
                     Create Session
@@ -243,7 +245,7 @@ export default function SessionsList() {
               <Card
                 key={workflow.id}
                 className="glass-card-hover cursor-pointer"
-                onClick={() => setLocation(`/ai-collaboration/connect/${workflow.id}`)}
+                onClick={() => setLocation(workspaceId ? `/workspace/${workspaceId}/session/${workflow.id}` : `/workspace`)}
               >
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
@@ -311,7 +313,7 @@ export default function SessionsList() {
                       className="ml-4"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setLocation(`/ai-collaboration/connect/${workflow.id}`);
+                        setLocation(workspaceId ? `/workspace/${workspaceId}/session/${workflow.id}` : `/workspace`);
                       }}
                     >
                       View Details
@@ -326,7 +328,7 @@ export default function SessionsList() {
         {/* Create New Session Button */}
         {!isLoading && filteredWorkflows.length > 0 && (
           <div className="mt-8 text-center">
-            <Link href="/ai-collaboration/new">
+            <Link href={workspaceId ? `/workspace/${workspaceId}/session/new` : '/workspace'}>
               <Button size="lg" className="bg-gradient-to-r from-purple-500 to-cyan-500">
                 <Play className="w-4 h-4 mr-2" />
                 Create New Session

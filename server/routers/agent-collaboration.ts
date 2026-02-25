@@ -48,6 +48,7 @@ const agentAuthoritySchema = z.object({
 const collaborateSchema = z.object({
   task: z.string().min(1).max(500),
   description: z.string().optional(),
+  workspaceId: z.string().optional(),
   agents: z.array(z.string()).min(2).max(10), // agentId or walletAddress
   orchestration: z.enum(['sequential', 'parallel']).default('sequential'),
   memorySharing: z.boolean().default(true),
@@ -93,7 +94,7 @@ async function getERC8004Contract() {
   const registryAddress = process.env.ERC8004_REGISTRY_ADDRESS;
   if (!registryAddress) return null;
 
-  const rpcUrl = process.env.POLYGON_RPC_URL || process.env.AMOY_RPC_URL || 'https://rpc-amoy.polygon.technology';
+  const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || process.env.FUJI_RPC_URL || 'https://api.avax-test.network/ext/bc/C/rpc';
   const provider = new ethers.JsonRpcProvider(rpcUrl);
 
   // For writing, we need a signer (would use backend wallet in production)
@@ -491,6 +492,7 @@ export const agentCollaborationRouter = router({
         id: workflowId,
         task: input.task,
         description: input.description,
+        workspaceId: input.workspaceId,
         orchestration: input.orchestration,
         memorySharing: input.memorySharing,
         memoryTTL: input.memoryTTL,
@@ -602,11 +604,14 @@ export const agentCollaborationRouter = router({
     }),
 
   /**
-   * List user's workflows
+   * List user's workflows (optionally filtered by workspace)
    */
   listWorkflows: protectedProcedure
-    .query(async ({ ctx }) => {
-      const userWorkflows = await workflowDb.listWorkflowsByUser(ctx.user.id, 50);
+    .input(z.object({ workspaceId: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const userWorkflows = input?.workspaceId
+        ? await workflowDb.listWorkflowsByWorkspace(input.workspaceId, 50)
+        : await workflowDb.listWorkflowsByUser(ctx.user.id, 50);
 
       return {
         workflows: userWorkflows.map(w => ({
@@ -615,6 +620,7 @@ export const agentCollaborationRouter = router({
           status: w.status,
           agentCount: w.steps.length,
           orchestration: w.orchestration,
+          workspaceId: w.workspaceId,
           startedAt: w.startedAt,
           completedAt: w.completedAt,
           executionTime: w.totalExecutionTime,
