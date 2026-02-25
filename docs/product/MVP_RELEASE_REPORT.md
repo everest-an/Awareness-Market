@@ -67,7 +67,7 @@ Neural Bridge Marketplace has reached MVP (Minimum Viable Product) status with *
 
 **Deployment**:
 - ✅ 合约已编译
-- ⏳ 等待部署到 Polygon Amoy
+- ⏳ 等待部署到 Avalanche Fuji
 - ✅ 部署脚本已准备
 
 ### 1.4 MCP Server ✅
@@ -341,10 +341,10 @@ All endpoints meet the < 200ms target for read operations.
 ### 9.3 Smart Contracts ⏳
 
 - ✅ MemoryNFT.sol compiled
-- ⏳ Awaiting Polygon Amoy deployment
+- ⏳ Awaiting Avalanche Fuji deployment
 - ✅ Deployment scripts ready
 
-**Blocker**: Need Amoy testnet POL tokens
+**Blocker**: Need Fuji testnet AVAX tokens
 
 ---
 
@@ -391,7 +391,7 @@ All endpoints meet the < 200ms target for read operations.
 
 ### 11.2 Launch Day ⏳
 
-- [ ] Deploy smart contracts to Amoy
+- [ ] Deploy smart contracts to Fuji
 - [ ] Complete W-Matrix generation (50/50)
 - [ ] Announce on Discord/Twitter
 - [ ] Monitor error logs
@@ -443,7 +443,7 @@ All endpoints meet the < 200ms target for read operations.
 ### 14.1 Immediate (24 hours)
 
 1. ✅ Complete W-Matrix generation (50/50)
-2. ⏳ Deploy MemoryNFT to Polygon Amoy
+2. ⏳ Deploy MemoryNFT to Avalanche Fuji
 3. ⏳ Test end-to-end purchase flow
 4. ⏳ Announce MVP launch
 

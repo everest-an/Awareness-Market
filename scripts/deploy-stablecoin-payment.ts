@@ -2,17 +2,17 @@
  * Deploy StablecoinPaymentSystem Contract
  *
  * Usage:
- *   npx hardhat run scripts/deploy-stablecoin-payment.ts --network polygon
+ *   npx hardhat run scripts/deploy-stablecoin-payment.ts --network avalanche
  */
 import hre from 'hardhat';
 
 // Stablecoin addresses
 const STABLECOIN_ADDRESSES = {
-  polygon: {
-    USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+  avalanche: {
+    USDC: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+    USDT: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
   },
-  amoy: {
+  fuji: {
     USDC: process.env.USDC_TESTNET_ADDRESS || '',
     USDT: process.env.USDT_TESTNET_ADDRESS || '',
   },
@@ -23,11 +23,11 @@ async function main() {
 
   const [deployer] = await hre.ethers.getSigners();
   console.log('Deploying with account:', deployer.address);
-  console.log('Account balance:', hre.ethers.formatEther(await hre.ethers.provider.getBalance(deployer.address)), 'MATIC\n');
+  console.log('Account balance:', hre.ethers.formatEther(await hre.ethers.provider.getBalance(deployer.address)), 'AVAX\n');
 
   // Get network
   const network = await hre.ethers.provider.getNetwork();
-  const networkName = network.chainId === 137n ? 'polygon' : 'amoy';
+  const networkName = network.chainId === 43114n ? 'avalanche' : 'fuji';
   console.log('Network:', networkName, '(Chain ID:', network.chainId.toString(), ')\n');
 
   // Platform treasury address
@@ -90,7 +90,7 @@ async function main() {
 
   // Print verification command
   console.log('\n=== Contract Verification ===');
-  console.log('Run this command to verify on explorer:\n');
+  console.log('Run this command to verify on Snowscan:\n');
   console.log(`npx hardhat verify --network ${networkName} ${paymentSystemAddress} ${platformTreasury}`);
 
   return {

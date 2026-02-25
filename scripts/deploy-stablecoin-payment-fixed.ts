@@ -4,9 +4,9 @@
 import { ethers } from 'hardhat';
 
 const STABLECOIN_ADDRESSES = {
-  polygon: {
-    USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+  avalanche: {
+    USDC: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+    USDT: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
   },
 };
 
@@ -15,12 +15,12 @@ async function main() {
 
   const [deployer] = await ethers.getSigners();
   console.log('Deploying with account:', deployer.address);
-  
+
   const balance = await ethers.provider.getBalance(deployer.address);
-  console.log('Account balance:', ethers.formatEther(balance), 'POL\n');
+  console.log('Account balance:', ethers.formatEther(balance), 'AVAX\n');
 
   const network = await ethers.provider.getNetwork();
-  console.log('Network: Polygon (Chain ID:', network.chainId.toString(), ')\n');
+  console.log('Network: Avalanche (Chain ID:', network.chainId.toString(), ')\n');
 
   const platformTreasury = process.env.PLATFORM_TREASURY_ADDRESS || '0x3d0ab53241A2913D7939ae02f7083169fE7b823B';
   console.log('Platform Treasury:', platformTreasury);
@@ -33,8 +33,8 @@ async function main() {
   const paymentSystemAddress = await paymentSystem.getAddress();
   console.log('✅ StablecoinPaymentSystem deployed to:', paymentSystemAddress);
 
-  const stablecoins = STABLECOIN_ADDRESSES.polygon;
-  
+  const stablecoins = STABLECOIN_ADDRESSES.avalanche;
+
   console.log('\nAdding USDC support...');
   const tx1 = await paymentSystem.addStablecoin(stablecoins.USDC);
   await tx1.wait();

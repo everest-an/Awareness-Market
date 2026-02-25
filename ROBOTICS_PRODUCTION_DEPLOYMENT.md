@@ -125,7 +125,7 @@ WEBMCP_ENABLED=true
 
 # === 可选：ERC-8004 ===
 ERC8004_REGISTRY_ADDRESS=0x1Ae90F59731e16b548E34f81F0054e96DdACFc28
-POLYGON_RPC_URL=https://polygon-rpc.com
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
 # === 监控（可选）===
 PROMETHEUS_PORT=9090

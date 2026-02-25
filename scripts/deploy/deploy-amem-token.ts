@@ -2,12 +2,12 @@
  * Deploy $AMEM Token and AgentCreditSystem
  *
  * Usage:
- *   npx hardhat run scripts/deploy/deploy-amem-token.ts --network amoy
- *   npx hardhat run scripts/deploy/deploy-amem-token.ts --network polygon
+ *   npx hardhat run scripts/deploy/deploy-amem-token.ts --network fuji
+ *   npx hardhat run scripts/deploy/deploy-amem-token.ts --network avalanche
  *
  * Environment variables required:
  *   - DEPLOYER_PRIVATE_KEY: Private key for deployment
- *   - AMOY_RPC_URL or POLYGON_RPC_URL: RPC endpoint
+ *   - FUJI_RPC_URL or AVALANCHE_RPC_URL: RPC endpoint
  *   - FEE_COLLECTOR_ADDRESS: Address to collect platform fees
  *   - MAINTAINER_POOL_ADDRESS: Address for W-Matrix maintainer rewards
  *   - PLATFORM_TREASURY_ADDRESS: Address for platform treasury
@@ -49,7 +49,7 @@ async function main() {
 
   console.log("📡 Network:", network.name, `(Chain ID: ${network.chainId})`);
   console.log("👤 Deployer:", deployer.address);
-  console.log("💰 Balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH\n");
+  console.log("💰 Balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "AVAX\n");
 
   // Configuration from environment variables
   const feeCollectorAddress = process.env.FEE_COLLECTOR_ADDRESS || deployer.address;

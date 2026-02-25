@@ -2,7 +2,7 @@
 
 ## 🎯 任务概述
 
-部署以下 3 个智能合约到 Polygon Mainnet:
+部署以下 3 个智能合约到 Avalanche C-Chain:
 1. **MemoryNFT** - ERC-721 with ERC-6551 TBA
 2. **AMEMToken** - ERC-20 治理代币
 3. **AgentCreditSystem** - Agent 信用支付系统
@@ -15,7 +15,7 @@
 - [x] 部署脚本已修复构造函数参数
 - [x] .env 安全检查通过
 - [ ] EC2 上有 DEPLOYER_PRIVATE_KEY 配置
-- [ ] 部署钱包有至少 0.5 POL (gas 费用)
+- [ ] 部署钱包有至少 0.5 AVAX (gas 费用)
 
 ---
 
@@ -70,7 +70,7 @@ echo "DEPLOYER_PRIVATE_KEY=你的私钥" >> .env
 pnpm install
 
 # 使用 Hardhat console 检查余额
-pnpm hardhat console --network polygon
+pnpm hardhat console --network avalanche
 ```
 
 在 console 中执行：
@@ -83,13 +83,13 @@ console.log("Balance:", ethers.formatEther(balance), "POL");
 
 // 应该显示:
 // Deployer: 0x3d0ab53241A2913D7939ae02f7083169fE7b823B
-// Balance: 250.78 POL (或其他数值)
+// Balance: 250.78 AVAX (或其他数值)
 
 // 退出 console
 .exit
 ```
 
-**确认**: 余额至少有 0.5 POL
+**确认**: 余额至少有 0.5AVAX
 
 ### 6. 编译智能合约
 
@@ -114,13 +114,13 @@ pnpm tsx scripts/deploy-remaining-contracts.ts
 ```
 🚀 Deploying Remaining Smart Contracts...
 
-Network: polygon (Chain ID: 137)
-RPC: https://polygon-rpc.com
+Network: avalanche (Chain ID: 43114)
+RPC: https://avalanche-rpc.com
 Platform Treasury: 0x3d0ab53241A2913D7939ae02f7083169fE7b823B
 Maintainer Pool: 0x3d0ab53241A2913D7939ae02f7083169fE7b823B
 
 Deployer: 0x3d0ab53241A2913D7939ae02f7083169fE7b823B
-Balance: 250.78 POL
+Balance: 250.78AVAX
 Gas Price: 45.5 Gwei
 Priority Fee: 30.2 Gwei
 
@@ -140,7 +140,7 @@ Priority Fee: 30.2 Gwei
 
 📝 Deployment Summary:
 ==========================================
-Network: polygon (Chain ID: 137)
+Network: avalanche (Chain ID: 43114)
 
 Deployed Contracts:
   MEMORY_NFT_CONTRACT_ADDRESS=0x1234567890abcdef...
@@ -158,11 +158,11 @@ Deployed Contracts:
    AMEM_TOKEN_CONTRACT_ADDRESS=0x234567890abcdef1...
    AGENT_CREDIT_CONTRACT_ADDRESS=0x34567890abcdef1...
 
-2. Verify contracts on Polygonscan:
+2. Verify contracts on Snowscan:
 
-   npx hardhat verify --network polygon 0x1234... "0x000000006551c19487814612e58FE06813775758"
-   npx hardhat verify --network polygon 0x2345... "0x3d0ab...823B" "0x3d0ab...823B"
-   npx hardhat verify --network polygon 0x3456... "0x2345..." "0x3d0ab...823B"
+   npx hardhat verify --network avalanche 0x1234... "0x000000006551c19487814612e58FE06813775758"
+   npx hardhat verify --network avalanche 0x2345... "0x3d0ab...823B" "0x3d0ab...823B"
+   npx hardhat verify --network avalanche 0x3456... "0x2345..." "0x3d0ab...823B"
 
 3. Test contract integration:
 
@@ -199,26 +199,26 @@ pm2 restart awareness-backend
 
 ```bash
 # 复制部署输出的验证命令，例如:
-npx hardhat verify --network polygon 0x1234... "0x000000006551c19487814612e58FE06813775758"
-npx hardhat verify --network polygon 0x2345... "0x3d0ab53241A2913D7939ae02f7083169fE7b823B" "0x3d0ab53241A2913D7939ae02f7083169fE7b823B"
-npx hardhat verify --network polygon 0x3456... "0x2345..." "0x3d0ab53241A2913D7939ae02f7083169fE7b823B"
+npx hardhat verify --network avalanche 0x1234... "0x000000006551c19487814612e58FE06813775758"
+npx hardhat verify --network avalanche 0x2345... "0x3d0ab53241A2913D7939ae02f7083169fE7b823B" "0x3d0ab53241A2913D7939ae02f7083169fE7b823B"
+npx hardhat verify --network avalanche 0x3456... "0x2345..." "0x3d0ab53241A2913D7939ae02f7083169fE7b823B"
 ```
 
 ---
 
 ## 📊 部署后验证
 
-### A. 在 Polygonscan 上查看合约
+### A. 在 Snowscan 上查看合约
 
 ```bash
 # MemoryNFT
-https://polygonscan.com/address/0x[MEMORY_NFT_ADDRESS]
+https://snowscan.com/address/0x[MEMORY_NFT_ADDRESS]
 
 # AMEMToken
-https://polygonscan.com/address/0x[AMEM_TOKEN_ADDRESS]
+https://snowscan.com/address/0x[AMEM_TOKEN_ADDRESS]
 
 # AgentCreditSystem
-https://polygonscan.com/address/0x[AGENT_CREDIT_ADDRESS]
+https://snowscan.com/address/0x[AGENT_CREDIT_ADDRESS]
 ```
 
 ### B. 测试 API 集成
@@ -235,7 +235,7 @@ curl http://localhost:3001/api/trpc/token.info | jq
 
 ```bash
 # 查看你的钱包 (everestan.eth)
-https://polygonscan.com/address/0x3d0ab53241A2913D7939ae02f7083169fE7b823B
+https://snowscan.com/address/0x3d0ab53241A2913D7939ae02f7083169fE7b823B
 
 # 应该看到:
 # - 合约部署交易 (3 笔新交易)
@@ -255,9 +255,9 @@ Error: insufficient funds for intrinsic transaction cost
 
 **解决方案**:
 ```bash
-# 向部署钱包充值 POL
+# 向部署钱包充值AVAX
 # 地址: 0x3d0ab53241A2913D7939ae02f7083169fE7b823B
-# 建议充值: 1 POL (当前只有 0.25 POL)
+# 建议充值: 1 AVAX (当前只有 0.25 POL)
 ```
 
 ### 问题 2: Gas 价格过高
@@ -296,9 +296,9 @@ Error: Too Many Requests
 **解决方案**:
 ```bash
 # 在 .env 中使用备用 RPC
-POLYGON_RPC_URL=https://polygon.llamarpc.com
+AVALANCHE_RPC_URL=https://avalanche.llamarpc.com
 # 或
-POLYGON_RPC_URL=https://rpc-mainnet.maticvigil.com
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 ```
 
 ---
@@ -311,7 +311,7 @@ POLYGON_RPC_URL=https://rpc-mainnet.maticvigil.com
 - [ ] .env 文件已更新合约地址
 - [ ] 后端服务已重启
 - [ ] API 调用正常响应
-- [ ] Polygonscan 上可以看到合约
+- [ ] Snowscan 上可以看到合约
 - [ ] 合约已验证 (源代码可见)
 - [ ] 平台金库地址正确 (everestan.eth)
 
@@ -328,13 +328,13 @@ MemoryNFT 地址: 0x...
 AMEMToken 地址: 0x...
 AgentCreditSystem 地址: 0x...
 
-Polygonscan 链接:
-- https://polygonscan.com/address/0x...
-- https://polygonscan.com/address/0x...
-- https://polygonscan.com/address/0x...
+Snowscan 链接:
+- https://snowscan.com/address/0x...
+- https://snowscan.com/address/0x...
+- https://snowscan.com/address/0x...
 
-部署交易总 Gas 费用: X.XX POL
-剩余钱包余额: X.XX POL
+部署交易总 Gas 费用: X.XXAVAX
+剩余钱包余额: X.XXAVAX
 ```
 
 ---

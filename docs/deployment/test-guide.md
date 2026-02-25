@@ -18,14 +18,14 @@
    - Chrome 扩展商店搜索 "MetaMask"
    - 创建或导入钱包
 
-2. **配置 Polygon Amoy 网络**
+2. **配置 Avalanche Fuji 网络**
    - 打开 MetaMask
    - 点击网络选择
    - 选择"Add Network"或让 WalletConnect 组件自动添加
 
 3. **获取测试 POL**
-   - 访问 [Polygon Faucet](https://faucet.polygon.technology/)
-   - 选择 Amoy 网络
+   - 访问 [Avalanche Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c/)
+   - 选择 Fuji 网络
    - 输入你的钱包地址
    - 申请测试币（每天可申请多次）
 
@@ -47,7 +47,7 @@
    脚本会：
    - 编译 Solidity 合约
    - 验证部署环境
-   - 部署到 Polygon Amoy
+   - 部署到 Avalanche Fuji
    - 显示合约地址
 
 3. **保存合约地址**
@@ -73,8 +73,8 @@
 
 3. **测试网络切换**
    - 打开钱包菜单
-   - 验证显示"Polygon Amoy"网络
-   - 如未连接，点击"Switch to Polygon Amoy"
+   - 验证显示"Avalanche Fuji"网络
+   - 如未连接，点击"Switch to Avalanche Fuji"
 
 4. **测试 NFT 功能**
    - 导航到 Memory Marketplace 页面
@@ -89,14 +89,14 @@
    npm run verify:contract -- <contract_address>
    ```
 
-2. **在 Polygonscan 上查看**
-   - 访问 [Amoy Polygonscan](https://amoy.polygonscan.com)
+2. **在 Snowscan 上查看**
+   - 访问 [Fuji Snowscan](https://testnet.snowscan.xyz)
    - 搜索你的合约地址
    - 验证代码已验证
 
 3. **测试交易**
    - 尝试购买 NFT 许可证
-   - 验证 Polygonscan 上显示交易
+   - 验证 Snowscan 上显示交易
    - 检查交易细节
 
 ## 🧪 测试场景
@@ -200,7 +200,7 @@ localStorage.setItem('DEBUG_WEB3', 'true');
 
 ### Q2: 交易显示"Insufficient balance"
 
-**问题**: 账户没有足够的 POL 支付 gas
+**问题**: 账户没有足够的 AVAX 支付 gas
 **解决**:
 1. 从 faucet 申请更多测试币
 2. 等待 confirmations
@@ -225,12 +225,12 @@ getMemoryNFTManager('0x...');
 
 ### Q5: 网络切换失败
 
-**问题**: 无法切换到 Polygon Amoy
+**问题**: 无法切换到 Avalanche Fuji
 **解决**:
 1. 检查 RPC URL 正确性
 2. 手动在 MetaMask 中添加网络
 3. 重新启动 MetaMask
-4. 尝试 [Polygonscan 一键添加](https://amoy.polygonscan.com)
+4. 尝试 [Snowscan 一键添加](https://testnet.snowscan.xyz)
 
 ## 📊 验证清单
 
@@ -238,12 +238,12 @@ getMemoryNFTManager('0x...');
 
 - [ ] 钱包连接成功
   - [ ] 显示正确的地址
-  - [ ] 显示正确的 MATIC 余额
-  - [ ] 显示"Polygon Amoy"网络
+  - [ ] 显示正确的 AVAX 余额
+  - [ ] 显示"Avalanche Fuji"网络
 
 - [ ] 合约部署成功
   - [ ] 合约地址有效
-  - [ ] 合约代码在 Polygonscan 上可见
+  - [ ] 合约代码在 Snowscan 上可见
   - [ ] 可以查询合约状态
 
 - [ ] NFT 功能正常

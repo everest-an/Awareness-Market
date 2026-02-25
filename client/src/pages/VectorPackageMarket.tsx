@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import Navbar from '@/components/Navbar';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Search,
   TrendingUp,
@@ -41,6 +42,7 @@ interface VectorPackage {
 type SortOption = 'recent' | 'popular' | 'price_asc' | 'price_desc';
 
 export default function VectorPackageMarket() {
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [category, setCategory] = useState<string>('all');
@@ -94,43 +96,43 @@ export default function VectorPackageMarket() {
 
   const featuredCases = realFeatured.length > 0 ? realFeatured : [
     {
-      packageId: 'vector-case-nlp-001',
-      name: 'Contract Clause Classifier',
-      description: 'Identify and categorize contract clauses for legal review workflows.',
-      category: 'nlp',
-      sourceModel: 'gpt-4',
+      packageId: 'vector-case-vision-001',
+      name: 'Medical Radiology Embedding',
+      description: 'Chest X-ray feature vectors for diagnostic AI — transfer radiology expertise from GPT-4V to Claude for multi-modal triage.',
+      category: 'vision',
+      sourceModel: 'gpt-4v',
       targetModel: 'claude-3',
+      epsilon: 0.04,
+      dimension: 2048,
+      downloadCount: 1420,
+      tags: 'medical,radiology,diagnostics',
+      price: 32,
+    },
+    {
+      packageId: 'vector-case-nlp-002',
+      name: 'Financial Sentiment NLP',
+      description: 'Market sentiment vectors extracted from 10-K earnings calls. Cross-model transfer for real-time trading signal generation.',
+      category: 'nlp',
+      sourceModel: 'claude-3',
+      targetModel: 'llama-3',
       epsilon: 0.06,
       dimension: 1536,
       downloadCount: 980,
-      tags: 'legal,contracts,classification',
-      price: 18,
-    },
-    {
-      packageId: 'vector-case-vision-002',
-      name: 'Defect Detection Vision Vector',
-      description: 'Surface-level defect detection for manufacturing QA and inspection pipelines.',
-      category: 'vision',
-      sourceModel: 'gemini',
-      targetModel: 'llama-3',
-      epsilon: 0.09,
-      dimension: 1024,
-      downloadCount: 720,
-      tags: 'vision,qa,manufacturing',
-      price: 22,
+      tags: 'finance,sentiment,trading',
+      price: 24,
     },
     {
       packageId: 'vector-case-multi-003',
-      name: 'Product Discovery Multimodal',
-      description: 'Blend user interview summaries with screenshots for product discovery analysis.',
+      name: 'Autonomous Drone Navigation',
+      description: '3D spatial awareness vectors for drone path planning. Fuse LiDAR + camera embeddings across model architectures.',
       category: 'multimodal',
-      sourceModel: 'claude-3',
+      sourceModel: 'gemini',
       targetModel: 'gpt-4',
-      epsilon: 0.07,
-      dimension: 2048,
+      epsilon: 0.08,
+      dimension: 4096,
       downloadCount: 640,
-      tags: 'product,ux,multimodal',
-      price: 26,
+      tags: 'robotics,navigation,spatial',
+      price: 45,
     },
   ];
 
@@ -164,15 +166,16 @@ export default function VectorPackageMarket() {
               Quality Certified
             </Badge>
           </div>
-          {/* Upload Button - Always Visible */}
-          <div className="mt-8">
-            <Button className="bg-cyan-500 hover:bg-cyan-600" asChild>
-              <Link href="/upload-vector-package">
-                <Upload className="h-4 w-4 mr-2" />
-                Publish Vector Package
-              </Link>
-            </Button>
-          </div>
+          {isAuthenticated && (
+            <div className="mt-8">
+              <Button className="bg-cyan-500 hover:bg-cyan-600" asChild>
+                <Link href="/upload-vector-package">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Publish Vector Package
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
@@ -438,14 +441,16 @@ export default function VectorPackageMarket() {
               </div>
             </div>
 
-            <div className="text-center">
-              <Button className="bg-cyan-500 hover:bg-cyan-600" asChild>
-                <Link href="/upload-vector-package">
-                  <Box className="h-4 w-4 mr-2" />
-                  Publish Vector Package
-                </Link>
-              </Button>
-            </div>
+            {isAuthenticated && (
+              <div className="text-center">
+                <Button className="bg-cyan-500 hover:bg-cyan-600" asChild>
+                  <Link href="/upload-vector-package">
+                    <Box className="h-4 w-4 mr-2" />
+                    Publish Vector Package
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

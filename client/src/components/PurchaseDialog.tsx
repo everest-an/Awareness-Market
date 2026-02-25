@@ -155,7 +155,7 @@ export function PurchaseDialog({ vector, open, onOpenChange, onSuccess, onSwitch
               className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors py-2"
             >
               <CircleDollarSign className="h-4 w-4" />
-              Or pay with USDC / USDT on Polygon
+              Or pay with USDC / USDT on Avalanche
             </button>
           )}
         </div>

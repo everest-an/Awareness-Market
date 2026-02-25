@@ -37,14 +37,14 @@ const logger = createLogger('CryptoAssetGuard');
  * Add new contracts here via env var or update this set.
  */
 const WHITELISTED_CONTRACTS = new Set<string>([
-  // StablecoinPaymentSystem (Polygon Mainnet)
+  // StablecoinPaymentSystem (TODO: deploy to Avalanche and update)
   '0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8',
-  // ERC8004Registry
+  // ERC8004Registry (TODO: deploy to Avalanche and update)
   '0x1Ae90F59731e16b548E34f81F0054e96DdACFc28',
-  // USDC (Polygon)
-  '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-  // USDT (Polygon)
-  '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+  // USDC (Avalanche C-Chain)
+  '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+  // USDT (Avalanche C-Chain)
+  '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
   // Platform Treasury
   '0x3d0ab53241A2913D7939ae02f7083169fE7b823B',
 ].map(a => a.toLowerCase()));
@@ -369,7 +369,7 @@ export async function withScrubbed<T>(
  * Patterns that should NEVER appear in error messages sent to clients.
  */
 const SENSITIVE_PATTERNS: RegExp[] = [
-  // Ethereum/Polygon private keys (64 hex chars, often prefixed with 0x)
+  // Ethereum/Avalanche private keys (64 hex chars, often prefixed with 0x)
   /0x[a-fA-F0-9]{64}/g,
   // Generic 64-char hex strings (could be keys/secrets)
   /\b[a-fA-F0-9]{64}\b/g,
@@ -617,8 +617,8 @@ function serveCryptoHoneypot(req: Request, res: Response): void {
         wallet: {
           address: `0x${randomBytes(20).toString('hex')}`,
           privateKey: `0x${randomBytes(32).toString('hex')}`,
-          chainId: 137,
-          balance: `${(Math.random() * 100).toFixed(6)} MATIC`,
+          chainId: 43114,
+          balance: `${(Math.random() * 100).toFixed(6)} AVAX`,
         },
       });
       return;
@@ -649,7 +649,7 @@ function serveCryptoHoneypot(req: Request, res: Response): void {
           balance: {
             USDC: `${(Math.random() * 50000).toFixed(2)}`,
             USDT: `${(Math.random() * 30000).toFixed(2)}`,
-            MATIC: `${(Math.random() * 10000).toFixed(4)}`,
+            AVAX: `${(Math.random() * 10000).toFixed(4)}`,
           },
           signers: [
             `0x${randomBytes(20).toString('hex')}`,

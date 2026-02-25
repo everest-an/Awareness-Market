@@ -440,7 +440,7 @@ Writing AI → 撰写报告 → 输出文档
 ```bash
 # ERC-8004智能合约
 ERC8004_REGISTRY_ADDRESS=0x...      # 注册表合约地址
-POLYGON_RPC_URL=https://rpc-amoy.polygon.technology
+AVALANCHE_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 ERC8004_RECORDER_PRIVATE_KEY=0x...  # 用于记录交互的钱包私钥（可选）
 ```
 

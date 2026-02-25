@@ -43,7 +43,7 @@
 - AMEMToken (ERC-20)
 - AgentCreditSystem
 
-**注意**：智能合约需要通过 `scripts/deploy-remaining-contracts.ts` 单独部署到Polygon主网，不会通过 `git pull` 自动部署。
+**注意**：智能合约需要通过 `scripts/deploy-remaining-contracts.ts` 单独部署到Avalanche主网，不会通过 `git pull` 自动部署。
 
 ---
 

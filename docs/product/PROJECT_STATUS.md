@@ -57,7 +57,7 @@ Last Updated: January 17, 2026
 | Item | Status | Notes |
 |------|--------|-------|
 | Database Migration | ⏳ | Run `pnpm prisma migrate deploy` |
-| Smart Contracts | ⏳ | Deploy to Polygon Amoy |
+| Smart Contracts | ⏳ | Deploy to Avalanche Fuji |
 | Stripe Integration | ⏳ | Currently using mock payment |
 | Sample Data | ⏳ | Run `pnpm seed:products` |
 

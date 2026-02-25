@@ -20,11 +20,11 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
  * - Purchase history and refunds
  * - Emergency pause functionality
  *
- * Polygon Mainnet Addresses:
- * - USDC: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359
- * - USDT: 0xc2132D05D31c914a87C6611C10748AEb04B58e8F
+ * Avalanche C-Chain Mainnet Addresses:
+ * - USDC: 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E
+ * - USDT: 0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7
  *
- * Polygon Amoy Testnet:
+ * Avalanche Fuji Testnet:
  * - Use test USDC/USDT or deploy mock tokens
  */
 contract StablecoinPaymentSystem is AccessControl, Pausable, ReentrancyGuard {

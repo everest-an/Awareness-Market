@@ -12,7 +12,7 @@ interface Web3ContextType {
   isLoading: boolean;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
-  switchToAmoy: () => Promise<void>;
+  switchToAvalanche: () => Promise<void>;
   signMessage: (message: string) => Promise<string>;
   sendTransaction: (to: string, value: string, data?: string) => Promise<string>;
 }
@@ -97,10 +97,10 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const switchToAmoy = async () => {
+  const switchToAvalanche = async () => {
     setIsLoading(true);
     try {
-      await provider.switchToAmoy();
+      await provider.switchToAvalanche();
       setState(provider.getState());
     } catch (error) {
       console.error('Failed to switch network:', error);
@@ -139,7 +139,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     isLoading,
     connect,
     disconnect,
-    switchToAmoy,
+    switchToAvalanche,
     signMessage,
     sendTransaction,
   };

@@ -14,7 +14,7 @@ This document contains all new implementations to be merged into the main whitep
 #### $AMEM Token Contract (AMEMToken.sol)
 
 **Location**: `contracts/AMEMToken.sol` (320 lines)
-**Status**: Ready for deployment to Polygon Amoy
+**Status**: Ready for deployment to Avalanche Fuji
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -904,7 +904,7 @@ class WorkflowManager {
 │  └─────────────────────────────────────────────────────────────────────────┘  │
 │            │                  │                  │                            │
 │  ┌─────────┼──────────────────┼──────────────────┼─────────────────────────┐  │
-│  │         │      Blockchain Layer (Polygon Amoy Testnet)                 │  │
+│  │         │      Blockchain Layer (Avalanche Fuji Testnet)                 │  │
 │  │         ▼                  ▼                  ▼                         │  │
 │  │  ┌──────────────────────────────────────────────────────────┐          │  │
 │  │  │           Smart Contracts (Solidity 0.8.20)               │          │  │
@@ -968,7 +968,7 @@ Data Flow Example (Agent Collaboration with On-Chain Recording):
 - [x] MySQL 8.0 running on localhost:3306
 - [ ] Redis 7.0 running on localhost:6379
 - [ ] AWS S3 bucket configured
-- [ ] Polygon Amoy RPC endpoint
+- [ ] Avalanche Fuji RPC endpoint
 - [ ] Private keys for contract deployment
 
 ### Database Setup
@@ -990,12 +990,12 @@ mysql -u root awareness_market -e "SHOW TABLES;"
 # 1. Compile contracts
 npx hardhat compile
 
-# 2. Deploy to Amoy testnet
-npx hardhat run scripts/deploy/deploy-amem-token.ts --network amoy
+# 2. Deploy to Fuji testnet
+npx hardhat run scripts/deploy/deploy-amem-token.ts --network fuji
 
-# 3. Verify on PolygonScan
-npx hardhat verify --network amoy <AMEM_TOKEN_ADDRESS>
-npx hardhat verify --network amoy <AGENT_CREDIT_SYSTEM_ADDRESS> <AMEM_TOKEN_ADDRESS>
+# 3. Verify on Snowscan
+npx hardhat verify --network fuji <AMEM_TOKEN_ADDRESS>
+npx hardhat verify --network fuji <AGENT_CREDIT_SYSTEM_ADDRESS> <AMEM_TOKEN_ADDRESS>
 
 # 4. Update .env with deployed addresses
 ```
@@ -1050,7 +1050,7 @@ curl -X POST http://localhost:3000/api/trpc/agentCollaboration.collaborate \
 - Query throughput: 1200 queries/second
 - Index hit rate: 98.5%
 
-### Blockchain Gas Costs (30 gwei, $3500 MATIC)
+### Blockchain Gas Costs (30 gwei, $3500 AVAX)
 - AMEM transfer: $0.01
 - Package purchase: $0.03
 - Record ERC-8004 interaction: $0.015

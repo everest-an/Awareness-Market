@@ -17,7 +17,7 @@
 
 - [ ] **JWT Secret** - 用于 Token 签名
 - [ ] **数据库连接** - PostgreSQL URL
-- [ ] **RPC 端点** - Polygon/Amoy (ERC-8004 需要)
+- [ ] **RPC 端点** - Avalanche/Fuji (ERC-8004 需要)
 
 ---
 
@@ -56,13 +56,13 @@ ERC8004_REGISTRY_ADDRESS=0x1Ae90F59731e16b548E34f81F0054e96DdACFc28
 
 # 选择一个 RPC 端点：
 # 选项 1: 公共 RPC (免费，可能限速)
-POLYGON_RPC_URL=https://polygon-rpc.com
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
 # 选项 2: Alchemy (推荐，需要注册)
-# POLYGON_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+# AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
 # 选项 3: Infura
-# POLYGON_RPC_URL=https://polygon-amoy.infura.io/v3/YOUR_INFURA_KEY
+# AVALANCHE_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 
 # ============================================
 # WebMCP 配置 (可选 - 使用默认值即可)
@@ -76,7 +76,7 @@ POLYGON_RPC_URL=https://polygon-rpc.com
 
 ```bash
 # 检查配置是否正确
-cat .env | grep -E "JWT_SECRET|DATABASE_URL|ERC8004|POLYGON_RPC"
+cat .env | grep -E "JWT_SECRET|DATABASE_URL|ERC8004|AVALANCHE_RPC"
 ```
 
 应该看到类似输出：
@@ -84,7 +84,7 @@ cat .env | grep -E "JWT_SECRET|DATABASE_URL|ERC8004|POLYGON_RPC"
 JWT_SECRET=YourGeneratedSecretHere...
 DATABASE_URL=postgresql://postgres:password@localhost:5432/awareness_market_dev
 ERC8004_REGISTRY_ADDRESS=0x1Ae90F59731e16b548E34f81F0054e96DdACFc28
-POLYGON_RPC_URL=https://polygon-rpc.com
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 ```
 
 ### 步骤 4: 启动服务器
@@ -132,7 +132,7 @@ curl http://localhost:5000/api/erc8004/status
   "enabled": true,
   "registryAddress": "0x1Ae90F59731e16b548E34f81F0054e96DdACFc28",
   "networkId": "137",
-  "networkName": "Polygon"
+  "networkName": "Avalanche"
 }
 ```
 
@@ -200,24 +200,24 @@ ERC-8004 status: "enabled": false
 **解决**:
 1. **免费公共 RPC** (可能限速):
    ```bash
-   POLYGON_RPC_URL=https://polygon-rpc.com
+   AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
    ```
 
 2. **Alchemy** (推荐):
    - 访问 https://www.alchemy.com/
    - 创建账户并创建 App
-   - 选择 Polygon 或 Polygon Amoy
+   - 选择 Avalanche 或 Avalanche Fuji
    - 复制 HTTPS URL
    ```bash
-   POLYGON_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/YOUR_KEY
+   AVALANCHE_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
    ```
 
 3. **Infura**:
    - 访问 https://infura.io/
    - 创建项目
-   - 选择 Polygon 网络
+   - 选择 Avalanche 网络
    ```bash
-   POLYGON_RPC_URL=https://polygon-amoy.infura.io/v3/YOUR_KEY
+   AVALANCHE_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
    ```
 
 ### 问题 4: WebMCP Widget 不显示
@@ -269,7 +269,7 @@ JWT_SECRET=<生成的密钥>
 # .env
 JWT_SECRET=<生成的密钥>
 DATABASE_URL=postgresql://postgres:password@localhost:5432/awareness_market_dev
-POLYGON_RPC_URL=https://polygon-rpc.com
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 ERC8004_REGISTRY_ADDRESS=0x1Ae90F59731e16b548E34f81F0054e96DdACFc28
 ```
 
@@ -322,16 +322,16 @@ else
 fi
 
 # 检查 RPC URL
-if grep -q "POLYGON_RPC_URL=" .env && ! grep -q "POLYGON_RPC_URL=$" .env; then
-  echo "✅ POLYGON_RPC_URL 已配置"
+if grep -q "AVALANCHE_RPC_URL=" .env && ! grep -q "AVALANCHE_RPC_URL=$" .env; then
+  echo "✅ AVALANCHE_RPC_URL 已配置"
 else
-  echo "⚠️  POLYGON_RPC_URL 未配置（ERC-8004 需要）"
+  echo "⚠️  AVALANCHE_RPC_URL 未配置（ERC-8004 需要）"
 fi
 
 echo ""
 echo "📋 配置总结:"
 echo "   必需配置: JWT_SECRET"
-echo "   可选配置: DATABASE_URL, POLYGON_RPC_URL"
+echo "   可选配置: DATABASE_URL, AVALANCHE_RPC_URL"
 echo ""
 echo "🚀 运行: pnpm run dev"
 EOF

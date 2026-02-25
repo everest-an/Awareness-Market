@@ -105,7 +105,7 @@ S3_REGION=us-east-1
 # Blockchain (Optional - for ERC-6551)
 MEMORY_NFT_CONTRACT_ADDRESS=0x...
 ERC6551_REGISTRY_ADDRESS=0x000000006551c19487814612e58FE06813775758
-POLYGON_MUMBAI_RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/YOUR_KEY
+FUJI_RPC_URL=https://avalanche-fuji.g.alchemy.com/v2/YOUR_KEY
 PRIVATE_KEY=your_wallet_private_key
 
 # Application
@@ -228,10 +228,10 @@ pnpm add --save-dev hardhat @nomicfoundation/hardhat-toolbox
 npx hardhat init
 ```
 
-#### 4.2 Deploy to Polygon Mumbai
+#### 4.2 Deploy to Avalanche Fuji
 
 ```bash
-npx hardhat run scripts/deploy-memory-nft.ts --network mumbai
+npx hardhat run scripts/deploy-memory-nft.ts --network fuji
 ```
 
 Save the deployed contract address to `.env`:
@@ -243,7 +243,7 @@ MEMORY_NFT_CONTRACT_ADDRESS=0x...
 #### 4.3 Verify Contract
 
 ```bash
-npx hardhat verify --network mumbai DEPLOYED_ADDRESS
+npx hardhat verify --network fuji DEPLOYED_ADDRESS
 ```
 
 ### Phase 5: Generate Production Data
@@ -502,7 +502,7 @@ The Neural Bridge Marketplace is now production-ready with full paper compliance
 1. Deploy to production server
 2. Generate 50 W-Matrices for cold start
 3. Configure MCP Server for Claude Desktop users
-4. Deploy smart contracts to Polygon Mumbai
+4. Deploy smart contracts to Avalanche Fuji
 5. Monitor system performance and user adoption
 6. Iterate based on feedback and usage patterns
 

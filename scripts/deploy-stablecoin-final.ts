@@ -5,25 +5,25 @@ import { readFileSync } from 'fs';
 dotenv.config();
 
 const STABLECOIN_ADDRESSES = {
-  USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-  USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+  USDC: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+  USDT: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
 };
 
 async function main() {
-  console.log('Deploying StablecoinPaymentSystem to Polygon...');
+  console.log('Deploying StablecoinPaymentSystem to Avalanche...');
 
-  const rpcUrl = 'https://polygon-mainnet.g.alchemy.com/v2/vg-5r0YReOdDkSCOhgKOnsnuRJXsZLID';
+  const rpcUrl = process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc';
   const provider = new ethers.JsonRpcProvider(rpcUrl, {
-    name: 'polygon',
-    chainId: 137
+    name: 'avalanche',
+    chainId: 43114
   });
-  
+
   const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY!, provider);
-  
+
   console.log('Deploying with account:', wallet.address);
-  
+
   const balance = await provider.getBalance(wallet.address);
-  console.log('Account balance:', ethers.formatEther(balance), 'POL');
+  console.log('Account balance:', ethers.formatEther(balance), 'AVAX');
 
   const feeData = await provider.getFeeData();
   console.log('Current Gas Price:', ethers.formatUnits(feeData.gasPrice || 0n, 'gwei'), 'Gwei');
@@ -36,14 +36,14 @@ async function main() {
 
   console.log('Deploying StablecoinPaymentSystem contract...');
   const factory = new ethers.ContractFactory(contractJson.abi, contractJson.bytecode, wallet);
-  
+
   const paymentSystem = await factory.deploy(platformTreasury, {
     nonce: 1,
     gasLimit: 3000000,
     maxFeePerGas: feeData.maxFeePerGas,
     maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
   });
-  
+
   console.log('Transaction sent:', paymentSystem.deploymentTransaction()?.hash);
   console.log('Waiting for confirmation...');
   await paymentSystem.waitForDeployment();

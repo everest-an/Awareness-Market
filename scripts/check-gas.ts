@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-const provider = new ethers.JsonRpcProvider('https://polygon-mainnet.g.alchemy.com/v2/vg-5r0YReOdDkSCOhgKOnsnuRJXsZLID');
+const provider = new ethers.JsonRpcProvider(process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc');
 
 const feeData = await provider.getFeeData();
 console.log('Current Gas Price:', ethers.formatUnits(feeData.gasPrice || 0n, 'gwei'), 'Gwei');

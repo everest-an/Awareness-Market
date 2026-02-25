@@ -11,19 +11,19 @@ import { getMemoryNFTManager } from '../lib/nft-contract';
  * Example 1: Using Web3Context in components
  */
 export function Web3ExampleComponent() {
-  const { state, connect, disconnect, switchToAmoy } = useWeb3();
+  const { state, connect, disconnect, switchToAvalanche } = useWeb3();
 
   return (
     <div>
       <h3>Web3 Status</h3>
       <p>Connection Status: {state.isConnected ? 'Connected' : 'Disconnected'}</p>
       <p>Address: {state.address}</p>
-      <p>Balance: {state.balance} MATIC</p>
+      <p>Balance: {state.balance} AVAX</p>
       <p>Network: {state.chainName} (ID: {state.chainId})</p>
 
       <button onClick={connect}>Connect Wallet</button>
       <button onClick={disconnect}>Disconnect</button>
-      <button onClick={switchToAmoy}>Switch to Amoy Network</button>
+      <button onClick={switchToAvalanche}>Switch to Avalanche Fuji Network</button>
     </div>
   );
 }
@@ -35,8 +35,8 @@ export function BuyLicenseExample() {
   const { state } = useWeb3();
 
   const handleBuyLicense = async () => {
-    if (!state.isConnected || !state.isOnAmoy) {
-      alert('Please connect wallet and switch to Amoy network');
+    if (!state.isConnected || !state.isOnAvalanche) {
+      alert('Please connect wallet and switch to Avalanche Fuji network');
       return;
     }
 
@@ -58,7 +58,7 @@ export function BuyLicenseExample() {
   return (
     <div>
       <h3>Purchase NFT License</h3>
-      <button onClick={handleBuyLicense} disabled={!state.isConnected || !state.isOnAmoy}>
+      <button onClick={handleBuyLicense} disabled={!state.isConnected || !state.isOnAvalanche}>
         Purchase License
       </button>
     </div>

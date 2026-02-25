@@ -237,7 +237,7 @@ Claude-3 Sonnet + GPT-4
 ## Resources
 
 - **API Documentation**: `/api-docs`
-- **Smart Contract**: [View on PolygonScan](https://polygonscan.com/)
+- **Smart Contract**: [View on Snowscan](https://snowscan.com/)
 - **Whitepaper**: `docs/WHITEPAPER_COMPLETE.md`
 - **Support**: https://help.awareness.market
 

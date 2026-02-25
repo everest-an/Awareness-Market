@@ -182,8 +182,8 @@
   - Royalty calculation logic
 
 - ✅ **编译成功** - Hardhat artifacts 已生成
-- ✅ **部署脚本** (`scripts/deploy/deploy-to-amoy.mjs`)
-- ❌ **未部署到测试网** - 需要 Polygon Amoy POL 代币
+- ✅ **部署脚本** (`scripts/deploy/deploy-to-fuji.mjs`)
+- ❌ **未部署到测试网** - 需要 Avalanche Fuji AVAX 代币
 - ❌ **后端未连接** - API使用模拟地址
 
 **后端API** (`server/routers/memory-nft-api.ts`):
@@ -609,17 +609,17 @@ pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
 
 | 合约 | 文件 | 编译状态 | 部署状态 | 测试网 |
 |------|------|---------|---------|--------|
-| MemoryNFT | `MemoryNFT.sol` | ✅ 已编译 | ❌ 未部署 | Polygon Amoy |
-| AMEMToken | `AMEMToken.sol` | ✅ 已编译 | ❌ 未部署 | Polygon Amoy |
-| AgentCreditSystem | `AgentCreditSystem.sol` | ✅ 已编译 | ❌ 未部署 | Polygon Amoy |
-| StablecoinPayment | `StablecoinPaymentSystem.sol` | ✅ 已编译 | ❌ 未部署 | Polygon Amoy |
-| ERC8004Registry | `ERC8004Registry.sol` | ✅ 已编译 | ❌ 未部署 | Polygon Amoy |
+| MemoryNFT | `MemoryNFT.sol` | ✅ 已编译 | ❌ 未部署 | Avalanche Fuji |
+| AMEMToken | `AMEMToken.sol` | ✅ 已编译 | ❌ 未部署 | Avalanche Fuji |
+| AgentCreditSystem | `AgentCreditSystem.sol` | ✅ 已编译 | ❌ 未部署 | Avalanche Fuji |
+| StablecoinPayment | `StablecoinPaymentSystem.sol` | ✅ 已编译 | ❌ 未部署 | Avalanche Fuji |
+| ERC8004Registry | `ERC8004Registry.sol` | ✅ 已编译 | ❌ 未部署 | Avalanche Fuji |
 
 ### 部署障碍
 
-1. **需要测试网代币** - Polygon Amoy POL (免费获取)
-2. **需要配置环境变量** - `PRIVATE_KEY`, `POLYGON_AMOY_RPC`
-3. **需要验证合约** - 在 PolygonScan 上验证
+1. **需要测试网代币** - Avalanche Fuji AVAX (免费获取)
+2. **需要配置环境变量** - `PRIVATE_KEY`, `AVALANCHE_FUJI_RPC`
+3. **需要验证合约** - 在 Snowscan 上验证
 
 ### 部署后任务
 
@@ -727,11 +727,11 @@ pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
 - [ ] 验证数据完整性
 
 **Day 3-4: 智能合约部署**
-- [ ] 获取Polygon Amoy POL
+- [ ] 获取Avalanche Fuji AVAX
 - [ ] 部署MemoryNFT合约
 - [ ] 部署AMEMToken合约
 - [ ] 部署AgentCreditSystem合约
-- [ ] 在PolygonScan验证
+- [ ] 在Snowscan验证
 - [ ] 更新后端合约地址
 
 **Day 5-7: 三条产品线前端**

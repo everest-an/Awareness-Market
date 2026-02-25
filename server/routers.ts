@@ -2048,7 +2048,7 @@ export const appRouter = router({
   // Embedding API (P2 - Auto-Vectorization Engine)
   embedding: embeddingRouter,
 
-  // Stablecoin Payment (USDC/USDT on Polygon - AI Agent autonomous payments)
+  // Stablecoin Payment (USDC/USDT on Avalanche - AI Agent autonomous payments)
   stablecoinPayment: stablecoinPaymentRouter,
 
   // Credit Payment — balance-based purchases, top-ups, refunds

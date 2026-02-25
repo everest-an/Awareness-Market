@@ -27,7 +27,7 @@ This guide walks you through deploying the complete Neural Bridge Marketplace sy
 - **Backend Integration**: Connect contracts to tRPC API
 
 **Estimated Time**: 45-60 minutes  
-**Estimated Cost**: ~$0.25 (Mumbai testnet MATIC + API calls)
+**Estimated Cost**: ~$0.25 (Fuji testnet AVAX + API calls)
 
 ---
 
@@ -40,27 +40,27 @@ This guide walks you through deploying the complete Neural Bridge Marketplace sy
 - MetaMask wallet
 - Git and GitHub account
 
-### 2. Get Mumbai MATIC
+### 2. Get Fuji AVAX
 
-1. Visit [Polygon Mumbai Faucet](https://faucet.polygon.technology/)
+1. Visit [Avalanche Fuji Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c/)
 2. Connect your MetaMask wallet
-3. Request 0.5 MATIC (enough for ~50 contract deployments)
+3. Request 0.5 AVAX (enough for ~50 contract deployments)
 4. Wait 1-2 minutes for confirmation
 
 ### 3. Get RPC Endpoint
 
 **Option A: Alchemy (Recommended)**
 1. Sign up at [alchemy.com](https://www.alchemy.com/)
-2. Create a new app → Select "Polygon Mumbai"
-3. Copy the HTTPS endpoint (e.g., `https://polygon-mumbai.g.alchemy.com/v2/YOUR_KEY`)
+2. Create a new app → Select "Avalanche Fuji"
+3. Copy the HTTPS endpoint (e.g., `https://avalanche-fuji.g.alchemy.com/v2/YOUR_KEY`)
 
 **Option B: Infura**
 1. Sign up at [infura.io](https://infura.io/)
-2. Create a new project → Enable Polygon Mumbai
+2. Create a new project → Enable Avalanche Fuji
 3. Copy the endpoint
 
 **Option C: Public RPC (No signup required)**
-- `https://rpc-mumbai.maticvigil.com/`
+- `https://api.avax-test.network/ext/bc/C/rpc/`
 - Note: May be slower and less reliable
 
 ### 4. Export Private Key from MetaMask
@@ -86,14 +86,14 @@ Create `.env.local` file in project root:
 DEPLOYER_PRIVATE_KEY=your_private_key_here
 
 # RPC Endpoints
-MUMBAI_RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/YOUR_KEY
+FUJI_RPC_URL=https://avalanche-fuji.g.alchemy.com/v2/YOUR_KEY
 
-# PolygonScan API Key (optional, for contract verification)
-POLYGONSCAN_API_KEY=your_polygonscan_api_key
+# Snowscan API Key (optional, for contract verification)
+SNOWSCAN_API_KEY=your_snowscan_api_key
 ```
 
-**Get PolygonScan API Key** (optional but recommended):
-1. Sign up at [polygonscan.com](https://polygonscan.com/)
+**Get Snowscan API Key** (optional but recommended):
+1. Sign up at [snowscan.com](https://snowscan.com/)
 2. Go to API-KEYs section
 3. Create new API key
 4. Copy and add to `.env.local`
@@ -114,17 +114,17 @@ Compiled 1 Solidity file with solc 0.8.20
 ### Step 3: Deploy MemoryNFT
 
 ```bash
-npx hardhat run scripts/deploy/deploy-memory-nft.ts --network mumbai
+npx hardhat run scripts/deploy/deploy-memory-nft.ts --network fuji
 ```
 
 Expected output:
 ```
 ╔══════════════════════════════════════════════════════════╗
-║  Deploying MemoryNFT to Polygon Mumbai                  ║
+║  Deploying MemoryNFT to Avalanche Fuji                  ║
 ╚══════════════════════════════════════════════════════════╝
 
 Deploying contracts with account: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
-Account balance: 0.5 MATIC
+Account balance: 0.5 AVAX
 
 Deploying MemoryNFT contract...
 ✓ MemoryNFT deployed to: 0x1234567890abcdef1234567890abcdef12345678
@@ -137,8 +137,8 @@ Waiting for 5 block confirmations...
 ╚══════════════════════════════════════════════════════════╝
 
 {
-  "network": "mumbai",
-  "chainId": 80001,
+  "network": "fuji",
+  "chainId": 43113,
   "contracts": {
     "memoryNFT": {
       "address": "0x1234567890abcdef1234567890abcdef12345678",
@@ -157,16 +157,16 @@ Waiting for 5 block confirmations...
 
 **Save the contract address!** You'll need it for backend integration.
 
-### Step 4: Verify Contract on PolygonScan
+### Step 4: Verify Contract on Snowscan
 
 ```bash
-npx hardhat verify --network mumbai 0x1234567890abcdef1234567890abcdef12345678
+npx hardhat verify --network fuji 0x1234567890abcdef1234567890abcdef12345678
 ```
 
 Expected output:
 ```
-Successfully verified contract MemoryNFT on PolygonScan.
-https://mumbai.polygonscan.com/address/0x1234567890abcdef1234567890abcdef12345678#code
+Successfully verified contract MemoryNFT on Snowscan.
+https://testnet.snowscan.xyz/address/0x1234567890abcdef1234567890abcdef12345678#code
 ```
 
 ### Step 5: Update Backend with Contract Address
@@ -176,8 +176,8 @@ Edit `server/neural-bridge/erc6551-tba.ts`:
 ```typescript
 // Line 15-20
 const MEMORY_NFT_ADDRESS = {
-  mumbai: '0x1234567890abcdef1234567890abcdef12345678', // ← Your deployed address
-  polygon: '0x0000000000000000000000000000000000000000', // Mainnet (deploy later)
+  fuji: '0x1234567890abcdef1234567890abcdef12345678', // ← Your deployed address
+  avalanche: '0x0000000000000000000000000000000000000000', // Mainnet (deploy later)
 };
 
 const ERC6551_REGISTRY = '0x000000006551c19487814612e58FE06813775758'; // Same on all chains
@@ -192,7 +192,7 @@ pnpm tsx scripts/test-nft-minting.ts
 Expected output:
 ```
 === Testing NFT Minting ===
-✓ Connected to Mumbai testnet
+✓ Connected to Fuji testnet
 ✓ Minted NFT #1 for test user
 ✓ Created TBA: 0xabcdef1234567890abcdef1234567890abcdef12
 ✓ Verified on-chain ownership
@@ -383,10 +383,10 @@ Memory NFTs: 0 (will be minted on purchase)
 4. **Check NFT minting**
    - Visit: https://awareness.market/my-memories
    - Verify NFT appears in "My Memories"
-   - Click "View on PolygonScan" → Verify on-chain
+   - Click "View on Snowscan" → Verify on-chain
 
 5. **Check TBA creation**
-   - On PolygonScan, click "Token Bound Account" tab
+   - On Snowscan, click "Token Bound Account" tab
    - Verify TBA address is created
    - Check TBA balance (should be 0 initially)
 
@@ -419,7 +419,7 @@ Expected behavior:
    - Verify royalty calculation (5% to original creator)
 
 3. **Verify on-chain**
-   - Check PolygonScan for provenance events
+   - Check Snowscan for provenance events
    - Verify `MemoryDerived` event is emitted
 
 ---
@@ -428,8 +428,8 @@ Expected behavior:
 
 ### Pre-Launch
 
-- [ ] Smart contracts deployed to Mumbai testnet
-- [ ] Contracts verified on PolygonScan
+- [ ] Smart contracts deployed to Fuji testnet
+- [ ] Contracts verified on Snowscan
 - [ ] Backend updated with contract addresses
 - [ ] NFT minting tested successfully
 - [ ] TBA creation tested successfully
@@ -443,7 +443,7 @@ Expected behavior:
 
 ### Launch Day
 
-- [ ] Deploy contracts to Polygon mainnet
+- [ ] Deploy contracts to Avalanche C-Chain
 - [ ] Update frontend with mainnet contract addresses
 - [ ] Switch Stripe to production mode
 - [ ] Enable production LLM API keys
@@ -461,7 +461,7 @@ Expected behavior:
 - [ ] Create video tutorials
 - [ ] Write blog post about Neural Bridge protocol
 - [ ] Submit to Product Hunt
-- [ ] Apply for grants (Polygon, Ethereum Foundation)
+- [ ] Apply for grants (Avalanche, Ethereum Foundation)
 - [ ] Start community Discord server
 - [ ] Plan v2 features (multi-chain, governance)
 
@@ -472,7 +472,7 @@ Expected behavior:
 ### Contract Deployment Fails
 
 **Error**: "Insufficient funds for gas"
-- **Solution**: Get more Mumbai MATIC from faucet
+- **Solution**: Get more Fuji AVAX from faucet
 
 **Error**: "Nonce too low"
 - **Solution**: Reset MetaMask account (Settings → Advanced → Reset Account)
@@ -502,8 +502,8 @@ Expected behavior:
 
 **Error**: "Transaction reverted"
 - **Solution**: Check contract address is correct
-- **Solution**: Verify wallet has enough MATIC for gas
-- **Solution**: Check PolygonScan for detailed error message
+- **Solution**: Verify wallet has enough AVAX for gas
+- **Solution**: Check Snowscan for detailed error message
 
 ---
 
@@ -533,11 +533,11 @@ Expected behavior:
 # Compile contracts
 npx hardhat compile
 
-# Deploy to Mumbai
-npx hardhat run scripts/deploy/deploy-memory-nft.ts --network mumbai
+# Deploy to Fuji
+npx hardhat run scripts/deploy/deploy-memory-nft.ts --network fuji
 
 # Verify contract
-npx hardhat verify --network mumbai <CONTRACT_ADDRESS>
+npx hardhat verify --network fuji <CONTRACT_ADDRESS>
 
 # Generate W-Matrices
 pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
@@ -560,11 +560,11 @@ pnpm dev
 
 ### Contract Addresses
 
-**Mumbai Testnet**:
+**Fuji Testnet**:
 - MemoryNFT: `0x1234567890abcdef1234567890abcdef12345678` (example)
 - ERC6551 Registry: `0x000000006551c19487814612e58FE06813775758`
 
-**Polygon Mainnet** (deploy after testing):
+**Avalanche C-Chain** (deploy after testing):
 - MemoryNFT: TBD
 - ERC6551 Registry: `0x000000006551c19487814612e58FE06813775758`
 

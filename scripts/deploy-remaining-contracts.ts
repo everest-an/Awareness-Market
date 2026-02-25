@@ -6,14 +6,14 @@
  * 2. AMEMToken (ERC-20 governance token)
  * 3. AgentCreditSystem (FICO-style credit scoring)
  *
- * Network: Polygon Mainnet (Chain ID: 137)
+ * Network: Avalanche C-Chain (Chain ID: 43114)
  *
  * Usage:
  *   pnpm tsx scripts/deploy-remaining-contracts.ts
  *
  * Requirements:
  *   - DEPLOYER_PRIVATE_KEY in .env
- *   - POL tokens for gas fees (~0.5 POL recommended)
+ *   - AVAX tokens for gas fees (~0.5 AVAX recommended)
  */
 
 import { ethers } from 'ethers';
@@ -23,15 +23,15 @@ import { readFileSync, writeFileSync } from 'fs';
 dotenv.config();
 
 // Configuration
-const NETWORK = 'polygon'; // or 'amoy' for testnet
+const NETWORK = 'avalanche'; // or 'fuji' for testnet
 const RPC_URLS = {
-  polygon: 'https://polygon-rpc.com',
-  amoy: 'https://rpc-amoy.polygon.technology'
+  avalanche: 'https://api.avax.network/ext/bc/C/rpc',
+  fuji: 'https://api.avax-test.network/ext/bc/C/rpc'
 };
 
 const CHAIN_IDS = {
-  polygon: 137,
-  amoy: 80002
+  avalanche: 43114,
+  fuji: 43113
 };
 
 // ERC-6551 Registry (standard address on all chains)
@@ -65,10 +65,10 @@ async function main() {
 
   // Check balance
   const balance = await provider.getBalance(wallet.address);
-  console.log(`Balance: ${ethers.formatEther(balance)} POL`);
+  console.log(`Balance: ${ethers.formatEther(balance)} AVAX`);
 
   if (balance < ethers.parseEther('0.1')) {
-    console.warn('⚠️  Warning: Low balance! You may need more POL for gas fees.\n');
+    console.warn('⚠️  Warning: Low balance! You may need more AVAX for gas fees.\n');
   }
 
   // Get gas settings
@@ -215,7 +215,7 @@ async function main() {
 
 ### MemoryNFT (ERC-721 with ERC-6551 TBA)
 - **Address**: \`${deployedAddresses.MEMORY_NFT_CONTRACT_ADDRESS}\`
-- **Explorer**: https://polygonscan.com/address/${deployedAddresses.MEMORY_NFT_CONTRACT_ADDRESS}
+- **Explorer**: https://snowscan.xyz/address/${deployedAddresses.MEMORY_NFT_CONTRACT_ADDRESS}
 - **ERC-6551 Registry**: \`${ERC6551_REGISTRY}\`
 
 #### Key Functions
@@ -227,7 +227,7 @@ async function main() {
 
 ### AMEMToken (ERC-20 Governance Token)
 - **Address**: \`${deployedAddresses.AMEM_TOKEN_CONTRACT_ADDRESS}\`
-- **Explorer**: https://polygonscan.com/address/${deployedAddresses.AMEM_TOKEN_CONTRACT_ADDRESS}
+- **Explorer**: https://snowscan.xyz/address/${deployedAddresses.AMEM_TOKEN_CONTRACT_ADDRESS}
 - **Total Supply**: 1,000,000,000 AMEM
 - **Platform Treasury**: \`${PLATFORM_TREASURY}\`
 
@@ -241,7 +241,7 @@ async function main() {
 
 ### AgentCreditSystem (FICO-style Scoring)
 - **Address**: \`${deployedAddresses.AGENT_CREDIT_CONTRACT_ADDRESS}\`
-- **Explorer**: https://polygonscan.com/address/${deployedAddresses.AGENT_CREDIT_CONTRACT_ADDRESS}
+- **Explorer**: https://snowscan.xyz/address/${deployedAddresses.AGENT_CREDIT_CONTRACT_ADDRESS}
 - **Score Range**: 300-850 (FICO-compatible)
 
 #### Key Functions
@@ -254,10 +254,10 @@ async function main() {
 
     // Update environment variables section
     const envVarsSection = `
-# Blockchain - Polygon Mainnet (Chain ID: 137)
-BLOCKCHAIN_NETWORK=polygon
-BLOCKCHAIN_RPC_URL=https://polygon-rpc.com
-POLYGON_RPC_URL=https://polygon-rpc.com
+# Blockchain - Avalanche C-Chain (Chain ID: 43114)
+BLOCKCHAIN_NETWORK=avalanche
+BLOCKCHAIN_RPC_URL=https://api.avax.network/ext/bc/C/rpc
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
 # Deployed Smart Contracts
 STABLECOIN_CONTRACT_ADDRESS=0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8
@@ -272,7 +272,7 @@ ERC6551_REGISTRY_ADDRESS=${ERC6551_REGISTRY}
 
     // Insert new sections
     content = content.replace('## Environment Variables', newSection + '\n## Environment Variables');
-    content = content.replace(/```bash\n# Polygon Mainnet Contracts[\s\S]*?```/, envVarsSection);
+    content = content.replace(/```bash\n# Avalanche C-Chain Contracts[\s\S]*?```/, envVarsSection);
 
     // Update deployment date
     const today = new Date().toISOString().split('T')[0];
@@ -295,11 +295,11 @@ ERC6551_REGISTRY_ADDRESS=${ERC6551_REGISTRY}
   console.log(`   AMEM_TOKEN_CONTRACT_ADDRESS=${deployedAddresses.AMEM_TOKEN_CONTRACT_ADDRESS}`);
   console.log(`   AGENT_CREDIT_CONTRACT_ADDRESS=${deployedAddresses.AGENT_CREDIT_CONTRACT_ADDRESS}`);
   console.log('');
-  console.log('2. Verify contracts on Polygonscan:');
+  console.log('2. Verify contracts on Snowscan:');
   console.log('');
-  console.log(`   npx hardhat verify --network polygon ${deployedAddresses.MEMORY_NFT_CONTRACT_ADDRESS} "${ERC6551_REGISTRY}"`);
-  console.log(`   npx hardhat verify --network polygon ${deployedAddresses.AMEM_TOKEN_CONTRACT_ADDRESS} "${PLATFORM_TREASURY}"`);
-  console.log(`   npx hardhat verify --network polygon ${deployedAddresses.AGENT_CREDIT_CONTRACT_ADDRESS}`);
+  console.log(`   npx hardhat verify --network avalanche ${deployedAddresses.MEMORY_NFT_CONTRACT_ADDRESS} "${ERC6551_REGISTRY}"`);
+  console.log(`   npx hardhat verify --network avalanche ${deployedAddresses.AMEM_TOKEN_CONTRACT_ADDRESS} "${PLATFORM_TREASURY}"`);
+  console.log(`   npx hardhat verify --network avalanche ${deployedAddresses.AGENT_CREDIT_CONTRACT_ADDRESS}`);
   console.log('');
   console.log('3. Test contract integration:');
   console.log('');

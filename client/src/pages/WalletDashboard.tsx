@@ -73,7 +73,7 @@ export default function WalletDashboard() {
             Agent Wallet
           </h1>
           <p className="text-muted-foreground mt-2">
-            Manage your custody wallet for autonomous AI stablecoin payments on Polygon
+            Manage your custody wallet for autonomous AI stablecoin payments on Avalanche
           </p>
         </div>
 
@@ -94,7 +94,7 @@ export default function WalletDashboard() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Wallet Address</CardTitle>
-                <CardDescription>Your Polygon custody wallet for automated transactions</CardDescription>
+                <CardDescription>Your Avalanche custody wallet for automated transactions</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function WalletDashboard() {
                         asChild
                       >
                         <a
-                          href={`https://polygonscan.com/address/${wallet.address}`}
+                          href={`https://snowscan.xyz/address/${wallet.address}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -138,11 +138,11 @@ export default function WalletDashboard() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">MATIC</div>
+                    <div className="text-sm text-muted-foreground">AVAX</div>
                     <Badge variant="outline">Gas</Badge>
                   </div>
                   <div className="mt-2 text-2xl font-bold">
-                    {balance ? parseFloat(balance.maticBalance).toFixed(4) : "—"}
+                    {balance ? parseFloat(balance.avaxBalance).toFixed(4) : "—"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">For transaction fees</div>
                 </CardContent>
@@ -179,7 +179,7 @@ export default function WalletDashboard() {
                   Deposit
                 </CardTitle>
                 <CardDescription>
-                  Send USDC or USDT on Polygon network to your wallet address above
+                  Send USDC or USDT on Avalanche C-Chain network to your wallet address above
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -188,9 +188,9 @@ export default function WalletDashboard() {
                   <div>
                     <p className="font-medium">Important</p>
                     <p className="text-muted-foreground">
-                      Only send assets on the <strong>Polygon (MATIC)</strong> network.
+                      Only send assets on the <strong>Avalanche C-Chain (AVAX)</strong> network.
                       Sending on other networks will result in permanent loss.
-                      Also ensure you send some MATIC for gas fees.
+                      Also ensure you send some AVAX for gas fees.
                     </p>
                   </div>
                 </div>
@@ -344,7 +344,7 @@ export default function WalletDashboard() {
                           </span>
                           {tx.txHash && (
                             <a
-                              href={`https://polygonscan.com/tx/${tx.txHash}`}
+                              href={`https://snowscan.xyz/tx/${tx.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-muted-foreground hover:text-primary"
@@ -369,13 +369,13 @@ export default function WalletDashboard() {
                 <CardContent className="text-sm space-y-2">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Network</span>
-                    <span>Polygon Mainnet (137)</span>
+                    <span>Avalanche C-Chain (43114)</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Payment Contract</span>
                     <a
-                      href={`https://polygonscan.com/address/${infoQuery.data.data.contractAddress}`}
+                      href={`https://snowscan.xyz/address/${infoQuery.data.data.contractAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-primary hover:underline font-mono text-xs"

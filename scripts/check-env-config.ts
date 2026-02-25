@@ -166,16 +166,16 @@ const ENV_CHECKS: EnvCheck[] = [
 
   // Optional - Blockchain
   {
-    name: 'AMOY_RPC_URL',
+    name: 'FUJI_RPC_URL',
     required: false,
     category: 'optional',
-    description: 'Polygon Amoy testnet RPC',
+    description: 'Avalanche Fuji testnet RPC',
   },
   {
-    name: 'POLYGON_RPC_URL',
+    name: 'AVALANCHE_RPC_URL',
     required: false,
     category: 'optional',
-    description: 'Polygon mainnet RPC',
+    description: 'Avalanche mainnet RPC',
   },
 
   // Optional - AI

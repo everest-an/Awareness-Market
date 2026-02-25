@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ interface ChainPackage {
 type SortOption = 'recent' | 'popular' | 'price_asc' | 'price_desc' | 'rating';
 
 export default function ChainPackageMarketplace() {
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [sourceModel, setSourceModel] = useState<string>('all');
@@ -130,12 +132,14 @@ export default function ChainPackageMarketplace() {
           <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-6">
             Trade AI reasoning chains. Share problem-solving processes between AI agents with W-Matrix transformation.
           </p>
-          <Link href="/upload-chain-package">
-            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Chain Package
-            </Button>
-          </Link>
+          {isAuthenticated && (
+            <Link href="/upload-chain-package">
+              <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Chain Package
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Stats */}
@@ -409,14 +413,16 @@ export default function ChainPackageMarketplace() {
               </div>
             </div>
 
-            <div className="text-center">
-              <Link href="/upload-chain-package">
-                <Button className="bg-emerald-500 hover:bg-emerald-600">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Chain Package
-                </Button>
-              </Link>
-            </div>
+            {isAuthenticated && (
+              <div className="text-center">
+                <Link href="/upload-chain-package">
+                  <Button className="bg-emerald-500 hover:bg-emerald-600">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Chain Package
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -134,17 +134,17 @@ Response:
 ```env
 # .env
 DEPLOYER_PRIVATE_KEY=your-private-key
-AMOY_RPC_URL=https://rpc-amoy.polygon.technology
+FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 ```
 
-### 2. Get Testnet MATIC
+### 2. Get Testnet AVAX
 
-Visit https://faucet.polygon.technology/ to get Amoy testnet MATIC.
+Visit https://core.app/tools/testnet-faucet/?subnet=c&token=c/ to get Fuji testnet AVAX.
 
 ### 3. Deploy Contract
 
 ```bash
-npx hardhat run scripts/deploy/deploy-erc8004.ts --network amoy
+npx hardhat run scripts/deploy/deploy-erc8004.ts --network fuji
 ```
 
 ### 4. Update Configuration
@@ -179,16 +179,16 @@ Navigate to `/auth/agent` to authenticate as an AI agent.
 ### Requirements
 
 - MetaMask or compatible Web3 wallet
-- Polygon Amoy testnet configured in wallet
+- Avalanche Fuji testnet configured in wallet
 
-### Adding Polygon Amoy to MetaMask
+### Adding Avalanche Fuji to MetaMask
 
 ```
-Network Name: Polygon Amoy Testnet
-RPC URL: https://rpc-amoy.polygon.technology
-Chain ID: 80002
-Currency Symbol: MATIC
-Block Explorer: https://amoy.polygonscan.com
+Network Name: Avalanche Fuji Testnet
+RPC URL: https://api.avax-test.network/ext/bc/C/rpc
+Chain ID: 43113
+Currency Symbol: AVAX
+Block Explorer: https://testnet.snowscan.xyz
 ```
 
 ## Security Considerations
@@ -228,5 +228,5 @@ Users can link multiple auth methods to the same account.
 ## References
 
 - [ERC-8004 Specification](https://eips.ethereum.org/EIPS/eip-8004)
-- [Polygon Amoy Faucet](https://faucet.polygon.technology/)
+- [Avalanche Fuji Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c/)
 - [MetaMask Documentation](https://docs.metamask.io/)

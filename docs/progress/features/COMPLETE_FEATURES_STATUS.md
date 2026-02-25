@@ -3,11 +3,11 @@
 ## ✅ 您提到的功能 - 全部已实现并已部署！
 
 ### 1. 📜 ERC-8004 AI Agent Registry
-**状态**: ✅ **已部署到Polygon主网**
+**状态**: ✅ **已部署到Avalanche C-Chain主网**
 
 **部署信息**:
 - **合约地址**: `0x1Ae90F59731e16b548E34f81F0054e96DdACFc28`
-- **区块链浏览器**: https://polygonscan.com/address/0x1Ae90F59731e16b548E34f81F0054e96DdACFc28
+- **区块链浏览器**: https://snowscan.xyz/address/0x1Ae90F59731e16b548E34f81F0054e96DdACFc28
 - **部署日期**: 2026-02-01
 - **标准**: ERC-8004 Trustless Agents
 
@@ -29,17 +29,17 @@
 ---
 
 ### 2. 💰 稳定币支付系统
-**状态**: ✅ **已部署到Polygon主网**
+**状态**: ✅ **已部署到Avalanche C-Chain主网**
 
 **部署信息**:
 - **合约地址**: `0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8`
-- **区块链浏览器**: https://polygonscan.com/address/0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8
+- **区块链浏览器**: https://snowscan.xyz/address/0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8
 - **部署日期**: 2026-02-01
 - **平台手续费**: 5% (500 basis points)
 
 **支持的稳定币**:
-- ✅ USDC: `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359`
-- ✅ USDT: `0xc2132D05D31c914a87C6611C10748AEb04B58e8F`
+- ✅ USDC: `0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E`
+- ✅ USDT: `0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7`
 
 **功能**:
 - ✅ 稳定币充值
@@ -266,8 +266,8 @@ pm2 logs awareness-backend --lines 50
 
 ### 1. ERC8004验证
 ```bash
-# 在Polygon浏览器查看
-open https://polygonscan.com/address/0x1Ae90F59731e16b548E34f81F0054e96DdACFc28
+# 在Avalanche浏览器查看
+open https://snowscan.xyz/address/0x1Ae90F59731e16b548E34f81F0054e96DdACFc28
 
 # 或API测试
 curl https://awareness.market/api/trpc/erc8004.getAgent?agentId=test
@@ -276,7 +276,7 @@ curl https://awareness.market/api/trpc/erc8004.getAgent?agentId=test
 ### 2. 稳定币支付验证
 ```bash
 # 查看合约
-open https://polygonscan.com/address/0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8
+open https://snowscan.xyz/address/0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8
 
 # API测试
 curl https://awareness.market/api/trpc/payments.getBalance
@@ -309,8 +309,8 @@ curl https://awareness.market/api/trpc/memories.provenance?nftId=1
 
 | 功能 | 状态 | 部署日期 | 位置 |
 |-----|------|---------|------|
-| ERC-8004 | ✅ 已部署 | 2026-02-01 | Polygon Mainnet |
-| 稳定币支付 | ✅ 已部署 | 2026-02-01 | Polygon Mainnet |
+| ERC-8004 | ✅ 已部署 | 2026-02-01 | Avalanche C-Chain Mainnet |
+| 稳定币支付 | ✅ 已部署 | 2026-02-01 | Avalanche C-Chain Mainnet |
 | AI自动登录 | ✅ 已实现 | 代码中 | Backend API |
 | 自动钱包 | ✅ 已实现 | 代码中 | ERC-6551 |
 | MCP部署 | ✅ 已实现 | 代码中 | mcp-server/ |

@@ -123,17 +123,17 @@ Visit http://localhost:3000
 ### 5. Deploy Smart Contracts
 
 ```bash
-# Get Mumbai MATIC from faucet
-# https://faucet.polygon.technology/
+# Get Fuji AVAX from faucet
+# https://core.app/tools/testnet-faucet/?subnet=c&token=c
 
 # Configure deployer private key
 echo "DEPLOYER_PRIVATE_KEY=your_private_key" >> .env.local
 
 # Deploy MemoryNFT
-npx hardhat run scripts/deploy/deploy-memory-nft.ts --network mumbai
+npx hardhat run scripts/deploy/deploy-memory-nft.ts --network fuji
 
-# Verify on PolygonScan
-npx hardhat verify --network mumbai <CONTRACT_ADDRESS>
+# Verify on Snowscan
+npx hardhat verify --network fuji <CONTRACT_ADDRESS>
 ```
 
 ### 6. Generate W-Matrices
@@ -265,9 +265,9 @@ Derivation chain tracking parent → child relationships. Enables automatic roya
 - Test: `curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"`
 
 ### "Smart contract deployment fails"
-- Get Mumbai MATIC from faucet
+- Get Fuji AVAX from faucet
 - Check `DEPLOYER_PRIVATE_KEY` is correct
-- Verify RPC endpoint: `curl https://rpc-mumbai.maticvigil.com`
+- Verify RPC endpoint: `curl https://api.avax-test.network/ext/bc/C/rpc`
 
 ### "MCP Server not connecting"
 - Check Claude Desktop logs: `~/Library/Logs/Claude/mcp.log`

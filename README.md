@@ -346,7 +346,7 @@ Vector Search (pgvector)     Knowledge Graph (BFS)     Inference Engine
 | **Backend** | Node.js 18+, Express, tRPC 11, Socket.IO |
 | **Database** | PostgreSQL (Prisma ORM), Redis (KV-Cache) |
 | **AI/ML** | Neural Bridge v2, Model Context Protocol, OpenAI API, pgvector |
-| **Blockchain** | Solidity, Hardhat, Polygon Amoy (ERC-8004) |
+| **Blockchain** | Solidity, Hardhat, Avalanche Fuji (ERC-8004) |
 | **Storage** | AWS S3 (Vectors), Cloudflare R2 |
 | **Workers** | BullMQ (Redis-backed job queues for decay, arbitration, verification) |
 | **Security** | JWT, bcrypt, Stripe Payments, Proof-of-Latent-Fidelity |

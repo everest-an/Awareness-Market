@@ -431,14 +431,14 @@ export class TokenSystemClient {
  */
 export function createTokenSystemClient(): TokenSystemClient {
   const config: TokenConfig = {
-    rpcUrl: process.env.BLOCKCHAIN_RPC_URL || process.env.POLYGON_RPC_URL || '',
+    rpcUrl: process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || '',
     amemTokenAddress: process.env.AMEM_TOKEN_ADDRESS || '',
     creditSystemAddress: process.env.AGENT_CREDIT_SYSTEM_ADDRESS || '',
     privateKey: process.env.BLOCKCHAIN_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY,
   };
 
   if (!config.rpcUrl) {
-    throw new Error('BLOCKCHAIN_RPC_URL or POLYGON_RPC_URL required');
+    throw new Error('BLOCKCHAIN_RPC_URL or AVALANCHE_RPC_URL required');
   }
 
   if (!config.amemTokenAddress) {
@@ -462,15 +462,15 @@ export function createTokenSystemClient(): TokenSystemClient {
 // Stablecoin Payment System (USDC/USDT)
 // ============================================================================
 
-// Contract addresses for Polygon
+// Contract addresses for Avalanche C-Chain
 export const STABLECOIN_ADDRESSES = {
-  // Polygon Mainnet
+  // Avalanche C-Chain Mainnet
   mainnet: {
-    USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+    USDC: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+    USDT: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
   },
-  // Polygon Amoy Testnet (use mock tokens or deploy test tokens)
-  amoy: {
+  // Avalanche Fuji Testnet (deploy mock tokens or use faucet tokens)
+  fuji: {
     USDC: process.env.USDC_TESTNET_ADDRESS || '',
     USDT: process.env.USDT_TESTNET_ADDRESS || '',
   },
@@ -520,7 +520,7 @@ interface StablecoinConfig {
   rpcUrl: string;
   paymentSystemAddress: string;
   privateKey?: string;
-  network?: 'mainnet' | 'amoy';
+  network?: 'mainnet' | 'fuji';
 }
 
 interface StablecoinPurchase {
@@ -549,11 +549,11 @@ export class StablecoinPaymentClient {
   private provider: ethers.JsonRpcProvider;
   private paymentSystem: ethers.Contract;
   private signer?: ethers.Wallet;
-  private network: 'mainnet' | 'amoy';
+  private network: 'mainnet' | 'fuji';
 
   constructor(config: StablecoinConfig) {
     this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
-    this.network = config.network || 'amoy';
+    this.network = config.network || 'fuji';
 
     this.paymentSystem = new ethers.Contract(
       config.paymentSystemAddress,
@@ -887,13 +887,13 @@ export class StablecoinPaymentClient {
  * Create StablecoinPaymentClient from environment variables
  */
 export function createStablecoinPaymentClient(): StablecoinPaymentClient {
-  const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.POLYGON_RPC_URL || '';
+  const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || '';
   const paymentSystemAddress = process.env.STABLECOIN_PAYMENT_ADDRESS || '';
   const privateKey = process.env.BLOCKCHAIN_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
-  const network = (process.env.BLOCKCHAIN_NETWORK || 'amoy') as 'mainnet' | 'amoy';
+  const network = (process.env.BLOCKCHAIN_NETWORK || 'fuji') as 'mainnet' | 'fuji';
 
   if (!rpcUrl) {
-    throw new Error('BLOCKCHAIN_RPC_URL or POLYGON_RPC_URL required');
+    throw new Error('BLOCKCHAIN_RPC_URL or AVALANCHE_RPC_URL required');
   }
 
   if (!paymentSystemAddress) {

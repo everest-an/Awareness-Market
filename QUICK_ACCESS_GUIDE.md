@@ -53,10 +53,10 @@ curl https://awareness.market/api/trpc/erc8004.listAgents
 
 **合约地址**:
 - Stablecoin Payment: `0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8`
-- USDC: `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359`
-- USDT: `0xc2132D05D31c914a87C6611C10748AEb04B58e8F`
+- USDC: `0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E`
+- USDT: `0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7`
 
-**查看交易**: https://polygonscan.com/address/0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8
+**查看交易**: https://snowscan.xyz/address/0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8
 
 ---
 

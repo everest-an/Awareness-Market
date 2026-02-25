@@ -101,17 +101,17 @@ function pause() / unpause() // 紧急暂停
 **使用方法**:
 ```bash
 # 测试网部署
-npx hardhat run scripts/deploy/deploy-amem-token.ts --network amoy
+npx hardhat run scripts/deploy/deploy-amem-token.ts --network fuji
 
 # 主网部署
-npx hardhat run scripts/deploy/deploy-amem-token.ts --network polygon
+npx hardhat run scripts/deploy/deploy-amem-token.ts --network avalanche
 ```
 
 **部署记录示例**:
 ```json
 {
-  "network": "amoy",
-  "chainId": 80002,
+  "network": "fuji",
+  "chainId": 43113,
   "deployer": "0x...",
   "timestamp": "2026-01-28T...",
   "contracts": {
@@ -229,8 +229,8 @@ AMEM_TOKEN_ADDRESS=0x...
 AGENT_CREDIT_SYSTEM_ADDRESS=0x...
 
 # Blockchain RPC
-BLOCKCHAIN_RPC_URL=https://rpc-amoy.polygon.technology
-POLYGON_RPC_URL=https://polygon-rpc.com
+BLOCKCHAIN_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
 # Deployment
 DEPLOYER_PRIVATE_KEY=...
@@ -406,9 +406,9 @@ AI代理现在可以:
 
 ### Phase 1: 测试网部署 (本周)
 
-- [ ] **部署到Polygon Amoy**
+- [ ] **部署到Avalanche Fuji**
   ```bash
-  npx hardhat run scripts/deploy/deploy-amem-token.ts --network amoy
+  npx hardhat run scripts/deploy/deploy-amem-token.ts --network fuji
   ```
 
 - [ ] **铸造测试代币**
@@ -462,7 +462,7 @@ AI代理现在可以:
   - Bug赏金计划
 
 - [ ] **主网部署**
-  - 部署到Polygon主网
+  - 部署到Avalanche C-Chain主网
   - 合约验证
   - 流动性提供
 
@@ -713,7 +713,7 @@ if (status.canProcess) {
 
 1. **部署到测试网**
    ```bash
-   npx hardhat run scripts/deploy/deploy-amem-token.ts --network amoy
+   npx hardhat run scripts/deploy/deploy-amem-token.ts --network fuji
    ```
 
 2. **测试充值流程**
@@ -761,7 +761,7 @@ if (status.canProcess) {
 ### 外部资源
 - [OpenZeppelin ERC-20](https://docs.openzeppelin.com/contracts/4.x/erc20)
 - [Hardhat文档](https://hardhat.org/)
-- [Polygon网络](https://polygon.technology/)
+- [Avalanche网络](https://www.avax.network/)
 - [Ethers.js](https://docs.ethers.org/)
 
 ---

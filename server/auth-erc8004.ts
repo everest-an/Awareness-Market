@@ -15,7 +15,7 @@
  * 
  * ## Environment Variables
  * - ERC8004_REGISTRY_ADDRESS: Deployed registry contract address
- * - POLYGON_RPC_URL: RPC endpoint for Polygon/Amoy
+ * - AVALANCHE_RPC_URL / FUJI_RPC_URL: RPC endpoint for Avalanche C-Chain
  */
 
 import { ethers } from "ethers";
@@ -77,7 +77,7 @@ let registryContract: ethers.Contract | null = null;
  */
 function getProvider(): ethers.JsonRpcProvider {
   if (!provider) {
-    const rpcUrl = process.env.POLYGON_RPC_URL || process.env.AMOY_RPC_URL || "https://rpc-amoy.polygon.technology";
+    const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || process.env.FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
     provider = new ethers.JsonRpcProvider(rpcUrl);
   }
   return provider;
@@ -435,13 +435,13 @@ export function getERC8004Status(): {
   chainId: number;
 } {
   const registryAddress = process.env.ERC8004_REGISTRY_ADDRESS || null;
-  const rpcUrl = process.env.POLYGON_RPC_URL || process.env.AMOY_RPC_URL || "https://rpc-amoy.polygon.technology";
-  
+  const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || process.env.FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
+
   return {
     enabled: !!registryAddress,
     registryAddress,
     rpcUrl,
-    chainId: 80002 // Polygon Amoy
+    chainId: 43113 // Avalanche Fuji Testnet
   };
 }
 

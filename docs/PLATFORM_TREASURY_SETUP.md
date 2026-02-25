@@ -16,8 +16,8 @@
 ### Check if you control this address:
 
 ```bash
-# 1. Check Polygonscan for transaction history
-https://polygonscan.com/address/0x3d0ab53241A2913D7939ae02f7083169fE7b823B
+# 1. Check Snowscan for transaction history
+https://snowscan.com/address/0x3d0ab53241A2913D7939ae02f7083169fE7b823B
 
 # 2. Check your wallets:
 # - MetaMask
@@ -42,7 +42,7 @@ https://polygonscan.com/address/0x3d0ab53241A2913D7939ae02f7083169fE7b823B
 # 1. Purchase hardware wallet from official store
 # 2. Initialize with 24-word seed phrase
 # 3. Connect to MetaMask
-# 4. Copy your Polygon address
+# 4. Copy your Avalanche address
 ```
 
 **Option 2: MetaMask (Secure if used properly)**
@@ -51,7 +51,7 @@ https://polygonscan.com/address/0x3d0ab53241A2913D7939ae02f7083169fE7b823B
 # 2. Create new wallet
 # 3. WRITE DOWN your seed phrase on paper (NEVER store digitally!)
 # 4. Store seed phrase in a safe location (fireproof safe, bank vault)
-# 5. Switch to Polygon network
+# 5. Switch to Avalanche network
 # 6. Copy your address (starts with 0x...)
 ```
 
@@ -77,7 +77,7 @@ MAINTAINER_POOL_ADDRESS=0xYOUR_NEW_ADDRESS_HERE
 # You need to call updateTreasury() function
 
 # Use Hardhat console:
-pnpm hardhat console --network polygon
+pnpm hardhat console --network avalanche
 
 # In console:
 const contract = await ethers.getContractAt(
@@ -95,14 +95,14 @@ await contract.updateTreasury("0xYOUR_NEW_ADDRESS");
 ### Check Platform Revenue
 
 ```bash
-# 1. View balance on Polygonscan
-https://polygonscan.com/address/0xYOUR_NEW_ADDRESS
+# 1. View balance on Snowscan
+https://snowscan.com/address/0xYOUR_NEW_ADDRESS
 
 # 2. Check USDC balance
-https://polygonscan.com/token/0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359?a=0xYOUR_NEW_ADDRESS
+https://snowscan.com/token/0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E?a=0xYOUR_NEW_ADDRESS
 
 # 3. Check USDT balance
-https://polygonscan.com/token/0xc2132D05D31c914a87C6611C10748AEb04B58e8F?a=0xYOUR_NEW_ADDRESS
+https://snowscan.com/token/0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7?a=0xYOUR_NEW_ADDRESS
 ```
 
 ---
@@ -160,7 +160,7 @@ Your platform treasury will receive:
 
 ```bash
 # 1. Update deployed contract treasury
-pnpm hardhat console --network polygon
+pnpm hardhat console --network avalanche
 
 const StablecoinPayment = await ethers.getContractAt(
   "StablecoinPaymentSystem",
@@ -183,7 +183,7 @@ console.log("New treasury:", newTreasury);
 - [ ] I have backed up the seed phrase securely (offline, multiple locations)
 - [ ] I can send a test transaction from this address
 - [ ] I have updated .env with my address
-- [ ] I have verified the address on Polygonscan
+- [ ] I have verified the address on Snowscan
 - [ ] I have enabled 2FA on my wallet provider
 - [ ] I have set up transaction monitoring/alerts
 - [ ] I have a plan for regular fund withdrawals to cold storage

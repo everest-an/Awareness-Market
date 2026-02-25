@@ -363,7 +363,7 @@ const fleetConfig = {
     minOnline: 2,                // Alert if fewer than 2 robots online
     maxConcurrentTasks: 10,      // Fleet-wide task limit
     geofence: {                  // Restrict robots to this area
-      type: "polygon",
+      type: "avalanche",
       coordinates: [
         { x: -10, y: -10 },
         { x: 110, y: -10 },

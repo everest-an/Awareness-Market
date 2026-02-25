@@ -23,7 +23,7 @@ export interface WalletState {
   provider: WalletProvider;
   signer: WalletSigner;
   error: string | null;
-  isOnAmoy?: boolean;
+  isOnAvalanche?: boolean;
 }
 
 export interface WalletCallbacks {
@@ -194,20 +194,20 @@ export class Web3Provider {
   }
 
   /**
-   * Switch to Polygon Amoy Network
+   * Switch to Avalanche Fuji Testnet
    */
-  async switchToAmoy(): Promise<void> {
+  async switchToAvalanche(): Promise<void> {
     if (!window.ethereum) {
       throw new Error('MetaMask not detected');
     }
 
-    const amoyChainId = '0x13882'; // Polygon Amoy Chain ID in hex (80002 decimal)
+    const fujiChainId = '0xA869'; // Avalanche Fuji Chain ID in hex (43113 decimal)
 
     try {
-      // Attempt to switch to Amoy
+      // Attempt to switch to Avalanche Fuji
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: amoyChainId }],
+        params: [{ chainId: fujiChainId }],
       });
     } catch (error) {
       const ethError = error as { code?: number };
@@ -217,15 +217,15 @@ export class Web3Provider {
           method: 'wallet_addEthereumChain',
           params: [
             {
-              chainId: amoyChainId,
-              chainName: 'Polygon Amoy',
+              chainId: fujiChainId,
+              chainName: 'Avalanche Fuji Testnet',
               nativeCurrency: {
-                name: 'POL',
-                symbol: 'POL',
+                name: 'AVAX',
+                symbol: 'AVAX',
                 decimals: 18,
               },
-              rpcUrls: ['https://rpc-amoy.polygon.technology/'],
-              blockExplorerUrls: ['https://amoy.polygonscan.com/'],
+              rpcUrls: ['https://api.avax-test.network/ext/bc/C/rpc'],
+              blockExplorerUrls: ['https://testnet.snowscan.xyz/'],
             },
           ],
         });
@@ -233,7 +233,7 @@ export class Web3Provider {
         // Retry switch
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: amoyChainId }],
+          params: [{ chainId: fujiChainId }],
         });
       } else {
         throw error;
@@ -381,10 +381,10 @@ export class Web3Provider {
   }
 
   /**
-   * Is connected to Polygon Amoy
+   * Is connected to Avalanche Fuji Testnet
    */
-  isOnAmoy(): boolean {
-    return this.state.chainId === 80002; // Polygon Amoy Chain ID
+  isOnAvalanche(): boolean {
+    return this.state.chainId === 43113; // Avalanche Fuji Chain ID
   }
 }
 
@@ -402,15 +402,15 @@ export function getWeb3Provider(): Web3Provider {
 // Stablecoin Payment Support
 // ============================================================================
 
-// Contract addresses for Polygon
+// Contract addresses for Avalanche C-Chain
 export const STABLECOIN_ADDRESSES = {
-  // Polygon Mainnet
+  // Avalanche C-Chain Mainnet
   mainnet: {
-    USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+    USDC: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+    USDT: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
   },
-  // Polygon Amoy Testnet
-  amoy: {
+  // Avalanche Fuji Testnet
+  fuji: {
     USDC: import.meta.env.VITE_USDC_TESTNET_ADDRESS || '',
     USDT: import.meta.env.VITE_USDT_TESTNET_ADDRESS || '',
   },
@@ -443,13 +443,13 @@ const STABLECOIN_PAYMENT_ABI = [
 
 export class StablecoinService {
   private web3Provider: Web3Provider;
-  private network: 'mainnet' | 'amoy' = 'amoy';
+  private network: 'mainnet' | 'fuji' = 'fuji';
 
   constructor(web3Provider: Web3Provider) {
     this.web3Provider = web3Provider;
   }
 
-  setNetwork(network: 'mainnet' | 'amoy'): void {
+  setNetwork(network: 'mainnet' | 'fuji'): void {
     this.network = network;
   }
 

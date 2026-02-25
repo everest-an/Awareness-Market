@@ -11,7 +11,7 @@
 
 项目包含大量高质量代码和创新功能，主要技术债务已大幅减少：
 
-- 🟢 **支付系统**: ✅ 已实现稳定币支付 (USDC/USDT on Polygon)
+- 🟢 **支付系统**: ✅ 已实现稳定币支付 (USDC/USDT on Avalanche)
 - 🟢 **数据层**: ✅ 核心API已集成数据库 (仅Go服务待修复)
 - 🟢 **代码质量**: ~~308处~~ → **~20处** `any`类型 (改进93%, 全在测试文件)
 - 🟢 **测试覆盖**: ~~40%~~ → **97+ tests, 100% pass rate**
@@ -53,7 +53,7 @@ STRIPE_PUBLISHABLE_KEY=pk_test_placeholder
 
 ### 1.2 💰 支付系统 ✅ 已完成
 
-**已实现**: 稳定币支付系统 (USDC/USDT on Polygon)
+**已实现**: 稳定币支付系统 (USDC/USDT on Avalanche)
 
 **新增文件**:
 - `contracts/StablecoinPaymentSystem.sol` - 智能合约
@@ -73,7 +73,7 @@ STRIPE_PUBLISHABLE_KEY=pk_test_placeholder
 
 **部署命令**:
 ```bash
-npx hardhat run scripts/deploy-stablecoin-payment.ts --network amoy
+npx hardhat run scripts/deploy-stablecoin-payment.ts --network fuji
 ```
 
 ---
@@ -344,7 +344,7 @@ logger.error('Operation failed', { error });
 
 ### 4.3 智能合约未部署
 
-- [ ] ERC-8004合约部署到Polygon Amoy
+- [ ] ERC-8004合约部署到Avalanche Fuji
 - [ ] 合约地址配置到环境变量
 - [ ] 部署者私钥安全存储
 

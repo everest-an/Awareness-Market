@@ -136,7 +136,7 @@ export function StablecoinPaymentDialog({
             Pay with Stablecoin
           </DialogTitle>
           <DialogDescription>
-            Purchase with USDC or USDT on Polygon Network
+            Purchase with USDC or USDT on Avalanche Network
           </DialogDescription>
         </DialogHeader>
 
@@ -168,7 +168,7 @@ export function StablecoinPaymentDialog({
                   </div>
                   <div className="text-left">
                     <div className="font-medium">USD Coin</div>
-                    <div className="text-xs text-muted-foreground">Circle • Polygon</div>
+                    <div className="text-xs text-muted-foreground">Circle • Avalanche</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -191,7 +191,7 @@ export function StablecoinPaymentDialog({
                   </div>
                   <div className="text-left">
                     <div className="font-medium">Tether USD</div>
-                    <div className="text-xs text-muted-foreground">Tether • Polygon</div>
+                    <div className="text-xs text-muted-foreground">Tether • Avalanche</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -284,7 +284,7 @@ export function StablecoinPaymentDialog({
             {/* What's included */}
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">What's Included:</h4>
-              {["Instant access to latent space vectors", "On-chain purchase proof (Polygon)", "Usage analytics and monitoring", "MCP protocol compatibility"].map((item) => (
+              {["Instant access to latent space vectors", "On-chain purchase proof (Avalanche)", "Usage analytics and monitoring", "MCP protocol compatibility"].map((item) => (
                 <div key={item} className="flex items-start gap-2 text-sm">
                   <Check className="mt-0.5 h-4 w-4 text-primary" />
                   <span>{item}</span>
@@ -298,7 +298,7 @@ export function StablecoinPaymentDialog({
               <div>
                 <div className="font-medium text-primary">On-Chain Payment</div>
                 <div className="text-muted-foreground">
-                  Transaction executed on Polygon via StablecoinPaymentSystem smart contract.
+                  Transaction executed on Avalanche via StablecoinPaymentSystem smart contract.
                   5% platform fee, seller receives 95%.
                 </div>
               </div>
@@ -359,12 +359,12 @@ export function StablecoinPaymentDialog({
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Network</span>
-                  <Badge variant="outline" className="text-xs">Polygon</Badge>
+                  <Badge variant="outline" className="text-xs">Avalanche</Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Tx Hash</span>
                   <a 
-                    href={`https://polygonscan.com/tx/${txHash}`}
+                    href={`https://snowscan.xyz/tx/${txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-primary hover:underline text-xs font-mono"

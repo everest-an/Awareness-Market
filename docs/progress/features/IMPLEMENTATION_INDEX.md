@@ -141,7 +141,7 @@ console.log(result.recommendation);               // 质量建议
 2. Inflation Rate Decay（通胀率递减）
 3. Transaction Lifecycle（交易生命周期序列图）
 4. Participation Matrix（角色参与矩阵）
-5. POL Flywheel（协议自有流动性飞轮）
+5. AVAX Flywheel（协议自有流动性飞轮）
 6. Governance Shield（治理护盾机制）
 
 #### Chart.js交互式图表

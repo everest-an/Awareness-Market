@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ interface MemoryPackage {
 type SortOption = 'recent' | 'popular' | 'price_asc' | 'price_desc' | 'rating';
 
 export default function MemoryMarketplace() {
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [sourceModel, setSourceModel] = useState<string>('all');
@@ -125,12 +127,14 @@ export default function MemoryMarketplace() {
           <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-6">
             Trade AI memories with KV-Cache. Direct memory transplant between models with W-Matrix transformation.
           </p>
-          <Link href="/upload-memory-package">
-            <Button className="bg-purple-500 hover:bg-purple-600 text-white">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Memory Package
-            </Button>
-          </Link>
+          {isAuthenticated && (
+            <Link href="/upload-memory-package">
+              <Button className="bg-purple-500 hover:bg-purple-600 text-white">
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Memory Package
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Stats */}
@@ -378,14 +382,16 @@ export default function MemoryMarketplace() {
               </div>
             </div>
 
-            <div className="text-center">
-              <Link href="/upload-memory-package">
-                <Button className="bg-purple-500 hover:bg-purple-600">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Memory Package
-                </Button>
-              </Link>
-            </div>
+            {isAuthenticated && (
+              <div className="text-center">
+                <Link href="/upload-memory-package">
+                  <Button className="bg-purple-500 hover:bg-purple-600">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Memory Package
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

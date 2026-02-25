@@ -2,14 +2,14 @@
 
 ## Overview
 
-This guide explains how to deploy the Neural Bridge Memory NFT (ERC-721) and ERC-6551 Token Bound Account contracts to Polygon Mumbai testnet.
+This guide explains how to deploy the Neural Bridge Memory NFT (ERC-721) and ERC-6551 Token Bound Account contracts to Avalanche Fuji testnet.
 
 ## Prerequisites
 
 - Node.js 18+ installed
 - Hardhat or Foundry installed
-- MetaMask wallet with Mumbai MATIC (get from [Mumbai Faucet](https://faucet.polygon.technology/))
-- Alchemy or Infura API key for Mumbai RPC
+- MetaMask wallet with Fuji AVAX (get from [Fuji Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c/))
+- Alchemy or Infura API key for Fuji RPC
 
 ## Contract Architecture
 
@@ -33,7 +33,7 @@ Main NFT contract representing Neural Bridge Memory ownership.
 
 Uses the official ERC-6551 Registry contract deployed at:
 - **Mainnet**: `0x000000006551c19487814612e58FE06813775758`
-- **Mumbai**: `0x000000006551c19487814612e58FE06813775758`
+- **Fuji**: `0x000000006551c19487814612e58FE06813775758`
 
 **Note**: The ERC-6551 Registry is already deployed on all major networks. You don't need to deploy it yourself.
 
@@ -80,21 +80,21 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    mumbai: {
-      url: process.env.MUMBAI_RPC_URL || "https://rpc-mumbai.maticvigil.com",
+    fuji: {
+      url: process.env.FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 80001,
+      chainId: 43113,
     },
-    polygon: {
-      url: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
+    avalanche: {
+      url: process.env.AVALANCHE_RPC_URL || "https://avalanche-rpc.com",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 137,
+      chainId: 43114,
     },
   },
   etherscan: {
     apiKey: {
-      polygonMumbai: process.env.POLYGONSCAN_API_KEY || "",
-      polygon: process.env.POLYGONSCAN_API_KEY || "",
+      avalancheFuji: process.env.SNOWSCAN_API_KEY || "",
+      avalanche: process.env.SNOWSCAN_API_KEY || "",
     },
   },
 };
@@ -108,8 +108,8 @@ Create `.env` file:
 
 ```bash
 PRIVATE_KEY=your_wallet_private_key_here
-MUMBAI_RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
-POLYGONSCAN_API_KEY=your_polygonscan_api_key_here
+FUJI_RPC_URL=https://avalanche-fuji.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+SNOWSCAN_API_KEY=your_snowscan_api_key_here
 ```
 
 **⚠️ Security Warning**: Never commit `.env` file to Git. Add it to `.gitignore`.
@@ -122,7 +122,7 @@ Create `scripts/deploy-memory-nft.ts`:
 import { ethers } from "hardhat";
 
 async function main() {
-  console.log("Deploying MemoryNFT contract to Mumbai...");
+  console.log("Deploying MemoryNFT contract to Fuji...");
 
   const MemoryNFT = await ethers.getContractFactory("MemoryNFT");
   const memoryNFT = await MemoryNFT.deploy();
@@ -136,8 +136,8 @@ async function main() {
   console.log("Waiting for 5 confirmations...");
   await memoryNFT.deploymentTransaction()?.wait(5);
 
-  // Verify contract on Polygonscan
-  console.log("Verifying contract on Polygonscan...");
+  // Verify contract on Snowscan
+  console.log("Verifying contract on Snowscan...");
   try {
     await hre.run("verify:verify", {
       address: address,
@@ -150,9 +150,9 @@ async function main() {
 
   console.log("\nDeployment Summary:");
   console.log("===================");
-  console.log(`Network: Mumbai Testnet`);
+  console.log(`Network: Fuji Testnet`);
   console.log(`Contract Address: ${address}`);
-  console.log(`Explorer: https://mumbai.polygonscan.com/address/${address}`);
+  console.log(`Explorer: https://testnet.snowscan.xyz/address/${address}`);
 }
 
 main()
@@ -163,25 +163,25 @@ main()
   });
 ```
 
-### Step 6: Deploy to Mumbai
+### Step 6: Deploy to Fuji
 
 ```bash
-npx hardhat run scripts/deploy-memory-nft.ts --network mumbai
+npx hardhat run scripts/deploy-memory-nft.ts --network fuji
 ```
 
 Expected output:
 ```
-Deploying MemoryNFT contract to Mumbai...
+Deploying MemoryNFT contract to Fuji...
 MemoryNFT deployed to: 0x1234567890abcdef1234567890abcdef12345678
 Waiting for 5 confirmations...
-Verifying contract on Polygonscan...
+Verifying contract on Snowscan...
 Contract verified successfully!
 
 Deployment Summary:
 ===================
-Network: Mumbai Testnet
+Network: Fuji Testnet
 Contract Address: 0x1234567890abcdef1234567890abcdef12345678
-Explorer: https://mumbai.polygonscan.com/address/0x1234567890abcdef1234567890abcdef12345678
+Explorer: https://testnet.snowscan.xyz/address/0x1234567890abcdef1234567890abcdef12345678
 ```
 
 ### Step 7: Update Backend Configuration
@@ -191,7 +191,7 @@ Add the deployed contract address to `.env`:
 ```bash
 MEMORY_NFT_CONTRACT_ADDRESS=0x1234567890abcdef1234567890abcdef12345678
 ERC6551_REGISTRY_ADDRESS=0x000000006551c19487814612e58FE06813775758
-POLYGON_MUMBAI_RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+FUJI_RPC_URL=https://avalanche-fuji.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
 ```
 
 ### Step 8: Test Minting
@@ -244,7 +244,7 @@ main()
 
 Run the test:
 ```bash
-npx hardhat run scripts/test-mint.ts --network mumbai
+npx hardhat run scripts/test-mint.ts --network fuji
 ```
 
 ## ERC-6551 TBA Integration
@@ -257,11 +257,11 @@ You can use the official implementation from [tokenbound/contracts](https://gith
 git clone https://github.com/tokenbound/contracts.git
 cd contracts
 npm install
-npx hardhat run scripts/deploy.js --network mumbai
+npx hardhat run scripts/deploy.js --network fuji
 ```
 
 Or use the already deployed implementation:
-- **Mumbai**: `0x2D25602551487C3f3354dD80D76D54383A243358`
+- **Fuji**: `0x2D25602551487C3f3354dD80D76D54383A243358`
 
 ### Step 2: Create TBA for Memory NFT
 
@@ -272,7 +272,7 @@ async function createTBA(tokenId: number) {
   const registryAddress = "0x000000006551c19487814612e58FE06813775758";
   const implementationAddress = "0x2D25602551487C3f3354dD80D76D54383A243358";
   const memoryNFTAddress = process.env.MEMORY_NFT_CONTRACT_ADDRESS;
-  const chainId = 80001; // Mumbai
+  const chainId = 43113; // Fuji
 
   const registry = await ethers.getContractAt("IERC6551Registry", registryAddress);
 
@@ -311,8 +311,8 @@ async function createTBA(tokenId: number) {
 
 ### Test Checklist
 
-- [ ] Deploy MemoryNFT contract to Mumbai
-- [ ] Verify contract on Polygonscan
+- [ ] Deploy MemoryNFT contract to Fuji
+- [ ] Verify contract on Snowscan
 - [ ] Mint test Memory NFT
 - [ ] Create TBA for the NFT
 - [ ] Register TBA in MemoryNFT contract
@@ -328,25 +328,25 @@ npx hardhat compile
 # Run tests
 npx hardhat test
 
-# Deploy to Mumbai
-npx hardhat run scripts/deploy-memory-nft.ts --network mumbai
+# Deploy to Fuji
+npx hardhat run scripts/deploy-memory-nft.ts --network fuji
 
 # Verify contract
-npx hardhat verify --network mumbai DEPLOYED_ADDRESS
+npx hardhat verify --network fuji DEPLOYED_ADDRESS
 
 # Test minting
-npx hardhat run scripts/test-mint.ts --network mumbai
+npx hardhat run scripts/test-mint.ts --network fuji
 ```
 
-## Production Deployment (Polygon Mainnet)
+## Production Deployment (Avalanche C-Chain)
 
-Once tested on Mumbai, deploy to Polygon mainnet:
+Once tested on Fuji, deploy to Avalanche C-Chain:
 
 ```bash
-npx hardhat run scripts/deploy-memory-nft.ts --network polygon
+npx hardhat run scripts/deploy-memory-nft.ts --network avalanche
 ```
 
-**Important**: Ensure you have enough MATIC for gas fees on mainnet.
+**Important**: Ensure you have enough AVAX for gas fees on mainnet.
 
 ## Integration with Backend
 
@@ -362,29 +362,29 @@ const ERC6551_ACCOUNT_IMPLEMENTATION = "0x2D25602551487C3f3354dD80D76D54383A2433
 
 ### Issue: Insufficient funds for gas
 
-**Solution**: Get Mumbai MATIC from [Mumbai Faucet](https://faucet.polygon.technology/)
+**Solution**: Get Fuji AVAX from [Fuji Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c/)
 
 ### Issue: Contract verification failed
 
-**Solution**: Wait a few minutes and try again. Polygonscan API can be slow.
+**Solution**: Wait a few minutes and try again. Snowscan API can be slow.
 
 ### Issue: Transaction reverted
 
-**Solution**: Check gas limit and ensure you're using the correct network (chainId 80001 for Mumbai)
+**Solution**: Check gas limit and ensure you're using the correct network (chainId 43113 for Fuji)
 
 ## Next Steps
 
-1. Deploy contracts to Mumbai testnet
+1. Deploy contracts to Fuji testnet
 2. Test minting and TBA creation
 3. Integrate with backend API
 4. Test complete workflow (mint → create TBA → transfer → verify)
-5. Deploy to Polygon mainnet
+5. Deploy to Avalanche C-Chain
 6. Update frontend to display NFT ownership and TBA addresses
 
 ## Resources
 
 - [ERC-6551 Specification](https://eips.ethereum.org/EIPS/eip-6551)
 - [Tokenbound Contracts](https://github.com/tokenbound/contracts)
-- [Polygon Mumbai Faucet](https://faucet.polygon.technology/)
+- [Avalanche Fuji Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c/)
 - [Hardhat Documentation](https://hardhat.org/docs)
 - [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts)

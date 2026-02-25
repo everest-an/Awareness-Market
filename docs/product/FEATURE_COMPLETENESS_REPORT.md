@@ -132,7 +132,7 @@
 | ERC6551 TBA 集成 | ✅ | 已集成 |
 | 版税分配逻辑 | ✅ | 已实现 |
 | **合约部署** | ❌ | **未部署到测试网** |
-| 合约验证 | ❌ | 未在 PolygonScan 验证 |
+| 合约验证 | ❌ | 未在 Snowscan 验证 |
 
 ### 后端 API (5 个)
 **文件**: `server/routers/memory-nft-api.ts`
@@ -170,9 +170,9 @@
 
 ### 部署准备
 - ✅ Hardhat 环境已配置
-- ✅ 部署脚本已创建 (`scripts/deploy/deploy-to-amoy.mjs`)
+- ✅ 部署脚本已创建 (`scripts/deploy/deploy-to-fuji.mjs`)
 - ✅ 测试钱包已准备
-- ⚠️ 需要获取 Polygon Amoy POL 代币
+- ⚠️ 需要获取 Avalanche Fuji AVAX 代币
 
 ---
 
@@ -378,11 +378,11 @@
 ### 🔴 高优先级（阻碍 MVP 发布）
 
 1. **智能合约部署** ❌
-   - MemoryNFT 合约未部署到 Polygon Amoy
+   - MemoryNFT 合约未部署到 Avalanche Fuji
    - 无法进行真实的链上 NFT 交易
    - 无法验证 TBA 功能
    - **预计时间**: 30 分钟
-   - **依赖**: Polygon Amoy POL 代币
+   - **依赖**: Avalanche Fuji AVAX 代币
 
 2. **数据库迁移** ⚠️
    - `parent_nft_id`, `derivation_type`, `royalty_percent` 字段未创建
@@ -441,7 +441,7 @@
    ```
 
 3. **部署智能合约** (30 分钟)
-   - 获取 Polygon Amoy POL 代币
+   - 获取 Avalanche Fuji AVAX 代币
    - 运行部署脚本
    - 验证合约
 

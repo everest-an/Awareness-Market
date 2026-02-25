@@ -5,25 +5,25 @@ import { readFileSync } from 'fs';
 dotenv.config();
 
 const STABLECOIN_ADDRESSES = {
-  USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-  USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+  USDC: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+  USDT: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
 };
 
 async function main() {
   console.log('Replacing Nonce 0 transaction with HIGH gas...');
 
-  const rpcUrl = 'https://polygon-mainnet.g.alchemy.com/v2/vg-5r0YReOdDkSCOhgKOnsnuRJXsZLID';
+  const rpcUrl = process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc';
   const provider = new ethers.JsonRpcProvider(rpcUrl, {
-    name: 'polygon',
-    chainId: 137
+    name: 'avalanche',
+    chainId: 43114
   });
-  
+
   const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY!, provider);
-  
+
   const feeData = await provider.getFeeData();
   const maxFee = (feeData.maxFeePerGas || 0n) * 200n / 100n;
   const priorityFee = (feeData.maxPriorityFeePerGas || 0n) * 200n / 100n;
-  
+
   console.log('Using Gas Price:', ethers.formatUnits(maxFee, 'gwei'), 'Gwei (200%)');
 
   const platformTreasury = process.env.PLATFORM_TREASURY_ADDRESS || '0x3d0ab53241A2913D7939ae02f7083169fE7b823B';
@@ -32,14 +32,14 @@ async function main() {
 
   console.log('Deploying with Nonce 0...');
   const factory = new ethers.ContractFactory(contractJson.abi, contractJson.bytecode, wallet);
-  
+
   const paymentSystem = await factory.deploy(platformTreasury, {
     nonce: 0,
     gasLimit: 3000000,
     maxFeePerGas: maxFee,
     maxPriorityFeePerGas: priorityFee
   });
-  
+
   console.log('Replacement Tx:', paymentSystem.deploymentTransaction()?.hash);
   console.log('Waiting...');
   await paymentSystem.waitForDeployment();

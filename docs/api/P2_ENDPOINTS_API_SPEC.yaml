@@ -491,7 +491,7 @@ paths:
                   type: string
                 network:
                   type: string
-                  enum: [polygon-amoy, ethereum-sepolia, arbitrum-sepolia]
+                  enum: [avalanche-fuji, ethereum-sepolia, arbitrum-sepolia]
       responses:
         '200':
           description: Proof prepared for submission

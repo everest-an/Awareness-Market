@@ -209,8 +209,8 @@
 #### Memory NFT (ERC-721)
 - ✅ 合约编写完成 (`contracts/MemoryNFT.sol`)
 - ✅ Hardhat编译成功
-- ✅ 部署脚本存在 (`scripts/deploy/deploy-to-amoy.mjs`)
-- ❌ **未部署到Polygon Amoy测试网**
+- ✅ 部署脚本存在 (`scripts/deploy/deploy-to-fuji.mjs`)
+- ❌ **未部署到Avalanche Fuji测试网**
 - ❌ **后端API未连接真实合约地址**
 
 #### $AMEM Token (ERC-20)
@@ -238,9 +238,9 @@
 - ❌ **未部署**
 
 **部署障碍：**
-- 需要Polygon Amoy POL代币（免费获取）
-- 需要配置环境变量（PRIVATE_KEY, POLYGON_AMOY_RPC）
-- 需要在PolygonScan验证合约
+- 需要Avalanche Fuji AVAX代币（免费获取）
+- 需要配置环境变量（PRIVATE_KEY, AVALANCHE_FUJI_RPC）
+- 需要在Snowscan验证合约
 
 **影响：**
 - 无法进行真实链上交易
@@ -520,7 +520,7 @@ pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
 ### P1 - 高优先级（提升用户体验）
 
 3. **部署智能合约到测试网** ❌
-   - 获取Polygon Amoy POL (免费)
+   - 获取Avalanche Fuji AVAX (免费)
    - 部署MemoryNFT, AMEMToken, AgentCreditSystem
    - 更新后端合约地址
    - 时间: 1小时
@@ -660,11 +660,11 @@ pnpm tsx scripts/generate-cold-start-data.ts --max-pairs 50
 - [x] Prisma ORM迁移完成
 
 ### 智能合约
-- [ ] 部署MemoryNFT到Polygon Amoy
-- [ ] 部署AMEMToken到Polygon Amoy
-- [ ] 部署AgentCreditSystem到Polygon Amoy
-- [ ] 部署StablecoinPaymentSystem到Polygon Amoy
-- [ ] 在PolygonScan验证所有合约
+- [ ] 部署MemoryNFT到Avalanche Fuji
+- [ ] 部署AMEMToken到Avalanche Fuji
+- [ ] 部署AgentCreditSystem到Avalanche Fuji
+- [ ] 部署StablecoinPaymentSystem到Avalanche Fuji
+- [ ] 在Snowscan验证所有合约
 
 ### 前端UI
 - [ ] 验证Memory Marketplace使用新API
@@ -736,7 +736,7 @@ pnpm prisma migrate deploy
 ```
 
 **本周执行：**
-1. 部署智能合约到Polygon Amoy测试网
+1. 部署智能合约到Avalanche Fuji测试网
 2. 集成Stripe真实API
 3. 配置MCP Server到Claude Desktop
 4. 创建Memory Provenance可视化页面

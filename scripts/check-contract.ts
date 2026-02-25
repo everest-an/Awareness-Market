@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-const provider = new ethers.JsonRpcProvider('https://polygon-mainnet.g.alchemy.com/v2/vg-5r0YReOdDkSCOhgKOnsnuRJXsZLID');
+const provider = new ethers.JsonRpcProvider(process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc');
 const contractAddr = '0x3D9c5826082d76Bed2ab5555a06F883e8CC871eD';
 
 const code = await provider.getCode(contractAddr);

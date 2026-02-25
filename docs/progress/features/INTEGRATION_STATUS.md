@@ -158,14 +158,14 @@ pnpm prisma migrate deploy
 # 1. Compile contracts
 npx hardhat compile
 
-# 2. Deploy to Polygon Amoy testnet
-npx hardhat run scripts/deploy/deploy-amem-token.ts --network amoy
+# 2. Deploy to Avalanche Fuji testnet
+npx hardhat run scripts/deploy/deploy-amem-token.ts --network fuji
 
-# 3. Verify on PolygonScan
-npx hardhat verify --network amoy <AMEM_TOKEN_ADDRESS>
+# 3. Verify on Snowscan
+npx hardhat verify --network fuji <AMEM_TOKEN_ADDRESS>
 ```
 
-**Cost Estimate**: ~0.05 MATIC ($0.10 USD) for deployment + verification
+**Cost Estimate**: ~0.05 AVAX ($0.10 USD) for deployment + verification
 
 ---
 

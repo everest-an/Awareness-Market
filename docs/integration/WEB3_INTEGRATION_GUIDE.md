@@ -29,7 +29,7 @@ client/src/
 
 **主要功能：**
 - 初始化和连接管理
-- 网络切换（Polygon Amoy）
+- 网络切换（Avalanche Fuji）
 - 消息签名
 - 交易发送
 - 合约实例创建
@@ -48,7 +48,7 @@ await provider.initialize();
 // 连接钱包
 await provider.connect();
 
-// 检查 Polygon Amoy
+// 检查 Avalanche Fuji
 if (!provider.isOnAmoy()) {
   await provider.switchToAmoy();
 }
@@ -63,7 +63,7 @@ const signature = await provider.signMessage('Message to sign');
 // 发送交易
 const txHash = await provider.sendTransaction(
   '0xRecipientAddress',
-  '1.5', // MATIC
+  '1.5', // AVAX
   '0xOptionalData'
 );
 
@@ -120,7 +120,7 @@ interface WalletState {
 - 显示账户地址（缩写）
 - 显示余额
 - 网络信息
-- 切换到 Polygon Amoy
+- 切换到 Avalanche Fuji
 - 网络状态指示器
 
 **使用方式：**
@@ -165,7 +165,7 @@ const txHash = await nftManager.buyLicense(tokenId);
 const txHash = await nftManager.mintNFT(
   toAddress,
   metadata, // { name, description, image, attributes }
-  1.5 // price in MATIC
+  1.5 // price in AVAX
 );
 
 // 获取总供应量
@@ -218,7 +218,7 @@ function BuyLicense({ nftId }) {
 
   const handleBuy = async () => {
     if (!state.isConnected || !state.isOnAmoy) {
-      alert('Please connect to Polygon Amoy');
+      alert('Please connect to Avalanche Fuji');
       return;
     }
 
@@ -327,7 +327,7 @@ VITE_MEMORY_NFT_ADDRESS=0x...     # MemoryNFT 合约地址
 REACT_APP_MEMORY_NFT_ADDRESS=0x...  # 备选格式
 
 # RPC 端点
-VITE_AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
+VITE_FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc/
 
 # 部署用
 DEPLOYER_PRIVATE_KEY=0x...
@@ -347,17 +347,17 @@ DEPLOYER_PRIVATE_KEY=0x...
 
 3. 重启开发服务器
 
-## Polygon Amoy 网络配置
+## Avalanche Fuji 网络配置
 
 ### 网络信息
 
 | 属性 | 值 |
 |------|-----|
-| Network Name | Polygon Amoy |
-| Chain ID | 80002 |
-| RPC URL | https://rpc-amoy.polygon.technology/ |
-| Block Explorer | https://amoy.polygonscan.com |
-| Currency | POL |
+| Network Name | Avalanche Fuji |
+| Chain ID | 43113 |
+| RPC URL | https://api.avax-test.network/ext/bc/C/rpc/ |
+| Block Explorer | https://testnet.snowscan.xyz |
+| Currency | AVAX |
 
 ### MetaMask 手动添加
 
@@ -371,7 +371,7 @@ DEPLOYER_PRIVATE_KEY=0x...
 
 ### 获取测试币
 
-从 [Polygon Faucet](https://faucet.polygon.technology/) 获取免费的 POL 测试币。
+从 [Avalanche Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c/) 获取免费的 AVAX 测试币。
 
 ## 事件和回调
 
@@ -452,7 +452,7 @@ if (!state.isConnected) {
 }
 
 if (!state.isOnAmoy) {
-  return <button onClick={switchToAmoy}>Switch to Amoy</button>;
+  return <button onClick={switchToAmoy}>Switch to Fuji</button>;
 }
 ```
 
@@ -495,8 +495,8 @@ if (!contractAddress) {
 ### 本地测试
 
 1. 安装 MetaMask 浏览器扩展
-2. 配置 Polygon Amoy 网络
-3. 从 faucet 获取测试 POL
+2. 配置 Avalanche Fuji 网络
+3. 从 faucet 获取测试AVAX
 4. 启动开发服务器：`npm run dev`
 5. 访问 `http://localhost:5173`
 6. 测试钱包连接和 NFT 交互
@@ -533,14 +533,14 @@ describe('Web3Provider', () => {
 
 ### 交易失败
 
-- 确保有足够的 POL 来支付 gas
+- 确保有足够的 AVAX 来支付 gas
 - 检查合约地址是否正确
 - 验证账户有正确的权限
 
 ### 网络切换失败
 
 - 确保 RPC URL 正确
-- 检查网络 ID 是否为 80002
+- 检查网络 ID 是否为 43113
 - 手动在 MetaMask 中添加网络
 
 ### "合约未初始化"错误
@@ -560,6 +560,6 @@ describe('Web3Provider', () => {
 
 - [ethers.js 文档](https://docs.ethers.org/v6/)
 - [MetaMask 开发者文档](https://docs.metamask.io/)
-- [Polygon 开发者文档](https://polygon.technology/developers)
+- [Avalanche 开发者文档](https://avalanche.technology/developers)
 - [ERC-721 标准](https://eips.ethereum.org/EIPS/eip-721)
 - [ERC-6551 标准](https://eips.ethereum.org/EIPS/eip-6551)

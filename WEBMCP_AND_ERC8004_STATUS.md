@@ -148,9 +148,9 @@ ERC-8004 代码已完整实现，但需要以下配置才能正常工作。
 ```bash
 # ERC-8004 配置
 ERC8004_REGISTRY_ADDRESS=0x...  # 合约地址（需要部署）
-POLYGON_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/YOUR_KEY
+AVALANCHE_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 # 或
-POLYGON_RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
 # JWT 签名密钥
 JWT_SECRET=your_secret_key_here
@@ -166,11 +166,11 @@ cd "e:\Awareness Market\Awareness-Network"
 # 编译合约
 npx hardhat compile
 
-# 部署到测试网（Polygon Amoy）
-npx hardhat run scripts/deploy/deploy-erc8004.ts --network polygon-amoy
+# 部署到测试网（Avalanche Fuji）
+npx hardhat run scripts/deploy/deploy-erc8004.ts --network avalanche-fuji
 
 # 或部署到主网
-npx hardhat run scripts/deploy/deploy-erc8004.ts --network polygon-mainnet
+npx hardhat run scripts/deploy/deploy-erc8004.ts --network avalanche-mainnet
 ```
 
 部署后会得到合约地址，填入 `ERC8004_REGISTRY_ADDRESS`。
@@ -200,8 +200,8 @@ curl http://localhost:5000/api/erc8004/status
 {
   "enabled": true,
   "registryAddress": "0x...",
-  "networkId": "80002",
-  "networkName": "Polygon Amoy"
+  "networkId": "43113",
+  "networkName": "Avalanche Fuji"
 }
 ```
 
@@ -273,13 +273,13 @@ console.log('Authenticated:', success, token);
 
 #### 步骤 1: 获取 RPC URL
 
-访问 [Alchemy](https://www.alchemy.com/) 或 [Infura](https://infura.io/)，创建项目并获取 Polygon Amoy RPC URL。
+访问 [Alchemy](https://www.alchemy.com/) 或 [Infura](https://infura.io/)，创建项目并获取 Avalanche Fuji RPC URL。
 
 #### 步骤 2: 配置环境变量
 
 在 `.env` 中添加：
 ```bash
-POLYGON_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/YOUR_KEY
+AVALANCHE_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 JWT_SECRET=$(openssl rand -hex 32)
 ```
 
@@ -297,7 +297,7 @@ npx hardhat compile
 DEPLOYER_PRIVATE_KEY=your_private_key
 
 # 部署
-npx hardhat run scripts/deploy/deploy-erc8004.ts --network polygon-amoy
+npx hardhat run scripts/deploy/deploy-erc8004.ts --network avalanche-fuji
 ```
 
 部署成功后，复制合约地址并添加到 `.env`:
@@ -368,7 +368,7 @@ curl http://localhost:5000/api/erc8004/status
 ### 如果你需要链上 AI Agent 身份验证：
 
 **配置 ERC-8004** ⏳
-1. 部署合约到 Polygon Amoy（测试网）
+1. 部署合约到 Avalanche Fuji（测试网）
 2. 配置环境变量
 3. 集成钱包登录（MetaMask）
 4. 测试 Agent 注册和认证
@@ -406,11 +406,11 @@ curl -X POST http://localhost:5000/api/mcp/tokens \
 
 ```bash
 # 1. 配置 .env
-echo "POLYGON_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/YOUR_KEY" >> .env
+echo "AVALANCHE_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc" >> .env
 echo "JWT_SECRET=$(openssl rand -hex 32)" >> .env
 
 # 2. 部署合约
-npx hardhat run scripts/deploy/deploy-erc8004.ts --network polygon-amoy
+npx hardhat run scripts/deploy/deploy-erc8004.ts --network avalanche-fuji
 
 # 3. 添加合约地址到 .env
 echo "ERC8004_REGISTRY_ADDRESS=0x..." >> .env

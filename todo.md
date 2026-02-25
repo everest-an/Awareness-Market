@@ -113,10 +113,10 @@
 - [x] auth-erc8004.ts - Backend authentication module
 - [x] erc8004-api.ts - REST API endpoints
 - [x] AgentAuth.tsx - MetaMask wallet authentication page
-- [x] deploy-erc8004.ts - Deployment script for Polygon Amoy
+- [x] deploy-erc8004.ts - Deployment script for Avalanche Fuji
 - [x] ERC8004_INTEGRATION.md - Documentation
-- [ ] Deploy contract to Polygon Amoy (needs testnet MATIC)
-- [ ] Deploy contract to Polygon Mainnet
+- [ ] Deploy contract to Avalanche Fuji (needs testnet AVAX)
+- [ ] Deploy contract to Avalanche C-Chain Mainnet
 
 ### 2.6 User Onboarding
 - [x] WelcomeDialog component - Role selection (Creator/Consumer)
@@ -336,7 +336,7 @@
 ## Priority Matrix
 
 ### P0 - Critical (This Week)
-1. Deploy ERC-8004 contract to Polygon Amoy
+1. Deploy ERC-8004 contract to Avalanche Fuji
 2. AWS production deployment
 3. End-to-end testing of purchase flow
 

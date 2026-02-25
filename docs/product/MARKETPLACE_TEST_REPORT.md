@@ -224,7 +224,7 @@ Successfully completed marketplace functionality testing using existing latent v
 **Features**:
 - ✅ Token Bound Account creation
 - ✅ NFT ownership linkage
-- ✅ Multi-chain support (Mumbai, Sepolia, Base)
+- ✅ Multi-chain support (Fuji, Sepolia, Base)
 
 #### 2. Memory Provenance
 **File**: `server/neural-bridge/memory-provenance.ts`
@@ -364,7 +364,7 @@ Search for W-Matrix memories compatible with GPT-4
 ### 3. Smart Contracts Not Deployed
 **Issue**: ERC-721 and ERC-6551 contracts not on testnet  
 **Impact**: NFT minting not functional yet  
-**Next Step**: Deploy to Polygon Mumbai (see SMART_CONTRACT_DEPLOYMENT.md)
+**Next Step**: Deploy to Avalanche Fuji (see SMART_CONTRACT_DEPLOYMENT.md)
 
 ---
 
@@ -374,7 +374,7 @@ Search for W-Matrix memories compatible with GPT-4
 
 1. **Deploy Smart Contracts**
    - Follow `docs/SMART_CONTRACT_DEPLOYMENT.md`
-   - Deploy MemoryNFT to Polygon Mumbai
+   - Deploy MemoryNFT to Avalanche Fuji
    - Deploy ERC6551Registry
    - Update backend with contract addresses
 
@@ -409,7 +409,7 @@ Search for W-Matrix memories compatible with GPT-4
 ### Long-term (Priority 3)
 
 7. **Mainnet Deployment**
-   - Deploy contracts to Polygon mainnet
+   - Deploy contracts to Avalanche C-Chain mainnet
    - Switch to production LLM API keys
    - Configure production database
 

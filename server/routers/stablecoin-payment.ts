@@ -2,7 +2,7 @@
  * Stablecoin Payment API Router
  * 
  * Provides tRPC endpoints for:
- * - AI Agent autonomous stablecoin payments (USDC/USDT on Polygon)
+ * - AI Agent autonomous stablecoin payments (USDC/USDT on Avalanche C-Chain)
  * - User wallet-based direct purchases
  * - Agent custody wallet management
  * - Deposit / Purchase / Withdraw lifecycle
@@ -44,7 +44,7 @@ const logger = createLogger('StablecoinPayment');
 // Constants
 // ============================================================================
 
-const POLYGON_CHAIN_ID = 137;
+const AVALANCHE_CHAIN_ID = 43114;
 
 const PAYMENT_CONTRACT_ADDRESS =
   process.env.STABLECOIN_PAYMENT_ADDRESS ||
@@ -74,7 +74,7 @@ const PAYMENT_ABI = [
 ];
 
 // Resolve valid token names to addresses
-function resolveTokenAddress(token: string, network: 'mainnet' | 'amoy' = 'mainnet'): string {
+function resolveTokenAddress(token: string, network: 'mainnet' | 'fuji' = 'mainnet'): string {
   const upper = token.toUpperCase();
   if (upper === 'USDC') return STABLECOIN_ADDRESSES[network].USDC;
   if (upper === 'USDT') return STABLECOIN_ADDRESSES[network].USDT;
@@ -84,7 +84,7 @@ function resolveTokenAddress(token: string, network: 'mainnet' | 'amoy' = 'mainn
 }
 
 function getProvider(): ethers.JsonRpcProvider {
-  const rpcUrl = process.env.POLYGON_RPC_URL || process.env.BLOCKCHAIN_RPC_URL || 'https://polygon-rpc.com';
+  const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc';
   return new ethers.JsonRpcProvider(rpcUrl);
 }
 
@@ -171,7 +171,7 @@ export const stablecoinPaymentRouter = router({
     }),
 
   /**
-   * Get wallet balances (MATIC, USDC, USDT — both wallet and contract)
+   * Get wallet balances (AVAX, USDC, USDT — both wallet and contract)
    */
   getBalance: protectedProcedure
     .query(async ({ ctx }) => {
@@ -221,7 +221,7 @@ export const stablecoinPaymentRouter = router({
           sellerReceives: sellerReceives.toFixed(6),
           sellerAddress,
           contractAddress: PAYMENT_CONTRACT_ADDRESS,
-          chainId: POLYGON_CHAIN_ID,
+          chainId: AVALANCHE_CHAIN_ID,
           expiresIn: 300, // Quote valid for 5 minutes
         },
       };
@@ -342,7 +342,7 @@ export const stablecoinPaymentRouter = router({
         token: tokenAddress,
         amountUSD: priceUSD,
         packageId: input.packageId,
-        details: `${input.token} directPurchase on Polygon`,
+        details: `${input.token} directPurchase on Avalanche`,
       });
 
       // 8. Also record in platform DB for download access
@@ -384,7 +384,7 @@ export const stablecoinPaymentRouter = router({
           amountPaid: ethers.formatUnits(tokenAmount, 6),
           priceUSD,
           blockNumber: receipt.blockNumber,
-          explorerUrl: `https://polygonscan.com/tx/${receipt.hash}`,
+          explorerUrl: `https://snowscan.xyz/tx/${receipt.hash}`,
           downloadUrl: `/api/ai/download-package?packageType=${input.packageType}&packageId=${input.packageId}`,
         },
       };
@@ -443,7 +443,7 @@ export const stablecoinPaymentRouter = router({
           txHash: receipt.hash,
           token: input.token,
           amount: input.amount,
-          explorerUrl: `https://polygonscan.com/tx/${receipt.hash}`,
+          explorerUrl: `https://snowscan.xyz/tx/${receipt.hash}`,
         },
       };
     }),
@@ -491,7 +491,7 @@ export const stablecoinPaymentRouter = router({
           txHash: receipt.hash,
           token: input.token,
           amount: input.amount,
-          explorerUrl: `https://polygonscan.com/tx/${receipt.hash}`,
+          explorerUrl: `https://snowscan.xyz/tx/${receipt.hash}`,
         },
       };
     }),
@@ -648,8 +648,8 @@ export const stablecoinPaymentRouter = router({
         success: true,
         data: {
           contractAddress: PAYMENT_CONTRACT_ADDRESS,
-          chainId: POLYGON_CHAIN_ID,
-          network: 'Polygon Mainnet',
+          chainId: AVALANCHE_CHAIN_ID,
+          network: 'Avalanche C-Chain',
           platformFeeRate: '5%',
           supportedTokens: [
             {
@@ -665,7 +665,7 @@ export const stablecoinPaymentRouter = router({
           ],
           // Treasury address intentionally omitted — on-chain public but
           // no need to serve it, reduces phishing attack surface
-          explorerUrl: `https://polygonscan.com/address/${PAYMENT_CONTRACT_ADDRESS}`,
+          explorerUrl: `https://snowscan.xyz/address/${PAYMENT_CONTRACT_ADDRESS}`,
         },
       };
     }),

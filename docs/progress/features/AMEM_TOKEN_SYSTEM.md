@@ -189,8 +189,8 @@ event Refunded(address indexed user, string packageId, uint256 amount)
 
 1. **Node.js** 18+ and npm
 2. **Hardhat** development environment
-3. **Deployer wallet** with ETH/MATIC for gas
-4. **RPC endpoint** (Polygon Amoy testnet or Polygon mainnet)
+3. **Deployer wallet** with ETH/AVAX for gas
+4. **RPC endpoint** (Avalanche Fuji testnet or Avalanche C-Chain mainnet)
 
 ### Step 1: Install Dependencies
 
@@ -206,8 +206,8 @@ Create `.env.local` with deployment configuration:
 ```bash
 # Blockchain
 DEPLOYER_PRIVATE_KEY=0x...your-private-key
-AMOY_RPC_URL=https://rpc-amoy.polygon.technology
-POLYGON_RPC_URL=https://polygon-rpc.com
+FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
 # Contract Configuration
 FEE_COLLECTOR_ADDRESS=0x...your-fee-collector-address
@@ -218,17 +218,17 @@ PLATFORM_TREASURY_ADDRESS=0x...platform-treasury-address
 INITIAL_CREDIT_SYSTEM_ALLOCATION=1000000
 ```
 
-### Step 3: Deploy to Testnet (Polygon Amoy)
+### Step 3: Deploy to Testnet (Avalanche Fuji)
 
 ```bash
-npx hardhat run scripts/deploy/deploy-amem-token.ts --network amoy
+npx hardhat run scripts/deploy/deploy-amem-token.ts --network fuji
 ```
 
 **Expected Output**:
 ```
 🚀 Starting $AMEM Token deployment...
 
-📡 Network: amoy (Chain ID: 80002)
+📡 Network: fuji (Chain ID: 43113)
 👤 Deployer: 0x...
 💰 Balance: 0.5 ETH
 
@@ -249,8 +249,8 @@ npx hardhat run scripts/deploy/deploy-amem-token.ts --network amoy
 ### Step 4: Verify Contracts
 
 ```bash
-npx hardhat verify --network amoy <AMEM_TOKEN_ADDRESS> "<FEE_COLLECTOR>" "<MAINTAINER_POOL>"
-npx hardhat verify --network amoy <CREDIT_SYSTEM_ADDRESS> "<AMEM_TOKEN_ADDRESS>" "<PLATFORM_TREASURY>"
+npx hardhat verify --network fuji <AMEM_TOKEN_ADDRESS> "<FEE_COLLECTOR>" "<MAINTAINER_POOL>"
+npx hardhat verify --network fuji <CREDIT_SYSTEM_ADDRESS> "<AMEM_TOKEN_ADDRESS>" "<PLATFORM_TREASURY>"
 ```
 
 ### Step 5: Update Backend Configuration
@@ -260,7 +260,7 @@ Add deployed addresses to `.env`:
 ```bash
 AMEM_TOKEN_ADDRESS=0x...deployed-token-address
 AGENT_CREDIT_SYSTEM_ADDRESS=0x...deployed-credit-system-address
-BLOCKCHAIN_RPC_URL=https://rpc-amoy.polygon.technology
+BLOCKCHAIN_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 ```
 
 ---
@@ -490,7 +490,7 @@ npm test -- --grep "Token System"
 
 ### Testnet Testing Checklist
 
-- [ ] Deploy contracts to Polygon Amoy
+- [ ] Deploy contracts to Avalanche Fuji
 - [ ] Mint test tokens to test wallet
 - [ ] Deposit tokens to credit system
 - [ ] Purchase test package
@@ -565,7 +565,7 @@ console.log(`Available at: ${availableDate.toLocaleString()}`);
 
 - [OpenZeppelin ERC-20](https://docs.openzeppelin.com/contracts/4.x/erc20)
 - [Hardhat Documentation](https://hardhat.org/getting-started/)
-- [Polygon Network](https://polygon.technology/)
+- [Avalanche Network](https://www.avax.network/)
 - [Neural Bridge Whitepaper](docs/archive/WHITEPAPER_COMPLETE.md)
 
 ---
@@ -593,7 +593,7 @@ console.log(`Available at: ${availableDate.toLocaleString()}`);
 - [ ] Staking for Memory NFT slots (per whitepaper)
 - [ ] Dynamic pricing with PID controller
 - [ ] Governance token voting
-- [ ] Cross-chain bridge (Ethereum ↔ Polygon)
+- [ ] Cross-chain bridge (Ethereum ↔ Avalanche)
 
 ### Phase 4: Mainnet Launch
 

@@ -668,7 +668,7 @@ With GPU: ~1.5s total
 
 For on-chain verification (Ethereum):
 
-1. **Use Layer 2**: Polygon, Arbitrum (90% cheaper)
+1. **Use Layer 2**: Avalanche, Arbitrum (90% cheaper)
 2. **Batch Verification**: Verify multiple proofs at once
 3. **Off-Chain Verification**: Use optimistic approach (challenge period)
 
@@ -676,7 +676,7 @@ For on-chain verification (Ethereum):
 ```
 Groth16 Verification:
 - Mainnet: ~250k gas ($15-50 depending on gas price)
-- Polygon: ~250k gas ($0.01-0.05)
+- Avalanche: ~250k gas ($0.01-0.05)
 - Off-Chain: Free (trust platform)
 ```
 

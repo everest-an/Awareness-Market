@@ -1,7 +1,7 @@
 # 🚀 MemoryNFT 智能合约部署指南
 
 ## 📋 目标
-部署 MemoryNFT 合约到 Polygon Amoy 测试网，获得合约地址和 ABI，以便前端集成。
+部署 MemoryNFT 合约到 Avalanche Fuji 测试网，获得合约地址和 ABI，以便前端集成。
 
 ## ⏱️ 预计时间
 - 准备钱包: 5 分钟
@@ -15,11 +15,11 @@
 
 ✅ 已完成:
 - 合约代码已编写 (contracts/MemoryNFT.sol)
-- 部署脚本已准备 (scripts/deploy/deploy-to-amoy.mjs)
+- 部署脚本已准备 (scripts/deploy/deploy-to-fuji.mjs)
 - Node.js 和 npm 已安装
 
 需要:
-- Polygon Amoy 测试网的 POL 代币 (约 0.05-0.1 POL)
+- Avalanche Fuji 测试网的 AVAX 代币 (约 0.05-0.1 POL)
 - MetaMask 或其他以太坊钱包
 
 ---
@@ -31,7 +31,7 @@
 **选项 A: 使用 MetaMask (推荐)**
 
 1. 打开 MetaMask
-2. 确保切换到 Polygon Amoy 网络
+2. 确保切换到 Avalanche Fuji 网络
 3. 点击菜单 → 账户详情 → 导出私钥
 4. 复制私钥 (格式: 0x开头的64个16进制字符)
 
@@ -54,8 +54,8 @@ node scripts/deploy/setup-deploy.mjs
 # ⚠️ 替换为你的实际私钥！不要在 git 中提交！
 DEPLOYER_PRIVATE_KEY=0x0000000000000000000000000000000000000000000000000000000000000000
 
-# Polygon Amoy RPC (已配置，无需修改)
-AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
+# Avalanche Fuji RPC (已配置，无需修改)
+FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc/
 ```
 
 或者直接使用设置工具:
@@ -65,18 +65,18 @@ node scripts/deploy/setup-deploy.mjs
 
 ---
 
-### 步骤 3: 获取 Polygon Amoy 测试币
+### 步骤 3: 获取 Avalanche Fuji 测试币
 
-1. 访问 faucet: https://faucet.polygon.technology/
-2. 选择网络: **Polygon Amoy**
+1. 访问 faucet: https://core.app/tools/testnet-faucet/?subnet=c&token=c/
+2. 选择网络: **Avalanche Fuji**
 3. 输入钱包地址 (来自 MetaMask 或生成的)
 4. 点击 "Submit"
-5. 等待 10-30 分钟，你会收到 0.5-1 POL
+5. 等待 10-30 分钟，你会收到 0.5-1AVAX
 
 **查看余额:**
 ```bash
 # 或者在 MetaMask 中查看
-# 确保选择了 Polygon Amoy 网络
+# 确保选择了 Avalanche Fuji 网络
 ```
 
 ---
@@ -104,23 +104,23 @@ MemoryNFT.sol
 
 ```bash
 # 使用部署脚本
-npx hardhat run scripts/deploy/deploy-to-amoy.mjs --network amoy
+npx hardhat run scripts/deploy/deploy-to-fuji.mjs --network fuji
 ```
 
 或者直接运行 JavaScript 版本:
 ```bash
-node scripts/deploy/deploy-to-amoy.mjs
+node scripts/deploy/deploy-to-fuji.mjs
 ```
 
 部署输出示例:
 ```
 ╔══════════════════════════════════════════════════════════╗
-║  Deploying MemoryNFT to Polygon Amoy Testnet            ║
+║  Deploying MemoryNFT to Avalanche Fuji Testnet            ║
 ╚══════════════════════════════════════════════════════════╝
 
-Connecting to Amoy RPC: https://rpc-amoy.polygon.technology/
+Connecting to Fuji RPC: https://api.avax-test.network/ext/bc/C/rpc/
 Deploying with account: 0x1234...5678
-Account balance: 0.75 POL
+Account balance: 0.75AVAX
 
 Loading compiled contract...
 Contract size: 8.2 KB
@@ -134,7 +134,7 @@ Contract size: 8.2 KB
 📊 Deployment Summary:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Contract Address: 0xabcd1234567890abcd1234567890abcd12345678
-Network: Polygon Amoy
+Network: Avalanche Fuji
 Transaction Hash: 0xabcd...1234
 Gas Used: 2,345,678
 Deployer: 0x1234...5678
@@ -144,10 +144,10 @@ Timestamp: 2026-01-17 12:34:56 UTC
 1. Update MEMORY_NFT_CONTRACT_ADDRESS in .env.local
 2. Update frontend with contract address
 3. Test minting an NFT
-4. Verify contract on Polygonscan
+4. Verify contract on Snowscan
 
-🔍 View on Polygonscan:
-https://amoy.polygonscan.com/address/0xabcd1234567890abcd1234567890abcd12345678
+🔍 View on Snowscan:
+https://testnet.snowscan.xyz/address/0xabcd1234567890abcd1234567890abcd12345678
 ```
 
 ---
@@ -167,9 +167,9 @@ MEMORY_NFT_CONTRACT_ADDRESS=0xabcd1234567890abcd1234567890abcd12345678
 
 ## 🔍 验证部署
 
-### 方式 1: 在 Polygonscan 上查看
+### 方式 1: 在 Snowscan 上查看
 
-1. 访问: https://amoy.polygonscan.com/
+1. 访问: https://testnet.snowscan.xyz/
 2. 输入合约地址
 3. 应该能看到 "MemoryNFT" 合约
 
@@ -177,7 +177,7 @@ MEMORY_NFT_CONTRACT_ADDRESS=0xabcd1234567890abcd1234567890abcd12345678
 
 ```bash
 # 测试 read 操作
-cast call YOUR_CONTRACT_ADDRESS "name()" --rpc-url https://rpc-amoy.polygon.technology/
+cast call YOUR_CONTRACT_ADDRESS "name()" --rpc-url https://api.avax-test.network/ext/bc/C/rpc/
 
 # 输出: 0x... (返回 "MemoryNFT")
 ```
@@ -228,7 +228,7 @@ cast call YOUR_CONTRACT_ADDRESS "name()" --rpc-url https://rpc-amoy.polygon.tech
 ### Q1: 部署失败 - "Account has 0 POL"
 
 **解决**: 去 faucet 获取测试币:
-https://faucet.polygon.technology/
+https://core.app/tools/testnet-faucet/?subnet=c&token=c/
 
 ### Q2: 部署失败 - "privateKey is invalid"
 
@@ -244,7 +244,7 @@ npx hardhat compile --force
 ### Q4: 部署成功但地址为 0x0
 
 **解决**: 这通常是合约部署失败的信号。检查:
-1. 账户是否有足够的 POL
+1. 账户是否有足够的AVAX
 2. 合约代码是否有语法错误
 3. Gas 限制是否足够
 
@@ -267,7 +267,7 @@ npx hardhat compile --force
    - 测试购买和铸造 NFT
 
 4. ✅ **验证链上数据**
-   - 在 Polygonscan 上查看交易
+   - 在 Snowscan 上查看交易
    - 检查版税分配是否正确
 
 ---
@@ -275,7 +275,7 @@ npx hardhat compile --force
 ## 📄 相关文件
 
 - 合约源码: `contracts/MemoryNFT.sol`
-- 部署脚本: `scripts/deploy/deploy-to-amoy.mjs`
+- 部署脚本: `scripts/deploy/deploy-to-fuji.mjs`
 - 设置工具: `scripts/deploy/setup-deploy.mjs`
 - 硬件配置: `hardhat.config.ts`
 

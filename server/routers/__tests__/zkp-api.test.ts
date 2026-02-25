@@ -362,7 +362,7 @@ describe('ZKP API Endpoints', () => {
         preparation: {
           proofReady: true,
           proofSize: 1024,
-          estimatedGas: '200,000 gas (~$0.50 on Polygon)',
+          estimatedGas: '200,000 gas (~$0.02 on Avalanche)',
           requiredSteps: [
             '1. Deploy ZKP verifier contract',
             '2. Register package commitment on-chain',

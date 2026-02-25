@@ -321,7 +321,7 @@ export const aiAgentRouter = router({
         }
 
         const signer = await getAgentSigner(ctx.user.id);
-        const rpcUrl = process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com';
+        const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc';
         const provider = new ethers.JsonRpcProvider(rpcUrl);
         const contractAddress = process.env.STABLECOIN_PAYMENT_ADDRESS || '0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8';
 
@@ -384,10 +384,10 @@ export const aiAgentRouter = router({
             txHash: receipt.hash,
             token: selectedToken,
             amountPaid: ethers.formatUnits(tokenAmount, 6),
-            explorerUrl: `https://polygonscan.com/tx/${receipt.hash}`,
+            explorerUrl: `https://snowscan.xyz/tx/${receipt.hash}`,
             downloadUrl,
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            message: `Package purchased with ${selectedToken} on Polygon.`,
+            message: `Package purchased with ${selectedToken} on Avalanche.`,
           },
         };
       }

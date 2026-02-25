@@ -54,26 +54,26 @@ describe('Web3Provider', () => {
   });
 
   describe('Network Detection', () => {
-    it('should detect Amoy network', () => {
-      // Mock network as Amoy (80002)
+    it('should detect Avalanche Fuji network', () => {
+      // Mock network as Avalanche Fuji (43113)
       const mockState = {
         ...provider.getState(),
-        chainId: 80002,
-        chainName: 'Polygon Amoy',
+        chainId: 43113,
+        chainName: 'Avalanche Fuji',
       };
 
-      expect(mockState.chainId).toBe(80002);
-      expect(mockState.chainName).toBe('Polygon Amoy');
+      expect(mockState.chainId).toBe(43113);
+      expect(mockState.chainName).toBe('Avalanche Fuji');
     });
 
-    it('should detect non-Amoy network', () => {
+    it('should detect non-Avalanche network', () => {
       const mockState = {
         ...provider.getState(),
         chainId: 1,
         chainName: 'Ethereum Mainnet',
       };
 
-      expect(mockState.chainId).not.toBe(80002);
+      expect(mockState.chainId).not.toBe(43113);
     });
   });
 

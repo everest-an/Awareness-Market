@@ -404,27 +404,19 @@ export function createMemoryNFTManager(
 // ============================================================================
 
 export const TESTNET_CONFIGS = {
-  // Polygon Mumbai Testnet
-  mumbai: {
-    registryAddress: '0x02101dfB77FDE026414827Fdc604ddAF224F0921',
+  // Avalanche Fuji Testnet
+  fuji: {
+    registryAddress: '0x000000006551c19487814612e58FE06813775758',
     implementationAddress: '0x2D25602551487C3f3354dD80D76D54383A243358',
-    chainId: 80001,
-    rpcUrl: 'https://rpc-mumbai.maticvigil.com',
+    chainId: 43113,
+    rpcUrl: 'https://api.avax-test.network/ext/bc/C/rpc',
   },
-  
-  // Ethereum Sepolia Testnet
-  sepolia: {
-    registryAddress: '0x02101dfB77FDE026414827Fdc604ddAF224F0921',
+
+  // Avalanche C-Chain Mainnet
+  avalanche: {
+    registryAddress: '0x000000006551c19487814612e58FE06813775758',
     implementationAddress: '0x2D25602551487C3f3354dD80D76D54383A243358',
-    chainId: 11155111,
-    rpcUrl: 'https://rpc.sepolia.org',
-  },
-  
-  // Base Sepolia Testnet
-  baseSepolia: {
-    registryAddress: '0x02101dfB77FDE026414827Fdc604ddAF224F0921',
-    implementationAddress: '0x2D25602551487C3f3354dD80D76D54383A243358',
-    chainId: 84532,
-    rpcUrl: 'https://sepolia.base.org',
+    chainId: 43114,
+    rpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
   },
 };

@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import './WalletConnect.css';
 
 export function WalletConnect() {
-  const { state, isLoading, connect, disconnect, switchToAmoy } = useWeb3();
+  const { state, isLoading, connect, disconnect, switchToAvalanche } = useWeb3();
   const [showMenu, setShowMenu] = useState(false);
   const [balanceDisplay, setBalanceDisplay] = useState<string>('0');
 
@@ -50,12 +50,12 @@ export function WalletConnect() {
         return;
       }
       
-      if (state.isOnAmoy) {
-        alert('Already on Polygon Amoy network');
+      if (state.isOnAvalanche) {
+        alert('Already on Avalanche Fuji network');
         return;
       }
 
-      await switchToAmoy();
+      await switchToAvalanche();
       setShowMenu(false);
     } catch (error) {
       console.error('Network switch failed:', error);
@@ -81,10 +81,10 @@ export function WalletConnect() {
   return (
     <div className="wallet-connect">
       <div className="wallet-info">
-        {state.isOnAmoy && (
+        {state.isOnAvalanche && (
           <span className="network-badge">
             <span className="network-dot"></span>
-            Amoy
+            Fuji
           </span>
         )}
         
@@ -109,7 +109,7 @@ export function WalletConnect() {
 
             <div className="balance-display">
               <span className="label">Balance:</span>
-              <span className="value">{balanceDisplay} MATIC</span>
+              <span className="value">{balanceDisplay} AVAX</span>
             </div>
 
             <div className="chain-display">
@@ -121,19 +121,19 @@ export function WalletConnect() {
 
             <div className="menu-divider"></div>
 
-            {!state.isOnAmoy && (
+            {!state.isOnAvalanche && (
               <button 
                 onClick={handleSwitchNetworkClick}
                 disabled={isLoading}
                 className="btn-menu-item btn-switch-network"
               >
-                {isLoading ? 'Switching...' : 'Switch to Polygon Amoy'}
+                {isLoading ? 'Switching...' : 'Switch to Avalanche Fuji'}
               </button>
             )}
 
-            {state.isOnAmoy && (
+            {state.isOnAvalanche && (
               <div className="network-ok">
-                ✓ Connected to Polygon Amoy
+                ✓ Connected to Avalanche Fuji
               </div>
             )}
 

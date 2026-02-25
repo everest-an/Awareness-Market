@@ -254,7 +254,7 @@ Visit: https://awareness.market/w-matrix-marketplace/${report.wMatrices[0]?.id |
 
 2. **Smart Contract Deployment**
    - Follow \`docs/SMART_CONTRACT_DEPLOYMENT.md\`
-   - Deploy to Polygon Mumbai
+   - Deploy to Avalanche Fuji
    - Test NFT minting and TBA creation
 
 3. **End-to-End Testing**

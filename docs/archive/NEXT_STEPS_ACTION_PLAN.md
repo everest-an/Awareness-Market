@@ -98,20 +98,20 @@ npm run analyze:build
 
 ### 3️⃣ 获取测试币 (2 分钟)
 
-**目标**: 获取 Polygon Amoy 测试网络的 POL 代币
+**目标**: 获取 Avalanche Fuji 测试网络的 AVAX 代币
 
-#### A. 访问 Polygon Faucet
+#### A. 访问 Avalanche Faucet
 ```bash
 # 打开浏览器访问
-https://faucet.polygon.technology/
+https://core.app/tools/testnet-faucet/?subnet=c&token=c/
 
-# 选择网络: Amoy Testnet
-# 选择代币: POL (MATIC)
+# 选择网络: Fuji Testnet
+# 选择代币: AVAX (AVAX)
 ```
 
-#### B. 申请测试 POL
+#### B. 申请测试AVAX
 1. 连接 MetaMask 钱包
-2. 选择 Amoy 网络
+2. 选择 Fuji 网络
 3. 填入钱包地址（如果需要）
 4. 申请代币（通常 0.5-2 POL）
 5. 等待交易确认 (30-60 秒)
@@ -119,35 +119,35 @@ https://faucet.polygon.technology/
 **验证**:
 ```bash
 # 在 MetaMask 中检查
-- 网络: Amoy
-- 余额: > 0 POL
-- 最近交易: Polygon Faucet
+- 网络: Fuji
+- 余额: > 0AVAX
+- 最近交易: Avalanche Faucet
 ```
 
 **检查点**:
 - [ ] 钱包已连接 MetaMask
-- [ ] 选择了 Amoy 网络
-- [ ] 收到测试 POL
+- [ ] 选择了 Fuji 网络
+- [ ] 收到测试AVAX
 - [ ] 余额在 MetaMask 中可见
 
 ---
 
 ### 4️⃣ 部署合约 (10 分钟)
 
-**目标**: 部署 Memory NFT 合约到 Polygon Amoy
+**目标**: 部署 Memory NFT 合约到 Avalanche Fuji
 
 #### A. 配置 Hardhat
 ```bash
 # 编辑 hardhat.config.ts
-# 确保包含 Amoy 网络配置:
-# - RPC URL: https://rpc-amoy.polygon.technology/
-# - Chain ID: 80002
+# 确保包含 Fuji 网络配置:
+# - RPC URL: https://api.avax-test.network/ext/bc/C/rpc/
+# - Chain ID: 43113
 ```
 
 #### B. 设置部署账户
 ```bash
 # 方式 1: 使用 .env 私钥
-echo "POLYGON_AMOY_PRIVATE_KEY=0x..." >> .env.local
+echo "DEPLOYER_PRIVATE_KEY=0x..." >> .env.local
 
 # 方式 2: 使用 MetaMask 导出
 # MetaMask → Settings → Security & Privacy → 
@@ -159,10 +159,10 @@ echo "POLYGON_AMOY_PRIVATE_KEY=0x..." >> .env.local
 npx hardhat compile
 ```
 
-#### D. 部署到 Amoy
+#### D. 部署到 Fuji
 ```bash
 # 部署合约
-npx hardhat run scripts/deploy.ts --network amoy
+npx hardhat run scripts/deploy.ts --network fuji
 
 # 输出应该包含:
 # - MemoryNFT deployed to: 0x...
@@ -180,11 +180,11 @@ npx hardhat run scripts/deploy.ts --network amoy
 - [ ] 合约编译成功
 - [ ] 部署交易已发送
 - [ ] 合约已验证部署
-- [ ] 可以在 Amoy Polygonscan 查看合约
+- [ ] 可以在 Fuji Snowscan 查看合约
 
-**在 Polygonscan 验证**:
+**在 Snowscan 验证**:
 ```
-访问: https://amoy.polygonscan.com/
+访问: https://testnet.snowscan.xyz/
 搜索: <your-contract-address>
 验证合约代码（可选）
 ```
@@ -199,15 +199,15 @@ npx hardhat run scripts/deploy.ts --network amoy
 ```bash
 # .env.local 中添加:
 VITE_MEMORY_NFT_ADDRESS=0x<deployed-address>
-VITE_POLYGON_AMOY_RPC=https://rpc-amoy.polygon.technology/
-VITE_POLYGON_CHAIN_ID=80002
+VITE_AVALANCHE_FUJI_RPC=https://api.avax-test.network/ext/bc/C/rpc/
+VITE_AVALANCHE_CHAIN_ID=43113
 ```
 
 #### B. 更新前端配置
 ```typescript
 // client/src/config/contracts.ts
 export const MEMORY_NFT_ADDRESS = import.meta.env.VITE_MEMORY_NFT_ADDRESS;
-export const POLYGON_AMOY_RPC = import.meta.env.VITE_POLYGON_AMOY_RPC;
+export const AVALANCHE_FUJI_RPC = import.meta.env.VITE_AVALANCHE_FUJI_RPC;
 ```
 
 #### C. 重建应用
@@ -242,8 +242,8 @@ npm run preview
 1. 打开应用 → http://localhost:5173
 2. 点击登录/注册
 3. 连接 MetaMask 钱包
-   - 确保钱包在 Amoy 网络
-   - 确保有测试 POL
+   - 确保钱包在 Fuji 网络
+   - 确保有测试AVAX
 ```
 
 #### C. 测试 NFT 铸造
@@ -262,8 +262,8 @@ npm run preview
 ```
 1. 在应用中查看 "我的 NFT"
    - 新 NFT 应该出现
-2. 在 Polygonscan 上查看交易
-   - https://amoy.polygonscan.com/
+2. 在 Snowscan 上查看交易
+   - https://testnet.snowscan.xyz/
    - 搜索你的钱包地址
    - 验证 NFT 交易
 ```
@@ -311,13 +311,13 @@ npm run preview
 
 ### 测试币检查
 - [ ] 钱包已连接
-- [ ] 收到 POL 代币
+- [ ] 收到 AVAX 代币
 - [ ] 余额 > 0
 
 ### 合约部署检查
 - [ ] 编译成功
 - [ ] 部署交易已确认
-- [ ] 合约在 Polygonscan 可见
+- [ ] 合约在 Snowscan 可见
 
 ### 应用测试检查
 - [ ] 登录/连接工作
@@ -355,18 +355,18 @@ bash deploy-performance-optimizations.sh
 **解决**:
 ```bash
 1. 安装 MetaMask 浏览器扩展
-2. 添加 Amoy 网络:
-   - 网络名称: Polygon Amoy
-   - RPC URL: https://rpc-amoy.polygon.technology/
-   - Chain ID: 80002
-   - 货币符号: POL
+2. 添加 Fuji 网络:
+   - 网络名称: Avalanche Fuji
+   - RPC URL: https://api.avax-test.network/ext/bc/C/rpc/
+   - Chain ID: 43113
+   - 货币符号:AVAX
 3. 刷新页面重新连接
 ```
 
 ### 问题: NFT 铸造失败
 
 **原因**:
-- POL 代币不足
+- AVAX 代币不足
 - 合约地址错误
 - 交易超时
 

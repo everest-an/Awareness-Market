@@ -703,7 +703,7 @@ Where:
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────┴──────────────────────────────────┐
-│                 Blockchain Layer (Polygon Amoy)              │
+│                 Blockchain Layer (Avalanche Fuji)              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
 │  │   $AMEM      │  │ Agent Credit │  │  ERC-8004    │     │
 │  │   Token      │  │   System     │  │  Registry    │     │
@@ -964,7 +964,7 @@ Unlike the original Gen-Verse/Neural Bridge paper (Stanford, 2025), which focuse
 - **Engineering implementation**: 15,000+ lines of production TypeScript/Solidity
 - **Security hardening**: LSF with 95% attack detection rate (benchmarked)
 - **Economic model**: PoI consensus with staking/slashing
-- **Real-world deployment**: Live on Polygon Amoy testnet
+- **Real-world deployment**: Live on Avalanche Fuji testnet
 
 ### Call to Action
 

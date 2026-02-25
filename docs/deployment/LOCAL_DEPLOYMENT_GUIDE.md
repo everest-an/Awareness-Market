@@ -1,7 +1,7 @@
-# Local Deployment Guide - MemoryNFT to Polygon Mumbai
+# Local Deployment Guide - MemoryNFT to Avalanche Fuji
 
 **Status**: Ready for local deployment  
-**Network**: Polygon Mumbai Testnet  
+**Network**: Avalanche Fuji Testnet  
 **Wallet**: `0x66794fC75C351ad9677cB00B2043868C11dfcadA`
 
 ---
@@ -22,36 +22,36 @@ The Manus Sandbox environment has network restrictions that prevent direct acces
 
 ⚠️ **You Need**:
 - Node.js 18+ installed locally
-- Mumbai MATIC in wallet `0x66794fC75C351ad9677cB00B2043868C11dfcadA`
+- Fuji AVAX in wallet `0x66794fC75C351ad9677cB00B2043868C11dfcadA`
 
 ---
 
-## Step 1: Get Mumbai MATIC
+## Step 1: Get Fuji AVAX
 
 Your wallet address: `0x66794fC75C351ad9677cB00B2043868C11dfcadA`
 
-### Option A: Polygon Faucet (Recommended)
-1. Visit https://faucet.polygon.technology/
-2. Select "Mumbai" network
+### Option A: Avalanche Faucet (Recommended)
+1. Visit https://core.app/tools/testnet-faucet/?subnet=c&token=c/
+2. Select "Fuji" network
 3. Enter your wallet address: `0x66794fC75C351ad9677cB00B2043868C11dfcadA`
 4. Complete CAPTCHA
 5. Click "Submit"
-6. Wait 1-2 minutes for MATIC to arrive
+6. Wait 1-2 minutes for AVAX to arrive
 
 ### Option B: Alchemy Faucet
-1. Visit https://mumbaifaucet.com/
+1. Visit https://core.app/tools/testnet-faucet/?subnet=c&token=c
 2. Enter wallet address
-3. Get 0.5 MATIC
+3. Get 0.5 AVAX
 
 ### Option C: Chainlink Faucet
-1. Visit https://faucets.chain.link/mumbai
+1. Visit https://core.app/tools/testnet-faucet/?subnet=c&token=c
 2. Connect wallet or enter address
-3. Get 0.1 MATIC
+3. Get 0.1 AVAX
 
 **Verify Balance**:
 ```bash
-# Check balance on PolygonScan
-https://mumbai.polygonscan.com/address/0x66794fC75C351ad9677cB00B2043868C11dfcadA
+# Check balance on Snowscan
+https://testnet.snowscan.xyz/address/0x66794fC75C351ad9677cB00B2043868C11dfcadA
 ```
 
 ---
@@ -94,8 +94,8 @@ Check `.env.local` file:
 DEPLOYER_PRIVATE_KEY=0x1cc1d0830f0316a907ca7029a173939c6f283ce67d0585cb048f26f092ad1718
 DEPLOYER_ADDRESS=0x66794fC75C351ad9677cB00B2043868C11dfcadA
 
-# Polygon Mumbai RPC
-MUMBAI_RPC_URL=https://rpc.ankr.com/polygon_mumbai
+# Avalanche Fuji RPC
+FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 ```
 
 **Security Note**: This is your testnet wallet. Never use this private key for mainnet!
@@ -111,12 +111,12 @@ node scripts/deploy/deploy-memory-nft-v2.mjs
 **Expected Output**:
 ```
 ╔══════════════════════════════════════════════════════════╗
-║  Deploying MemoryNFT to Polygon Mumbai                  ║
+║  Deploying MemoryNFT to Avalanche Fuji                  ║
 ╚══════════════════════════════════════════════════════════╝
 
-Connecting to Mumbai RPC: https://rpc.ankr.com/polygon_mumbai
+Connecting to Fuji RPC: https://api.avax-test.network/ext/bc/C/rpc
 Deploying with account: 0x66794fC75C351ad9677cB00B2043868C11dfcadA
-Account balance: 0.5 MATIC
+Account balance: 0.5 AVAX
 
 Loading compiled contract...
 Deploying MemoryNFT contract...
@@ -132,8 +132,8 @@ Waiting for 5 block confirmations...
 ╚══════════════════════════════════════════════════════════╝
 
 {
-  "network": "mumbai",
-  "chainId": 80001,
+  "network": "fuji",
+  "chainId": 43113,
   "contracts": {
     "memoryNFT": {
       "address": "0x...",
@@ -153,15 +153,15 @@ Waiting for 5 block confirmations...
 
 ---
 
-## Step 6: Verify Contract on PolygonScan (Optional)
+## Step 6: Verify Contract on Snowscan (Optional)
 
 ```bash
-# Get PolygonScan API key from: https://polygonscan.com/apis
+# Get Snowscan API key from: https://snowscan.com/apis
 # Add to .env.local:
-POLYGONSCAN_API_KEY=your_api_key_here
+SNOWSCAN_API_KEY=your_api_key_here
 
 # Verify contract
-npx hardhat verify --network mumbai <CONTRACT_ADDRESS>
+npx hardhat verify --network fuji <CONTRACT_ADDRESS>
 ```
 
 ---
@@ -176,7 +176,7 @@ After successful deployment, update the backend with the contract address:
 // Line 8-10
 const MEMORY_NFT_ADDRESS = "0x..."; // Your deployed contract address
 const ERC6551_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
-const MUMBAI_RPC_URL = "https://rpc.ankr.com/polygon_mumbai";
+const FUJI_RPC_URL = "https://api.avax-test.network/ext/bc/C/rpc";
 ```
 
 ### 7.2 Update Environment Variables
@@ -187,7 +187,7 @@ Add to your production `.env`:
 # Smart Contract Addresses
 MEMORY_NFT_CONTRACT=0x...
 ERC6551_REGISTRY=0x000000006551c19487814612e58FE06813775758
-POLYGON_RPC_URL=https://rpc.ankr.com/polygon_mumbai
+AVALANCHE_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 ```
 
 ---
@@ -203,7 +203,7 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 async function testMinting() {
-  const provider = new ethers.JsonRpcProvider(process.env.MUMBAI_RPC_URL);
+  const provider = new ethers.JsonRpcProvider(process.env.FUJI_RPC_URL);
   const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY!, provider);
   
   const contractAddress = "0x..."; // Your deployed contract
@@ -255,7 +255,7 @@ This ensures the deployment info is synced with your Manus project.
 ## Troubleshooting
 
 ### Error: "insufficient funds"
-**Solution**: Get more Mumbai MATIC from faucet
+**Solution**: Get more Fuji AVAX from faucet
 
 ### Error: "nonce too low"
 **Solution**: Wait a few minutes and try again
@@ -285,15 +285,15 @@ If you prefer a GUI:
 3. Compile with Solidity 0.8.20
 4. Deploy & Run Transactions:
    - Environment: "Injected Provider - MetaMask"
-   - Network: Polygon Mumbai
+   - Network: Avalanche Fuji
    - Deploy
 
 ---
 
 ## Next Steps After Deployment
 
-1. ✅ Contract deployed to Mumbai
-2. ✅ Verified on PolygonScan
+1. ✅ Contract deployed to Fuji
+2. ✅ Verified on Snowscan
 3. ✅ Backend updated with contract address
 4. ✅ NFT minting tested
 
@@ -309,20 +309,20 @@ If you prefer a GUI:
 
 | Contract | Address | Network |
 |----------|---------|---------|
-| MemoryNFT | `0x...` (after deployment) | Mumbai |
-| ERC6551 Registry | `0x000000006551c19487814612e58FE06813775758` | Mumbai (pre-deployed) |
+| MemoryNFT | `0x...` (after deployment) | Fuji |
+| ERC6551 Registry | `0x000000006551c19487814612e58FE06813775758` | Fuji (pre-deployed) |
 
 ---
 
 ## Useful Links
 
-- **Mumbai Faucet**: https://faucet.polygon.technology/
-- **PolygonScan Mumbai**: https://mumbai.polygonscan.com/
+- **Fuji Faucet**: https://core.app/tools/testnet-faucet/?subnet=c&token=c/
+- **Snowscan Fuji**: https://testnet.snowscan.xyz/
 - **OpenSea Testnet**: https://testnets.opensea.io/
 - **ERC-6551 Docs**: https://erc6551.org/
 
 ---
 
 *Last Updated: 2026-01-05*  
-*Network: Polygon Mumbai (Testnet)*  
+*Network: Avalanche Fuji (Testnet)*  
 *Deployer: 0x66794fC75C351ad9677cB00B2043868C11dfcadA*

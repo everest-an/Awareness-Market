@@ -2,11 +2,11 @@
  * Deploy ERC-8004 Registry Contract
  * 
  * Usage:
- *   npx hardhat run scripts/deploy/deploy-erc8004.ts --network amoy
- * 
+ *   npx hardhat run scripts/deploy/deploy-erc8004.ts --network fuji
+ *
  * Environment Variables Required:
  *   - DEPLOYER_PRIVATE_KEY: Private key for deployment
- *   - AMOY_RPC_URL: Polygon Amoy RPC URL
+ *   - FUJI_RPC_URL: Avalanche Fuji RPC URL
  */
 
 import { ethers } from "hardhat";
@@ -19,11 +19,11 @@ async function main() {
   console.log("Deployer address:", deployer.address);
   
   const balance = await ethers.provider.getBalance(deployer.address);
-  console.log("Deployer balance:", ethers.formatEther(balance), "MATIC\n");
+  console.log("Deployer balance:", ethers.formatEther(balance), "AVAX\n");
 
   if (balance === 0n) {
-    console.error("❌ Deployer has no MATIC. Get testnet MATIC from faucet:");
-    console.error("   https://faucet.polygon.technology/");
+    console.error("❌ Deployer has no AVAX. Get testnet AVAX from faucet:");
+    console.error("   https://core.app/tools/testnet-faucet/?subnet=c&token=c");
     process.exit(1);
   }
 

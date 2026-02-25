@@ -5,21 +5,21 @@ import { readFileSync } from 'fs';
 dotenv.config();
 
 async function main() {
-  console.log('Deploying ERC-8004 Registry to Polygon Mainnet...');
+  console.log('Deploying ERC-8004 Registry to Avalanche C-Chain...');
 
-  const rpcUrl = 'https://polygon-mainnet.g.alchemy.com/v2/vg-5r0YReOdDkSCOhgKOnsnuRJXsZLID';
-  const provider = new ethers.JsonRpcProvider(rpcUrl, { name: 'polygon', chainId: 137 });
+  const rpcUrl = process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc';
+  const provider = new ethers.JsonRpcProvider(rpcUrl, { name: 'avalanche', chainId: 43114 });
   const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY!, provider);
-  
+
   console.log('Deployer:', wallet.address);
-  
+
   const balance = await provider.getBalance(wallet.address);
-  console.log('Balance:', ethers.formatEther(balance), 'POL');
+  console.log('Balance:', ethers.formatEther(balance), 'AVAX');
 
   const feeData = await provider.getFeeData();
   const maxFee = (feeData.maxFeePerGas || 0n) * 200n / 100n;
   const priorityFee = (feeData.maxPriorityFeePerGas || 0n) * 200n / 100n;
-  
+
   console.log('Gas Price:', ethers.formatUnits(maxFee, 'gwei'), 'Gwei');
 
   const contractPath = './artifacts/contracts/ERC8004Registry.sol/ERC8004Registry.json';
@@ -27,13 +27,13 @@ async function main() {
 
   console.log('Deploying ERC8004Registry...');
   const factory = new ethers.ContractFactory(contractJson.abi, contractJson.bytecode, wallet);
-  
+
   const registry = await factory.deploy({
     gasLimit: 3000000,
     maxFeePerGas: maxFee,
     maxPriorityFeePerGas: priorityFee
   });
-  
+
   console.log('Tx:', registry.deploymentTransaction()?.hash);
   await registry.waitForDeployment();
 
@@ -43,7 +43,7 @@ async function main() {
   console.log('Verifying deployment...');
   const owner = await registry.owner();
   console.log('Owner:', owner);
-  
+
   const totalAgents = await registry.totalAgents();
   console.log('Total agents:', totalAgents.toString());
 

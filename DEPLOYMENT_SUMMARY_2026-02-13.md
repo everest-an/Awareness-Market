@@ -254,9 +254,9 @@ git push origin main
 
    # ERC-8004 (可选 - 如需区块链登录)
    ERC8004_REGISTRY_ADDRESS=0x1Ae90F59731e16b548E34f81F0054e96DdACFc28
-   POLYGON_RPC_URL=https://polygon-rpc.com
+   AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
    # 或使用 Alchemy/Infura
-   # POLYGON_RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY
+   # AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
    # 数据库 (可选 - 如需 RMC 功能)
    DATABASE_URL=postgresql://...
@@ -441,7 +441,7 @@ curl -X POST https://your-domain.com/api/mcp/auth/verify \
 - 查看服务器日志
 
 **Q3: ERC-8004 不工作？**
-- 检查 POLYGON_RPC_URL 配置
+- 检查 AVALANCHE_RPC_URL 配置
 - 确认合约地址正确
 - 测试 RPC 端点连接性
 

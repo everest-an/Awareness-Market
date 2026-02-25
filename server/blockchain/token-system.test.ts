@@ -24,7 +24,7 @@ vi.mock('ethers', () => {
   };
 
   const mockProvider = {
-    getNetwork: vi.fn().mockResolvedValue({ name: 'polygon', chainId: 137n }),
+    getNetwork: vi.fn().mockResolvedValue({ name: 'avalanche', chainId: 137n }),
   };
 
   const mockWallet = vi.fn().mockImplementation(() => ({
@@ -67,7 +67,7 @@ describe('Token System Client', () => {
 
     it('should require token contract address', () => {
       const config = {
-        rpcUrl: 'https://rpc.polygon.com',
+        rpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
         amemTokenAddress: '',
         creditSystemAddress: '0x456',
       };
@@ -77,7 +77,7 @@ describe('Token System Client', () => {
 
     it('should require credit system address', () => {
       const config = {
-        rpcUrl: 'https://rpc.polygon.com',
+        rpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
         amemTokenAddress: '0x123',
         creditSystemAddress: '',
       };
@@ -87,7 +87,7 @@ describe('Token System Client', () => {
 
     it('should accept valid configuration', () => {
       const config = {
-        rpcUrl: 'https://rpc.polygon.com',
+        rpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
         amemTokenAddress: '0x1234567890123456789012345678901234567890',
         creditSystemAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
       };

@@ -104,8 +104,8 @@ STRIPE_PUBLISHABLE_KEY=pk_live_...
 # ============================================
 # Blockchain (可选)
 # ============================================
-AMOY_RPC_URL=https://rpc-amoy.polygon.technology
-POLYGON_RPC_URL=https://polygon-rpc.com
+FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
+AVALANCHE_RPC_URL=https://avalanche-rpc.com
 # AMEM_TOKEN_ADDRESS=0x...
 # ERC8004_REGISTRY_ADDRESS=0x...
 

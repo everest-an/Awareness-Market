@@ -249,7 +249,7 @@ export const creditPaymentRouter = router({
         tokenAddress,
         tokenAmount,
         paymentAddress,
-        network: process.env.BLOCKCHAIN_NETWORK || 'amoy',
+        network: process.env.BLOCKCHAIN_NETWORK || 'fuji',
         decimals: 6,
       };
     }),
@@ -266,7 +266,7 @@ export const creditPaymentRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.POLYGON_RPC_URL || '';
+      const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || '';
       const paymentAddress = (process.env.STABLECOIN_PAYMENT_ADDRESS || '').toLowerCase();
 
       if (!rpcUrl || !paymentAddress) {
@@ -335,7 +335,7 @@ export const creditPaymentRouter = router({
           receivedTokenAmount: ethers.formatUnits(totalReceived, 6),
           fromAddress,
           paymentAddress,
-          network: process.env.BLOCKCHAIN_NETWORK || 'amoy',
+          network: process.env.BLOCKCHAIN_NETWORK || 'fuji',
         },
       });
 

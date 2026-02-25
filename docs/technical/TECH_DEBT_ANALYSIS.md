@@ -259,7 +259,7 @@ docs/
 
 | 问题 | 优先级 | 说明 |
 |------|--------|------|
-| 部署合约到Polygon Amoy | P1 | 需要测试网MATIC |
+| 部署合约到Avalanche Fuji | P1 | 需要测试网AVAX |
 | Gasless注册 (Meta-Transaction) | P2 | 支持无Gas注册 |
 | 信誉分数索引 | P2 | 链下索引提高查询效率 |
 | 多链支持 | P3 | 支持其他EVM链 |
@@ -270,21 +270,21 @@ docs/
 ```env
 # ERC-8004 配置
 ERC8004_REGISTRY_ADDRESS=0x...  # 部署后填写
-AMOY_RPC_URL=https://rpc-amoy.polygon.technology
+FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 DEPLOYER_PRIVATE_KEY=...        # 仅用于部署
 ```
 
 ### 部署步骤
 
 ```bash
-# 1. 获取测试网MATIC
-# https://faucet.polygon.technology/
+# 1. 获取测试网AVAX
+# https://core.app/tools/testnet-faucet/?subnet=c&token=c/
 
 # 2. 配置私钥
 echo "DEPLOYER_PRIVATE_KEY=your-key" >> .env
 
 # 3. 部署合约
-npx hardhat run scripts/deploy/deploy-erc8004.ts --network amoy
+npx hardhat run scripts/deploy/deploy-erc8004.ts --network fuji
 
 # 4. 更新配置
 echo "ERC8004_REGISTRY_ADDRESS=0x..." >> .env
@@ -296,7 +296,7 @@ npm run dev
 ### 技术债务
 
 1. **合约未部署**: 需要测试网MATIC才能部署
-2. **缺少合约验证**: 部署后需要在Polygonscan验证源码
+2. **缺少合约验证**: 部署后需要在Snowscan验证源码
 3. **缺少事件监听**: 未实现链上事件的实时监听
 4. **缺少批量操作**: 不支持批量注册/验证
 5. **缺少升级机制**: 合约不可升级，需要代理模式

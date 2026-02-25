@@ -60,21 +60,21 @@ This report analyzes the gap between the Neural Bridge whitepaper specification 
 **Current Status**:
 - ✅ MemoryNFT.sol contract written and compiled
 - ✅ Deployment script created (`scripts/deploy/deploy-memory-nft.ts`)
-- ❌ **Not deployed to Mumbai testnet** (requires Mumbai MATIC)
+- ❌ **Not deployed to Fuji testnet** (requires Fuji AVAX)
 - ❌ **Backend not connected** to deployed contracts
 - ❌ **NFT minting untested**
 
 **Impact**: **CRITICAL** - No on-chain ownership, no TBA functionality
 
 **Action Required**:
-1. Get Mumbai MATIC from faucet
-2. Deploy MemoryNFT to Mumbai
+1. Get Fuji AVAX from faucet
+2. Deploy MemoryNFT to Fuji
 3. Update `server/neural-bridge/erc6551-tba.ts` with contract address
 4. Test NFT minting end-to-end
-5. Verify on PolygonScan
+5. Verify on Snowscan
 
-**Estimated Time**: 15-20 minutes  
-**Estimated Cost**: $0 (testnet MATIC is free)
+**Estimated Time**: 15-20 minutes
+**Estimated Cost**: $0 (testnet AVAX is free)
 
 ---
 
@@ -428,17 +428,17 @@ This report analyzes the gap between the Neural Bridge whitepaper specification 
 
 **Expected Flow**:
 1. User purchases W-Matrix
-2. Backend mints Memory NFT on Polygon
+2. Backend mints Memory NFT on Avalanche
 3. Backend creates Token Bound Account (TBA)
 4. User sees NFT in `/my-memories`
-5. User can view NFT on PolygonScan
+5. User can view NFT on Snowscan
 6. TBA can receive payments/assets
 
 **Current Status**:
 - ❌ **Completely blocked** - contracts not deployed
 
 **Blockers**:
-1. MemoryNFT not deployed to Mumbai
+1. MemoryNFT not deployed to Fuji
 2. Backend not connected to contracts
 3. NFT minting untested
 
@@ -664,7 +664,7 @@ print(output)  # {"sentiment": "positive", "confidence": 0.95}
    - **Impact**: Unblocks entire marketplace
 
 2. **Deploy Smart Contracts** ⚡
-   - Get Mumbai MATIC
+   - Get Fuji AVAX
    - Deploy MemoryNFT
    - Update backend config
    - **Impact**: Enables NFT minting
@@ -749,7 +749,7 @@ print(output)  # {"sentiment": "positive", "confidence": 0.95}
 
 2. **Smart Contracts Not Deployed** 🔴
    - **Risk**: No on-chain functionality
-   - **Mitigation**: Deploy to Mumbai within 24 hours
+   - **Mitigation**: Deploy to Fuji within 24 hours
 
 3. **MCP Server Not Configured** 🟠
    - **Risk**: AI agents can't discover marketplace

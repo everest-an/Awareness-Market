@@ -320,8 +320,8 @@ REDIS_URL=redis://localhost:6379              # 本地
 如果使用$AMEM代币和ERC-8004功能。
 
 ```bash
-AMOY_RPC_URL=https://rpc-amoy.polygon.technology
-POLYGON_RPC_URL=https://polygon-rpc.com
+FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
+AVALANCHE_RPC_URL=https://avalanche-rpc.com
 # AMEM_TOKEN_ADDRESS=0x...
 # ERC8004_REGISTRY_ADDRESS=0x...
 ```
@@ -586,8 +586,8 @@ STRIPE_PUBLISHABLE_KEY=pk_live_...
 # ============================================
 # Blockchain (Optional)
 # ============================================
-AMOY_RPC_URL=https://rpc-amoy.polygon.technology
-POLYGON_RPC_URL=https://polygon-rpc.com
+FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
+AVALANCHE_RPC_URL=https://avalanche-rpc.com
 ```
 
 ---

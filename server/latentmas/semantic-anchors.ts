@@ -390,6 +390,16 @@ export class SemanticAnchorDB {
   calibrateAlignment(vector: number[]): AlignmentCalibration {
     const nearestAnchors = this.findNearestAnchors(vector, 20);
 
+    // No anchor vectors stored yet — skip calibration, pass by default
+    if (nearestAnchors.length === 0) {
+      return {
+        anchors: [],
+        calibrationScore: 1.0,
+        coverage: 1.0,
+        recommendations: [],
+      };
+    }
+
     // Calculate calibration score (average similarity to top anchors)
     const calibrationScore =
       nearestAnchors.reduce((sum, a) => sum + a.similarity, 0) /

@@ -470,7 +470,7 @@ export const zkpRouter = router({
     .input(z.object({
       proof: VerifyProofInputSchema.shape.proof,
       packageId: z.string(),
-      network: z.enum(['polygon-amoy', 'ethereum-sepolia', 'arbitrum-sepolia']),
+      network: z.enum(['avalanche-fuji', 'ethereum-sepolia', 'arbitrum-sepolia']),
     }))
     .mutation(async ({ input, ctx }) => {
       const endpoint = process.env.ZKP_ONCHAIN_ENDPOINT;
@@ -508,7 +508,7 @@ export const zkpRouter = router({
         preparation: {
           proofReady: true,
           proofSize: JSON.stringify(input.proof).length,
-          estimatedGas: '200,000 gas (~$0.50 on Polygon)',
+          estimatedGas: '200,000 gas (~$0.10 on Avalanche)',
           requiredSteps: [
             '1. Deploy ZKP verifier contract',
             '2. Register package commitment on-chain',

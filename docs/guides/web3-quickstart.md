@@ -105,7 +105,7 @@ REACT_APP_MEMORY_NFT_ADDRESS=0x...
 
 # 或者使用部署脚本生成
 DEPLOYER_PRIVATE_KEY=0x...
-AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
+FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
 ```
 
 ## 📋 核心功能
@@ -127,12 +127,12 @@ const state = provider.getState();
 //   address: string | null
 //   chainId: number | null
 //   balance: string | null  (Wei)
-//   isOnAmoy: boolean
+//   isOnFuji: boolean
 //   error: string | null
 // }
 
 // 网络切换
-await provider.switchToAmoy();
+await provider.switchToFuji();
 
 // 交易
 const txHash = await provider.sendTransaction(to, value, data);
@@ -171,7 +171,7 @@ const supply = await nftManager.getTotalSupply();
 
 // 交易
 const txHash = await nftManager.buyLicense(tokenId);
-const txHash = await nftManager.mintNFT(to, metadata, priceInMatic);
+const txHash = await nftManager.mintNFT(to, metadata, priceInAvax);
 
 // 事件
 const unsubscribe = nftManager.onNFTTransfer((from, to, id) => {});
@@ -215,21 +215,21 @@ VITE_MEMORY_NFT_ADDRESS=0x<deployment_address>
 ### Step 4: 测试
 
 1. 安装 MetaMask
-2. 配置 Polygon Amoy 网络
-3. 从 faucet 获取测试 POL
+2. 配置 Avalanche Fuji 网络
+3. 从 faucet 获取测试 AVAX
 4. 测试连接、购买、查询等功能
 
 ## 🌐 网络配置
 
-### Polygon Amoy (测试网)
+### Avalanche Fuji (测试网)
 
 | 配置 | 值 |
 |------|-----|
-| Network Name | Polygon Amoy |
-| Chain ID | 80002 |
-| RPC | https://rpc-amoy.polygon.technology/ |
-| Explorer | https://amoy.polygonscan.com |
-| Faucet | https://faucet.polygon.technology/ |
+| Network Name | Avalanche Fuji |
+| Chain ID | 43113 |
+| RPC | https://api.avax-test.network/ext/bc/C/rpc |
+| Explorer | https://testnet.snowscan.xyz |
+| Faucet | https://core.app/tools/testnet-faucet/?subnet=c&token=c |
 
 **WalletConnect 组件会自动处理网络切换！**
 
@@ -269,9 +269,9 @@ const unsubscribe = nftManager.onNFTTransfer((from, to, tokenId) => {
 // 清理时调用 unsubscribe()
 ```
 
-### Q: MetaMask 不能自动添加 Amoy 网络怎么办？
+### Q: MetaMask 不能自动添加 Fuji 网络怎么办？
 
-使用 WalletConnect 组件中的"Switch to Polygon Amoy"按钮，它会提示手动添加网络。或者从 [Polygonscan](https://amoy.polygonscan.com) 一键添加。
+使用 WalletConnect 组件中的"Switch to Avalanche Fuji"按钮，它会提示手动添加网络。或者从 [Snowscan](https://testnet.snowscan.xyz) 一键添加。
 
 ## 📖 完整文档
 

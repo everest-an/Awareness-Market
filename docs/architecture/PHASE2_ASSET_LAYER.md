@@ -167,7 +167,7 @@ Pre-configured for testnets:
 
 | Network | Chain ID | Registry Address |
 |---------|----------|------------------|
-| Polygon Mumbai | 80001 | `0x02101dfB77FDE026414827Fdc604ddAF224F0921` |
+| Avalanche Fuji | 43113 | `0x02101dfB77FDE026414827Fdc604ddAF224F0921` |
 | Ethereum Sepolia | 11155111 | `0x02101dfB77FDE026414827Fdc604ddAF224F0921` |
 | Base Sepolia | 84532 | `0x02101dfB77FDE026414827Fdc604ddAF224F0921` |
 
@@ -178,7 +178,7 @@ import { createTBAManager, TESTNET_CONFIGS } from './erc6551-tba';
 
 // Initialize manager
 const tbaManager = createTBAManager({
-  ...TESTNET_CONFIGS.mumbai,
+  ...TESTNET_CONFIGS.fuji,
   privateKey: process.env.PRIVATE_KEY,
 });
 

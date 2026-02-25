@@ -19,7 +19,7 @@ Web3 & 区块链: ✅ 100%
 - ✅ 完整文档
 
 基础设施: ✅ 100%
-- ✅ Polygon Amoy 配置
+- ✅ Avalanche Fuji 配置
 - ✅ 部署脚本
 - ✅ 环境配置
 - ✅ Git 仓库
@@ -39,7 +39,7 @@ Web3 & 区块链: ✅ 100%
 - ✅ `web3-provider.ts` (350 行)
   - ethers.js v6 完整包装
   - 连接/断开管理
-  - 网络切换 (Amoy)
+  - 网络切换 (Fuji)
   - 消息签名
   - 交易发送
   - 合约实例创建
@@ -180,8 +180,8 @@ ae75313 - docs: 添加 MemoryNFT 部署指南和部署助手脚本 (513 行)
 功能包括：
 - 连接 MetaMask 钱包
 - 显示账户地址
-- 显示 MATIC 余额
-- 切换到 Polygon Amoy
+- 显示 AVAX 余额
+- 切换到 Avalanche Fuji
 - 完整的 UI 反馈
 
 ### 2. 全局钱包状态
@@ -194,7 +194,7 @@ state = {
   address: string | null
   chainId: number | null
   balance: string | null (Wei)
-  isOnAmoy: boolean
+  isOnFuji: boolean
   error: string | null
 }
 ```
@@ -233,7 +233,7 @@ const signature = await provider.signMessage('message');
 - [ ] 部署 MemoryNFT 合约
   - 准备: `npm run deploy:setup`
   - 配置 .env.local
-  - 获取测试 POL
+  - 获取测试AVAX
   - 执行部署
 - [ ] 测试钱包连接
 - [ ] 集成到 MemoryMarketplace
@@ -249,7 +249,7 @@ const signature = await provider.signMessage('message');
 
 ### 短期 (1-2 天)
 1. 运行 `npm run deploy:setup` 配置部署
-2. 获取 Polygon Amoy 测试 POL
+2. 获取 Avalanche Fuji 测试 AVAX
 3. 部署 MemoryNFT 合约
 4. 更新 `.env.local` 中的合约地址
 
@@ -314,7 +314,7 @@ const signature = await provider.signMessage('message');
 
 现在可以:
 - ✅ 连接 MetaMask 钱包
-- ✅ 切换网络到 Polygon Amoy
+- ✅ 切换网络到 Avalanche Fuji
 - ✅ 查询 NFT 信息
 - ✅ 购买 NFT 许可证
 - ✅ 监听合约事件

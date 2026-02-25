@@ -12,9 +12,9 @@
  * - Transaction audit log for compliance
  * 
  * Architecture:
- * - Each AI agent gets a unique Polygon wallet on first request
+ * - Each AI agent gets a unique Avalanche C-Chain wallet on first request
  * - Wallet is used for approve → directPurchase on StablecoinPaymentSystem contract
- * - Platform operator funds wallets with MATIC for gas
+ * - Platform operator funds wallets with AVAX for gas
  */
 
 import { ethers } from 'ethers';
@@ -47,7 +47,7 @@ export interface AgentWalletInfo {
 
 export interface AgentWalletBalance {
   address: string;
-  maticBalance: string;     // Gas token
+  avaxBalance: string;     // Gas token
   usdcBalance: string;      // USDC in wallet
   usdtBalance: string;      // USDT in wallet
   contractUsdcBalance: string; // USDC deposited in payment contract
@@ -65,13 +65,13 @@ interface EncryptedKey {
 // Constants
 // ============================================================================
 
-const POLYGON_CHAIN_ID = 137;
+const AVALANCHE_CHAIN_ID = 43114;
 const ALGORITHM = 'aes-256-gcm';
 const KEY_DERIVATION_ITERATIONS = 100000;
 
-// Stablecoin addresses on Polygon Mainnet
-const USDC_ADDRESS = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
-const USDT_ADDRESS = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F';
+// Stablecoin addresses on Avalanche C-Chain Mainnet
+const USDC_ADDRESS = '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E';
+const USDT_ADDRESS = '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7';
 
 // Minimal ERC20 ABI for balance checks
 const ERC20_ABI = [
@@ -146,7 +146,7 @@ let _provider: ethers.JsonRpcProvider | null = null;
 
 function getProvider(): ethers.JsonRpcProvider {
   if (!_provider) {
-    const rpcUrl = process.env.POLYGON_RPC_URL || process.env.BLOCKCHAIN_RPC_URL || 'https://polygon-rpc.com';
+    const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc';
     _provider = new ethers.JsonRpcProvider(rpcUrl);
   }
   return _provider;
@@ -170,7 +170,7 @@ export async function getOrCreateAgentWallet(userId: number): Promise<AgentWalle
     const todaySpent = await getTodaySpent(userId);
     return {
       address: existing.walletAddress,
-      chainId: POLYGON_CHAIN_ID,
+      chainId: AVALANCHE_CHAIN_ID,
       createdAt: existing.createdAt,
       dailySpendLimit: Number(existing.dailySpendLimit),
       perTxSpendLimit: Number(existing.perTxSpendLimit),
@@ -188,7 +188,7 @@ export async function getOrCreateAgentWallet(userId: number): Promise<AgentWalle
       userId,
       walletAddress: wallet.address,
       encryptedKey: JSON.stringify(encrypted),
-      chainId: POLYGON_CHAIN_ID,
+      chainId: AVALANCHE_CHAIN_ID,
       dailySpendLimit: DEFAULT_DAILY_LIMIT,
       perTxSpendLimit: DEFAULT_PER_TX_LIMIT,
       isActive: true,
@@ -202,7 +202,7 @@ export async function getOrCreateAgentWallet(userId: number): Promise<AgentWalle
 
   return {
     address: created.walletAddress,
-    chainId: POLYGON_CHAIN_ID,
+    chainId: AVALANCHE_CHAIN_ID,
     createdAt: created.createdAt,
     dailySpendLimit: DEFAULT_DAILY_LIMIT,
     perTxSpendLimit: DEFAULT_PER_TX_LIMIT,
@@ -269,7 +269,7 @@ export async function getAgentWalletBalance(userId: number): Promise<AgentWallet
   const paymentContract = new ethers.Contract(paymentContractAddress, PAYMENT_ABI, provider);
 
   const [
-    maticBalance,
+    avaxBalance,
     usdcBalance,
     usdtBalance,
     contractUsdcBalance,
@@ -284,7 +284,7 @@ export async function getAgentWalletBalance(userId: number): Promise<AgentWallet
 
   return {
     address,
-    maticBalance: ethers.formatEther(maticBalance),
+    avaxBalance: ethers.formatEther(avaxBalance),
     usdcBalance: ethers.formatUnits(usdcBalance, 6),
     usdtBalance: ethers.formatUnits(usdtBalance, 6),
     contractUsdcBalance: ethers.formatUnits(contractUsdcBalance, 6),

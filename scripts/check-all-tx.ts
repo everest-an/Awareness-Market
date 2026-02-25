@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-const provider = new ethers.JsonRpcProvider('https://polygon-mainnet.g.alchemy.com/v2/vg-5r0YReOdDkSCOhgKOnsnuRJXsZLID');
+const provider = new ethers.JsonRpcProvider(process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc');
 const wallet = '0xBB14Dd923A28DBEB6BA86801DA38CdE60b72D35b';
 
 const nonce = await provider.getTransactionCount(wallet, 'latest');
