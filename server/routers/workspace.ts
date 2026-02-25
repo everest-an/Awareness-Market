@@ -208,7 +208,7 @@ export const workspaceRouter = router({
       const tokenData = await db.createMcpToken({
         userId: ctx.user.id,
         name: `Workspace: ${input.name}`,
-        permissions: ['sync', 'memory', 'collab'],
+        permissions: ['read', 'write', 'propose'],
         expiresInDays: 365,
       });
 
@@ -764,7 +764,7 @@ export const workspaceRouter = router({
       const newTokenData = await db.createMcpToken({
         userId: ctx.user.id,
         name: `Workspace: ${workspace.name} (rotated)`,
-        permissions: ['sync', 'memory', 'collab'],
+        permissions: ['read', 'write', 'propose'],
         expiresInDays: 365,
       });
 

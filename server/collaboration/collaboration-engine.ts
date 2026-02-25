@@ -704,7 +704,7 @@ export class CollaborationEngine {
           name: `Collaboration Session ${sessionId}`,
           tokenHash: generatedToken,
           tokenPrefix: `mcp_${sessionId.substring(0, 8)}`,
-          permissions: JSON.stringify(['sync', 'memory']),
+          permissions: JSON.stringify(['read', 'write', 'propose']),
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
           isActive: true,
         }

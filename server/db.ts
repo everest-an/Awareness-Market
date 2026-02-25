@@ -515,7 +515,7 @@ export async function createMcpToken(params: {
         tokenHash,
         tokenPrefix,
         name: params.name,
-        permissions: JSON.stringify(params.permissions || ["sync", "memory"]),
+        permissions: JSON.stringify(params.permissions || ["read", "write", "propose"]),
         expiresAt,
         isActive: true,
       },

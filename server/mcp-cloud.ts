@@ -48,7 +48,7 @@ async function authenticateMcpRequest(req: Request): Promise<AuthResult | null> 
       const record = await db.getMcpTokenByToken(token);
       if (record) {
         const perms = (() => {
-          try { return JSON.parse(record.permissions as string); } catch { return ['read', 'write', 'propose']; }
+          try { return normalizePermissions(JSON.parse(record.permissions as string)); } catch { return ['read', 'write', 'propose']; }
         })();
         return { userId: record.userId, permissions: perms };
       }
@@ -61,7 +61,7 @@ async function authenticateMcpRequest(req: Request): Promise<AuthResult | null> 
     const record = await db.getMcpTokenByToken(mcpToken);
     if (record) {
       const perms = (() => {
-        try { return JSON.parse(record.permissions as string); } catch { return ['read', 'write', 'propose']; }
+        try { return normalizePermissions(JSON.parse(record.permissions as string)); } catch { return ['read', 'write', 'propose']; }
       })();
       return { userId: record.userId, permissions: perms };
     }
@@ -80,6 +80,25 @@ const TOOL_PERMISSION_MAP: Record<string, string> = {
   sync_progress: 'write',
   ask_question: 'write',
 };
+
+// Backwards-compatible mapping: workspace tokens were created with
+// ['sync', 'memory', 'collab'] but tools check for ['read', 'write', 'propose'].
+// Normalize legacy permission names so existing tokens keep working.
+function normalizePermissions(perms: string[]): string[] {
+  const LEGACY_MAP: Record<string, string[]> = {
+    sync: ['write'],
+    memory: ['read'],
+    collab: ['propose'],
+  };
+  const normalized = new Set<string>();
+  for (const p of perms) {
+    if (LEGACY_MAP[p]) {
+      for (const mapped of LEGACY_MAP[p]) normalized.add(mapped);
+    }
+    normalized.add(p); // keep original too
+  }
+  return [...normalized];
+}
 
 // ─── Auto-heartbeat helper ──────────────────────────────────────────────
 
