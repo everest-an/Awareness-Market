@@ -17,7 +17,7 @@ test.describe('Authentication Flows', () => {
 
     await expect(page.locator('input[type="email"], input[placeholder*="email" i]').first()).toBeVisible();
     await expect(page.locator('input[type="password"]').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /login|sign in/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign In', exact: true })).toBeVisible();
   });
 
   test('Register form has name, email, and password fields', async ({ page }) => {
@@ -33,7 +33,7 @@ test.describe('Authentication Flows', () => {
     const loginTab = page.getByRole('tab', { name: /login|sign in/i });
     await loginTab.click();
 
-    const loginBtn = page.getByRole('button', { name: /login|sign in/i });
+    const loginBtn = page.getByRole('button', { name: 'Sign In', exact: true });
     await loginBtn.click();
 
     // Should show some form of error (toast, inline error, or button stays on page)
@@ -49,7 +49,7 @@ test.describe('Authentication Flows', () => {
     await page.locator('input[type="email"], input[placeholder*="email" i]').first().fill('invalid@test.com');
     await page.locator('input[type="password"]').first().fill('wrongpassword');
 
-    const loginBtn = page.getByRole('button', { name: /login|sign in/i });
+    const loginBtn = page.getByRole('button', { name: 'Sign In', exact: true });
     await loginBtn.click();
 
     await page.waitForTimeout(2000);
@@ -90,7 +90,7 @@ test.describe('Authentication Flows', () => {
 
   test('Wallet connect option exists', async ({ page }) => {
     // Look for wallet-related UI
-    const walletBtn = page.getByRole('button', { name: /wallet|metamask|connect/i });
+    const walletBtn = page.getByRole('button', { name: /connect wallet/i });
     const isVisible = await walletBtn.isVisible().catch(() => false);
     // Wallet login might be hidden without extension — informational check
     expect(typeof isVisible).toBe('boolean');
