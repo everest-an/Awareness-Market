@@ -213,9 +213,9 @@ class SlowlorisDefense {
   private readonly bodyTimeoutMs: number;
 
   constructor(
-    maxConnectionsPerIP = 50,
+    maxConnectionsPerIP = 200,
     headerTimeoutMs = 10_000,
-    bodyTimeoutMs = 30_000,
+    bodyTimeoutMs = 10_000,
   ) {
     this.maxConnectionsPerIP = maxConnectionsPerIP;
     this.headerTimeoutMs = headerTimeoutMs;

@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import cluster from "cluster";
 import { parse as parseCookie } from "cookie";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
@@ -275,7 +276,12 @@ async function startServer() {
   }
 
   const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+
+  // In PM2 cluster mode, all workers share the same port via Node's cluster module.
+  // Skip findAvailablePort() — it would see the port as "taken" by another worker.
+  const port = cluster.isWorker
+    ? preferredPort
+    : await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
     logger.warn("Port unavailable, using alternative", {
