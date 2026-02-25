@@ -115,6 +115,7 @@ async function resolveOrgTier(req: Request): Promise<string> {
  */
 export const planAwareAgentLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
+  validate: false, // custom keyGenerator handles IPv6 via fallback
   max: async (req: Request) => {
     const tier = await resolveOrgTier(req);
     return TIER_LIMITS[tier] ?? DEFAULT_LIMIT;
@@ -150,6 +151,7 @@ export const planAwareAgentLimiter = rateLimit({
  */
 export const planAwareGlobalLimiter = rateLimit({
   windowMs: 60 * 1000,
+  validate: false, // custom keyGenerator handles IPv6 via fallback
   max: async (req: Request) => {
     const tier = await resolveOrgTier(req);
     // Global limits are lower than agent-specific limits

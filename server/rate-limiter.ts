@@ -52,6 +52,7 @@ export const globalLimiter = rateLimit({
 export const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // 10 uploads per hour per user
+  validate: false, // custom keyGenerator handles IPv6 via fallback
   keyGenerator: (req: Request) => {
     // Use user ID if authenticated, otherwise use IP
     return (req as RequestWithUser).user?.id?.toString() || req.ip || 'anonymous';
@@ -80,6 +81,7 @@ export const uploadLimiter = rateLimit({
 export const purchaseLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 50, // 50 purchases per hour per user
+  validate: false, // custom keyGenerator handles IPv6 via fallback
   keyGenerator: (req: Request) => {
     return (req as RequestWithUser).user?.id?.toString() || req.ip || 'anonymous';
   },
@@ -107,6 +109,7 @@ export const purchaseLimiter = rateLimit({
 export const browseLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 200, // 200 requests per minute per user
+  validate: false, // custom keyGenerator handles IPv6 via fallback
   keyGenerator: (req: Request) => {
     return (req as RequestWithUser).user?.id?.toString() || req.ip || 'anonymous';
   },
@@ -135,6 +138,7 @@ export const browseLimiter = rateLimit({
 export const aiAgentLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 500, // 500 requests per minute per API key
+  validate: false, // custom keyGenerator handles IPv6 via fallback
   keyGenerator: (req: Request) => {
     // Use API key if present
     const apiKey = req.headers.authorization?.replace('Bearer ', '');
@@ -166,6 +170,7 @@ export const aiAgentLimiter = rateLimit({
 export const collabWriteLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
+  validate: false, // custom keyGenerator handles IPv6 via fallback
   keyGenerator: (req: Request) => {
     const token = req.headers['x-mcp-token'] as string
       || req.headers['x-api-key'] as string
@@ -193,6 +198,7 @@ export const collabWriteLimiter = rateLimit({
 export const collabReadLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 200,
+  validate: false, // custom keyGenerator handles IPv6 via fallback
   keyGenerator: (req: Request) => {
     const token = req.headers['x-mcp-token'] as string
       || req.headers['x-api-key'] as string
@@ -229,6 +235,7 @@ export function createRateLimiter(options: {
   return rateLimit({
     windowMs: options.windowMs,
     max: options.max,
+    validate: false, // custom keyGenerator handles IPv6 via fallback
     keyGenerator: options.keyGenerator || ((req: Request) => req.ip || 'anonymous'),
     message: {
       error: options.message,
