@@ -50,6 +50,7 @@ import { creditPaymentRouter } from './routers/credit-payment-api';
 import { mcpRouter } from './routers/mcp';
 import { reasoningChainsRouter } from './routers/reasoning-chains';
 import { roboticsRouter } from './routers/robotics';
+import { agentConfigChatRouter } from './routers/agent-config-chat';
 import { organizationRouter } from './routers/organization';
 import { decisionRouter } from './routers/decision';
 import { verificationRouter } from './routers/verification';
@@ -153,6 +154,9 @@ export const appRouter = router({
 
   // Robotics
   robotics: roboticsRouter,
+
+  // Agent config chat (AI-assisted session creation)
+  agentConfigChat: agentConfigChatRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -47,6 +47,11 @@ export interface WorkflowData {
   createdBy: number;
   workspaceId?: string;
   recordOnChain: boolean;
+  // Webhook dispatch
+  webhookUrl?: string | null;
+  webhookSecret?: string | null;
+  webhookEvents?: string | null;
+  memoryTTL?: number;
 }
 
 /**
@@ -151,6 +156,10 @@ function mapWorkflow(workflow: any): WorkflowData {
     createdBy: workflow.createdBy,
     workspaceId: workflow.workspaceId || undefined,
     recordOnChain: workflow.recordOnChain,
+    webhookUrl: workflow.webhookUrl || null,
+    webhookSecret: workflow.webhookSecret || null,
+    webhookEvents: workflow.webhookEvents || null,
+    memoryTTL: workflow.memoryTTL || undefined,
   };
 }
 
@@ -179,6 +188,27 @@ export async function updateWorkflowStatus(
   });
 
   logger.info(`[updateWorkflowStatus] Updated workflow ${workflowId} status to ${status}`);
+}
+
+/**
+ * Update webhook config on a workflow
+ */
+export async function updateWorkflowWebhook(
+  workflowId: string,
+  config: { webhookUrl: string; webhookSecret: string; webhookEvents: string },
+): Promise<void> {
+  const db = getPrisma();
+
+  await db.workflow.update({
+    where: { id: workflowId },
+    data: {
+      webhookUrl: config.webhookUrl,
+      webhookSecret: config.webhookSecret,
+      webhookEvents: config.webhookEvents,
+    },
+  });
+
+  logger.info(`[updateWorkflowWebhook] Set webhook for workflow ${workflowId}`);
 }
 
 /**

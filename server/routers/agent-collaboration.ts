@@ -17,6 +17,8 @@ import { ethers } from 'ethers';
 import { getErrorMessage } from '../utils/error-handling';
 import { createLogger } from '../utils/logger';
 import * as workflowDb from '../db-workflows';
+import * as db from '../db';
+import { fireWorkflowWebhook } from '../collaboration/webhook-dispatcher';
 
 const logger = createLogger('Agent:Collaboration');
 
@@ -68,6 +70,10 @@ const collaborateSchema = z.object({
    * }
    */
   agentAuthority: z.record(z.string(), agentAuthoritySchema).optional(),
+  /** Optional webhook URL to receive lifecycle events (propose, execute, complete, fail) */
+  webhookUrl: z.string().url().max(2048).optional(),
+  /** Shared secret for HMAC-SHA256 webhook signatures. Auto-generated if omitted. */
+  webhookSecret: z.string().max(255).optional(),
 });
 
 const getWorkflowStatusSchema = z.object({
@@ -157,6 +163,18 @@ async function executeStep(
     status: 'running',
     startedAt: new Date(),
   });
+
+  // Fire step-started webhook
+  try {
+    const wfForHook = await workflowDb.getWorkflow(workflowId);
+    if (wfForHook?.webhookUrl) {
+      fireWorkflowWebhook(workflowId, wfForHook.webhookUrl, wfForHook.webhookSecret, 'workflow.step.started', {
+        stepIndex,
+        agentId: step.agentId,
+        agentName: step.agentName,
+      });
+    }
+  } catch { /* non-critical */ }
 
   try {
     // Simulate AI agent execution
@@ -289,6 +307,19 @@ async function executeStep(
     });
 
     logger.info(`[Collaboration] Step completed: ${step.agentName}`);
+
+    // Fire step-completed webhook
+    try {
+      const wfAfter = await workflowDb.getWorkflow(workflowId);
+      if (wfAfter?.webhookUrl) {
+        fireWorkflowWebhook(workflowId, wfAfter.webhookUrl, wfAfter.webhookSecret, 'workflow.step.completed', {
+          stepIndex,
+          agentId: step.agentId,
+          agentName: step.agentName,
+          executionTime,
+        });
+      }
+    } catch { /* non-critical */ }
   } catch (error: unknown) {
     const executionTime = Date.now() - startTime;
 
@@ -298,6 +329,19 @@ async function executeStep(
       completedAt: new Date(),
       executionTime,
     });
+
+    // Fire step-failed webhook
+    try {
+      const wfErr = await workflowDb.getWorkflow(workflowId);
+      if (wfErr?.webhookUrl) {
+        fireWorkflowWebhook(workflowId, wfErr.webhookUrl, wfErr.webhookSecret, 'workflow.step.failed', {
+          stepIndex,
+          agentId: step.agentId,
+          agentName: step.agentName,
+          error: getErrorMessage(error),
+        });
+      }
+    } catch { /* non-critical */ }
 
     logger.error(`[Collaboration] Step failed: ${step.agentName}`, { error });
     throw error;
@@ -439,12 +483,33 @@ async function executeWorkflow(workflowId: string): Promise<void> {
     });
 
     logger.info(`[Collaboration] Workflow ${workflowId} completed in ${totalExecutionTime}ms`);
+
+    // Fire workflow-completed webhook
+    try {
+      const completedWf = await workflowDb.getWorkflow(workflowId);
+      if (completedWf?.webhookUrl) {
+        fireWorkflowWebhook(workflowId, completedWf.webhookUrl, completedWf.webhookSecret, 'workflow.completed', {
+          totalExecutionTime,
+          stepsCompleted: workflow.steps.length,
+        });
+      }
+    } catch { /* non-critical */ }
   } catch (error: unknown) {
     await workflowDb.updateWorkflowStatus(workflowId, 'failed', {
       completedAt: new Date(),
     });
 
     logger.error(`[Collaboration] Workflow ${workflowId} failed:`, { error });
+
+    // Fire workflow-failed webhook
+    try {
+      const failedWf = await workflowDb.getWorkflow(workflowId);
+      if (failedWf?.webhookUrl) {
+        fireWorkflowWebhook(workflowId, failedWf.webhookUrl, failedWf.webhookSecret, 'workflow.failed', {
+          error: getErrorMessage(error),
+        });
+      }
+    } catch { /* non-critical */ }
   }
 }
 
@@ -503,10 +568,48 @@ export const agentCollaborationRouter = router({
         steps,
       });
 
+      // ── Auto-generate MCP token for this session ──────────────────────
+      let mcpToken: string | undefined;
+      let mcpTokenPrefix: string | undefined;
+      try {
+        const tokenResult = await db.createMcpToken({
+          userId: ctx.user.id,
+          name: `Collab: ${input.task.slice(0, 60)} (${workflowId})`,
+          permissions: ['read', 'write', 'propose'],
+          expiresInDays: 7,
+        });
+        mcpToken = tokenResult.token;
+        mcpTokenPrefix = tokenResult.tokenPrefix;
+
+        // Store prefix in sharedMemory so getSessionEndpoints can retrieve it
+        sharedMemoryInit._mcpTokenPrefix = mcpTokenPrefix;
+        await workflowDb.updateSharedMemory(workflowId, sharedMemoryInit);
+      } catch (err) {
+        logger.warn('[Collaboration] Failed to auto-create MCP token:', { error: err });
+      }
+
+      // ── Webhook config ────────────────────────────────────────────────
+      const webhookSecret = input.webhookSecret || (input.webhookUrl ? randomUUID() : undefined);
+      if (input.webhookUrl) {
+        await workflowDb.updateWorkflowWebhook(workflowId, {
+          webhookUrl: input.webhookUrl,
+          webhookSecret: webhookSecret!,
+          webhookEvents: JSON.stringify(['propose', 'execute', 'complete', 'fail']),
+        });
+
+        fireWorkflowWebhook(workflowId, input.webhookUrl, webhookSecret!, 'workflow.created', {
+          task: input.task,
+          agents: input.agents,
+          orchestration: input.orchestration,
+        });
+      }
+
       // Start execution asynchronously
       executeWorkflow(workflowId).catch(error => {
         logger.error(`[Collaboration] Workflow ${workflowId} execution error:`, { error });
       });
+
+      const baseUrl = process.env.BASE_URL || 'https://api.awareness.market';
 
       return {
         success: true,
@@ -515,6 +618,22 @@ export const agentCollaborationRouter = router({
         estimatedTime: input.orchestration === 'sequential'
           ? input.agents.length * 30 // 30s per step
           : 30, // 30s for parallel
+        // Both API and MCP endpoints auto-generated
+        endpoints: {
+          api: {
+            baseUrl: `${baseUrl}/api/collab`,
+            workflowId,
+            headers: {
+              'X-Workspace-Key': `workspace:${workflowId}`,
+            },
+          },
+          mcp: {
+            endpoint: `${baseUrl}/mcp`,
+            token: mcpToken ?? null,           // one-time display
+            tokenPrefix: mcpTokenPrefix ?? null,
+          },
+        },
+        webhookSecret: input.webhookUrl ? webhookSecret : undefined,
       };
     }),
 
@@ -601,6 +720,96 @@ export const agentCollaborationRouter = router({
         success: true,
         message: 'Workflow stopped',
       };
+    }),
+
+  /**
+   * Get API + MCP endpoints for a session (token prefix only)
+   */
+  getSessionEndpoints: protectedProcedure
+    .input(z.object({ workflowId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const workflow = await workflowDb.getWorkflow(input.workflowId);
+      if (!workflow) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workflow not found' });
+      }
+      if (workflow.createdBy !== ctx.user.id) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Not your workflow' });
+      }
+      const baseUrl = process.env.BASE_URL || 'https://api.awareness.market';
+      return {
+        api: {
+          baseUrl: `${baseUrl}/api/collab`,
+          workflowId: workflow.id,
+        },
+        mcp: {
+          endpoint: `${baseUrl}/mcp`,
+          tokenPrefix: (workflow.sharedMemory as any)?._mcpTokenPrefix ?? null,
+        },
+        webhookUrl: workflow.webhookUrl ?? null,
+      };
+    }),
+
+  /**
+   * Trigger a workflow action via webhook callback (Propose / Execute / Stop).
+   * External systems POST here to control the workflow.
+   */
+  triggerWebhook: publicProcedure
+    .input(z.object({
+      workflowId: z.string(),
+      webhookSecret: z.string(),
+      action: z.enum(['propose', 'execute', 'stop']),
+      data: z.record(z.string(), z.unknown()).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const workflow = await workflowDb.getWorkflow(input.workflowId);
+      if (!workflow) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workflow not found' });
+      }
+
+      // Verify webhook secret
+      if (workflow.webhookSecret !== input.webhookSecret) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid webhook secret' });
+      }
+
+      switch (input.action) {
+        case 'propose': {
+          // Store proposal in shared memory
+          const proposals = (workflow.sharedMemory as any)?._proposals ?? [];
+          proposals.push({
+            ...input.data,
+            proposedAt: new Date().toISOString(),
+          });
+          await workflowDb.updateSharedMemory(input.workflowId, {
+            ...workflow.sharedMemory,
+            _proposals: proposals,
+          });
+
+          fireWorkflowWebhook(input.workflowId, workflow.webhookUrl, workflow.webhookSecret, 'workflow.propose', {
+            proposal: input.data,
+          });
+
+          return { success: true, message: 'Proposal recorded' };
+        }
+        case 'execute': {
+          if (workflow.status !== 'pending') {
+            return { success: false, message: `Cannot execute workflow in ${workflow.status} state` };
+          }
+
+          fireWorkflowWebhook(input.workflowId, workflow.webhookUrl, workflow.webhookSecret, 'workflow.execute', {});
+
+          executeWorkflow(input.workflowId).catch((err) => {
+            logger.error(`[Collaboration] Webhook-triggered execution error:`, { error: err });
+          });
+
+          return { success: true, message: 'Execution triggered' };
+        }
+        case 'stop': {
+          await workflowDb.updateWorkflowStatus(input.workflowId, 'cancelled', {
+            completedAt: new Date(),
+          });
+          return { success: true, message: 'Workflow stopped' };
+        }
+      }
     }),
 
   /**

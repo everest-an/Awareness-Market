@@ -103,6 +103,11 @@ model Workflow {
   completedAt         DateTime?         @map("completed_at")
   totalExecutionTime  Int?              @map("total_execution_time") // milliseconds
 
+  // Webhook dispatch
+  webhookUrl          String?           @map("webhook_url") @db.VarChar(2048)
+  webhookSecret       String?           @map("webhook_secret") @db.VarChar(255)
+  webhookEvents       String?           @map("webhook_events") // JSON array e.g. ["propose","execute","complete","fail"]
+
   // Relations
   createdBy           Int               @map("created_by")
   creator             User              @relation(fields: [createdBy], references: [id])

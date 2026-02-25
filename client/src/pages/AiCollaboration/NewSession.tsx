@@ -8,10 +8,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import Navbar from '@/components/Navbar';
-import { Brain, Users, Code, Server, ArrowRight, Loader2, Info, ChevronDown, Settings, ShieldCheck } from 'lucide-react';
+import { Brain, Users, Code, Server, ArrowRight, Loader2, Info, ChevronDown, Settings, ShieldCheck, MessageSquare, ExternalLink } from 'lucide-react';
 import { Slider } from "@/components/ui/slider";
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
+import { AIChatBox, type Message } from '@/components/AIChatBox';
 
 export default function NewCollaborationSession() {
   const [, setLocation] = useLocation();
@@ -27,18 +28,74 @@ export default function NewCollaborationSession() {
   });
   const [agentEndpoints, setAgentEndpoints] = useState<Record<string, string>>({});
   const [agentAuthTokens, setAgentAuthTokens] = useState<Record<string, string>>({});
-  // agentAuthority: per-agent decision weight + roles
+  // agentAuthority: per-agent decision weight
   const [agentAuthority, setAgentAuthority] = useState<
-    Record<string, { weight: number; roles: string[]; scope: string[] }>
+    Record<string, { weight: number; scope: string[] }>
   >({
-    'manus-frontend': { weight: 1.0, roles: ['planner', 'frontend'], scope: [] },
-    'claude-backend': { weight: 1.0, roles: ['backend'], scope: [] },
+    'manus-frontend': { weight: 1.0, scope: [] },
+    'claude-backend': { weight: 1.0, scope: [] },
   });
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(true);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+
+  // tRPC mutation for AI config chat
+  const suggestConfig = trpc.agentConfigChat.suggestConfig.useMutation({
+    onSuccess: (data) => {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: 'assistant' as const, content: data.assistantMessage },
+      ]);
+
+      // If the AI returned a suggestion, apply it to the form
+      if (data.suggestion) {
+        if (data.suggestion.sessionName) {
+          setFormData((prev) => ({ ...prev, name: data.suggestion.sessionName }));
+        }
+        if (data.suggestion.description) {
+          setFormData((prev) => ({ ...prev, description: data.suggestion.description }));
+        }
+        if (data.suggestion.type) {
+          setFormData((prev) => ({ ...prev, type: data.suggestion.type }));
+        }
+        if (data.suggestion.agents && Array.isArray(data.suggestion.agents)) {
+          const newAuthority: Record<string, { weight: number; scope: string[] }> = {};
+          for (const a of data.suggestion.agents) {
+            newAuthority[a.id] = { weight: a.weight ?? 1.0, scope: [] };
+          }
+          setAgentAuthority(newAuthority);
+        }
+      }
+    },
+    onError: (err) => {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: 'assistant' as const, content: `Error: ${err.message}` },
+      ]);
+    },
+  });
+
+  const handleChatSend = (content: string) => {
+    const newMessages: Message[] = [...chatMessages, { role: 'user', content }];
+    setChatMessages(newMessages);
+    suggestConfig.mutate({
+      messages: newMessages.filter((m) => m.role !== 'system'),
+    });
+  };
 
   // tRPC mutation for creating collaboration
   const createCollaboration = trpc.agentCollaboration.collaborate.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast.success('Collaboration session created successfully!');
+      // Pass endpoint data via sessionStorage so SessionConnect can display it
+      if (data.endpoints) {
+        try {
+          sessionStorage.setItem(
+            `endpoints_${data.workflowId}`,
+            JSON.stringify(data.endpoints),
+          );
+        } catch { /* non-critical */ }
+      }
       setLocation(`/workspace/${workspaceId}/session/${data.workflowId}`);
     },
     onError: (error) => {
@@ -123,6 +180,7 @@ export default function NewCollaborationSession() {
           agentAuthTokens: Object.keys(agentAuthTokens).length > 0 ? agentAuthTokens : undefined,
         },
         agentAuthority: Object.keys(agentAuthority).length > 0 ? agentAuthority : undefined,
+        webhookUrl: webhookUrl || undefined,
       };
 
       // Call real API
@@ -215,6 +273,41 @@ export default function NewCollaborationSession() {
                 className="bg-slate-800 border-slate-700 text-white min-h-[120px]"
               />
             </div>
+
+            {/* AI Configuration Assistant (Chat Box) */}
+            <Collapsible open={isChatOpen} onOpenChange={setIsChatOpen}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full flex items-center justify-between text-white hover:bg-slate-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-cyan-400" />
+                    <span className="font-medium">AI Configuration Assistant</span>
+                    <span className="text-xs text-slate-400">(Describe your project)</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${isChatOpen ? 'rotate-180' : ''}`}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3">
+                <AIChatBox
+                  messages={chatMessages}
+                  onSendMessage={handleChatSend}
+                  isLoading={suggestConfig.isPending}
+                  placeholder="Describe what you want to build..."
+                  height="320px"
+                  emptyStateMessage="Describe your project and I'll suggest the best agent configuration"
+                  suggestedPrompts={[
+                    "Build a dashboard with real-time charts",
+                    "Create a REST API with authentication",
+                    "Design a landing page with animations",
+                  ]}
+                />
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* Collaboration Type */}
             <div className="space-y-4">
@@ -408,8 +501,7 @@ export default function NewCollaborationSession() {
                   </div>
                   <p className="text-xs text-slate-400 mb-4">
                     Set the relative influence of each agent. The highest-weight agent's output
-                    becomes the primary result in parallel workflows. Roles are informational hints
-                    sent to each agent so it can self-limit its scope.
+                    becomes the primary result in parallel workflows.
                   </p>
 
                   {Object.keys(agentAuthority).map((agentId) => {
@@ -444,32 +536,6 @@ export default function NewCollaborationSession() {
                           />
                         </div>
 
-                        {/* Roles input */}
-                        <div className="space-y-1">
-                          <Label className="text-xs text-slate-400">
-                            Roles (comma-separated)
-                          </Label>
-                          <Input
-                            value={auth.roles.join(', ')}
-                            onChange={(e) =>
-                              setAgentAuthority({
-                                ...agentAuthority,
-                                [agentId]: {
-                                  ...auth,
-                                  roles: e.target.value
-                                    .split(',')
-                                    .map((r) => r.trim())
-                                    .filter(Boolean),
-                                },
-                              })
-                            }
-                            placeholder="e.g. planner, spec, backend, deployment"
-                            className="bg-slate-700 border-slate-600 text-white text-sm"
-                          />
-                          <p className="text-xs text-slate-500">
-                            Passed to the agent so it knows its responsibility scope.
-                          </p>
-                        </div>
                       </div>
                     );
                   })}
@@ -503,6 +569,30 @@ export default function NewCollaborationSession() {
                         </button>
                       ))}
                     </div>
+                  </div>
+                </div>
+
+                {/* ── Webhook Configuration ────────────────────────────── */}
+                <div className="mt-6 pt-4 border-t border-slate-700">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ExternalLink className="w-4 h-4 text-purple-400" />
+                    <span className="text-white font-medium">Webhook Notifications</span>
+                    <span className="text-xs text-slate-400">(optional)</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-3">
+                    Receive HTTP POST notifications when Propose, Execute, or completion events occur.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="webhook-url" className="text-white">
+                      Webhook URL
+                    </Label>
+                    <Input
+                      id="webhook-url"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                      placeholder="https://your-server.com/api/webhook"
+                      className="bg-slate-800 border-slate-700 text-white"
+                    />
                   </div>
                 </div>
               </CollapsibleContent>

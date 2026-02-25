@@ -27,7 +27,9 @@ import {
   Pause,
   AlertTriangle,
   Wifi,
-  WifiOff
+  WifiOff,
+  Terminal,
+  Key
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
@@ -39,10 +41,37 @@ type WorkflowStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelle
 export default function SessionConnect() {
   const { sessionId, id: workspaceId } = useParams<{ sessionId: string; id: string }>();
   const [copiedToken, setCopiedToken] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const utils = trpc.useUtils();
+
+  // Retrieve one-time endpoints from sessionStorage (set during creation)
+  const [oneTimeEndpoints] = useState<any>(() => {
+    if (!sessionId) return null;
+    try {
+      const raw = sessionStorage.getItem(`endpoints_${sessionId}`);
+      if (raw) {
+        sessionStorage.removeItem(`endpoints_${sessionId}`);
+        return JSON.parse(raw);
+      }
+    } catch { /* ignore */ }
+    return null;
+  });
+
+  // Fetch persistent endpoint info (token prefix only, no full token)
+  const { data: endpoints } = trpc.agentCollaboration.getSessionEndpoints.useQuery(
+    { workflowId: sessionId! },
+    { enabled: !!sessionId },
+  );
+
+  const handleCopyField = (value: string, label: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedField(label);
+    toast.success(`${label} copied`);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   // Fetch workflow status (initial load only, no polling)
   const { data: workflow, isLoading, error, refetch } = trpc.agentCollaboration.getWorkflowStatus.useQuery(
@@ -274,6 +303,105 @@ export default function SessionConnect() {
             )}
           </CardContent>
         </Card>
+
+        {/* Connection Endpoints (API + MCP) */}
+        {(oneTimeEndpoints || endpoints) && (
+          <Card className="mb-6 glass-panel">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-cyan-400" />
+                Connection Endpoints
+              </CardTitle>
+              <CardDescription>
+                Both REST API and MCP endpoints are available for this session
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* REST API Endpoint */}
+              <div className="glass-subtle p-4 rounded-lg space-y-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <ExternalLink className="w-4 h-4 text-green-400" />
+                  <span className="text-sm font-medium text-white">REST API</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs font-mono text-slate-300 bg-slate-800/60 px-3 py-2 rounded truncate">
+                    POST {endpoints?.api?.baseUrl || oneTimeEndpoints?.api?.baseUrl || '—'}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-shrink-0"
+                    onClick={() => handleCopyField(
+                      endpoints?.api?.baseUrl || oneTimeEndpoints?.api?.baseUrl || '',
+                      'API URL',
+                    )}
+                  >
+                    {copiedField === 'API URL' ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Header: <code className="text-slate-400">X-Workspace-Key: workspace:{sessionId}</code>
+                </p>
+              </div>
+
+              {/* MCP Endpoint */}
+              <div className="glass-subtle p-4 rounded-lg space-y-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <Key className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm font-medium text-white">MCP Protocol</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs font-mono text-slate-300 bg-slate-800/60 px-3 py-2 rounded truncate">
+                    POST {endpoints?.mcp?.endpoint || oneTimeEndpoints?.mcp?.endpoint || '—'}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-shrink-0"
+                    onClick={() => handleCopyField(
+                      endpoints?.mcp?.endpoint || oneTimeEndpoints?.mcp?.endpoint || '',
+                      'MCP URL',
+                    )}
+                  >
+                    {copiedField === 'MCP URL' ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  </Button>
+                </div>
+
+                {/* One-time MCP token (only shown immediately after creation) */}
+                {oneTimeEndpoints?.mcp?.token && (
+                  <div className="mt-2">
+                    <Alert className="bg-yellow-500/10 border-yellow-500/50">
+                      <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                      <AlertDescription className="text-yellow-200 text-xs">
+                        <strong>MCP Token (shown once):</strong>
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="flex-1 text-xs font-mono bg-slate-800/60 px-2 py-1 rounded break-all">
+                            {oneTimeEndpoints.mcp.token}
+                          </code>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-shrink-0 h-6"
+                            onClick={() => handleCopyField(oneTimeEndpoints.mcp.token, 'MCP Token')}
+                          >
+                            {copiedField === 'MCP Token' ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+
+                {/* Token prefix (always shown) */}
+                {(endpoints?.mcp?.tokenPrefix || oneTimeEndpoints?.mcp?.tokenPrefix) && (
+                  <p className="text-xs text-slate-500">
+                    Token prefix: <code className="text-slate-400">{endpoints?.mcp?.tokenPrefix || oneTimeEndpoints?.mcp?.tokenPrefix}</code>
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Workflow Steps */}
         <Card className="mb-6">
