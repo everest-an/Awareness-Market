@@ -21,7 +21,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/awareness-key.pem
           chmod 600 ~/.ssh/awareness-key.pem
-          ssh-keyscan -H 44.220.181.78 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 34.225.237.85 >> ~/.ssh/known_hosts
 
       - name: Update .env on EC2
         env:
@@ -35,7 +35,7 @@ jobs:
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
-          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << ENDSSH
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@34.225.237.85 << ENDSSH
             ENV_FILE="/home/ec2-user/Awareness-Market/.env"
 
             # Create .env if it doesn't exist
@@ -89,7 +89,7 @@ jobs:
       - name: Restart PM2
         if: inputs.restart_pm2
         run: |
-          ssh -i ~/.ssh/awareness-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+          ssh -i ~/.ssh/awareness-key.pem ec2-user@34.225.237.85 << 'ENDSSH'
             cd /home/ec2-user/Awareness-Market
             pm2 restart awareness-network || pm2 restart all
             echo ""

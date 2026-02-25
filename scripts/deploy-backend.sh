@@ -24,7 +24,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-EC2_HOST="ec2-user@44.220.181.78"
+EC2_HOST="ec2-user@34.225.237.85"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/awareness-key.pem}"
 REMOTE_DIR="/home/ec2-user/Awareness-Market"
 LOCAL_BUILD_DIR="./dist"
@@ -125,9 +125,9 @@ echo ""
 # Step 7: Verify deployment
 echo -e "${YELLOW}Verifying deployment...${NC}"
 sleep 5
-if curl -f -s http://44.220.181.78:3001/api-docs/ > /dev/null; then
+if curl -f -s http://34.225.237.85:3001/api-docs/ > /dev/null; then
     echo -e "${GREEN}✓ Deployment successful! API is responding.${NC}"
-    echo -e "${GREEN}  URL: http://44.220.181.78:3001/api-docs/${NC}"
+    echo -e "${GREEN}  URL: http://34.225.237.85:3001/api-docs/${NC}"
 else
     echo -e "${RED}⚠ Warning: API is not responding yet. Check PM2 logs:${NC}"
     echo -e "${YELLOW}  ssh -i $SSH_KEY $EC2_HOST 'pm2 logs'${NC}"

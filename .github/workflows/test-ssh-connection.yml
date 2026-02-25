@@ -42,10 +42,10 @@ jobs:
           
       - name: Test SSH connection to EC2
         run: |
-          ssh-keyscan -H 44.220.181.78 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 34.225.237.85 >> ~/.ssh/known_hosts
           
           # Try SSH connection
-          if ssh -i ~/.ssh/test-key.pem -o ConnectTimeout=10 ec2-user@44.220.181.78 "echo 'SSH connection successful'"; then
+          if ssh -i ~/.ssh/test-key.pem -o ConnectTimeout=10 ec2-user@34.225.237.85 "echo 'SSH connection successful'"; then
             echo "✅ SSH connection to EC2 successful!"
           else
             echo "❌ ERROR: Cannot connect to EC2"
@@ -58,7 +58,7 @@ jobs:
       
       - name: Test EC2 environment
         run: |
-          ssh -i ~/.ssh/test-key.pem ec2-user@44.220.181.78 << 'ENDSSH'
+          ssh -i ~/.ssh/test-key.pem ec2-user@34.225.237.85 << 'ENDSSH'
             echo "✅ Testing EC2 environment..."
             
             # Check Node.js

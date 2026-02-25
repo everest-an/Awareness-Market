@@ -40,9 +40,9 @@
 - URL: https://awareness-network-v2.vercel.app/
 
 ### 后端  
-- 托管: AWS EC2 (44.220.181.78:3001)
+- 托管: AWS EC2 (34.225.237.85:3001)
 - 进程管理: PM2
-- API 文档: http://44.220.181.78:3001/api-docs/
+- API 文档: http://34.225.237.85:3001/api-docs/
 
 ---
 
