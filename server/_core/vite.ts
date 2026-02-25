@@ -27,6 +27,12 @@ export async function setupVite(app: Express, server: Server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
+    // Don't serve index.html for API routes — let Express handle them
+    // (matches the production serveStatic behavior)
+    if (url.startsWith('/api/') || url.startsWith('/api-docs') || url.startsWith('/mcp')) {
+      return next();
+    }
+
     try {
       const clientTemplate = path.resolve(
         import.meta.dirname,

@@ -8,6 +8,7 @@ import express from "express";
 import { z } from "zod";
 import * as erc8004 from "./auth-erc8004";
 import { getErrorMessage } from "./utils/error-handling";
+import { getSessionCookieOptions } from "./_core/cookies";
 
 const router = express.Router();
 
@@ -63,12 +64,8 @@ router.post("/authenticate", async (req, res) => {
     
     if (result.success) {
       // Set JWT in cookie for browser clients
-      res.cookie("erc8004_token", result.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
+      const cookieOpts = getSessionCookieOptions(req);
+      res.cookie("erc8004_token", result.token, cookieOpts);
       
       res.json({
         success: true,

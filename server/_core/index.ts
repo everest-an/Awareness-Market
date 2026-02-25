@@ -86,7 +86,11 @@ async function startServer() {
   // Cookie parser — populates req.cookies from Cookie header
   // Uses the 'cookie' package (already a dependency via sdk.ts)
   app.use((req, _res, next) => {
-    req.cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+    try {
+      req.cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+    } catch {
+      req.cookies = {};
+    }
     next();
   });
 
