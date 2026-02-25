@@ -238,8 +238,12 @@ export function broadcastAgentStatus(event: AgentStatusEvent) {
  * Broadcast network statistics
  * Called periodically to update dashboard metrics
  */
+let _statsFailures = 0;
+const MAX_STATS_FAILURES = 3; // Stop broadcasting after 3 consecutive DB failures
+
 export async function broadcastNetworkStats() {
   if (!io) return;
+  if (_statsFailures >= MAX_STATS_FAILURES) return; // Circuit breaker: DB unreachable
 
   try {
     const { prisma } = await import('./db-prisma.js');
@@ -279,10 +283,16 @@ export async function broadcastNetworkStats() {
     };
 
     io.emit('network:stats', stats);
+    _statsFailures = 0; // Reset on success
 
     logger.debug('Broadcast network stats', stats);
   } catch (error) {
-    logger.error('Failed to broadcast network stats', { error });
+    _statsFailures++;
+    if (_statsFailures >= MAX_STATS_FAILURES) {
+      logger.warn('Stats broadcast disabled — DB unreachable after repeated failures');
+    } else {
+      logger.error('Failed to broadcast network stats', { error });
+    }
   }
 }
 

@@ -58,6 +58,11 @@ class IPReputationStore {
     const envWhitelist = process.env.IP_WHITELIST?.split(',') || [];
     envWhitelist.forEach(ip => this.whitelist.add(ip.trim()));
 
+    // Always whitelist localhost
+    this.whitelist.add('127.0.0.1');
+    this.whitelist.add('::1');
+    this.whitelist.add('::ffff:127.0.0.1');
+
     this.cleanupInterval = setInterval(() => this.cleanup(), 10 * 60_000);
     this.cleanupInterval.unref();
   }
