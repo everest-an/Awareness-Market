@@ -124,12 +124,10 @@ async function startServer() {
   ]);
 
   app.use((req, res, next) => {
-    const isProd = process.env.NODE_ENV === 'production';
-    const behindProxy = Boolean(req.headers['x-forwarded-proto'] || req.headers['x-forwarded-host']);
-    const proxyHandlesCors = isProd && behindProxy;
+    const proxyHandlesCors = process.env.NODE_ENV === 'production';
 
-    // In production behind reverse proxy (nginx), let proxy be the single
-    // source of CORS headers to avoid duplicate Access-Control-Allow-Origin.
+    // In production, let reverse proxy (nginx) be the single source of CORS
+    // headers to avoid duplicate Access-Control-Allow-Origin values.
     if (proxyHandlesCors) {
       if (req.method === 'OPTIONS') {
         res.status(204).end();
