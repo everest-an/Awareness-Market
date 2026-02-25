@@ -31,10 +31,12 @@ interface IPReputation {
   blockedCount: number;
   /** Last activity timestamp */
   lastSeen: number;
-  /** Whether IP is permanently blacklisted */
+  /** Whether IP is blacklisted */
   blacklisted: boolean;
   /** Blacklist reason */
   blacklistReason?: string;
+  /** When the IP was blacklisted (for TTL expiry) */
+  blacklistedAt?: number;
   /** Connection count in current window */
   connectionCount: number;
   /** Window start time */
@@ -97,6 +99,7 @@ class IPReputationStore {
     // Auto-blacklist at score 0
     if (rep.score <= 0 && !rep.blacklisted) {
       rep.blacklisted = true;
+      rep.blacklistedAt = Date.now();
       rep.blacklistReason = reason || 'reputation_depleted';
       this.blacklist.add(ip);
       logger.warn('IP blacklisted', { ip, reason: rep.blacklistReason });
@@ -109,7 +112,21 @@ class IPReputationStore {
   }
 
   isBlacklisted(ip: string): boolean {
-    return this.blacklist.has(ip);
+    if (!this.blacklist.has(ip)) return false;
+
+    // Auto-expiry: dynamic blacklist entries expire after 30 minutes
+    // (static entries from IP_BLACKLIST env var have no blacklistedAt and never expire)
+    const rep = this.store.get(ip);
+    if (rep?.blacklistedAt && Date.now() - rep.blacklistedAt > 30 * 60_000) {
+      this.blacklist.delete(ip);
+      rep.blacklisted = false;
+      rep.blacklistedAt = undefined;
+      rep.score = 20; // Start with low reputation, must earn it back
+      logger.info('IP blacklist expired', { ip, reason: rep.blacklistReason });
+      return false;
+    }
+
+    return true;
   }
 
   isWhitelisted(ip: string): boolean {
@@ -196,7 +213,7 @@ class SlowlorisDefense {
   private readonly bodyTimeoutMs: number;
 
   constructor(
-    maxConnectionsPerIP = 10,
+    maxConnectionsPerIP = 50,
     headerTimeoutMs = 10_000,
     bodyTimeoutMs = 30_000,
   ) {
@@ -270,7 +287,7 @@ function validateRequest(req: Request): { valid: boolean; reason?: string } {
 
   // 6. Path traversal check
   const decodedPath = decodeURIComponent(req.path);
-  if (decodedPath.includes('..') || decodedPath.includes('//')) {
+  if (decodedPath.includes('..')) {
     return { valid: false, reason: 'path_traversal' };
   }
 
@@ -330,9 +347,7 @@ export function ddosShield() {
     // ── 2. Blacklist check ──
     if (ipReputation.isBlacklisted(ip)) {
       ipReputation.recordBlock(ip);
-      // Silent drop — don't waste resources on a response
-      req.socket.destroy();
-      return;
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
     // ── 3. Request validation ──
@@ -357,7 +372,7 @@ export function ddosShield() {
     // ── 5. Slowloris check ──
     const slowCheck = slowlorisDefense.check(req);
     if (slowCheck.blocked) {
-      ipReputation.penalize(ip, 15, slowCheck.reason);
+      ipReputation.penalize(ip, 5, slowCheck.reason);
       return res.status(429).json({ error: 'Too many concurrent connections' });
     }
 
@@ -374,9 +389,9 @@ export function ddosShield() {
       }
     }
 
-    // ── 7. Good request — small reputation reward ──
+    // ── 7. Good request — reputation reward ──
     if (rep.score < 100) {
-      ipReputation.reward(ip, 0.1); // Slow recovery
+      ipReputation.reward(ip, 1); // Recover ~1 point per good request
     }
 
     next();
