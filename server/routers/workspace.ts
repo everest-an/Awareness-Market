@@ -1005,6 +1005,9 @@ export const workspaceRouter = router({
               case 'progress_sync':
                 rawContent = e.next_steps || e.progress || (Array.isArray(e.completed_tasks) ? `Completed: ${e.completed_tasks.join(', ')}` : '') || '';
                 break;
+              case 'session_summary':
+                rawContent = `📋 Summary (${e.entries_compacted || 0} entries compacted): ${e.summary || ''}`;
+                break;
               default:
                 rawContent = e.reasoning || e.current_task || e.task || e.content || e.progress || (Array.isArray(e.completed_tasks) ? `Completed: ${e.completed_tasks.join(', ')}` : '') || '';
                 break;

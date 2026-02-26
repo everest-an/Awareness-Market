@@ -1,7 +1,7 @@
 /**
  * Cloud-Hosted MCP Server (Stateless Streamable HTTP Transport)
  *
- * Provides 10 collaboration tools (6 communication + 4 task/artifact):
+ * Provides 11 collaboration tools (7 communication + 4 task/artifact):
  * but runs inside the Express process using the MCP Streamable HTTP transport.
  *
  * STATELESS MODE: Each request creates a fresh MCP server instance.
@@ -114,7 +114,13 @@ const TOOL_PERMISSION_MAP: Record<string, string> = {
   get_tasks: 'read',
   update_task: 'write',
   share_artifact: 'write',
+  summarize_history: 'write',
 };
+
+// History compaction threshold — when entries exceed this, agents are prompted to summarize
+const HISTORY_SUMMARY_THRESHOLD = 30;
+// How many recent entries to keep after compaction
+const HISTORY_KEEP_RECENT = 10;
 
 // Backwards-compatible mapping: workspace tokens were created with
 // ['sync', 'memory', 'collab'] but tools check for ['read', 'write', 'propose'].
@@ -208,10 +214,12 @@ function createCollaborationMcpServer(
 
       const existing = await db.getAIMemoryByKey({ userId, memoryKey });
       let history: unknown[] = [];
+      let existingSummary: string | null = null;
       if (existing?.memoryData) {
         try {
           const data = JSON.parse(existing.memoryData);
           history = Array.isArray(data.history) ? data.history : [];
+          existingSummary = data.session_summary || null;
         } catch { /* fresh */ }
       }
 
@@ -240,16 +248,31 @@ function createCollaborationMcpServer(
 
       touchAgentHeartbeat(userId, memoryKey, role);
 
+      // Check if history needs compaction
+      const needsSummary = history.length >= HISTORY_SUMMARY_THRESHOLD;
+
+      const result: Record<string, unknown> = {
+        status: 'shared',
+        timestamp,
+        version: stored?.version ?? 1,
+        historyLength: history.length,
+        message: 'Your reasoning has been shared with other agents',
+      };
+
+      if (needsSummary) {
+        result.needs_summary = true;
+        result.summary_prompt = `⚠️ History has ${history.length} entries (threshold: ${HISTORY_SUMMARY_THRESHOLD}). ` +
+          `Please call "summarize_history" with a concise summary of all previous context before continuing. ` +
+          `This keeps workspace memory efficient and prevents context loss.`;
+      }
+      if (existingSummary) {
+        result.previous_summary = existingSummary;
+      }
+
       return {
         content: [{
           type: 'text' as const,
-          text: JSON.stringify({
-            status: 'shared',
-            timestamp,
-            version: stored?.version ?? 1,
-            historyLength: history.length,
-            message: 'Your reasoning has been shared with other agents',
-          }, null, 2),
+          text: JSON.stringify(result, null, 2),
         }],
       };
     },
@@ -281,15 +304,34 @@ function createCollaborationMcpServer(
         .filter((e: any) => e.agent_role !== role)
         .slice(-(params.limit || 10));
 
+      // Check if history is long enough to warrant compaction
+      const needsSummary = history.length >= HISTORY_SUMMARY_THRESHOLD;
+      const previousSummary = data.session_summary || null;
+
+      const result: Record<string, unknown> = {
+        myRole: role,
+        otherAgentUpdates: otherEntries,
+        totalEntries: history.length,
+        message: `Retrieved ${otherEntries.length} updates from other agents`,
+      };
+
+      if (needsSummary) {
+        result.needs_summary = true;
+        result.summary_prompt = `History has ${history.length} entries (threshold: ${HISTORY_SUMMARY_THRESHOLD}). ` +
+          `Please call the "summarize_history" tool with a concise summary of all previous collaboration context ` +
+          `before continuing your work. This keeps the workspace memory efficient.`;
+        if (previousSummary) {
+          result.previous_summary = previousSummary;
+        }
+      } else if (previousSummary) {
+        // Always include previous summary so agents have full context
+        result.previous_summary = previousSummary;
+      }
+
       return {
         content: [{
           type: 'text' as const,
-          text: JSON.stringify({
-            myRole: role,
-            otherAgentUpdates: otherEntries,
-            totalEntries: history.length,
-            message: `Retrieved ${otherEntries.length} updates from other agents`,
-          }, null, 2),
+          text: JSON.stringify(result, null, 2),
         }],
       };
     },
@@ -526,6 +568,100 @@ function createCollaborationMcpServer(
             urgency: params.urgency,
             timestamp,
             message: 'Question sent. Other agents will see it in their context.',
+          }, null, 2),
+        }],
+      };
+    },
+  );
+
+  // ── Tool 7: summarize_history ────────────────────────────────────────
+  server.tool(
+    'summarize_history',
+    'Compact the collaboration history by replacing old entries with a summary. ' +
+    'Call this when get_other_agent_context indicates needs_summary=true. ' +
+    'Provide a concise but complete summary of all previous collaboration context — ' +
+    'key decisions, completed tasks, current state, and any unresolved issues.',
+    {
+      summary: z.string().describe('Concise summary of all previous collaboration sessions. Include: key decisions made, tasks completed, current project state, unresolved issues, and important context for future sessions.'),
+      keepRecent: z.number().optional().default(HISTORY_KEEP_RECENT).describe(`Number of recent entries to keep (default: ${HISTORY_KEEP_RECENT})`),
+    },
+    async (params) => {
+      checkPermission('summarize_history');
+      const timestamp = new Date().toISOString();
+
+      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
+      let history: unknown[] = [];
+      let previousSummary: string | null = null;
+      if (existing?.memoryData) {
+        try {
+          const data = JSON.parse(existing.memoryData);
+          history = Array.isArray(data.history) ? data.history : [];
+          previousSummary = data.session_summary || null;
+        } catch { /* fresh */ }
+      }
+
+      const totalBefore = history.length;
+      const keepCount = Math.min(Math.max(params.keepRecent || HISTORY_KEEP_RECENT, 3), 50);
+
+      if (totalBefore <= keepCount) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify({
+              status: 'skipped',
+              reason: `History only has ${totalBefore} entries (keep threshold: ${keepCount}), no compaction needed.`,
+            }, null, 2),
+          }],
+        };
+      }
+
+      // Keep only the most recent N entries
+      const recentHistory = history.slice(-keepCount);
+
+      // Build full summary: combine previous summary + new summary
+      const fullSummary = previousSummary
+        ? `[Previous summary]\n${previousSummary}\n\n[Update at ${timestamp}]\n${params.summary}`
+        : params.summary;
+
+      // Insert a summary marker entry at the beginning of the kept history
+      const summaryEntry = {
+        type: 'session_summary',
+        agent_role: role,
+        summary: params.summary,
+        entries_compacted: totalBefore - keepCount,
+        previous_total: totalBefore,
+        source: 'cloud_mcp',
+        timestamp,
+      };
+
+      const newHistory = [summaryEntry, ...recentHistory];
+
+      await db.upsertAIMemory({
+        userId,
+        memoryKey,
+        data: {
+          workspace: memoryKey,
+          history: newHistory,
+          session_summary: fullSummary,
+          last_update: summaryEntry,
+          updated_at: timestamp,
+        },
+        ttlDays: 30,
+      });
+
+      touchAgentHeartbeat(userId, memoryKey, role);
+      logger.info(`History compacted: ${totalBefore} → ${newHistory.length} entries`, { memoryKey, role });
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            status: 'compacted',
+            entriesBefore: totalBefore,
+            entriesAfter: newHistory.length,
+            entriesRemoved: totalBefore - keepCount,
+            summaryStored: true,
+            message: `History compacted from ${totalBefore} to ${newHistory.length} entries. Summary saved for future sessions.`,
           }, null, 2),
         }],
       };
