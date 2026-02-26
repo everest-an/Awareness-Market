@@ -32,6 +32,37 @@ const logger = createLogger('MCP:Cloud');
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const orm = prisma as any;
 
+// ─── UTF-8 sanitizer ───────────────────────────────────────────────────
+// Some clients (e.g. curl on Windows with GBK locale) may send non-UTF-8
+// bytes that get mangled during JSON parsing. This helper strips invalid
+// sequences and replaces known mojibake patterns so stored text is clean.
+function sanitizeUtf8(value: unknown): unknown {
+  if (typeof value === 'string') {
+    // Replace Unicode replacement characters and null bytes
+    let s = value.replace(/\uFFFD/g, '').replace(/\x00/g, '');
+    // Strip sequences of 3+ consecutive non-ASCII control-range chars
+    // that indicate a botched encoding (mojibake signature)
+    s = s.replace(/[\x80-\x9F]{3,}/g, '');
+    return s;
+  }
+  if (Array.isArray(value)) return value.map(sanitizeUtf8);
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = sanitizeUtf8(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+// Detect if a string contains mojibake (garbled encoding)
+function isMojibake(s: string): boolean {
+  // High ratio of replacement chars or C1 control chars = likely garbled
+  const suspicious = s.replace(/[\x20-\x7E\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF\n\r\t]/g, '');
+  return suspicious.length > s.length * 0.3 && s.length > 10;
+}
+
 // ─── Auth helper ────────────────────────────────────────────────────────
 
 interface AuthResult {
@@ -826,6 +857,9 @@ mcpCloudRouter.post('/', async (req: Request, res: Response) => {
   const workspaceKey = (req.headers['x-workspace-key'] as string) || '';
   const memoryKey = workspaceKey || `workspace:default_${auth.userId}`;
 
+  // Sanitize request body — strip mojibake from non-UTF-8 clients
+  const body = sanitizeUtf8(req.body) as Record<string, unknown>;
+
   try {
     // Create a fresh server + transport for each request (stateless)
     const mcpServer = createCollaborationMcpServer(
@@ -840,7 +874,7 @@ mcpCloudRouter.post('/', async (req: Request, res: Response) => {
     });
 
     await mcpServer.connect(transport);
-    await transport.handleRequest(req, res, req.body);
+    await transport.handleRequest(req, res, body);
     await transport.close();
     await mcpServer.close();
   } catch (error: any) {

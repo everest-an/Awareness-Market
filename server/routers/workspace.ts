@@ -966,17 +966,33 @@ export const workspaceRouter = router({
 
       let allEntries: Array<{ agent: string; role: string; content: string; type: string; timestamp: string }> = [];
 
+      // Detect mojibake — high ratio of C1 control chars or replacement chars
+      const isMojibake = (s: string): boolean => {
+        if (!s || s.length < 5) return false;
+        const suspicious = s.replace(/[\x20-\x7E\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF\n\r\t]/g, '');
+        return suspicious.length > s.length * 0.3;
+      };
+
+      // Strip mojibake sequences from a string, keeping valid chars
+      const cleanText = (s: string): string => {
+        if (!s) return s;
+        return s.replace(/[\x80-\x9F\uFFFD]/g, '').replace(/�+/g, '').trim();
+      };
+
       if (historyMem?.memoryData) {
         try {
           const data = JSON.parse(historyMem.memoryData);
           const historyArray = Array.isArray(data.history) ? data.history : Array.isArray(data.entries) ? data.entries : [];
-          allEntries = historyArray.map((e: any) => ({
-            agent: e.agentName || e.agent || e.agent_role || 'unknown',
-            role: e.agentRole || e.agent_role || e.role || 'unknown',
-            content: e.reasoning || e.current_task || e.task || e.content || e.progress || (e.completed_tasks ? `Completed: ${e.completed_tasks.join(', ')}` : ''),
-            type: e.type || 'context',
-            timestamp: e.timestamp || e.createdAt || '',
-          }));
+          allEntries = historyArray.map((e: any) => {
+            const rawContent = e.reasoning || e.current_task || e.task || e.content || e.progress || (e.completed_tasks ? `Completed: ${e.completed_tasks.join(', ')}` : '');
+            return {
+              agent: e.agentName || e.agent || e.agent_role || 'unknown',
+              role: e.agentRole || e.agent_role || e.role || 'unknown',
+              content: isMojibake(rawContent) ? cleanText(rawContent) || '[encoding error — original message garbled]' : rawContent,
+              type: e.type || 'context',
+              timestamp: e.timestamp || e.createdAt || '',
+            };
+          });
         } catch { /* return empty */ }
       }
 
