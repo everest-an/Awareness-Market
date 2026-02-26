@@ -404,7 +404,7 @@ export const workspaceRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
       }
 
-      const apiBaseUrl = process.env.VITE_APP_URL || 'https://awareness.market';
+      const apiBaseUrl = process.env.BASE_URL || 'https://api.awareness.market';
       const rawToken = resolveToken(workspace.mcpTokenEncrypted);
 
       // Cloud MCP server URL (no local process needed)
