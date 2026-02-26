@@ -1,19 +1,24 @@
 name: Quick Deploy Backend to EC2
 
-# 快速部署工作流 - 跳过测试，直接部署
-# 适用场景：紧急修复、配置更改、小型更新
+# Fast deploy — build locally, SCP dist/index.js, restart PM2
+# Use for: hotfixes, config changes, small updates
 
 on:
   workflow_dispatch:
     inputs:
-      skip_tests:
-        description: 'Skip tests (use with caution)'
+      skip_build:
+        description: 'Skip local build (deploy from git pull on EC2)'
         required: false
         default: 'false'
         type: choice
         options:
-          - 'true'
           - 'false'
+          - 'true'
+
+env:
+  EC2_HOST: 13.212.149.168
+  EC2_USER: ubuntu
+  EC2_PATH: /home/ubuntu/awareness-market
 
 jobs:
   deploy:
@@ -21,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production-backend
-      url: ${{ format('{0}/api-docs/', vars.VITE_API_URL || 'https://api.awareness.market') }}
+      url: https://api.awareness.market/api-docs/
 
     steps:
       - name: Checkout code
@@ -39,15 +44,16 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
+        if: inputs.skip_build == 'false'
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
+        if: inputs.skip_build == 'false'
         run: pnpm exec prisma generate
 
-      - name: Type check (if not skipping tests)
-        if: inputs.skip_tests == 'false'
-        run: pnpm exec tsc --noEmit || echo "Type check completed with warnings"
-        continue-on-error: true
+      - name: Build backend
+        if: inputs.skip_build == 'false'
+        run: pnpm run build
 
       - name: Configure SSH
         env:
@@ -56,50 +62,55 @@ jobs:
           mkdir -p ~/.ssh
           echo "$EC2_SSH_KEY" > ~/.ssh/awareness-key.pem
           chmod 600 ~/.ssh/awareness-key.pem
-          ssh-keyscan -H 34.225.237.85 >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Deploy to EC2
+      - name: Deploy (SCP built files)
+        if: inputs.skip_build == 'false'
         run: |
-          echo "🚀 Starting quick deployment..."
+          echo "Uploading built files..."
+          scp -i ~/.ssh/awareness-key.pem dist/index.js \
+            ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/dist/
+          scp -i ~/.ssh/awareness-key.pem -r prisma \
+            ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/
+          scp -i ~/.ssh/awareness-key.pem ecosystem.config.cjs \
+            ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/
 
-          # Upload files
-          rsync -avz -e "ssh -i ~/.ssh/awareness-key.pem" \
-            --exclude 'node_modules' \
-            --exclude '.git' \
-            --exclude 'dist/public' \
-            --exclude 'client/dist' \
-            --exclude '.env' \
-            server/ prisma/ package.json pnpm-lock.yaml \
-            ec2-user@34.225.237.85:/home/ec2-user/Awareness-Market/
-
-          # Restart service
-          ssh -i ~/.ssh/awareness-key.pem ec2-user@34.225.237.85 << 'ENDSSH'
-            cd /home/ec2-user/Awareness-Market
-            pnpm install --prod --frozen-lockfile
+      - name: Deploy (git pull on EC2)
+        if: inputs.skip_build == 'true'
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+            cd ${{ env.EC2_PATH }}
+            git pull origin main
+            pnpm install --frozen-lockfile
             pnpm exec prisma generate
-            pm2 restart awareness-network || pm2 start server/_core/index.ts --name awareness-network
+            npm run build
+          ENDSSH
+
+      - name: Restart PM2
+        run: |
+          ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+            cd ${{ env.EC2_PATH }}
+            pnpm exec prisma generate
+            pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs
             pm2 status
           ENDSSH
 
       - name: Verify deployment
-        env:
-          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
           sleep 10
-          if curl -f "$API_BASE_URL/api-docs/"; then
-            echo "✅ Deployment successful!"
+          if curl -sf "https://api.awareness.market/api-docs/" > /dev/null; then
+            echo "Deployment successful!"
           else
-            echo "❌ Deployment verification failed"
+            echo "Deployment verification failed"
             exit 1
           fi
 
       - name: Show deployment info
-        env:
-          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
-          echo "## ✅ Deployment Complete"
+          echo "## Deployment Complete"
           echo ""
-          echo "🔗 API URL: $API_BASE_URL/api-docs/"
-          echo "⏰ Deployed at: $(date)"
-          echo "👤 Deployed by: ${{ github.actor }}"
-          echo "📝 Commit: ${{ github.sha }}"
+          echo "API URL: https://api.awareness.market/api-docs/"
+          echo "Deployed at: $(date)"
+          echo "Deployed by: ${{ github.actor }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Mode: ${{ inputs.skip_build == 'true' && 'git pull' || 'SCP built files' }}"

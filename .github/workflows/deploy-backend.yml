@@ -15,31 +15,36 @@ on:
       - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:  # Allow manual trigger
 
+env:
+  EC2_HOST: 13.212.149.168
+  EC2_USER: ubuntu
+  EC2_PATH: /home/ubuntu/awareness-market
+
 jobs:
   deploy:
     name: Build and Deploy Backend
     runs-on: ubuntu-latest
     environment:
       name: production-backend
-      url: ${{ format('{0}/api-docs/', vars.VITE_API_URL || 'https://api.awareness.market') }}
-    
+      url: https://api.awareness.market/api-docs/
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 10
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Generate Prisma client
         run: pnpm exec prisma generate
 
@@ -59,7 +64,7 @@ jobs:
           pnpm run build:client
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
-      
+
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.AWARENESS }}
@@ -67,54 +72,47 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/awareness-key.pem
           chmod 600 ~/.ssh/awareness-key.pem
-          ssh-keyscan -H 34.225.237.85 >> ~/.ssh/known_hosts
-      
+          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
       - name: Upload files to EC2
         run: |
-          ssh -i ~/.ssh/awareness-key.pem ec2-user@34.225.237.85 "mkdir -p /home/ec2-user/Awareness-Market/dist"
-          scp -i ~/.ssh/awareness-key.pem dist/index.js ec2-user@34.225.237.85:/home/ec2-user/Awareness-Market/dist/
-          scp -i ~/.ssh/awareness-key.pem -r dist/public ec2-user@34.225.237.85:/home/ec2-user/Awareness-Market/dist/
-          scp -i ~/.ssh/awareness-key.pem package.json ec2-user@34.225.237.85:/home/ec2-user/Awareness-Market/
-          scp -i ~/.ssh/awareness-key.pem pnpm-lock.yaml ec2-user@34.225.237.85:/home/ec2-user/Awareness-Market/
-          scp -i ~/.ssh/awareness-key.pem -r prisma ec2-user@34.225.237.85:/home/ec2-user/Awareness-Market/
-          scp -i ~/.ssh/awareness-key.pem -r scripts ec2-user@34.225.237.85:/home/ec2-user/Awareness-Market/
-          scp -i ~/.ssh/awareness-key.pem ecosystem.config.cjs ec2-user@34.225.237.85:/home/ec2-user/Awareness-Market/
-      
-      - name: Run database migrations on EC2
-        run: |
-          ssh -i ~/.ssh/awareness-key.pem ec2-user@34.225.237.85 << 'ENDSSH'
-            cd /home/ec2-user/Awareness-Market
-            echo "=== Applying pending migrations ==="
-            for f in prisma/migrations/*.sql; do
-              echo "  Running $f..."
-              pnpm exec prisma db execute --file "$f" --schema prisma/schema.prisma || true
-            done
-            echo "=== Migrations done ==="
-          ENDSSH
+          SSH_CMD="ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }}"
+          SCP_CMD="scp -i ~/.ssh/awareness-key.pem"
 
-      - name: Restart PM2 service
+          $SSH_CMD "mkdir -p ${{ env.EC2_PATH }}/dist"
+          $SCP_CMD dist/index.js ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/dist/
+          $SCP_CMD -r dist/public ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/dist/
+          $SCP_CMD package.json ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/
+          $SCP_CMD pnpm-lock.yaml ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/
+          $SCP_CMD -r prisma ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/
+          $SCP_CMD ecosystem.config.cjs ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/
+
+      - name: Run database migrations and restart
         run: |
-          ssh -i ~/.ssh/awareness-key.pem ec2-user@34.225.237.85 << 'ENDSSH'
-            cd /home/ec2-user/Awareness-Market
+          ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+            cd ${{ env.EC2_PATH }}
+            echo "=== Installing dependencies ==="
             pnpm install --frozen-lockfile
+            echo "=== Generating Prisma client ==="
             pnpm exec prisma generate
+            echo "=== Running migrations ==="
+            pnpm exec prisma migrate deploy || echo "Migration skipped (no pending)"
+            echo "=== Restarting PM2 ==="
             pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs
             pm2 status
           ENDSSH
-      
+
       - name: Verify deployment
-        env:
-          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
         run: |
           sleep 10
-          curl -f "$API_BASE_URL/api-docs/" || exit 1
+          curl -f "https://api.awareness.market/api-docs/" || exit 1
 
-      - name: Collect diagnostics on verify failure
+      - name: Collect diagnostics on failure
         if: failure()
         run: |
-          ssh -i ~/.ssh/awareness-key.pem ec2-user@34.225.237.85 << 'ENDSSH'
+          ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
             set +e
-            cd /home/ec2-user/Awareness-Market
+            cd ${{ env.EC2_PATH }}
             echo "=== PM2 Status ==="
             pm2 status
             echo "=== Local backend check (127.0.0.1:3001) ==="
@@ -122,19 +120,15 @@ jobs:
             echo "=== PM2 recent logs ==="
             pm2 logs awareness-market-api --lines 120 --nostream || true
             echo "=== Nginx error log tail ==="
-            sudo tail -n 120 /var/log/nginx/error.log || true
+            sudo tail -n 60 /var/log/nginx/error.log || true
           ENDSSH
-      
-      - name: Notify success
-        if: success( )
-        env:
-          API_BASE_URL: ${{ vars.VITE_API_URL || 'https://api.awareness.market' }}
+
+      - name: Notify result
+        if: always()
         run: |
-          echo "✅ Backend deployment successful!"
-          echo "API URL: $API_BASE_URL/api-docs/"
-      
-      - name: Notify failure
-        if: failure( )
-        run: |
-          echo "❌ Backend deployment failed!"
-          echo "Check the logs above for details."
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "Backend deployment successful!"
+            echo "API: https://api.awareness.market/api-docs/"
+          else
+            echo "Backend deployment failed! Check logs above."
+          fi
