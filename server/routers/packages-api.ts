@@ -20,10 +20,51 @@ import { AntiPoisoningVerifier, type ChallengeResponse } from '../latentmas/anti
 import { pricingEngine } from '../pricing-engine';
 import { SemanticAnchorDB } from '../latentmas/semantic-anchors';
 import { generateRecommendations, trackBrowsingAction } from '../recommendation-engine';
+import { getInfinityEmbeddingService, EMBEDDING_DIMENSIONS } from '../latentmas/infinity-embedding-service';
 
 const logger = createLogger('Packages:API');
 const poisonValidator = new AntiPoisoningVerifier();
 const semanticAnchors = new SemanticAnchorDB();
+
+/**
+ * Generate and store embedding for a newly created package (fire-and-forget)
+ */
+async function generatePackageEmbedding(
+  packageType: 'vector' | 'memory' | 'chain',
+  packageId: number,
+  name: string,
+  description: string
+) {
+  try {
+    const embeddingService = getInfinityEmbeddingService();
+    const isAvailable = await embeddingService.healthCheck();
+    if (!isAvailable) {
+      logger.warn(`[Embedding] Infinity server unavailable, skipping embedding for ${packageType}:${packageId}`);
+      return;
+    }
+
+    const dimension = packageType === 'vector' ? EMBEDDING_DIMENSIONS.VECTOR_PACKAGE
+      : packageType === 'memory' ? EMBEDDING_DIMENSIONS.MEMORY_PACKAGE
+      : EMBEDDING_DIMENSIONS.CHAIN_PACKAGE;
+
+    const embedding = await embeddingService.embedPackage(name, description, undefined, dimension);
+    const embeddingStr = `[${embedding.join(',')}]`;
+
+    const table = packageType === 'vector' ? 'vector_packages'
+      : packageType === 'memory' ? 'memory_packages'
+      : 'chain_packages';
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE ${table} SET embedding = $1::vector(${dimension}) WHERE id = $2`,
+      embeddingStr,
+      packageId
+    );
+
+    logger.info(`[Embedding] Generated ${dimension}d embedding for ${packageType}:${packageId}`);
+  } catch (error) {
+    logger.error(`[Embedding] Failed to generate embedding for ${packageType}:${packageId}`, { error: getErrorMessage(error) });
+  }
+}
 
 // KV-Cache structure for vector extraction
 interface KVCacheStructure {
@@ -426,6 +467,9 @@ export const packagesApiRouter = router({
           },
         });
 
+        // Generate embedding for semantic search (fire-and-forget)
+        generatePackageEmbedding('vector', pkg.id, input.name, input.description).catch(() => {});
+
         return {
           success: true,
           package: pkg,
@@ -541,6 +585,9 @@ export const packagesApiRouter = router({
           },
         });
 
+        // Generate embedding for semantic search (fire-and-forget)
+        generatePackageEmbedding('memory', pkg.id, input.name, input.description).catch(() => {});
+
         return {
           success: true,
           package: pkg,
@@ -652,6 +699,9 @@ export const packagesApiRouter = router({
             informationRetention: computeInformationRetention(input.wMatrix.epsilon),
           },
         });
+
+        // Generate embedding for semantic search (fire-and-forget)
+        generatePackageEmbedding('chain', pkg.id, input.name, input.description).catch(() => {});
 
         return {
           success: true,
@@ -770,6 +820,164 @@ export const packagesApiRouter = router({
         packages: packagesWithDynamicPricing,
         total: packagesWithDynamicPricing.length,
       };
+    }),
+
+  // ============================================================================
+  // Semantic Vector Search (pgvector + Infinity Embedding)
+  // ============================================================================
+
+  /**
+   * Semantic search across packages using vector similarity
+   * Falls back to text search when Infinity server is unavailable
+   */
+  semanticSearch: publicProcedure
+    .input(z.object({
+      query: z.string().min(1).max(500),
+      packageType: PackageTypeSchema.optional(),
+      limit: z.number().min(1).max(50).default(10),
+      minSimilarity: z.number().min(0).max(1).default(0.3),
+    }))
+    .query(async ({ input }) => {
+      const embeddingService = getInfinityEmbeddingService();
+
+      // Check if Infinity server is available
+      let isAvailable = false;
+      try {
+        isAvailable = await embeddingService.healthCheck();
+      } catch {
+        isAvailable = false;
+      }
+
+      if (!isAvailable) {
+        // Fallback: text search across all package types
+        logger.warn('[SemanticSearch] Infinity server unavailable, falling back to text search');
+        const textWhere: any = {
+          status: 'active',
+          OR: [
+            { name: { contains: input.query, mode: 'insensitive' } },
+            { description: { contains: input.query, mode: 'insensitive' } },
+          ],
+        };
+
+        const types = input.packageType
+          ? [input.packageType]
+          : ['vector', 'memory', 'chain'] as const;
+
+        const results: any[] = [];
+        for (const type of types) {
+          try {
+            const model = type === 'vector' ? prisma.vectorPackage
+              : type === 'memory' ? prisma.memoryPackage
+              : prisma.chainPackage;
+            const pkgs = await (model as any).findMany({
+              where: textWhere,
+              take: input.limit,
+              orderBy: { downloads: 'desc' },
+            });
+            results.push(...pkgs.map((p: any) => ({
+              ...p,
+              packageType: type,
+              similarity: null,
+              searchMethod: 'text_fallback',
+            })));
+          } catch { /* skip unavailable tables */ }
+        }
+
+        return {
+          success: true,
+          results: results.slice(0, input.limit),
+          total: results.length,
+          searchMethod: 'text_fallback',
+        };
+      }
+
+      // Vector search path
+      try {
+        const types = input.packageType
+          ? [input.packageType]
+          : ['vector', 'memory', 'chain'] as const;
+
+        const allResults: any[] = [];
+
+        for (const type of types) {
+          const dimension = type === 'vector' ? EMBEDDING_DIMENSIONS.VECTOR_PACKAGE
+            : type === 'memory' ? EMBEDDING_DIMENSIONS.MEMORY_PACKAGE
+            : EMBEDDING_DIMENSIONS.CHAIN_PACKAGE;
+
+          const queryEmbedding = await embeddingService.embedQuery(input.query, dimension);
+          const embeddingStr = `[${queryEmbedding.join(',')}]`;
+
+          const searchFn = type === 'vector' ? 'search_vector_packages'
+            : type === 'memory' ? 'search_memory_packages'
+            : 'search_chain_packages';
+
+          const rows: any[] = await prisma.$queryRawUnsafe(
+            `SELECT * FROM ${searchFn}($1::vector(${dimension}), $2, $3)`,
+            embeddingStr,
+            input.limit,
+            input.minSimilarity
+          );
+
+          allResults.push(...rows.map(r => ({
+            ...r,
+            packageType: type,
+            similarity: r.similarity,
+            searchMethod: 'vector',
+          })));
+        }
+
+        // Sort by similarity descending
+        allResults.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
+
+        return {
+          success: true,
+          results: allResults.slice(0, input.limit),
+          total: allResults.length,
+          searchMethod: 'vector',
+        };
+      } catch (error) {
+        logger.error('[SemanticSearch] Vector search failed, falling back to text', { error: getErrorMessage(error) });
+
+        // Fallback on vector search error
+        const textWhere: any = {
+          status: 'active',
+          OR: [
+            { name: { contains: input.query, mode: 'insensitive' } },
+            { description: { contains: input.query, mode: 'insensitive' } },
+          ],
+        };
+
+        const types = input.packageType
+          ? [input.packageType]
+          : ['vector', 'memory', 'chain'] as const;
+
+        const results: any[] = [];
+        for (const type of types) {
+          try {
+            const model = type === 'vector' ? prisma.vectorPackage
+              : type === 'memory' ? prisma.memoryPackage
+              : prisma.chainPackage;
+            const pkgs = await (model as any).findMany({
+              where: textWhere,
+              take: input.limit,
+              orderBy: { downloads: 'desc' },
+            });
+            results.push(...pkgs.map((p: any) => ({
+              ...p,
+              packageType: type,
+              similarity: null,
+              searchMethod: 'text_fallback',
+            })));
+          } catch { /* skip */ }
+        }
+
+        return {
+          success: true,
+          results: results.slice(0, input.limit),
+          total: results.length,
+          searchMethod: 'text_fallback',
+        };
+      }
     }),
 
   // ============================================================================

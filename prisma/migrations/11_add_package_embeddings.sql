@@ -194,7 +194,8 @@ $$;
 -- ef_search: higher = better recall, slower search (default: 40)
 -- For production, ef_search=64 gives good balance
 -- Can be adjusted per-session or per-query
-ALTER DATABASE awareness SET hnsw.ef_search = 64;
+-- Note: On RDS, set hnsw.ef_search via parameter group instead
+-- ALTER DATABASE awareness_market SET hnsw.ef_search = 64;
 
 -- ============================================================================
 -- 5. Verification queries

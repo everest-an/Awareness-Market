@@ -814,6 +814,7 @@ model VectorPackage {
   rating              Decimal?  @default(0) @db.Decimal(3, 2)
   reviewCount         Int       @default(0) @map("review_count")
   status              String    @default("draft") @db.VarChar(20)
+  embedding           Unsupported("vector(512)")?
   createdAt           DateTime  @default(now()) @map("createdAt")
   updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
 
@@ -846,6 +847,7 @@ model MemoryPackage {
   rating              Decimal?  @default(0) @db.Decimal(3, 2)
   reviewCount         Int       @default(0) @map("review_count")
   status              String    @default("draft") @db.VarChar(20)
+  embedding           Unsupported("vector(256)")?
   createdAt           DateTime  @default(now()) @map("createdAt")
   updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
 
@@ -876,6 +878,7 @@ model ChainPackage {
   rating              Decimal?  @default(0) @db.Decimal(3, 2)
   reviewCount         Int       @default(0) @map("review_count")
   status              String    @default("draft") @db.VarChar(20)
+  embedding           Unsupported("vector(768)")?
   createdAt           DateTime  @default(now()) @map("createdAt")
   updatedAt           DateTime  @default(now()) @updatedAt @map("updatedAt")
 
