@@ -72,12 +72,13 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/awareness-key.pem
           chmod 600 ~/.ssh/awareness-key.pem
-          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Upload files to EC2
         run: |
-          SSH_CMD="ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }}"
-          SCP_CMD="scp -i ~/.ssh/awareness-key.pem"
+          SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=30"
+          SSH_CMD="ssh $SSH_OPTS -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }}"
+          SCP_CMD="scp $SSH_OPTS -i ~/.ssh/awareness-key.pem"
 
           $SSH_CMD "mkdir -p ${{ env.EC2_PATH }}/dist"
           $SCP_CMD dist/index.js ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/dist/
@@ -89,7 +90,8 @@ jobs:
 
       - name: Run database migrations and restart
         run: |
-          ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
             cd ${{ env.EC2_PATH }}
             echo "=== Installing dependencies ==="
             pnpm install --frozen-lockfile
@@ -110,7 +112,8 @@ jobs:
       - name: Collect diagnostics on failure
         if: failure()
         run: |
-          ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
             set +e
             cd ${{ env.EC2_PATH }}
             echo "=== PM2 Status ==="

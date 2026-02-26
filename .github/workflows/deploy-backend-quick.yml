@@ -62,23 +62,33 @@ jobs:
           mkdir -p ~/.ssh
           echo "$EC2_SSH_KEY" > ~/.ssh/awareness-key.pem
           chmod 600 ~/.ssh/awareness-key.pem
-          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          # Add host key (tolerate timeout — security group may block keyscan)
+          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          # Fallback: disable strict host key checking
+          cat >> ~/.ssh/config << EOF
+          Host ${{ env.EC2_HOST }}
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            LogLevel ERROR
+          EOF
 
       - name: Deploy (SCP built files)
         if: inputs.skip_build == 'false'
         run: |
+          SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=30 -i ~/.ssh/awareness-key.pem"
           echo "Uploading built files..."
-          scp -i ~/.ssh/awareness-key.pem dist/index.js \
+          scp $SSH_OPTS dist/index.js \
             ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/dist/
-          scp -i ~/.ssh/awareness-key.pem -r prisma \
+          scp $SSH_OPTS -r prisma \
             ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/
-          scp -i ~/.ssh/awareness-key.pem ecosystem.config.cjs \
+          scp $SSH_OPTS ecosystem.config.cjs \
             ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.EC2_PATH }}/
 
       - name: Deploy (git pull on EC2)
         if: inputs.skip_build == 'true'
         run: |
-          ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
             cd ${{ env.EC2_PATH }}
             git pull origin main
             pnpm install --frozen-lockfile
@@ -88,7 +98,8 @@ jobs:
 
       - name: Restart PM2
         run: |
-          ssh -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            -i ~/.ssh/awareness-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
             cd ${{ env.EC2_PATH }}
             pnpm exec prisma generate
             pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs
