@@ -855,18 +855,22 @@ mcpCloudRouter.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /mcp — Not supported in stateless mode
+// GET /mcp — SSE not supported in stateless mode (per MCP Streamable HTTP spec)
+// Clients seeing 405 should fall back to POST-only mode.
 mcpCloudRouter.get('/', (_req: Request, res: Response) => {
-  res.status(405).json({
+  res.writeHead(405, {
+    Allow: 'POST, DELETE',
+    'Content-Type': 'application/json',
+  }).end(JSON.stringify({
     jsonrpc: '2.0',
-    error: { code: -32000, message: 'SSE streaming not available in stateless mode. Use POST for all requests.' },
+    error: { code: -32000, message: 'Method not allowed. This server operates in stateless mode — use POST for all MCP requests.' },
     id: null,
-  });
+  }));
 });
 
-// DELETE /mcp — No-op in stateless mode
+// DELETE /mcp — No-op (stateless: no sessions to terminate)
 mcpCloudRouter.delete('/', (_req: Request, res: Response) => {
-  res.status(200).json({ success: true });
+  res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
 });
 
 export { mcpCloudRouter };
