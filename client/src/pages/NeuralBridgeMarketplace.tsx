@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/hooks/useAuth';
@@ -97,6 +98,7 @@ export default function NeuralBridgeMarketplace() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+      <SEO title="Neural Bridge Marketplace" description="Trade neural bridge connections for cross-model AI integration. Enable seamless knowledge transfer between different AI model families." path="/neural-bridge-market" />
       <Navbar />
 
       <div className="max-w-6xl mx-auto pt-24 px-6 pb-12 space-y-6">

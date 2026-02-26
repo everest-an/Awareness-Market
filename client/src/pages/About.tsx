@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { Link } from "wouter";
 import { Brain, Zap, Network, Shield, Users, Target, Globe, Cpu, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,11 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="About"
+        description="Awareness Market enables direct AI-to-AI collaboration through latent space vector and KV-cache trading. Built on open protocols including MCP and ERC-8004 for decentralized AI agent identity."
+        path="/about"
+      />
       {/* Navbar */}
       <Navbar />
 

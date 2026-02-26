@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/hooks/useAuth';
@@ -71,6 +72,7 @@ export default function WMatrixMarketplace() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+      <SEO title="W-Matrix Marketplace" description="Trade W-Matrix alignment operators for cross-model AI transfer. Achieve 98% alignment accuracy across 60+ AI models with weight matrix technology." path="/w-matrix-market" />
       <Navbar />
 
       <div className="max-w-6xl mx-auto pt-24 px-6 pb-12 space-y-6">

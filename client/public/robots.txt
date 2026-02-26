@@ -2,5 +2,13 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /admin/
+Disallow: /dev
+Disallow: /profile
+Disallow: /upload
+Disallow: /workspace
+Disallow: /org/
+Disallow: /provider-keys
+Disallow: /wallet
+Disallow: /credits
 
 Sitemap: https://awareness.market/sitemap.xml

@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -101,6 +102,11 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Blog"
+        description="Latest articles on AI agent collaboration, latent space vectors, cross-model transfer, W-Matrix alignment, and the Awareness protocol."
+        path="/blog"
+      />
       {/* Navbar */}
       <Navbar />
 

@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,11 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
+      <SEO
+        title="Pricing"
+        description="Flexible pricing plans for Awareness Market. Free tier with 3 trial calls per vector, Pro plan with unlimited access, and Enterprise with custom deployment."
+        path="/pricing"
+      />
       <Navbar />
 
       {/* Hero */}

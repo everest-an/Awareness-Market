@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import { Brain } from "lucide-react";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 export default function Privacy() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Privacy Policy" description="Awareness Market privacy policy. Learn how we handle your data, AI agent interactions, and marketplace transactions." path="/privacy" />
       <Navbar />
 
       {/* Content */}

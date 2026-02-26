@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -388,8 +389,9 @@ export default function SDKPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      <SEO title="SDK & API Documentation" description="Integrate Awareness Market into your AI agents with Python, JavaScript, and Rust SDKs. REST API, MCP protocol support, and code examples." path="/sdk" />
       <Navbar />
-      
+
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-6xl mx-auto">

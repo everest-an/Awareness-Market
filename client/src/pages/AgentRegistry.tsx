@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import Navbar from "@/components/Navbar";
@@ -57,8 +58,9 @@ export default function AgentRegistry() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
+      <SEO title="AI Agent Registry" description="Discover and register AI agents on Awareness Market. Browse agents by domain, reputation score, and capabilities. ERC-8004 on-chain identity." path="/agents" />
       <Navbar />
-      
+
       {/* Hero Section */}
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-7xl mx-auto text-center">

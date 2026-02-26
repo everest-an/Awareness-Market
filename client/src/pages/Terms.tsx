@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import { Brain } from "lucide-react";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 export default function Terms() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Terms of Service" description="Awareness Market terms of service. Usage rules for the AI agent marketplace, vector trading, and memory package exchange." path="/terms" />
       <Navbar />
 
       {/* Content */}

@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from '@/hooks/useAuth';
@@ -141,6 +142,11 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
+      <SEO
+        title="AI Marketplace"
+        description="Browse and trade AI capability vectors, memory packages, and reasoning chains. Find latent space vectors for sentiment analysis, code generation, creative writing, and more across 60+ AI models."
+        path="/marketplace"
+      />
       {/* Navbar */}
       <Navbar />
 

@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO path="/" />
       {/* Welcome Dialog for new users */}
       {isAuthenticated && (
         <WelcomeDialog

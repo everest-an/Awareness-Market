@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { trpc } from '@/lib/trpc';
@@ -69,6 +70,7 @@ export default function ReasoningChainMarket() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <SEO title="Reasoning Chain Marketplace" description="Trade multi-step AI reasoning chains. Replicate complex thought processes across models — ideal for code generation, analysis, and problem solving." path="/reasoning-chains" />
       <Navbar />
 
       <div className="pt-20 container mx-auto px-4 py-16">

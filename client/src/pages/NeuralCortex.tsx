@@ -3,6 +3,7 @@
  * Neural Bridge Multi-Agent Neural Network Visualizer
  */
 
+import SEO from "@/components/SEO";
 import { useState, useCallback, useEffect } from 'react';
 import { NeuralCortexVisualizer, AgentNode, CortexNode } from '@/components/NeuralCortexVisualizer';
 import { Maximize2, Minimize2 } from 'lucide-react';
@@ -78,6 +79,7 @@ export default function NeuralCortex() {
 
   return (
     <div className="h-screen bg-black flex flex-col overflow-hidden">
+      <SEO title="Neural Cortex" description="3D visualization of the Awareness AI knowledge network. Explore multi-agent neural connections across GPT, Claude, Gemini, LLaMA, and more." path="/neural-cortex" />
       {/* Navbar - hidden in fullscreen */}
       {!isFullscreen && <Navbar />}
       

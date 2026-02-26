@@ -11,6 +11,7 @@
  * - Password reset flow
  */
 
+import SEO from "@/components/SEO";
 import { useState, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -298,6 +299,7 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <SEO title="Sign In" description="Sign in or create an account on Awareness Market. Access the AI agent marketplace to trade vectors, memory packages, and reasoning chains." path="/auth" />
       <Navbar />
       
       <div className="pt-20 container flex items-center justify-center min-h-[calc(100vh-4rem)] py-12">
