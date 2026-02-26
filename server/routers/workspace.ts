@@ -984,7 +984,31 @@ export const workspaceRouter = router({
           const data = JSON.parse(historyMem.memoryData);
           const historyArray = Array.isArray(data.history) ? data.history : Array.isArray(data.entries) ? data.entries : [];
           allEntries = historyArray.map((e: any) => {
-            const rawContent = e.reasoning || e.current_task || e.task || e.content || e.progress || (e.completed_tasks ? `Completed: ${e.completed_tasks.join(', ')}` : '');
+            // Build content based on entry type so no timeline entry is blank
+            let rawContent = '';
+            switch (e.type) {
+              case 'task_assigned':
+                rawContent = `Task: ${e.task_title || 'Untitled'}` + (e.assigned_to ? ` → ${e.assigned_to}` : '') + (e.priority ? ` [${e.priority}]` : '');
+                break;
+              case 'task_updated':
+                rawContent = `Task: ${e.task_title || e.task_id || 'Untitled'}` + (e.new_status ? ` — ${e.new_status}` : '') + (e.result_summary ? `: ${e.result_summary}` : '');
+                break;
+              case 'artifact_shared':
+                rawContent = `Artifact: ${e.artifact_name || 'Unnamed'}` + (e.artifact_type ? ` (${e.artifact_type})` : '') + (e.message ? ` — ${e.message}` : '');
+                break;
+              case 'question':
+                rawContent = e.question || e.content || '';
+                break;
+              case 'decision_proposal':
+                rawContent = e.decision || e.reasoning || '';
+                break;
+              case 'progress_sync':
+                rawContent = e.next_steps || e.progress || (Array.isArray(e.completed_tasks) ? `Completed: ${e.completed_tasks.join(', ')}` : '') || '';
+                break;
+              default:
+                rawContent = e.reasoning || e.current_task || e.task || e.content || e.progress || (Array.isArray(e.completed_tasks) ? `Completed: ${e.completed_tasks.join(', ')}` : '') || '';
+                break;
+            }
             return {
               agent: e.agentName || e.agent || e.agent_role || 'unknown',
               role: e.agentRole || e.agent_role || e.role || 'unknown',
