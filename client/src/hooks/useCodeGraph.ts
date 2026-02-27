@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
-import type { CodeGraph, CodeEdge } from '../../../server/code-graph/types';
+import type { CodeGraph, CodeEdge, Community, ProcessFlow } from '../../../server/code-graph/types';
 import type { CortexNode } from '@/components/NeuralCortexVisualizer';
 import { DEFAULT_CODE_GRAPH } from '@/data/default-code-graph';
 
@@ -209,6 +209,8 @@ export function useCodeGraph() {
     codeGraph,
     cortexNodes: layout.nodes,
     edges: layout.edges,
+    communities: codeGraph.communities,
+    processes: codeGraph.processes,
     isLoading,
     selectRepo,
     resetToDefault,

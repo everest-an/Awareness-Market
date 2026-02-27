@@ -2,11 +2,14 @@
  * Code Graph Builder
  *
  * Orchestrates: fetch repo tree → filter source files → parse in parallel → build knowledge graph.
- * Produces a CodeGraph with file nodes, symbol nodes, and dependency edges.
+ * Produces a CodeGraph with file nodes, symbol nodes, dependency edges, communities, and processes.
+ * Includes confidence scoring on all edges and in-memory caching (30min TTL).
  */
 
 import { getRepoTree, getFileContent } from './github-service';
 import { parseFile } from './code-parser';
+import { detectCommunities } from './community-detector';
+import { detectProcesses } from './process-detector';
 import type { CodeGraph, CodeNode, CodeEdge } from './types';
 import { createLogger } from '../utils/logger';
 
@@ -20,6 +23,39 @@ const SKIP_DIRS = new Set([
 const MAX_FILES_TO_PARSE = 150;
 const MAX_FILE_SIZE = 50_000; // 50KB
 const CONCURRENCY = 5;
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+// ─── Graph Cache ──────────────────────────────────────────────────────────
+
+interface CacheEntry {
+  graph: CodeGraph;
+  expiresAt: number;
+}
+
+const graphCache = new Map<string, CacheEntry>();
+
+export function getCachedGraph(owner: string, repo: string): CodeGraph | null {
+  const key = `${owner}/${repo}`;
+  const entry = graphCache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt < Date.now()) {
+    graphCache.delete(key);
+    return null;
+  }
+  return entry.graph;
+}
+
+function cacheGraph(owner: string, repo: string, graph: CodeGraph): void {
+  const key = `${owner}/${repo}`;
+  graphCache.set(key, { graph, expiresAt: Date.now() + CACHE_TTL });
+  // Evict old entries (max 20 cached repos)
+  if (graphCache.size > 20) {
+    const oldest = [...graphCache.entries()].sort((a, b) => a[1].expiresAt - b[1].expiresAt)[0];
+    if (oldest) graphCache.delete(oldest[0]);
+  }
+}
+
+// ─── Build Graph ──────────────────────────────────────────────────────────
 
 export async function buildCodeGraph(
   token: string,
@@ -27,6 +63,10 @@ export async function buildCodeGraph(
   repo: string,
   branch: string,
 ): Promise<CodeGraph> {
+  // Check cache first
+  const cached = getCachedGraph(owner, repo);
+  if (cached && cached.branch === branch) return cached;
+
   // 1. Get full repo tree
   const tree = await getRepoTree(token, owner, repo, branch);
 
@@ -51,6 +91,9 @@ export async function buildCodeGraph(
   const edges: CodeEdge[] = [];
   const fileNodeMap = new Map<string, string>(); // path → nodeId
   const allPaths = sourceFiles.map(f => f.path);
+
+  // Track imports per file for call resolution
+  const fileImports = new Map<string, Map<string, string>>(); // filePath → (importedName → resolvedFilePath)
 
   // 3. Create file nodes
   for (const file of sourceFiles) {
@@ -92,6 +135,18 @@ export async function buildCodeGraph(
 
       const parsed = parseFile(content, path);
 
+      // Build import map for this file (importedName → resolved file path)
+      const importMap = new Map<string, string>();
+      for (const imp of parsed.imports) {
+        const resolvedPath = resolveImportPath(path, imp.source, allPaths);
+        if (resolvedPath) {
+          for (const name of imp.names) {
+            importMap.set(name, resolvedPath);
+          }
+        }
+      }
+      fileImports.set(path, importMap);
+
       // Create symbol nodes + DEFINED_IN edges
       for (const sym of parsed.symbols) {
         const symbolId = `${sym.type}:${path}::${sym.name}`;
@@ -111,6 +166,8 @@ export async function buildCodeGraph(
           target: fileNodeId,
           type: 'defined_in',
           weight: 0.3,
+          confidence: 1.0,
+          reason: 'structural',
         });
 
         // EXTENDS edge
@@ -125,19 +182,20 @@ export async function buildCodeGraph(
               target: extNode.id,
               type: 'extends',
               weight: 0.7,
+              confidence: 0.9,
+              reason: 'heritage',
             });
           }
         }
       }
 
-      // IMPORTS edges (file → file)
+      // IMPORTS edges (file → file) with confidence
       for (const imp of parsed.imports) {
         const resolvedPath = resolveImportPath(path, imp.source, allPaths);
         if (resolvedPath) {
           const targetFileId = fileNodeMap.get(resolvedPath);
           if (targetFileId) {
             const edgeId = `edge:${fileNodeId}->imports:${targetFileId}`;
-            // Avoid duplicate edges
             if (!edges.some(e => e.id === edgeId)) {
               edges.push({
                 id: edgeId,
@@ -145,28 +203,131 @@ export async function buildCodeGraph(
                 target: targetFileId,
                 type: 'imports',
                 weight: 0.5,
+                confidence: 0.95,
+                reason: 'import-statement',
               });
             }
           }
         }
       }
+
+      // CALLS edges — resolve function calls with confidence scoring
+      const localSymbols = parsed.symbols.filter(s => s.type === 'function' || s.type === 'class');
+      const localNames = new Set(localSymbols.map(s => s.name));
+
+      for (const call of parsed.calls) {
+        const calleeName = call.calleeName;
+        let targetNode: CodeNode | undefined;
+        let confidence: number;
+        let reason: string;
+
+        // Priority 1: imported symbol → high confidence
+        const importedFromPath = importMap.get(calleeName);
+        if (importedFromPath) {
+          targetNode = nodes.find(
+            n => n.filePath === importedFromPath &&
+              (n.label === calleeName || n.label === `${calleeName}()`) &&
+              n.type !== 'file',
+          );
+          confidence = 0.9;
+          reason = 'import-resolved';
+        }
+        // Priority 2: same-file symbol
+        else if (localNames.has(calleeName)) {
+          targetNode = nodes.find(
+            n => n.filePath === path &&
+              (n.label === calleeName || n.label === `${calleeName}()`) &&
+              n.type !== 'file',
+          );
+          confidence = 0.85;
+          reason = 'same-file';
+        }
+        // Priority 3: fuzzy global match
+        else {
+          const globalMatches = nodes.filter(
+            n => (n.label === calleeName || n.label === `${calleeName}()`) && n.type !== 'file',
+          );
+          if (globalMatches.length === 1) {
+            targetNode = globalMatches[0];
+            confidence = 0.5;
+            reason = 'fuzzy-global-single';
+          } else if (globalMatches.length > 1) {
+            // Pick the one in the closest directory
+            targetNode = globalMatches[0];
+            confidence = 0.3;
+            reason = 'fuzzy-global-multiple';
+          } else {
+            continue; // No match found
+          }
+        }
+
+        if (!targetNode) continue;
+
+        // Find caller symbol (function containing this call line)
+        const callerSym = parsed.symbols
+          .filter(s => s.type === 'function')
+          .sort((a, b) => b.lineStart - a.lineStart)
+          .find(s => s.lineStart <= call.line);
+
+        const sourceId = callerSym
+          ? `function:${path}::${callerSym.name}`
+          : fileNodeId;
+
+        // Skip self-calls and duplicate edges
+        if (sourceId === targetNode.id) continue;
+        const callEdgeId = `edge:${sourceId}->calls:${targetNode.id}`;
+        if (edges.some(e => e.id === callEdgeId)) continue;
+
+        edges.push({
+          id: callEdgeId,
+          source: sourceId,
+          target: targetNode.id,
+          type: 'calls',
+          weight: confidence * 0.6,
+          confidence,
+          reason,
+        });
+      }
     }
   }
+
+  // 5. Detect communities
+  const communities = detectCommunities(nodes, edges);
+
+  // Assign community IDs to nodes
+  for (const community of communities) {
+    for (const memberId of community.memberIds) {
+      const node = nodes.find(n => n.id === memberId);
+      if (node) node.communityId = community.id;
+    }
+  }
+
+  // 6. Detect execution flows
+  const processes = detectProcesses(nodes, edges, communities);
 
   logger.info('Code graph built', {
     repo: `${owner}/${repo}`,
     nodes: nodes.length,
     edges: edges.length,
+    communities: communities.length,
+    processes: processes.length,
   });
 
-  return {
+  const graph: CodeGraph = {
     nodes,
     edges,
+    communities,
+    processes,
     repoOwner: owner,
     repoName: repo,
     branch,
     fetchedAt: new Date().toISOString(),
   };
+
+  // Cache the result
+  cacheGraph(owner, repo, graph);
+
+  return graph;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

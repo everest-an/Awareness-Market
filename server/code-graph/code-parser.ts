@@ -6,18 +6,25 @@
  * No tree-sitter dependency — lightweight MVP approach.
  */
 
+export interface CallSite {
+  calleeName: string;
+  line: number;
+}
+
 export interface ParseResult {
   symbols: Array<{
     name: string;
     type: 'function' | 'class' | 'interface' | 'type' | 'variable';
     lineStart: number;
     extends?: string;
+    exported?: boolean;
   }>;
   imports: Array<{
     names: string[];
     source: string;
     lineNumber: number;
   }>;
+  calls: CallSite[];
 }
 
 /**
@@ -33,7 +40,7 @@ export function parseFile(content: string, filePath: string): ParseResult {
     return parsePython(content);
   }
 
-  return { symbols: [], imports: [] };
+  return { symbols: [], imports: [], calls: [] };
 }
 
 // ── TypeScript / JavaScript ──────────────────────────────────────────────
@@ -45,54 +52,59 @@ function parseTypeScript(content: string): ParseResult {
   let match: RegExpExecArray | null;
 
   // Named functions: export? async? function name(
-  const fnRe = /(?:export\s+)?(?:async\s+)?function\s+(\w+)/g;
+  const fnRe = /(export\s+)?(?:async\s+)?function\s+(\w+)/g;
   while ((match = fnRe.exec(content)) !== null) {
     symbols.push({
-      name: match[1],
+      name: match[2],
       type: 'function',
       lineStart: lineAt(content, match.index),
+      exported: !!match[1],
     });
   }
 
   // Arrow / const functions: export? const name = async? (
-  const arrowRe = /(?:export\s+)?(?:const|let)\s+(\w+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[a-zA-Z_$]\w*)\s*=>/g;
+  const arrowRe = /(export\s+)?(?:const|let)\s+(\w+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[a-zA-Z_$]\w*)\s*=>/g;
   while ((match = arrowRe.exec(content)) !== null) {
     symbols.push({
-      name: match[1],
+      name: match[2],
       type: 'function',
       lineStart: lineAt(content, match.index),
+      exported: !!match[1],
     });
   }
 
   // Classes: export? class Name extends? Base
-  const classRe = /(?:export\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?/g;
+  const classRe = /(export\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?/g;
   while ((match = classRe.exec(content)) !== null) {
     symbols.push({
-      name: match[1],
+      name: match[2],
       type: 'class',
       lineStart: lineAt(content, match.index),
-      extends: match[2] || undefined,
+      extends: match[3] || undefined,
+      exported: !!match[1],
     });
   }
 
   // Interfaces: export? interface Name extends? Base
-  const ifaceRe = /(?:export\s+)?interface\s+(\w+)(?:\s+extends\s+(\w+))?/g;
+  const ifaceRe = /(export\s+)?interface\s+(\w+)(?:\s+extends\s+(\w+))?/g;
   while ((match = ifaceRe.exec(content)) !== null) {
     symbols.push({
-      name: match[1],
+      name: match[2],
       type: 'interface',
       lineStart: lineAt(content, match.index),
-      extends: match[2] || undefined,
+      extends: match[3] || undefined,
+      exported: !!match[1],
     });
   }
 
   // Type aliases: export? type Name =
-  const typeRe = /(?:export\s+)?type\s+(\w+)\s*=/g;
+  const typeRe = /(export\s+)?type\s+(\w+)\s*=/g;
   while ((match = typeRe.exec(content)) !== null) {
     symbols.push({
-      name: match[1],
+      name: match[2],
       type: 'type',
       lineStart: lineAt(content, match.index),
+      exported: !!match[1],
     });
   }
 
@@ -119,7 +131,70 @@ function parseTypeScript(content: string): ParseResult {
     });
   }
 
-  return { symbols, imports };
+  // Call extraction
+  const calls = extractCalls(content);
+
+  return { symbols, imports, calls };
+}
+
+// ── Call Extraction ──────────────────────────────────────────────────────
+
+const JS_KEYWORDS = new Set([
+  'if', 'for', 'while', 'return', 'switch', 'catch', 'throw', 'typeof',
+  'instanceof', 'new', 'delete', 'void', 'import', 'require', 'export',
+  'case', 'default', 'break', 'continue', 'do', 'else', 'finally', 'try',
+  'const', 'let', 'var', 'function', 'class', 'interface', 'type', 'enum',
+  'await', 'yield', 'async', 'from', 'of', 'in', 'super', 'this',
+]);
+
+function extractCalls(content: string): CallSite[] {
+  const calls: CallSite[] = [];
+  const seen = new Set<string>();
+
+  // Match function calls: name( or obj.method(
+  const callRe = /(?:^|[^.\w])(\w+)\s*\(/gm;
+  let match: RegExpExecArray | null;
+
+  while ((match = callRe.exec(content)) !== null) {
+    const name = match[1];
+    if (JS_KEYWORDS.has(name)) continue;
+    if (name.length < 2) continue;
+    // Skip all-uppercase (likely constants)
+    if (name === name.toUpperCase() && name.length > 2) continue;
+
+    const line = lineAt(content, match.index);
+    const key = `${name}:${line}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      calls.push({ calleeName: name, line });
+    }
+  }
+
+  // Match method calls: obj.method(
+  const methodRe = /\.(\w+)\s*\(/g;
+  while ((match = methodRe.exec(content)) !== null) {
+    const name = match[1];
+    if (JS_KEYWORDS.has(name)) continue;
+    if (name.length < 2) continue;
+    // Skip common built-ins
+    if (['log', 'warn', 'error', 'info', 'debug', 'then', 'catch', 'map', 'filter',
+         'reduce', 'forEach', 'find', 'some', 'every', 'push', 'pop', 'shift',
+         'unshift', 'slice', 'splice', 'join', 'split', 'trim', 'replace',
+         'includes', 'indexOf', 'toString', 'stringify', 'parse', 'keys', 'values',
+         'entries', 'assign', 'freeze', 'create', 'set', 'get', 'has', 'delete',
+         'addEventListener', 'removeEventListener', 'preventDefault',
+         'stopPropagation', 'setAttribute', 'getElementById', 'querySelector',
+    ].includes(name)) continue;
+
+    const line = lineAt(content, match.index);
+    const key = `${name}:${line}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      calls.push({ calleeName: name, line });
+    }
+  }
+
+  return calls;
 }
 
 // ── Python ───────────────────────────────────────────────────────────────
@@ -163,7 +238,8 @@ function parsePython(content: string): ParseResult {
     });
   }
 
-  return { symbols, imports };
+  const calls = extractCalls(content);
+  return { symbols, imports, calls };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────

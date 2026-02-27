@@ -192,4 +192,18 @@ export const DEFAULT_CODE_GRAPH: CodeGraph = {
     { id: 'edge:interface:server/code-graph/types.ts::CodeGraph->file:server/code-graph/types.ts', source: 'interface:server/code-graph/types.ts::CodeGraph', target: 'file:server/code-graph/types.ts', type: 'defined_in', weight: 0.3 },
     { id: 'edge:interface:client/src/components/NeuralCortexVisualizer.tsx::CortexNode->file:client/src/components/NeuralCortexVisualizer.tsx', source: 'interface:client/src/components/NeuralCortexVisualizer.tsx::CortexNode', target: 'file:client/src/components/NeuralCortexVisualizer.tsx', type: 'defined_in', weight: 0.3 },
   ],
+
+  communities: [
+    { id: 'community:0', name: 'core/server', keywords: ['router', 'trpc', 'express'], cohesion: 0.72, symbolCount: 8, memberIds: [] },
+    { id: 'community:1', name: 'code-graph/engine', keywords: ['graph', 'parse', 'build'], cohesion: 0.85, symbolCount: 6, memberIds: [] },
+    { id: 'community:2', name: 'auth/security', keywords: ['auth', 'token', 'encrypt'], cohesion: 0.68, symbolCount: 5, memberIds: [] },
+    { id: 'community:3', name: 'client/visualization', keywords: ['cortex', 'visualizer', 'three'], cohesion: 0.78, symbolCount: 4, memberIds: [] },
+    { id: 'community:4', name: 'memory/latentmas', keywords: ['memory', 'embedding', 'semantic'], cohesion: 0.65, symbolCount: 4, memberIds: [] },
+  ],
+
+  processes: [
+    { id: 'process:0', name: 'buildCodeGraph → parseFile', entryPoint: 'fn:server/code-graph/graph-builder.ts::buildCodeGraph', terminalPoint: 'fn:server/code-graph/code-parser.ts::parseFile', steps: ['fn:server/code-graph/graph-builder.ts::buildCodeGraph', 'fn:server/code-graph/code-parser.ts::parseFile'], stepCount: 2, crossCommunity: false },
+    { id: 'process:1', name: 'initializeSocketIO → broadcastCodeChange', entryPoint: 'fn:server/socket-events.ts::initializeSocketIO', terminalPoint: 'fn:server/socket-events.ts::broadcastCodeChange', steps: ['fn:server/socket-events.ts::initializeSocketIO', 'fn:server/socket-events.ts::broadcastCodeChange'], stepCount: 2, crossCommunity: false },
+    { id: 'process:2', name: 'encryptKey → decryptKey', entryPoint: 'fn:server/provider-keys-service.ts::encryptKey', terminalPoint: 'fn:server/provider-keys-service.ts::decryptKey', steps: ['fn:server/provider-keys-service.ts::encryptKey', 'fn:server/provider-keys-service.ts::decryptKey'], stepCount: 2, crossCommunity: false },
+  ],
 };

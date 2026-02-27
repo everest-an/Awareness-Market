@@ -56,6 +56,8 @@ export interface NeuralCortexProps {
   onAgentToggle?: (agentId: string) => void;
   onCategoryToggle?: (category: string) => void;
   onClearFilters?: () => void;
+  highlightNodes?: Set<string>;
+  impactNodeIds?: { depth1: Set<string>; depth2: Set<string>; depth3: Set<string> };
 }
 
 export interface NeuralCortexHandle {
@@ -123,6 +125,8 @@ export const NeuralCortexVisualizer = forwardRef<NeuralCortexHandle, NeuralCorte
   onAgentToggle,
   onCategoryToggle,
   onClearFilters,
+  highlightNodes,
+  impactNodeIds,
 }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -407,7 +411,7 @@ export const NeuralCortexVisualizer = forwardRef<NeuralCortexHandle, NeuralCorte
     };
   }, [agents, propNodes, propEdges, onNodeClick, triggerPulse]);
 
-  // Update colors when filter changes
+  // Update colors when filter / highlight / impact changes
   useEffect(() => {
     if (!nodesRef.current.length || !geometryRef.current) return;
 
@@ -415,14 +419,49 @@ export const NeuralCortexVisualizer = forwardRef<NeuralCortexHandle, NeuralCorte
     const nodes = nodesRef.current;
     const hasAgentFilter = selectedAgents.size > 0;
     const hasCategoryFilter = selectedCategories.size > 0;
+    const hasHighlight = highlightNodes && highlightNodes.size > 0;
+    const hasImpact = impactNodeIds && (impactNodeIds.depth1.size > 0 || impactNodeIds.depth2.size > 0 || impactNodeIds.depth3.size > 0);
+
+    // Impact depth colors
+    const IMPACT_D1 = new THREE.Color(1.0, 0.25, 0.25); // Red
+    const IMPACT_D2 = new THREE.Color(1.0, 0.6, 0.15);  // Orange
+    const IMPACT_D3 = new THREE.Color(1.0, 0.9, 0.2);   // Yellow
 
     nodes.forEach((node, i) => {
       const baseColor = new THREE.Color(node.color[0], node.color[1], node.color[2]);
+
+      // Impact overlay takes highest priority
+      if (hasImpact) {
+        if (impactNodeIds.depth1.has(node.id)) {
+          colors.setXYZ(i, IMPACT_D1.r, IMPACT_D1.g, IMPACT_D1.b);
+        } else if (impactNodeIds.depth2.has(node.id)) {
+          colors.setXYZ(i, IMPACT_D2.r, IMPACT_D2.g, IMPACT_D2.b);
+        } else if (impactNodeIds.depth3.has(node.id)) {
+          colors.setXYZ(i, IMPACT_D3.r, IMPACT_D3.g, IMPACT_D3.b);
+        } else {
+          colors.setXYZ(i, baseColor.r * 0.08, baseColor.g * 0.08, baseColor.b * 0.08);
+        }
+        return;
+      }
+
+      // Highlight mode (search results, flow paths, community members)
+      if (hasHighlight) {
+        if (highlightNodes.has(node.id)) {
+          // Bright — boost luminosity
+          colors.setXYZ(i, Math.min(baseColor.r * 1.5, 1), Math.min(baseColor.g * 1.5, 1), Math.min(baseColor.b * 1.5, 1));
+        } else {
+          // Dim non-highlighted
+          colors.setXYZ(i, baseColor.r * 0.12, baseColor.g * 0.12, baseColor.b * 0.12);
+        }
+        return;
+      }
+
+      // Standard agent/category filter
       const matchesAgent = !hasAgentFilter || selectedAgents.has(node.agentId || '');
       const matchesCategory = !hasCategoryFilter || selectedCategories.has(node.category);
-      const isHighlighted = matchesAgent && matchesCategory;
+      const passesFilter = matchesAgent && matchesCategory;
 
-      if (isHighlighted) {
+      if (passesFilter) {
         colors.setXYZ(i, baseColor.r, baseColor.g, baseColor.b);
       } else {
         colors.setXYZ(i, baseColor.r * 0.1, baseColor.g * 0.1, baseColor.b * 0.1);
@@ -430,7 +469,7 @@ export const NeuralCortexVisualizer = forwardRef<NeuralCortexHandle, NeuralCorte
     });
 
     colors.needsUpdate = true;
-  }, [selectedAgents, selectedCategories]);
+  }, [selectedAgents, selectedCategories, highlightNodes, impactNodeIds]);
 
   return (
     <div className={`relative w-full h-full ${className || ''}`}>
