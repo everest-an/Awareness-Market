@@ -16,9 +16,9 @@ on:
           - 'true'
 
 env:
-  EC2_HOST: 13.212.149.168
-  EC2_USER: ubuntu
-  EC2_PATH: /home/ubuntu/awareness-market
+  EC2_HOST: api.awareness.market
+  EC2_USER: ec2-user
+  EC2_PATH: /home/ec2-user/Awareness-Market
 
 jobs:
   deploy:
