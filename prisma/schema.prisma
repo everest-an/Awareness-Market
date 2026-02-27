@@ -63,6 +63,7 @@ model User {
   createdWhitelists     IpWhitelist[] @relation("WhitelistCreator")
   userSessions          UserSession[]
   providerKeys          ProviderKey[]
+  githubConnection      GitHubConnection?
 
   // Ensure no duplicate emails (allows multiple NULLs for wallet-only users)
   @@unique([email], map: "unique_email_non_null")
@@ -604,6 +605,30 @@ model ProviderKey {
   @@index([userId])
   @@index([isActive])
   @@map("provider_keys")
+}
+
+// GitHub Connection for Code Knowledge Graph (Neural Cortex)
+model GitHubConnection {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique @map("user_id")
+
+  // AES-256-GCM encrypted GitHub OAuth token
+  encryptedToken  String    @map("encrypted_token") @db.Text
+  tokenMask       String    @map("token_mask") @db.VarChar(30)
+
+  // Cached GitHub user info
+  githubUsername  String    @map("github_username") @db.VarChar(100)
+  githubId        Int       @map("github_id")
+  scope           String    @db.VarChar(200)
+
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+  @@map("github_connections")
 }
 
 // P2 Security: IP Whitelist Control

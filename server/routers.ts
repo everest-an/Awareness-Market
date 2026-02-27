@@ -59,6 +59,7 @@ import { apiKeyRouter } from './routers/api-key';
 import { ipWhitelistRouter } from './routers/ip-whitelist';
 import { sessionManagementRouter } from './routers/session-management';
 import { workspaceRouter } from './routers/workspace';
+import { codeGraphRouter } from './routers/code-graph';
 
 export const appRouter = router({
   system: systemRouter,
@@ -157,6 +158,9 @@ export const appRouter = router({
 
   // Agent config chat (AI-assisted session creation)
   agentConfigChat: agentConfigChatRouter,
+
+  // Code Knowledge Graph (Neural Cortex)
+  codeGraph: codeGraphRouter,
 });
 
 export type AppRouter = typeof appRouter;

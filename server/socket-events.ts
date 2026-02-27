@@ -297,6 +297,34 @@ export async function broadcastNetworkStats() {
 }
 
 /**
+ * Code change event — emitted when AI modifies code in a workspace repo.
+ * Neural Cortex listens for this to trigger flash effects on affected file nodes.
+ */
+export type CodeChangeEvent = {
+  workspaceId: string;
+  repoOwner: string;
+  repoName: string;
+  filePaths: string[];
+  agentId: string;
+  timestamp: Date;
+};
+
+export function broadcastCodeChange(event: CodeChangeEvent) {
+  if (!io) return;
+
+  io.to(`workspace:${event.workspaceId}`).emit('cortex:code_change', {
+    ...event,
+    timestamp: event.timestamp.toISOString(),
+  });
+
+  logger.debug('Broadcast code change', {
+    workspaceId: event.workspaceId,
+    repo: `${event.repoOwner}/${event.repoName}`,
+    files: event.filePaths.length,
+  });
+}
+
+/**
  * Emit event to specific agent subscribers
  */
 export function emitToAgent(agentId: number, event: string, data: unknown) {
