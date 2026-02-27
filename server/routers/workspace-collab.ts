@@ -212,34 +212,9 @@ collabRouter.post('/share', flexAuth, async (req, res) => {
       timestamp: new Date().toISOString(),
     };
 
-    // Read existing context and append
-    const existing = await db.getAIMemoryByKey({ userId: user.userId, memoryKey });
-    let contextHistory: unknown[] = [];
-
-    if (existing?.memoryData) {
-      try {
-        const data = JSON.parse(existing.memoryData);
-        contextHistory = Array.isArray(data.history) ? data.history : [];
-      } catch { /* fresh start */ }
-    }
-
-    contextHistory.push(entry);
-
-    // Keep last 100 entries
-    if (contextHistory.length > 100) {
-      contextHistory = contextHistory.slice(-100);
-    }
-
-    const stored = await db.upsertAIMemory({
-      userId: user.userId,
-      memoryKey,
-      data: {
-        workspace: body.workspace,
-        history: contextHistory,
-        last_update: entry,
-        updated_at: new Date().toISOString(),
-      },
-      ttlDays: 30,
+    // Atomically append to history (prevents concurrent write race condition)
+    const result = await db.appendToAIMemoryHistory({
+      userId: user.userId, memoryKey, entry, ttlDays: 30,
     });
 
     // Auto-heartbeat: mark agent as connected
@@ -253,8 +228,8 @@ collabRouter.post('/share', flexAuth, async (req, res) => {
 
     res.json({
       success: true,
-      version: stored?.version ?? 1,
-      historyLength: contextHistory.length,
+      version: result?.version ?? 1,
+      historyLength: result?.history.length ?? 0,
       message: `Context shared by ${body.role}`,
     });
   } catch (error) {
@@ -340,17 +315,7 @@ collabRouter.post('/decision', flexAuth, async (req, res) => {
       return res.status(403).json({ error: perm.reason });
     }
 
-    // Store as a decision entry in the same workspace memory
-    const existing = await db.getAIMemoryByKey({ userId: user.userId, memoryKey });
-    let contextHistory: unknown[] = [];
-
-    if (existing?.memoryData) {
-      try {
-        const data = JSON.parse(existing.memoryData);
-        contextHistory = Array.isArray(data.history) ? data.history : [];
-      } catch { /* fresh start */ }
-    }
-
+    // Atomically store as a decision entry (prevents concurrent write race condition)
     const entry = {
       type: 'decision_proposal',
       agent_role: body.role,
@@ -362,21 +327,8 @@ collabRouter.post('/decision', flexAuth, async (req, res) => {
       timestamp: new Date().toISOString(),
     };
 
-    contextHistory.push(entry);
-    if (contextHistory.length > 100) {
-      contextHistory = contextHistory.slice(-100);
-    }
-
-    await db.upsertAIMemory({
-      userId: user.userId,
-      memoryKey,
-      data: {
-        workspace: body.workspace,
-        history: contextHistory,
-        last_update: entry,
-        updated_at: new Date().toISOString(),
-      },
-      ttlDays: 30,
+    await db.appendToAIMemoryHistory({
+      userId: user.userId, memoryKey, entry, ttlDays: 30,
     });
 
     // Auto-heartbeat
@@ -432,16 +384,7 @@ collabRouter.post('/progress', flexAuth, async (req, res) => {
       return res.status(403).json({ error: perm.reason });
     }
 
-    const existing = await db.getAIMemoryByKey({ userId: user.userId, memoryKey });
-    let contextHistory: unknown[] = [];
-
-    if (existing?.memoryData) {
-      try {
-        const data = JSON.parse(existing.memoryData);
-        contextHistory = Array.isArray(data.history) ? data.history : [];
-      } catch { /* fresh start */ }
-    }
-
+    // Atomically append to history (prevents concurrent write race condition)
     const entry = {
       type: 'progress_sync',
       agent_role: body.role,
@@ -454,21 +397,8 @@ collabRouter.post('/progress', flexAuth, async (req, res) => {
       timestamp: new Date().toISOString(),
     };
 
-    contextHistory.push(entry);
-    if (contextHistory.length > 100) {
-      contextHistory = contextHistory.slice(-100);
-    }
-
-    await db.upsertAIMemory({
-      userId: user.userId,
-      memoryKey,
-      data: {
-        workspace: body.workspace,
-        history: contextHistory,
-        last_update: entry,
-        updated_at: new Date().toISOString(),
-      },
-      ttlDays: 30,
+    await db.appendToAIMemoryHistory({
+      userId: user.userId, memoryKey, entry, ttlDays: 30,
     });
 
     // Auto-heartbeat

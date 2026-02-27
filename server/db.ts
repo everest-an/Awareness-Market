@@ -799,6 +799,110 @@ export async function upsertAIMemory(params: {
   }
 }
 
+/**
+ * Atomically append an entry to the history array inside an AiMemory record.
+ * Uses optimistic locking (version check) with retry to prevent concurrent
+ * writes from overwriting each other (race condition).
+ *
+ * @param maxRetries – How many times to retry on version conflict (default 5)
+ * @param maxHistory – Trim history to this length (default 100)
+ */
+export async function appendToAIMemoryHistory(params: {
+  userId: number;
+  memoryKey: string;
+  entry: Record<string, unknown>;
+  ttlDays?: number;
+  maxRetries?: number;
+  maxHistory?: number;
+}): Promise<{ history: unknown[]; version: number } | undefined> {
+  const maxRetries = params.maxRetries ?? 5;
+  const maxHistory = params.maxHistory ?? 100;
+  const expiresAt = params.ttlDays
+    ? new Date(Date.now() + params.ttlDays * 24 * 60 * 60 * 1000)
+    : null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const existing = await prisma.aiMemory.findFirst({
+        where: { userId: params.userId, memoryKey: params.memoryKey },
+      });
+
+      if (!existing) {
+        // First write — create with history = [entry]
+        const history = [params.entry];
+        await prisma.aiMemory.create({
+          data: {
+            userId: params.userId,
+            memoryKey: params.memoryKey,
+            memoryData: JSON.stringify({
+              workspace: params.memoryKey,
+              history,
+              last_update: params.entry,
+              updated_at: new Date().toISOString(),
+            }),
+            version: 1,
+            expiresAt,
+          },
+        });
+        return { history, version: 1 };
+      }
+
+      // Parse existing history
+      let history: unknown[] = [];
+      try {
+        const data = JSON.parse(existing.memoryData ?? '{}');
+        history = Array.isArray(data.history) ? data.history : [];
+      } catch { /* corrupted → start fresh */ }
+
+      history.push(params.entry);
+      if (history.length > maxHistory) history = history.slice(-maxHistory);
+
+      const newVersion = existing.version + 1;
+      const newData = JSON.stringify({
+        workspace: params.memoryKey,
+        history,
+        last_update: params.entry,
+        updated_at: new Date().toISOString(),
+      });
+
+      // Optimistic lock: only update if version hasn't changed since our read
+      const result = await prisma.aiMemory.updateMany({
+        where: {
+          id: existing.id,
+          version: existing.version,  // ← version guard
+        },
+        data: {
+          memoryData: newData,
+          version: newVersion,
+          expiresAt,
+        },
+      });
+
+      if (result.count === 1) {
+        // Success — our write went through
+        return { history, version: newVersion };
+      }
+
+      // Version conflict — another writer got in first, retry
+      logger.warn('AiMemory version conflict, retrying', {
+        memoryKey: params.memoryKey,
+        attempt: attempt + 1,
+        expectedVersion: existing.version,
+      });
+
+      // Small jittered backoff to reduce contention
+      await new Promise(r => setTimeout(r, 10 + Math.random() * 30 * (attempt + 1)));
+
+    } catch (error) {
+      logger.error('appendToAIMemoryHistory failed', { error, attempt, memoryKey: params.memoryKey });
+      if (attempt === maxRetries) return undefined;
+    }
+  }
+
+  logger.error('appendToAIMemoryHistory exhausted retries', { memoryKey: params.memoryKey });
+  return undefined;
+}
+
 // ===== Reviews =====
 
 export async function createReview(review: {

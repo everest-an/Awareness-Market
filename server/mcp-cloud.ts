@@ -212,16 +212,15 @@ function createCollaborationMcpServer(
       checkPermission('share_reasoning');
       const timestamp = new Date().toISOString();
 
-      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
-      let history: unknown[] = [];
+      // Read session_summary before atomic append (read-only, no race condition)
       let existingSummary: string | null = null;
-      if (existing?.memoryData) {
-        try {
+      try {
+        const existing = await db.getAIMemoryByKey({ userId, memoryKey });
+        if (existing?.memoryData) {
           const data = JSON.parse(existing.memoryData);
-          history = Array.isArray(data.history) ? data.history : [];
           existingSummary = data.session_summary || null;
-        } catch { /* fresh */ }
-      }
+        }
+      } catch { /* non-critical */ }
 
       const entry = {
         type: 'reasoning_update',
@@ -236,32 +235,25 @@ function createCollaborationMcpServer(
         timestamp,
       };
 
-      history.push(entry);
-      if (history.length > 100) history = history.slice(-100);
-
-      const stored = await db.upsertAIMemory({
-        userId,
-        memoryKey,
-        data: { workspace: memoryKey, history, last_update: entry, updated_at: timestamp },
-        ttlDays: 30,
-      });
+      const appendResult = await db.appendToAIMemoryHistory({ userId, memoryKey, entry, ttlDays: 30 });
 
       touchAgentHeartbeat(userId, memoryKey, role);
 
       // Check if history needs compaction
-      const needsSummary = history.length >= HISTORY_SUMMARY_THRESHOLD;
+      const historyLen = appendResult?.history.length ?? 0;
+      const needsSummary = historyLen >= HISTORY_SUMMARY_THRESHOLD;
 
       const result: Record<string, unknown> = {
         status: 'shared',
         timestamp,
-        version: stored?.version ?? 1,
-        historyLength: history.length,
+        version: appendResult?.version ?? 1,
+        historyLength: historyLen,
         message: 'Your reasoning has been shared with other agents',
       };
 
       if (needsSummary) {
         result.needs_summary = true;
-        result.summary_prompt = `⚠️ History has ${history.length} entries (threshold: ${HISTORY_SUMMARY_THRESHOLD}). ` +
+        result.summary_prompt = `⚠️ History has ${historyLen} entries (threshold: ${HISTORY_SUMMARY_THRESHOLD}). ` +
           `Please call "summarize_history" with a concise summary of all previous context before continuing. ` +
           `This keeps workspace memory efficient and prevents context loss.`;
       }
@@ -354,15 +346,6 @@ function createCollaborationMcpServer(
       checkPermission('propose_shared_decision');
       const timestamp = new Date().toISOString();
 
-      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
-      let history: unknown[] = [];
-      if (existing?.memoryData) {
-        try {
-          const data = JSON.parse(existing.memoryData);
-          history = Array.isArray(data.history) ? data.history : [];
-        } catch { /* fresh */ }
-      }
-
       const entry = {
         type: 'decision_proposal',
         agent_role: role,
@@ -374,15 +357,7 @@ function createCollaborationMcpServer(
         timestamp,
       };
 
-      history.push(entry);
-      if (history.length > 100) history = history.slice(-100);
-
-      await db.upsertAIMemory({
-        userId,
-        memoryKey,
-        data: { workspace: memoryKey, history, last_update: entry, updated_at: timestamp },
-        ttlDays: 30,
-      });
+      await db.appendToAIMemoryHistory({ userId, memoryKey, entry, ttlDays: 30 });
 
       touchAgentHeartbeat(userId, memoryKey, role);
 
@@ -463,15 +438,6 @@ function createCollaborationMcpServer(
       checkPermission('sync_progress');
       const timestamp = new Date().toISOString();
 
-      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
-      let history: unknown[] = [];
-      if (existing?.memoryData) {
-        try {
-          const data = JSON.parse(existing.memoryData);
-          history = Array.isArray(data.history) ? data.history : [];
-        } catch { /* fresh */ }
-      }
-
       const entry = {
         type: 'progress_sync',
         agent_role: role,
@@ -484,15 +450,7 @@ function createCollaborationMcpServer(
         timestamp,
       };
 
-      history.push(entry);
-      if (history.length > 100) history = history.slice(-100);
-
-      await db.upsertAIMemory({
-        userId,
-        memoryKey,
-        data: { workspace: memoryKey, history, last_update: entry, updated_at: timestamp },
-        ttlDays: 30,
-      });
+      await db.appendToAIMemoryHistory({ userId, memoryKey, entry, ttlDays: 30 });
 
       touchAgentHeartbeat(userId, memoryKey, role);
 
@@ -528,15 +486,6 @@ function createCollaborationMcpServer(
       checkPermission('ask_question');
       const timestamp = new Date().toISOString();
 
-      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
-      let history: unknown[] = [];
-      if (existing?.memoryData) {
-        try {
-          const data = JSON.parse(existing.memoryData);
-          history = Array.isArray(data.history) ? data.history : [];
-        } catch { /* fresh */ }
-      }
-
       const entry = {
         type: 'question',
         agent_role: role,
@@ -547,15 +496,7 @@ function createCollaborationMcpServer(
         timestamp,
       };
 
-      history.push(entry);
-      if (history.length > 100) history = history.slice(-100);
-
-      await db.upsertAIMemory({
-        userId,
-        memoryKey,
-        data: { workspace: memoryKey, history, last_update: entry, updated_at: timestamp },
-        ttlDays: 30,
-      });
+      await db.appendToAIMemoryHistory({ userId, memoryKey, entry, ttlDays: 30 });
 
       touchAgentHeartbeat(userId, memoryKey, role);
 
@@ -727,27 +668,19 @@ function createCollaborationMcpServer(
       tasks.push(task);
       await writeStore(tasksKey, tasks);
 
-      // Also push a notification into the main collab history
-      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
-      let history: unknown[] = [];
-      if (existing?.memoryData) {
-        try { const d = JSON.parse(existing.memoryData); history = Array.isArray(d.history) ? d.history : []; } catch { /* */ }
-      }
-      history.push({
-        type: 'task_assigned',
-        agent_role: role,
-        task_id: taskId,
-        task_title: params.title,
-        assigned_to: params.to,
-        priority: params.priority || 'medium',
-        source: 'cloud_mcp',
-        timestamp,
-      });
-      if (history.length > 100) history = history.slice(-100);
-      await db.upsertAIMemory({
-        userId, memoryKey,
-        data: { workspace: memoryKey, history, last_update: history[history.length - 1], updated_at: timestamp },
-        ttlDays: 30,
+      // Atomically push a notification into the main collab history
+      await db.appendToAIMemoryHistory({
+        userId, memoryKey, ttlDays: 30,
+        entry: {
+          type: 'task_assigned',
+          agent_role: role,
+          task_id: taskId,
+          task_title: params.title,
+          assigned_to: params.to,
+          priority: params.priority || 'medium',
+          source: 'cloud_mcp',
+          timestamp,
+        },
       });
 
       touchAgentHeartbeat(userId, memoryKey, role);
@@ -840,27 +773,19 @@ function createCollaborationMcpServer(
       };
       await writeStore(tasksKey, tasks);
 
-      // Notify in main history
-      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
-      let history: unknown[] = [];
-      if (existing?.memoryData) {
-        try { const d = JSON.parse(existing.memoryData); history = Array.isArray(d.history) ? d.history : []; } catch { /* */ }
-      }
-      history.push({
-        type: 'task_updated',
-        agent_role: role,
-        task_id: params.taskId,
-        task_title: tasks[idx].title,
-        new_status: params.status,
-        result_summary: params.result,
-        source: 'cloud_mcp',
-        timestamp,
-      });
-      if (history.length > 100) history = history.slice(-100);
-      await db.upsertAIMemory({
-        userId, memoryKey,
-        data: { workspace: memoryKey, history, last_update: history[history.length - 1], updated_at: timestamp },
-        ttlDays: 30,
+      // Atomically notify in main history
+      await db.appendToAIMemoryHistory({
+        userId, memoryKey, ttlDays: 30,
+        entry: {
+          type: 'task_updated',
+          agent_role: role,
+          task_id: params.taskId,
+          task_title: tasks[idx].title,
+          new_status: params.status,
+          result_summary: params.result,
+          source: 'cloud_mcp',
+          timestamp,
+        },
       });
 
       touchAgentHeartbeat(userId, memoryKey, role);
@@ -910,29 +835,21 @@ function createCollaborationMcpServer(
       artifacts.push(artifact);
       await writeStore(artifactsKey, artifacts);
 
-      // Notify in main history
-      const existing = await db.getAIMemoryByKey({ userId, memoryKey });
-      let history: unknown[] = [];
-      if (existing?.memoryData) {
-        try { const d = JSON.parse(existing.memoryData); history = Array.isArray(d.history) ? d.history : []; } catch { /* */ }
-      }
-      history.push({
-        type: 'artifact_shared',
-        agent_role: role,
-        artifact_id: artifactId,
-        artifact_name: params.name,
-        artifact_type: params.type,
-        message: params.message,
-        related_task_id: params.relatedTaskId,
-        content_length: params.content.length,
-        source: 'cloud_mcp',
-        timestamp,
-      });
-      if (history.length > 100) history = history.slice(-100);
-      await db.upsertAIMemory({
-        userId, memoryKey,
-        data: { workspace: memoryKey, history, last_update: history[history.length - 1], updated_at: timestamp },
-        ttlDays: 30,
+      // Atomically notify in main history
+      await db.appendToAIMemoryHistory({
+        userId, memoryKey, ttlDays: 30,
+        entry: {
+          type: 'artifact_shared',
+          agent_role: role,
+          artifact_id: artifactId,
+          artifact_name: params.name,
+          artifact_type: params.type,
+          message: params.message,
+          related_task_id: params.relatedTaskId,
+          content_length: params.content.length,
+          source: 'cloud_mcp',
+          timestamp,
+        },
       });
 
       touchAgentHeartbeat(userId, memoryKey, role);
