@@ -1003,7 +1003,9 @@ export const workspaceRouter = router({
                 rawContent = e.decision || e.reasoning || '';
                 break;
               case 'progress_sync':
-                rawContent = e.next_steps || e.progress || (Array.isArray(e.completed_tasks) ? `Completed: ${e.completed_tasks.join(', ')}` : '') || '';
+                rawContent = (Array.isArray(e.completed_tasks) ? `Completed: ${e.completed_tasks.join(', ')}` : '')
+                  + (Array.isArray(e.next_steps) ? ` | Next: ${e.next_steps.join(', ')}` : (e.next_steps || ''))
+                  + (e.progress || '');
                 break;
               case 'session_summary':
                 rawContent = `📋 Summary (${e.entries_compacted || 0} entries compacted): ${e.summary || ''}`;
