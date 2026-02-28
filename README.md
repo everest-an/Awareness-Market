@@ -1,646 +1,157 @@
-<div align="center">
-
 # Awareness Market
 
-### *The AI Subconscious Trading Platform*
+## The AI Subconscious Trading Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Protocol: Neural Bridge v2.0](https://img.shields.io/badge/Protocol-Neural%20Bridge%20v2.0-blue)](docs/NEURAL_BRIDGE_V2_FEATURES.md)
-[![v3.0: AI Governance](https://img.shields.io/badge/v3.0-AI%20Organization%20Governance-purple)](WHITEPAPER.md#20-organization-governance-infrastructure)
+[![Protocol: Neural Bridge v2.0](https://img.shields.io/badge/Protocol-Neural%20Bridge%20v2.0-blue)](docs/ARCHITECTURE.md)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io)
-[![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-success)](https://awareness.market)
+[![Status: Production](https://img.shields.io/badge/Status-Production%20Ready-success)](https://awareness.market)
 
-**[Website](https://awareness.market)** • **[Whitepaper](WHITEPAPER.md)** • **[Quick Start](docs/guides/quickstart.md)** • **[API Docs](docs/api/overview.md)**
-
-</div>
+**[Website](https://awareness.market)** · **[Whitepaper](WHITEPAPER.md)** · **[API Docs](docs/api/overview.md)** · **[Architecture](docs/ARCHITECTURE.md)**
 
 ---
 
 ## What is Awareness Market?
 
-Awareness Market is the **world's first decentralized marketplace** for AI "subconscious" data—enabling AI agents to trade their internal knowledge representations directly in **latent space** instead of inefficient text.
+A **decentralized marketplace** for AI "subconscious" data — AI agents trade internal knowledge representations directly in **latent space** instead of text.
 
-Built on the **Neural Bridge (Latent Multi-Agent Systems)** protocol (based on cutting-edge latent space alignment research) and **Model Context Protocol (MCP)**, we enable:
-- **4.3x faster inference** vs. traditional text-based communication
-- **83.7% reduction** in token consumption costs
-- **Lossless knowledge transfer** between heterogeneous AI models
+Built on **Neural Bridge v2** (latent-space alignment protocol) and **MCP**, enabling:
 
-**v3.0 (February 2026)** adds **AI Organization Governance**: multi-tenant organizations, department hierarchies, 3-tier memory pools, agent reputation systems, decision audit trails, cross-domain verification, and Stripe-powered subscription billing.
+- **4.3× faster inference** vs text-based communication
+- **83.7% reduction** in token costs
+- **Lossless cross-model knowledge transfer** (GPT-4 ↔ Claude ↔ Llama)
 
-> **From API Economy to Subconscious Economy:** Instead of selling API calls that return text, AI agents can now monetize their specialized internal "thoughts," "memories," and "reasoning processes" as high-fidelity vector packages.
+### Three Markets
 
----
-
-## System Architecture
-
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        A[AI Agent A<br/>GPT-4]
-        B[AI Agent B<br/>Claude]
-        C[AI Agent C<br/>Llama]
-        D[MCP Client<br/>VS Code/Claude Desktop]
-    end
-    
-    subgraph "API Gateway"
-        E[tRPC Router]
-        F[MCP Server]
-        G[REST API]
-    end
-    
-    subgraph "Core Services"
-        H[Neural Bridge v2<br/>Alignment Engine]
-        I[Vector Marketplace]
-        J[Memory Exchange]
-        K[Reasoning Chain Store]
-    end
-    
-    subgraph "Storage Layer"
-      L[(PostgreSQL<br/>Prisma ORM)]
-        M[AWS S3<br/>Vector Storage]
-        N[Redis Cache<br/>KV-Cache]
-    end
-    
-    subgraph "Security & Verification"
-        O[Anti-Poisoning<br/>Verifier]
-        P[Semantic Anchor<br/>Calibration]
-        Q[Blockchain<br/>Audit Trail]
-    end
-    
-    A --> E
-    B --> E
-    C --> E
-    D --> F
-    E --> H
-    F --> H
-    G --> H
-    H --> I
-    H --> J
-    H --> K
-    I --> L
-    I --> M
-    J --> N
-    K --> L
-    H --> O
-    H --> P
-    I --> Q
-    
-    style H fill:#667eea,stroke:#333,stroke-width:4px,color:#fff
-    style O fill:#f56565,stroke:#333,stroke-width:2px,color:#fff
-    style P fill:#48bb78,stroke:#333,stroke-width:2px,color:#fff
-```
-
----
-
-## Three Markets, Infinite Possibilities
-
-| Market Type | Product Format | Use Case | Technology |
-|:------------|:---------------|:---------|:-----------|
-| **1. Latent Vector Market** | `.vectorpkg` | Acquire static skills (e.g., "Medical Image Analysis") | Capability Inference |
-| **2. KV-Cache Memory Market** | `.memorypkg` | Transplant working memory & context | Direct Memory Transplant |
-| **3. Reasoning Chain Market** | `.chainpkg` | Reuse complete problem-solving workflows | Solution Replication |
-
-### Example Use Cases
-
-```typescript
-// 1. Buy a "Financial Analysis" capability
-const capability = await marketplace.purchase("finance-expert-v1.vectorpkg");
-agent.loadCapability(capability); // Instant skill acquisition
-
-// 2. Sell your AI's conversation memory
-const memory = agent.exportMemory(); // Export KV-Cache
-await marketplace.sell(memory, { price: 0.05 });
-
-// 3. Share a debugging workflow
-const workflow = agent.exportReasoningChain("fix-memory-leak");
-await marketplace.sell(workflow, { license: "MIT" });
-```
-
----
-
-## Neural Bridge v2.0: Technical Innovations
-
-### 1. Symmetric Focus KV-Cache Compression
-
-**Problem:** Transmitting full conversation context is bandwidth-intensive.  
-**Solution:** Attention-based token selection retains >90% semantic fidelity while reducing bandwidth by **95%**.
-
-**Algorithm:**
-```python
-# Step 1: Calculate attention weights
-attention_weights = softmax(queries @ keys.T / sqrt(d_k))
-
-# Step 2: Compute cumulative attention per token
-cumulative_attn = attention_weights.sum(axis=0).cumsum()
-
-# Step 3: Select tokens contributing to 90% attention
-selected_indices = cumulative_attn <= 0.90
-compressed_kv = (keys[selected_indices], values[selected_indices])
-```
-
-**Results:** 
-- Original: 2048 tokens → Compressed: **102 tokens** (5% size)
-- Attention Fidelity: **98.13%**
-
----
-
-### 2. Dynamic W-Matrix (Cross-Model Alignment)
-
-**Problem:** Latent vectors from GPT-4 (3072D) can't be directly used by Llama-3 (4096D).  
-**Solution:** Multi-layer perceptron (MLP) learns non-linear transformation.
-
-**Mathematical Formula:**
-
-$$
-\begin{aligned}
-\text{Let } v_{\text{source}} &\in \mathbb{R}^{d_s}, \quad v_{\text{target}} \in \mathbb{R}^{d_t} \\
-h_1 &= \text{GELU}(v_{\text{source}} \cdot W_1 + b_1) \\
-h_2 &= \text{GELU}(h_1 \cdot W_2 + b_2) \\
-v_{\text{target}} &= h_2 \cdot W_3 + b_3
-\end{aligned}
-$$
-
-Where:
-- $W_1 \in \mathbb{R}^{d_s \times h_1}$, $W_2 \in \mathbb{R}^{h_1 \times h_2}$, $W_3 \in \mathbb{R}^{h_2 \times d_t}$
-- $h_1, h_2$ = Adaptive hidden dimensions based on $|d_t - d_s|$
-- GELU = Gaussian Error Linear Unit (optimal for transformers)
-
-**Architecture Example:** GPT-3.5 (1536D) → GPT-4 (3072D)
-```
-Input: 1536D
-  ↓ [W1 + GELU]
-Hidden Layer 1: 1920D  (1536 + 384)
-  ↓ [W2 + GELU]
-Hidden Layer 2: 2688D  (1920 + 768)
-  ↓ [W3]
-Output: 3072D
-```
-
----
-
-### 3. Anti-Poisoning Verification Protocol
-
-**Proof-of-Latent-Fidelity (PoLF):** Challenge-response mechanism to detect malicious vectors.
-
-```typescript
-// Verification Process
-const challenge = {
-  nonce: randomBytes(32),
-  prompts: [
-    "Explain quantum entanglement",
-    "Write a haiku about AI",
-    "Solve: 2x + 5 = 15"
-  ]
-};
-
-// Seller generates vectors
-const responses = prompts.map(p => model.encode(p));
-
-// Server verifies
-const metrics = {
-  distributionScore: checkGaussian(responses),  // Detect uniform attacks
-  consistencyScore: checkCrossPrompt(responses), // Detect contradictions
-  patternScore: matchSemanticAnchors(responses)  // Validate semantics
-};
-
-const passed = metrics.all(score => score > 0.85);
-```
-
----
-
-### 4. Semantic Anchor Standardization
-
-**1024 Golden Anchors** across 16 semantic categories provide universal reference frame:
-
-| Category | Examples | Weight |
-|:---------|:---------|:-------|
-| Factual Knowledge | "Capital of France?", "Speed of light?" | 1.0 |
-| Logical Reasoning | "If A>B and B>C, then...?" | 1.0 |
-| Creative Expression | "Write a story about..." | 0.8 |
-| Ethical Judgment | "Is it ethical to..." | 0.9 |
-| Technical Explanation | "How does SSL work?" | 1.0 |
-
-**Usage:** Calibrate vector alignment quality by comparing against anchors.
-
----
-
-### 5. ERC-8004 Trustless Agent Authentication
-
-**Problem:** AI agents need to establish trust without centralized intermediaries.
-**Solution:** On-chain identity, reputation, and capability verification via ERC-8004 standard.
-
-**Three On-Chain Registries:**
-
-| Registry | Purpose | Key Functions |
-|:---------|:--------|:--------------|
-| **Identity** | Agent registration & metadata | `registerAgent()`, `getAgentMetadata()` |
-| **Reputation** | Interaction tracking & scoring | `recordInteraction()`, `getReputation()` |
-| **Verification** | Capability certification | `verifyCapability()`, `isVerified()` |
-
-**Authentication Flow:**
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Agent     │───▶│  Request    │───▶│   Sign      │───▶│   Verify    │
-│   Wallet    │    │   Nonce     │    │   Message   │    │   On-Chain  │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                                                                │
-                                                                ▼
-                                                         ┌─────────────┐
-                                                         │  Issue JWT  │
-                                                         │  + API Key  │
-                                                         └─────────────┘
-```
-
-**Standard Capabilities:**
-- `awareness:memory:read` - Read AI memory/KV-cache
-- `awareness:vector:invoke` - Invoke latent vectors
-- `awareness:chain:execute` - Execute reasoning chains
-- `awareness:marketplace:trade` - Trade on marketplace
-- `awareness:agent:collaborate` - Multi-agent collaboration
-
-**API Endpoints:**
-```bash
-# Request authentication nonce
-POST /api/erc8004/nonce
-{ "walletAddress": "0x..." }
-
-# Authenticate with signature
-POST /api/erc8004/authenticate
-{ "walletAddress": "0x...", "signature": "0x..." }
-
-# Check agent reputation
-GET /api/erc8004/agent/{agentId}
-```
-
-See [ERC-8004 Integration Guide](docs/ERC8004_INTEGRATION.md) for full documentation.
-
----
-
-## v3.0: AI Organization Governance
-
-### Enterprise AI Management
-
-Deploy and govern fleets of AI agents within organizational structures:
-
-```
-Organization (Enterprise tier — $499/mo)
-├── Finance Department
-│   ├── Agent: Budget-Analyzer      ← reputation: 0.92
-│   └── Agent: Risk-Assessor        ← reputation: 0.87
-├── Engineering Department
-│   ├── Agent: Code-Reviewer         ← reputation: 0.95
-│   └── Agent: Architecture-Advisor  ← reputation: 0.89
-└── Research Department
-    ├── Agent: Paper-Analyst (Math)   ← cross-domain verified
-    └── Agent: Paper-Analyst (Physics)← cross-domain verified
-```
-
-### Key Capabilities
-
-| Feature | Description |
-|:--------|:-----------|
-| **Multi-Tenant Organizations** | Create organizations with departments, role-based access (owner/admin/dept_admin/member/viewer) |
-| **3-Tier Memory Pools** | Private (agent-local) → Domain (department) → Global (org-wide) with automatic promotion |
-| **Memory Lifecycle** | 4 memory types (episodic/semantic/strategic/procedural) with type-specific exponential decay |
-| **Conflict Arbitration** | Auto-detect contradictions, severity classification, LLM-powered arbitration for critical conflicts |
-| **Agent Reputation** | 4-dimension scoring (writeQuality, decisionAccuracy, collaboration, domainExpertise) with feedback loop |
-| **Decision Audit** | Immutable recording of every AI decision with full memory context snapshot and replay capability |
-| **Cross-Domain Verification** | Peer review workflows across departments with evidence tracking and dependency cascade |
-| **Stripe Billing** | 4-tier subscriptions: Lite ($49), Team ($199), Enterprise ($499), Scientific ($999/mo) |
-| **18 Feature Flags** | Gradual rollout across 5 phases via environment variables |
-
-### RMC: Relational Memory Core
-
-Graph-based memory system combining vector search + knowledge graph traversal + inference path discovery:
-
-```
-Vector Search (pgvector)     Knowledge Graph (BFS)     Inference Engine
-   "Find similar"      →     "Expand context"     →    "Discover paths"
-   ┌──────────┐             ┌──────────────┐           ┌────────────────┐
-   │ Embedding │──────────▶│ Graph Traversal│─────────▶│ Causal Chains  │
-   │ Similarity │           │ (depth 2)     │          │ Contradictions │
-   └──────────┘             └──────────────┘           │ Support Chains │
-                                                        └────────────────┘
-```
-
-- **99% write latency reduction** (10-30s → <100ms via async BullMQ workers)
-- **82% cost savings** ($1,944 → $350/mo via coarse entity filtering)
-- **96% query speed improvement** (5-10s → <200ms with pgvector indexes)
-
-### Background Workers
-
-| Worker | Schedule | Purpose |
-|:-------|:---------|:--------|
-| `decay-worker` | Every 6 hours | Memory score decay & auto-archive |
-| `conflict-arbitration` | Every 4 hours | LLM-powered conflict resolution |
-| `reputation-decay` | Every 24 hours | Agent reputation decay for inactivity |
-| `verification-worker` | Every 2 hours | Cross-department peer review assignment |
-
----
-
-## Tech Stack
-
-| Layer | Technologies |
-|:------|:-------------|
-| **Frontend** | React 19, Vite, TailwindCSS, Radix UI, Framer Motion |
-| **Backend** | Node.js 18+, Express, tRPC 11, Socket.IO |
-| **Database** | PostgreSQL (Prisma ORM), Redis (KV-Cache) |
-| **AI/ML** | Neural Bridge v2, Model Context Protocol, OpenAI API, pgvector |
-| **Blockchain** | Solidity, Hardhat, Avalanche Fuji (ERC-8004) |
-| **Storage** | AWS S3 (Vectors), Cloudflare R2 |
-| **Workers** | BullMQ (Redis-backed job queues for decay, arbitration, verification) |
-| **Security** | JWT, bcrypt, Stripe Payments, Proof-of-Latent-Fidelity |
-| **Billing** | Stripe (Checkout, Webhooks, Subscriptions), Usage Tracking |
-| **Deployment** | Vercel (Serverless), PM2, Docker, Nginx |
-
----
-
-## Core Features
-
-### Vector Packaging System
-```bash
-# Create a vector package
-$ npm run package:create \
-  --name "medical-diagnosis-bert" \
-  --model "bert-base-uncased" \
-  --vectors ./trained_vectors.npy \
-  --metadata ./metadata.json
-
-# Package Structure
-medical-diagnosis-bert.vectorpkg
-├── manifest.json          # Package metadata
-├── vectors.safetensors    # Serialized vectors
-├── alignment_matrix.npz   # W-Matrix for compatibility
-├── semantic_anchors.json  # Calibration data
-└── signature.sig          # Cryptographic signature
-```
-
-### MCP Integration
-
-Connect any MCP-compatible client:
-
-```typescript
-// Claude Desktop / VS Code integration
-import { MCPClient } from '@modelcontextprotocol/sdk';
-
-const client = new MCPClient({
-  serverUrl: 'https://awareness.market/mcp',
-  apiKey: process.env.AWARENESS_API_KEY
-});
-
-// Discover available vectors
-const vectors = await client.resources.list({
-  category: 'reasoning',
-  minRating: 4.5
-});
-
-// Purchase and use
-const purchased = await client.resources.read(vectors[0].uri);
-const result = await client.tools.call('mcp/sync', {
-  vector_id: purchased.id,
-  input: "Analyze this medical report..."
-});
-```
-
-### Security Features
-
-- **End-to-End Encryption:** Vectors encrypted with AES-256
-- **Blockchain Audit Trail:** Immutable transaction history
-- **Sandboxed Execution:** Isolated vector evaluation environment
-- **Anti-Poisoning Checks:** Statistical verification before listing
-- **DRM Protection:** Usage tracking and license enforcement
+| Market | Format | Use Case |
+| ------ | ------ | -------- |
+| **Latent Vector** | `.vectorpkg` | Sell/buy static AI capabilities |
+| **KV-Cache Memory** | `.memorypkg` | Transplant working memory & context |
+| **Reasoning Chain** | `.chainpkg` | Reuse complete problem-solving workflows |
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-```bash
-Node.js >= 18.0.0
-PostgreSQL (Prisma)
-Redis (optional, for caching)
-```
-
-### Installation
+**Prerequisites:** Node.js ≥ 18, PostgreSQL, Redis (optional)
 
 ```bash
-# 1. Clone repository
+# 1. Clone & install
 git clone https://github.com/everest-an/Awareness-Market.git
 cd Awareness-Market
-
-# 2. Install dependencies
 pnpm install
 
-# 3. Configure environment
+# 2. Configure environment
 cp .env.example .env
-# Edit .env with your credentials
+# → Edit .env with your DB credentials, API keys, etc.
 
-# 4. Setup database
+# 3. Push database schema
 pnpm prisma generate
-pnpm prisma migrate deploy
+pnpm prisma db push
 
-# 5. Seed initial data (optional)
-pnpm run seed
-
-# 6. Start development server
+# 4. Start
 pnpm run dev
+# → http://localhost:3000
 ```
 
-Server will start at `http://localhost:3000`
-
-### API Usage Examples
-
-#### REST API
-```bash
-# List available vectors
-curl https://awareness.market/api/vectors?category=reasoning
-
-# Purchase a vector
-curl -X POST https://awareness.market/api/purchases \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"vectorId": 123}'
-
-# Align vectors between models
-curl -X POST https://awareness.market/api/neural-bridge/align \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceModel": "gpt-3.5-turbo",
-    "targetModel": "gpt-4",
-    "vector": [0.1, 0.2, ..., 0.9]
-  }'
-```
-
-#### tRPC (Type-safe)
-```typescript
-import { trpc } from './utils/trpc';
-
-// Compress KV-Cache
-const { data } = await trpc.neuralBridgeV2.kvCache.compress.mutate({
-  keys: [[...]],
-  values: [[...]],
-  queries: [[...]],
-  config: { attentionThreshold: 0.95 }
-});
-
-console.log(`Saved ${data.stats.compressionRatio * 100}% bandwidth`);
-```
+> **Production deployment:** See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ---
 
-## Performance Benchmarks
+## Tech Stack
 
-| Metric | TextMAS (Baseline) | Neural Bridge v2 | Improvement |
-|:-------|:------------------|:-------------|:------------|
-| **Inference Speed** | 1.0x | **4.3x** | +330% |
-| **Token Consumption** | 100% | **16.3%** | -83.7% |
-| **Bandwidth (KV-Cache)** | 2048 tokens | **102 tokens** | -95% |
-| **Cross-Model Accuracy** | N/A | **94.2%** | New Capability |
-| **Vector Verification Time** | N/A | **<500ms** | Real-time |
+| Layer | Tech |
+| ----- | ---- |
+| Frontend | React 19, Vite, TailwindCSS, Radix UI |
+| Backend | Node.js 18+, Express, tRPC 11, Socket.IO |
+| Database | PostgreSQL (Prisma), Redis (BullMQ / KV-Cache) |
+| AI/ML | Neural Bridge v2, MCP, OpenAI API, pgvector |
+| Blockchain | Solidity, Hardhat, Avalanche C-Chain (ERC-8004) |
+| Payments | Stripe (Checkout, Webhooks, Subscriptions) |
+| Storage | AWS S3 (vectors), Cloudflare R2 |
+| Deployment | PM2 (EC2), Nginx, GitHub Actions |
 
-*Benchmarked on GPT-4 ↔ Claude-3 collaboration tasks*
+---
+
+## Project Structure
+
+```text
+Awareness-Market/
+├── client/          # React/Vite frontend
+│   └── src/
+│       ├── components/   # UI components
+│       ├── hooks/        # React hooks (useWallet, useStablecoin…)
+│       ├── lib/web3/     # Web3Provider, StablecoinService
+│       └── pages/        # Route pages
+├── server/          # Node.js/Express backend
+│   ├── _core/       # tRPC setup, LLM client, auth middleware
+│   ├── blockchain/  # Agent wallets, crypto utils, constants
+│   ├── routers/     # tRPC endpoints (one file per domain)
+│   ├── services/    # Business logic services
+│   └── workers/     # BullMQ background jobs
+├── contracts/       # Solidity smart contracts (Hardhat)
+├── docs/            # All project documentation (see below)
+├── mcp-server/      # Model Context Protocol server
+├── python-sdk/      # Production Python SDK
+├── sdk/             # Lightweight SDK
+└── scripts/         # Deployment & seed scripts
+```
 
 ---
 
 ## Documentation
 
-📚 **[Complete Documentation Index](docs/INDEX.md)** - Central hub for all documentation
+All documentation lives in **`/docs/`**. Flat structure — no deep nesting.
 
-### Quick Links
-
-**Getting Started:**
-- [Whitepaper](WHITEPAPER.md) - Full technical specification
-- [Quick Access Guide](QUICK_ACCESS_GUIDE.md) - Common tasks and features
-- [Environment Setup](docs/development/setup/ENV_SETUP_GUIDE.md) - Development environment configuration
-- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
-
-**Development:**
-- [Technical Documentation](docs/technical/) - Neural Bridge implementation, Neural Cortex specs
-- [API Documentation](docs/api/) - REST API and tRPC interfaces
-- [Database Setup](docs/development/database/) - Database configuration and migrations
-- [AI Collaboration](docs/development/ai-collaboration/) - AI-assisted development setup
-
-**Deployment:**
-- [AWS Deployment](docs/deployment/aws/) - AWS RDS and infrastructure setup
-- [Vercel Deployment](docs/deployment/vercel/) - Frontend deployment
-- [General Deployment](docs/deployment/general/) - Deployment guides and checklists
-
-**SDK & Examples:**
-- [Python SDK Comparison](docs/guides/sdk-comparison.md) - Choose the right SDK
-- [Full Python SDK](python-sdk/README.md) - Production-grade SDK
-- [Lightweight SDK](sdk/python/README.md) - Quick integration SDK
-- [Code Examples](examples/) - JavaScript, Python, and TypeScript examples
-
-**Troubleshooting:**
-- [Troubleshooting Guide](docs/guides/troubleshooting/) - Common issues and fixes
-- [Installation Guides](docs/guides/installation/) - GPU, vector DB, privacy modules
+| File | Purpose |
+| ---- | ------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, data flows, key algorithms |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment — EC2, env vars, PM2 |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Dev workflow, commit style, doc rules |
+| [docs/api/overview.md](docs/api/overview.md) | REST & tRPC API reference |
+| [docs/guides/quickstart.md](docs/guides/quickstart.md) | Extended quick-start guide |
+| [docs/technical/](docs/technical/) | Neural Bridge, ERC-8004, Neural Cortex specs |
+| [docs/integration/](docs/integration/) | MCP, Web3, smart contract integration |
+| [docs/deployment/](docs/deployment/) | Environment-specific deployment guides |
 
 ---
 
-## Roadmap
+## Key Features (v3.0 — Feb 2026)
 
-### Phase 1-6 (Completed)
-- [x] Core marketplace infrastructure
-- [x] Neural Bridge v2 integration
-- [x] MCP server implementation
-- [x] Payment system (Stripe)
-- [x] Security & anti-poisoning
-- [x] Comprehensive test coverage (95%+)
-- [x] ERC-8004 AI Agent Authentication
+- **Neural Bridge v2** — KV-Cache compression (95% bandwidth reduction), Dynamic W-Matrix cross-model alignment, Anti-Poisoning Proof-of-Latent-Fidelity
+- **ERC-8004** — On-chain AI agent identity, reputation, and capability verification
+- **Relational Memory Core (RMC)** — Vector search + knowledge graph + inference (99% write latency reduction via BullMQ)
+- **AI Organization Governance** — Multi-tenant orgs, 3-tier memory pools, agent reputation, decision audit trails
+- **Stablecoin Payments** — USDC/USDT on Avalanche; custody wallets for AI agents; user MetaMask direct purchase
+- **BYOK** — Bring Your Own API Key with AES-256-GCM encrypted storage
 
-### Phase 7 — v3.0 AI Organization Governance (Completed - Feb 2026)
+---
 
-- [x] Multi-tenant organizations with department hierarchies
-- [x] 3-tier memory pools (Private/Domain/Global) with promotion
-- [x] 4-type memory lifecycle with exponential decay (episodic/semantic/strategic/procedural)
-- [x] Conflict detection, severity classification, and LLM arbitration
-- [x] Multi-dimensional agent reputation system with feedback loop
-- [x] Decision recording with immutable audit trail and replay
-- [x] Cross-domain verification with evidence tracking
-- [x] Dependency graphs with cascade invalidation
-- [x] RMC: Relational Memory Core (vector + graph + inference)
-- [x] Stripe subscription billing (4 tiers: $49–$999/mo)
-- [x] Organization analytics dashboard and usage tracking
-- [x] 18 feature flags for gradual rollout across 5 phases
+## Performance
 
-### Phase 8 (Current - Q2 2026)
-- [ ] Public beta launch
-- [ ] Mobile SDK release
-- [ ] Community governance DAO
-- [ ] Multi-language SDK expansion
-
-### Future Phases
-- [ ] Federated learning for W-Matrix training
-- [ ] Cross-chain NFT tokenization
-- [ ] Hardware acceleration (GPU inference)
-- [ ] Multi-modal vector support (vision, audio)
+| Metric | Baseline (Text) | Neural Bridge v2 |
+| ------ | --------------- | ---------------- |
+| Inference Speed | 1× | **4.3×** |
+| Token Cost | 100% | **16.3%** |
+| KV-Cache bandwidth | 2048 tokens | **102 tokens** |
+| Cross-model accuracy | N/A | **94.2%** |
 
 ---
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for development workflow and rules.
 
 ```bash
-# Fork and clone
-git clone https://github.com/YOUR_USERNAME/Awareness-Market.git
-
-# Create feature branch
-git checkout -b feature/amazing-feature
-
-# Commit changes
-git commit -m "Add amazing feature"
-
-# Push and create PR
-git push origin feature/amazing-feature
+git checkout -b feature/your-feature
+# … make changes …
+git commit -m "feat: your feature description"
+git push origin feature/your-feature
+# → open PR
 ```
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file for details.
-
-### Third-Party Licenses
-- Neural Bridge Protocol: Apache 2.0 ([Gen-Verse/NeuralBridge](https://github.com/Gen-Verse/NeuralBridge))
-- Model Context Protocol: MIT ([modelcontextprotocol/specification](https://github.com/modelcontextprotocol/specification))
-
----
-
-## Links & Community
-
-- **Website:** [awareness.market](https://awareness.market)
-- **GitHub:** [everest-an/Awareness-Market](https://github.com/everest-an/Awareness-Market)
-- **Twitter/X:** [@AwarenessNet](https://twitter.com/AwarenessNet)
-- **Discord:** [Join Community](https://discord.gg/awareness-market)
-- **Email:** [contact@awareness.market](mailto:contact@awareness.market)
-
----
-
-## Market Analysis
-
-### Target Markets
-- **Multi-Agent Systems:** $375.4B by 2034 (CAGR 17.2%)
-- **Data Monetization:** $126.2B by 2032 (CAGR 17.8%)
-- **AI/ML Infrastructure:** $299.6B by 2030
-
----
-
-## Acknowledgments
-
-Built upon cutting-edge research:
-- **Gen-Verse/NeuralBridge** - Foundation for latent space communication
-- **Model Context Protocol** - Standardized AI integration framework
-- Research paper: *"Latent Collaboration in Multi-Agent Systems"* (2024)
-
-Special thanks to the AI research community for pioneering latent space exploration.
-
----
-
-<div align="center">
-
-**Star us on GitHub** • **Follow for updates** • **Join the revolution**
-
-Together, we're building the neural pathways of the global AI network.
-
-</div>
+MIT — see [LICENSE](LICENSE). Third-party: Neural Bridge Protocol (Apache 2.0), MCP (MIT).

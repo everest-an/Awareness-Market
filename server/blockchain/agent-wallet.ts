@@ -1,33 +1,42 @@
 /**
  * Agent Custody Wallet Service
- * 
- * Provides server-side managed wallets for AI agents to autonomously
- * execute on-chain stablecoin transactions (USDC/USDT).
- * 
- * Security:
- * - Private keys encrypted with AES-256-GCM using per-key derived encryption key
- * - Encryption key derived from AGENT_WALLET_MASTER_KEY env var via PBKDF2
- * - Keys stored in database, never logged or exposed via API
- * - Spending limits enforced per-agent (daily/per-tx)
- * - Transaction audit log for compliance
- * 
- * Architecture:
- * - Each AI agent gets a unique Avalanche C-Chain wallet on first request
- * - Wallet is used for approve → directPurchase on StablecoinPaymentSystem contract
- * - Platform operator funds wallets with AVAX for gas
+ *
+ * Manages server-side custodial wallets for AI agents, enabling autonomous
+ * on-chain stablecoin transactions (USDC/USDT on Avalanche C-Chain).
+ *
+ * Security model:
+ * - Private keys are encrypted at rest using AES-256-GCM + PBKDF2
+ *   (see `crypto-utils.ts` for implementation details)
+ * - Spending limits are enforced per-agent (daily + per-transaction ceilings)
+ * - Every transaction is logged to an audit table for compliance
+ * - `isActive` flag provides an emergency kill-switch per wallet
+ *
+ * Wallet lifecycle:
+ * 1. First call to `getOrCreateAgentWallet` creates a random Avalanche wallet
+ * 2. Wallet address is stored in DB; private key stored encrypted
+ * 3. Platform operator funds wallets with AVAX for gas
+ * 4. Agent calls `agentPurchase` → server decrypts key, signs tx, re-encrypts concept in memory
  */
 
 import { ethers } from 'ethers';
-import crypto from 'crypto';
 import { prisma } from '../db-prisma';
 import { createLogger } from '../utils/logger';
 import {
-  validateApproveTarget,
-  isWhitelistedContract,
-  checkTransactionAnomaly,
-  sanitizeErrorMessage,
-  safeCryptoError,
-} from '../middleware/crypto-asset-guard';
+  encryptPrivateKey,
+  decryptPrivateKey,
+  parseEncryptedPayload,
+} from './crypto-utils';
+import {
+  AVALANCHE_CHAIN_ID,
+  STABLECOIN_ADDRESSES,
+  PAYMENT_CONTRACT_ADDRESS,
+  ERC20_ABI,
+  PAYMENT_ABI,
+  DEFAULT_DAILY_SPEND_LIMIT_USD,
+  DEFAULT_PER_TX_SPEND_LIMIT_USD,
+  AVAX_DECIMALS,
+  STABLECOIN_DECIMALS,
+} from './constants';
 
 const logger = createLogger('AgentWallet');
 
@@ -35,107 +44,33 @@ const logger = createLogger('AgentWallet');
 // Types
 // ============================================================================
 
+/** Public info about an agent's custody wallet (no sensitive data) */
 export interface AgentWalletInfo {
   address: string;
   chainId: number;
   createdAt: Date;
-  dailySpendLimit: number;  // USD
-  perTxSpendLimit: number;  // USD
-  totalSpentToday: number;  // USD
+  /** Daily USD spending ceiling */
+  dailySpendLimit: number;
+  /** Per-transaction USD ceiling */
+  perTxSpendLimit: number;
+  /** USD spent so far today (resets at midnight UTC) */
+  totalSpentToday: number;
   isActive: boolean;
 }
 
+/** Balance snapshot for an agent wallet */
 export interface AgentWalletBalance {
   address: string;
-  avaxBalance: string;     // Gas token
-  usdcBalance: string;      // USDC in wallet
-  usdtBalance: string;      // USDT in wallet
-  contractUsdcBalance: string; // USDC deposited in payment contract
-  contractUsdtBalance: string; // USDT deposited in payment contract
-}
-
-interface EncryptedKey {
-  ciphertext: string;  // hex
-  iv: string;          // hex
-  authTag: string;     // hex
-  salt: string;        // hex
-}
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-const AVALANCHE_CHAIN_ID = 43114;
-const ALGORITHM = 'aes-256-gcm';
-const KEY_DERIVATION_ITERATIONS = 100000;
-
-// Stablecoin addresses on Avalanche C-Chain Mainnet
-const USDC_ADDRESS = '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E';
-const USDT_ADDRESS = '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7';
-
-// Minimal ERC20 ABI for balance checks
-const ERC20_ABI = [
-  'function balanceOf(address) view returns (uint256)',
-  'function decimals() view returns (uint8)',
-  'function approve(address spender, uint256 amount) returns (bool)',
-  'function allowance(address owner, address spender) view returns (uint256)',
-];
-
-// Default spending limits
-const DEFAULT_DAILY_LIMIT = 500;   // $500/day
-const DEFAULT_PER_TX_LIMIT = 100;  // $100/transaction
-
-// ============================================================================
-// Encryption Helpers
-// ============================================================================
-
-function getMasterKey(): string {
-  const key = process.env.AGENT_WALLET_MASTER_KEY;
-  if (!key || key.length < 32) {
-    throw new Error(
-      'AGENT_WALLET_MASTER_KEY must be set (min 32 chars). ' +
-      'Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
-    );
-  }
-  return key;
-}
-
-function deriveEncryptionKey(masterKey: string, salt: Buffer): Buffer {
-  return crypto.pbkdf2Sync(masterKey, salt, KEY_DERIVATION_ITERATIONS, 32, 'sha256');
-}
-
-function encryptPrivateKey(privateKey: string): EncryptedKey {
-  const masterKey = getMasterKey();
-  const salt = crypto.randomBytes(16);
-  const derivedKey = deriveEncryptionKey(masterKey, salt);
-  const iv = crypto.randomBytes(12);
-
-  const cipher = crypto.createCipheriv(ALGORITHM, derivedKey, iv);
-  let ciphertext = cipher.update(privateKey, 'utf8', 'hex');
-  ciphertext += cipher.final('hex');
-  const authTag = cipher.getAuthTag();
-
-  return {
-    ciphertext,
-    iv: iv.toString('hex'),
-    authTag: authTag.toString('hex'),
-    salt: salt.toString('hex'),
-  };
-}
-
-function decryptPrivateKey(encrypted: EncryptedKey): string {
-  const masterKey = getMasterKey();
-  const salt = Buffer.from(encrypted.salt, 'hex');
-  const derivedKey = deriveEncryptionKey(masterKey, salt);
-  const iv = Buffer.from(encrypted.iv, 'hex');
-
-  const decipher = crypto.createDecipheriv(ALGORITHM, derivedKey, iv);
-  decipher.setAuthTag(Buffer.from(encrypted.authTag, 'hex'));
-
-  let plaintext = decipher.update(encrypted.ciphertext, 'hex', 'utf8');
-  plaintext += decipher.final('utf8');
-
-  return plaintext;
+  /** AVAX balance — gas token */
+  avaxBalance: string;
+  /** USDC held in wallet (not deposited to contract) */
+  usdcBalance: string;
+  /** USDT held in wallet (not deposited to contract) */
+  usdtBalance: string;
+  /** USDC deposited inside StablecoinPaymentSystem contract */
+  contractUsdcBalance: string;
+  /** USDT deposited inside StablecoinPaymentSystem contract */
+  contractUsdtBalance: string;
 }
 
 // ============================================================================
@@ -144,9 +79,16 @@ function decryptPrivateKey(encrypted: EncryptedKey): string {
 
 let _provider: ethers.JsonRpcProvider | null = null;
 
+/**
+ * Returns the shared JsonRpcProvider for Avalanche.
+ * Lazy-initialised so tests can set env vars before first call.
+ */
 function getProvider(): ethers.JsonRpcProvider {
   if (!_provider) {
-    const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc';
+    const rpcUrl =
+      process.env.BLOCKCHAIN_RPC_URL ||
+      process.env.AVALANCHE_RPC_URL ||
+      'https://api.avax.network/ext/bc/C/rpc';
     _provider = new ethers.JsonRpcProvider(rpcUrl);
   }
   return _provider;
@@ -157,174 +99,161 @@ function getProvider(): ethers.JsonRpcProvider {
 // ============================================================================
 
 /**
- * Get or create a custody wallet for an AI agent (identified by userId).
- * Wallet is created on first call, returned from DB on subsequent calls.
+ * Get or create a custody wallet for an AI agent.
+ *
+ * Idempotent: returns the existing wallet if one already exists for `userId`.
+ * On first call a new random Avalanche wallet is generated, the private key
+ * is encrypted, and both are persisted to the database.
+ *
+ * @param userId - Platform user ID of the agent
+ * @returns Public wallet info (no private key)
  */
 export async function getOrCreateAgentWallet(userId: number): Promise<AgentWalletInfo> {
-  // Check if user already has a custody wallet
-  const existing = await prisma.agentWallet.findUnique({
-    where: { userId },
-  });
+  const existing = await prisma.agentWallet.findUnique({ where: { userId } });
 
   if (existing) {
-    const todaySpent = await getTodaySpent(userId);
+    const totalSpentToday = await getTodaySpent(userId);
     return {
       address: existing.walletAddress,
       chainId: AVALANCHE_CHAIN_ID,
       createdAt: existing.createdAt,
       dailySpendLimit: Number(existing.dailySpendLimit),
       perTxSpendLimit: Number(existing.perTxSpendLimit),
-      totalSpentToday: todaySpent,
+      totalSpentToday,
       isActive: existing.isActive,
     };
   }
 
-  // Create new wallet
+  // Generate new wallet; encrypt private key before any DB write
   const wallet = ethers.Wallet.createRandom();
-  const encrypted = encryptPrivateKey(wallet.privateKey);
+  const encryptedPayload = encryptPrivateKey(wallet.privateKey);
 
   const created = await prisma.agentWallet.create({
     data: {
       userId,
       walletAddress: wallet.address,
-      encryptedKey: JSON.stringify(encrypted),
+      encryptedKey: JSON.stringify(encryptedPayload),
       chainId: AVALANCHE_CHAIN_ID,
-      dailySpendLimit: DEFAULT_DAILY_LIMIT,
-      perTxSpendLimit: DEFAULT_PER_TX_LIMIT,
+      dailySpendLimit: DEFAULT_DAILY_SPEND_LIMIT_USD,
+      perTxSpendLimit: DEFAULT_PER_TX_SPEND_LIMIT_USD,
       isActive: true,
     },
   });
 
-  logger.info('Created agent custody wallet', {
-    userId,
-    address: wallet.address,
-  });
+  logger.info('Created agent custody wallet', { userId, address: wallet.address });
 
   return {
     address: created.walletAddress,
     chainId: AVALANCHE_CHAIN_ID,
     createdAt: created.createdAt,
-    dailySpendLimit: DEFAULT_DAILY_LIMIT,
-    perTxSpendLimit: DEFAULT_PER_TX_LIMIT,
+    dailySpendLimit: DEFAULT_DAILY_SPEND_LIMIT_USD,
+    perTxSpendLimit: DEFAULT_PER_TX_SPEND_LIMIT_USD,
     totalSpentToday: 0,
     isActive: true,
   };
 }
 
 /**
- * Get wallet signer for on-chain transactions.
- * Never expose the signer or private key externally.
- * Key is scrubbed from local variable after Wallet construction.
+ * Retrieve an ethers.Wallet signer for signing on-chain transactions.
+ *
+ * The private key is decrypted only within this function's call stack and is
+ * never returned to callers. TypeScript strings are not zero-able in the JS
+ * runtime sense (GC is non-deterministic), but we minimise the window the
+ * plaintext key is in memory by not storing it in any closure or outer scope.
+ *
+ * @param userId - Platform user ID of the agent
+ * @returns Wallet instance connected to the Avalanche provider
+ * @throws Error if wallet not found or is deactivated
  */
 export async function getAgentSigner(userId: number): Promise<ethers.Wallet> {
-  const record = await prisma.agentWallet.findUnique({
-    where: { userId },
-  });
+  const record = await prisma.agentWallet.findUnique({ where: { userId } });
 
   if (!record) {
-    throw new Error('Agent wallet not found. Call getOrCreateAgentWallet first.');
+    throw new Error('Agent wallet not found — call getOrCreateAgentWallet first.');
   }
-
   if (!record.isActive) {
     throw new Error('Agent wallet is deactivated.');
   }
 
-  const encrypted: EncryptedKey = JSON.parse(record.encryptedKey);
-  let privateKey: string | null = decryptPrivateKey(encrypted);
+  const payload = parseEncryptedPayload(record.encryptedKey);
+  const privateKey = decryptPrivateKey(payload);
   const provider = getProvider();
 
-  // Construct wallet and immediately scrub the key variable
-  const wallet = new ethers.Wallet(privateKey, provider);
-  privateKey = null; // Release reference for GC
-
-  return wallet;
+  return new ethers.Wallet(privateKey, provider);
 }
 
 /**
- * Get all balances for an agent wallet.
+ * Fetch all on-chain balances for an agent's custody wallet.
+ *
+ * Queries AVAX, USDC, and USDT balances both in the wallet and deposited
+ * in the StablecoinPaymentSystem contract. All calls are parallelised.
+ *
+ * @param userId - Platform user ID of the agent
+ * @returns Balance snapshot
  */
 export async function getAgentWalletBalance(userId: number): Promise<AgentWalletBalance> {
-  const record = await prisma.agentWallet.findUnique({
-    where: { userId },
-  });
-
-  if (!record) {
-    throw new Error('Agent wallet not found');
-  }
+  const record = await prisma.agentWallet.findUnique({ where: { userId } });
+  if (!record) throw new Error('Agent wallet not found');
 
   const provider = getProvider();
-  const address = record.walletAddress;
+  const { address } = record;
 
-  const usdc = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, provider);
-  const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
+  const usdc = new ethers.Contract(STABLECOIN_ADDRESSES.mainnet.USDC, ERC20_ABI, provider);
+  const usdt = new ethers.Contract(STABLECOIN_ADDRESSES.mainnet.USDT, ERC20_ABI, provider);
+  const paymentContract = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, PAYMENT_ABI, provider);
 
-  // Payment contract address
-  const paymentContractAddress = process.env.STABLECOIN_PAYMENT_ADDRESS ||
-    process.env.STABLECOIN_CONTRACT_ADDRESS ||
-    '0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8';
-
-  const PAYMENT_ABI = [
-    'function getBalance(address user, address token) view returns (uint256)',
-  ];
-  const paymentContract = new ethers.Contract(paymentContractAddress, PAYMENT_ABI, provider);
-
-  const [
-    avaxBalance,
-    usdcBalance,
-    usdtBalance,
-    contractUsdcBalance,
-    contractUsdtBalance,
-  ] = await Promise.all([
-    provider.getBalance(address),
-    usdc.balanceOf(address),
-    usdt.balanceOf(address),
-    paymentContract.getBalance(address, USDC_ADDRESS).catch(() => BigInt(0)),
-    paymentContract.getBalance(address, USDT_ADDRESS).catch(() => BigInt(0)),
-  ]);
+  const [avaxBalance, usdcBalance, usdtBalance, contractUsdcBalance, contractUsdtBalance] =
+    await Promise.all([
+      provider.getBalance(address),
+      usdc.balanceOf(address),
+      usdt.balanceOf(address),
+      // Fail gracefully: contract may not yet be funded
+      paymentContract.getBalance(address, STABLECOIN_ADDRESSES.mainnet.USDC).catch(() => BigInt(0)),
+      paymentContract.getBalance(address, STABLECOIN_ADDRESSES.mainnet.USDT).catch(() => BigInt(0)),
+    ]);
 
   return {
     address,
-    avaxBalance: ethers.formatEther(avaxBalance),
-    usdcBalance: ethers.formatUnits(usdcBalance, 6),
-    usdtBalance: ethers.formatUnits(usdtBalance, 6),
-    contractUsdcBalance: ethers.formatUnits(contractUsdcBalance, 6),
-    contractUsdtBalance: ethers.formatUnits(contractUsdtBalance, 6),
+    avaxBalance: ethers.formatUnits(avaxBalance, AVAX_DECIMALS),
+    usdcBalance: ethers.formatUnits(usdcBalance, STABLECOIN_DECIMALS),
+    usdtBalance: ethers.formatUnits(usdtBalance, STABLECOIN_DECIMALS),
+    contractUsdcBalance: ethers.formatUnits(contractUsdcBalance, STABLECOIN_DECIMALS),
+    contractUsdtBalance: ethers.formatUnits(contractUsdtBalance, STABLECOIN_DECIMALS),
   };
 }
 
 /**
- * Check spending limits before a transaction.
+ * Validate whether a proposed transaction is within the agent's spending limits.
+ *
+ * Checks both per-transaction and cumulative-daily ceilings.
+ *
+ * @param userId    - Platform user ID of the agent
+ * @param amountUSD - Proposed transaction amount in USD
+ * @returns `{ allowed: true }` or `{ allowed: false, reason: string }`
  */
 export async function checkSpendingLimits(
   userId: number,
   amountUSD: number
 ): Promise<{ allowed: boolean; reason?: string }> {
-  const record = await prisma.agentWallet.findUnique({
-    where: { userId },
-  });
+  const record = await prisma.agentWallet.findUnique({ where: { userId } });
 
-  if (!record) {
-    return { allowed: false, reason: 'Agent wallet not found' };
-  }
+  if (!record) return { allowed: false, reason: 'Agent wallet not found' };
+  if (!record.isActive) return { allowed: false, reason: 'Agent wallet is deactivated' };
 
-  if (!record.isActive) {
-    return { allowed: false, reason: 'Agent wallet is deactivated' };
-  }
-
-  // Per-transaction limit
-  if (amountUSD > Number(record.perTxSpendLimit)) {
+  const perTxLimit = Number(record.perTxSpendLimit);
+  if (amountUSD > perTxLimit) {
     return {
       allowed: false,
-      reason: `Amount $${amountUSD} exceeds per-transaction limit of $${record.perTxSpendLimit}`,
+      reason: `Amount $${amountUSD} exceeds per-transaction limit of $${perTxLimit}`,
     };
   }
 
-  // Daily limit
+  const dailyLimit = Number(record.dailySpendLimit);
   const todaySpent = await getTodaySpent(userId);
-  if (todaySpent + amountUSD > Number(record.dailySpendLimit)) {
+  if (todaySpent + amountUSD > dailyLimit) {
     return {
       allowed: false,
-      reason: `Would exceed daily limit. Spent today: $${todaySpent.toFixed(2)}, limit: $${record.dailySpendLimit}`,
+      reason: `Would exceed daily limit. Spent today: $${todaySpent.toFixed(2)}, limit: $${dailyLimit}`,
     };
   }
 
@@ -332,7 +261,18 @@ export async function checkSpendingLimits(
 }
 
 /**
- * Record a transaction for audit and spending tracking.
+ * Record a completed on-chain transaction in the audit log.
+ *
+ * This creates a row in `AgentWalletTransaction` which is used for both
+ * compliance reporting and daily spend tracking.
+ *
+ * @param params.userId    - Agent user ID
+ * @param params.txHash    - On-chain transaction hash
+ * @param params.action    - Transaction type ('deposit' | 'purchase' | 'withdraw' | 'approve')
+ * @param params.token     - Token contract address
+ * @param params.amountUSD - USD value of the transaction
+ * @param params.packageId - (optional) Package ID for purchases
+ * @param params.details   - (optional) Human-readable description
  */
 export async function recordAgentTransaction(params: {
   userId: number;
@@ -357,26 +297,13 @@ export async function recordAgentTransaction(params: {
 }
 
 /**
- * Get total spent today for an agent.
- */
-async function getTodaySpent(userId: number): Promise<number> {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const result = await prisma.agentWalletTransaction.aggregate({
-    where: {
-      userId,
-      action: 'purchase',
-      createdAt: { gte: startOfDay },
-    },
-    _sum: { amountUSD: true },
-  });
-
-  return Number(result._sum.amountUSD || 0);
-}
-
-/**
  * Update spending limits for an agent wallet.
+ *
+ * Partial updates are supported — pass only the limits you want to change.
+ *
+ * @param userId      - Agent user ID
+ * @param dailyLimit  - New daily USD ceiling (optional)
+ * @param perTxLimit  - New per-transaction USD ceiling (optional)
  */
 export async function updateSpendingLimits(
   userId: number,
@@ -387,39 +314,42 @@ export async function updateSpendingLimits(
   if (dailyLimit !== undefined) data.dailySpendLimit = dailyLimit;
   if (perTxLimit !== undefined) data.perTxSpendLimit = perTxLimit;
 
-  await prisma.agentWallet.update({
-    where: { userId },
-    data,
-  });
+  await prisma.agentWallet.update({ where: { userId }, data });
 }
 
 /**
- * Deactivate an agent wallet (emergency kill switch).
+ * Deactivate an agent wallet — emergency kill-switch.
+ *
+ * Once deactivated, `getAgentSigner` and `checkSpendingLimits` will both
+ * reject further transactions. Re-activation requires a manual DB update.
+ *
+ * @param userId - Agent user ID
  */
 export async function deactivateAgentWallet(userId: number): Promise<void> {
-  await prisma.agentWallet.update({
-    where: { userId },
-    data: { isActive: false },
-  });
-
+  await prisma.agentWallet.update({ where: { userId }, data: { isActive: false } });
   logger.warn('Agent wallet deactivated', { userId });
 }
 
 /**
- * Get agent transaction history.
+ * Retrieve paginated transaction history for an agent.
+ *
+ * @param userId - Agent user ID
+ * @param limit  - Maximum number of records to return (default 50, max 100)
  */
 export async function getAgentTransactionHistory(
   userId: number,
   limit = 50
-): Promise<Array<{
-  txHash: string;
-  action: string;
-  token: string;
-  amountUSD: number;
-  packageId: string | null;
-  createdAt: Date;
-}>> {
-  const txs = await prisma.agentWalletTransaction.findMany({
+): Promise<
+  Array<{
+    txHash: string;
+    action: string;
+    token: string;
+    amountUSD: number;
+    packageId: string | null;
+    createdAt: Date;
+  }>
+> {
+  const rows = await prisma.agentWalletTransaction.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -433,8 +363,27 @@ export async function getAgentTransactionHistory(
     },
   });
 
-  return txs.map(tx => ({
-    ...tx,
-    amountUSD: Number(tx.amountUSD),
-  }));
+  return rows.map((row) => ({ ...row, amountUSD: Number(row.amountUSD) }));
+}
+
+// ============================================================================
+// Internal Helpers
+// ============================================================================
+
+/**
+ * Sum all `purchase` transactions for `userId` since the start of today (UTC).
+ *
+ * @param userId - Agent user ID
+ * @returns Total USD spent today
+ */
+async function getTodaySpent(userId: number): Promise<number> {
+  const startOfDay = new Date();
+  startOfDay.setUTCHours(0, 0, 0, 0);
+
+  const result = await prisma.agentWalletTransaction.aggregate({
+    where: { userId, action: 'purchase', createdAt: { gte: startOfDay } },
+    _sum: { amountUSD: true },
+  });
+
+  return Number(result._sum.amountUSD ?? 0);
 }

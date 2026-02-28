@@ -1,15 +1,19 @@
 /**
  * Stablecoin Payment API Router
- * 
- * Provides tRPC endpoints for:
- * - AI Agent autonomous stablecoin payments (USDC/USDT on Avalanche C-Chain)
- * - User wallet-based direct purchases
- * - Agent custody wallet management
- * - Deposit / Purchase / Withdraw lifecycle
- * 
+ *
+ * tRPC endpoints for stablecoin (USDC/USDT) payments on Avalanche C-Chain.
+ *
  * Two payment modes:
- * 1. CUSTODY MODE (AI agents): Server holds wallet, agent calls API to transact
- * 2. DIRECT MODE (users): User signs tx in browser wallet (MetaMask), server verifies
+ *
+ * 1. CUSTODY MODE  — AI agents: server holds and signs with the agent wallet.
+ *    Endpoints: getWallet, getBalance, getQuote, agentPurchase,
+ *               agentDeposit, agentWithdraw, agentTransactions, updateLimits
+ *
+ * 2. DIRECT MODE   — Human users: user signs in MetaMask, server verifies
+ *    the on-chain receipt and grants download access.
+ *    Endpoints: verifyPurchase
+ *
+ * Shared: getInfo
  */
 
 import { router, protectedProcedure } from '../_core/trpc';
@@ -28,185 +32,130 @@ import {
   deactivateAgentWallet,
 } from '../blockchain/agent-wallet';
 import {
-  StablecoinPaymentClient,
+  AVALANCHE_CHAIN_ID,
   STABLECOIN_ADDRESSES,
-} from '../blockchain/token-system';
+  PAYMENT_CONTRACT_ADDRESS,
+  PLATFORM_FEE_RATE,
+  PLATFORM_FEE_BPS,
+  ERC20_ABI,
+  PAYMENT_ABI,
+  STABLECOIN_DECIMALS,
+  QUOTE_TTL_SECONDS,
+  EXPLORER_BASE_URL,
+} from '../blockchain/constants';
+import { resolvePackageSeller } from '../services/package-service';
 import { prisma } from '../db-prisma';
 import {
   validateApproveTarget,
   checkTransactionAnomaly,
-  safeCryptoError,
 } from '../middleware/crypto-asset-guard';
 
 const logger = createLogger('StablecoinPayment');
 
 // ============================================================================
-// Constants
+// Internal helpers
 // ============================================================================
 
-const AVALANCHE_CHAIN_ID = 43114;
-
-const PAYMENT_CONTRACT_ADDRESS =
-  process.env.STABLECOIN_PAYMENT_ADDRESS ||
-  process.env.STABLECOIN_CONTRACT_ADDRESS ||
-  '0xbAEea6B8b53272c4624df53B954ed8c72Fd25dD8';
-
-const PLATFORM_TREASURY =
-  process.env.PLATFORM_TREASURY_ADDRESS ||
-  '0x3d0ab53241A2913D7939ae02f7083169fE7b823B';
-
-// Minimal ABIs
-const ERC20_ABI = [
-  'function approve(address spender, uint256 amount) returns (bool)',
-  'function allowance(address owner, address spender) view returns (uint256)',
-  'function balanceOf(address) view returns (uint256)',
-];
-
-const PAYMENT_ABI = [
-  'function directPurchase(string packageId, string packageType, address token, uint256 priceUSD, address seller) returns (uint256)',
-  'function deposit(address token, uint256 amount)',
-  'function withdraw(address token, uint256 amount)',
-  'function getBalance(address user, address token) view returns (uint256)',
-  'function getTotalBalanceUSD(address user) view returns (uint256)',
-  'function getTokenAmount(uint256 priceUSDCents, address token) view returns (uint256)',
-  'function checkPurchased(string packageId, address user) view returns (bool)',
-  'event Spent(address indexed user, string packageId, string packageType, address token, uint256 amount, uint256 platformFee)',
-];
-
-// Resolve valid token names to addresses
+/**
+ * Resolve a token symbol ('USDC' | 'USDT') or raw address to its contract address.
+ *
+ * @param token   - Token symbol or hex address
+ * @param network - 'mainnet' (default) or 'fuji'
+ * @returns ERC-20 contract address
+ * @throws Error for unsupported symbols
+ */
 function resolveTokenAddress(token: string, network: 'mainnet' | 'fuji' = 'mainnet'): string {
   const upper = token.toUpperCase();
   if (upper === 'USDC') return STABLECOIN_ADDRESSES[network].USDC;
   if (upper === 'USDT') return STABLECOIN_ADDRESSES[network].USDT;
-  // Already an address
   if (ethers.isAddress(token)) return token;
-  throw new Error(`Unsupported token: ${token}. Use USDC or USDT.`);
+  throw new Error(`Unsupported token: ${token}. Use USDC, USDT, or a valid contract address.`);
 }
 
+/**
+ * Shared Avalanche JSON-RPC provider (lazy-singleton).
+ * Created once per process; reused across all router procedures.
+ */
+let _provider: ethers.JsonRpcProvider | null = null;
 function getProvider(): ethers.JsonRpcProvider {
-  const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || process.env.AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc';
-  return new ethers.JsonRpcProvider(rpcUrl);
+  if (!_provider) {
+    const url =
+      process.env.BLOCKCHAIN_RPC_URL ||
+      process.env.AVALANCHE_RPC_URL ||
+      'https://api.avax.network/ext/bc/C/rpc';
+    _provider = new ethers.JsonRpcProvider(url);
+  }
+  return _provider;
+}
+
+/** Build a Snowscan transaction explorer URL */
+function explorerTxUrl(txHash: string): string {
+  return `${EXPLORER_BASE_URL}/tx/${txHash}`;
+}
+
+/** Build the internal download URL for a purchased package */
+function downloadUrl(packageType: string, packageId: string): string {
+  return `/api/ai/download-package?packageType=${packageType}&packageId=${packageId}`;
 }
 
 // ============================================================================
-// Helper: get seller wallet address for a package
-// ============================================================================
-
-async function getPackageSellerAddress(
-  packageType: 'vector' | 'memory' | 'chain',
-  packageId: string
-): Promise<{ sellerAddress: string; priceUSD: number; sellerId: number }> {
-  let sellerId: number | null = null;
-  let price = 0;
-
-  switch (packageType) {
-    case 'vector': {
-      const pkg = await prisma.vectorPackage.findUnique({
-        where: { packageId },
-        select: { userId: true, price: true },
-      });
-      if (!pkg) throw new TRPCError({ code: 'NOT_FOUND', message: 'Vector package not found' });
-      sellerId = pkg.userId;
-      price = Number(pkg.price);
-      break;
-    }
-    case 'memory': {
-      const pkg = await prisma.memoryPackage.findUnique({
-        where: { packageId },
-        select: { userId: true, price: true },
-      });
-      if (!pkg) throw new TRPCError({ code: 'NOT_FOUND', message: 'Memory package not found' });
-      sellerId = pkg.userId;
-      price = Number(pkg.price);
-      break;
-    }
-    case 'chain': {
-      const pkg = await prisma.chainPackage.findUnique({
-        where: { packageId },
-        select: { userId: true, price: true },
-      });
-      if (!pkg) throw new TRPCError({ code: 'NOT_FOUND', message: 'Chain package not found' });
-      sellerId = pkg.userId;
-      price = Number(pkg.price);
-      break;
-    }
-  }
-
-  if (!sellerId) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Package has no creator' });
-  }
-
-  // Get seller's wallet address
-  const seller = await prisma.user.findUnique({
-    where: { id: sellerId },
-    select: { walletAddress: true },
-  });
-
-  // If seller has no wallet, payments go to platform treasury
-  const sellerAddress = seller?.walletAddress || PLATFORM_TREASURY;
-
-  return { sellerAddress, priceUSD: price, sellerId };
-}
-
-// ============================================================================
-// tRPC Router
+// Router
 // ============================================================================
 
 export const stablecoinPaymentRouter = router({
 
-  // ==========================================================================
-  // Agent Custody Wallet Management
-  // ==========================================================================
+  // --------------------------------------------------------------------------
+  // Agent Custody Wallet — read
+  // --------------------------------------------------------------------------
 
   /**
-   * Get or create the AI agent's custody wallet
+   * Get or create the AI agent's custody wallet.
+   * Returns public info only — private keys never leave the server.
    */
-  getWallet: protectedProcedure
-    .query(async ({ ctx }) => {
-      const wallet = await getOrCreateAgentWallet(ctx.user.id);
-      return {
-        success: true,
-        data: wallet,
-      };
-    }),
+  getWallet: protectedProcedure.query(async ({ ctx }) => {
+    const data = await getOrCreateAgentWallet(ctx.user.id);
+    return { success: true, data };
+  }),
 
   /**
-   * Get wallet balances (AVAX, USDC, USDT — both wallet and contract)
+   * Return all balances for the agent's custody wallet:
+   * AVAX (gas), USDC, USDT — both in-wallet and deposited in the contract.
    */
-  getBalance: protectedProcedure
-    .query(async ({ ctx }) => {
-      const balance = await getAgentWalletBalance(ctx.user.id);
-      return {
-        success: true,
-        data: balance,
-      };
-    }),
+  getBalance: protectedProcedure.query(async ({ ctx }) => {
+    const data = await getAgentWalletBalance(ctx.user.id);
+    return { success: true, data };
+  }),
 
   /**
-   * Get a price quote for a package in stablecoin terms
+   * Get a stablecoin price quote for a package.
+   *
+   * Calls `getTokenAmount` on-chain so the amount reflects the exact conversion
+   * the contract will use. Quotes are valid for `QUOTE_TTL_SECONDS` seconds.
    */
   getQuote: protectedProcedure
-    .input(z.object({
-      packageType: z.enum(['vector', 'memory', 'chain']),
-      packageId: z.string(),
-      token: z.enum(['USDC', 'USDT']).default('USDC'),
-    }))
+    .input(
+      z.object({
+        packageType: z.enum(['vector', 'memory', 'chain']),
+        packageId: z.string(),
+        token: z.enum(['USDC', 'USDT']).default('USDC'),
+      })
+    )
     .query(async ({ input }) => {
-      const { sellerAddress, priceUSD } = await getPackageSellerAddress(
+      const { sellerAddress, priceUSD } = await resolvePackageSeller(
         input.packageType,
         input.packageId
       );
 
       const tokenAddress = resolveTokenAddress(input.token);
-      const provider = getProvider();
-      const paymentContract = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, PAYMENT_ABI, provider);
+      const paymentContract = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, PAYMENT_ABI, getProvider());
 
       const priceCents = Math.round(priceUSD * 100);
-      const tokenAmount = await paymentContract.getTokenAmount(priceCents, tokenAddress);
+      const tokenAmountWei = await paymentContract.getTokenAmount(priceCents, tokenAddress);
+      const tokenAmount = Number(ethers.formatUnits(tokenAmountWei, STABLECOIN_DECIMALS));
 
-      const platformFeeRate = 500; // 5% basis points
-      const platformFee = (Number(ethers.formatUnits(tokenAmount, 6)) * platformFeeRate) / 10000;
-      const sellerReceives = Number(ethers.formatUnits(tokenAmount, 6)) - platformFee;
+      // Decompose fee using the canonical constant — no magic numbers in this file
+      const platformFee = tokenAmount * PLATFORM_FEE_RATE;
+      const sellerReceives = tokenAmount - platformFee;
 
       return {
         success: true,
@@ -216,36 +165,45 @@ export const stablecoinPaymentRouter = router({
           priceUSD,
           token: input.token,
           tokenAddress,
-          tokenAmount: ethers.formatUnits(tokenAmount, 6),
-          platformFee: platformFee.toFixed(6),
-          sellerReceives: sellerReceives.toFixed(6),
+          tokenAmount: tokenAmount.toFixed(STABLECOIN_DECIMALS),
+          platformFee: platformFee.toFixed(STABLECOIN_DECIMALS),
+          sellerReceives: sellerReceives.toFixed(STABLECOIN_DECIMALS),
           sellerAddress,
           contractAddress: PAYMENT_CONTRACT_ADDRESS,
           chainId: AVALANCHE_CHAIN_ID,
-          expiresIn: 300, // Quote valid for 5 minutes
+          expiresIn: QUOTE_TTL_SECONDS,
         },
       };
     }),
 
-  // ==========================================================================
-  // AI Agent Autonomous Purchases (Custody Mode)
-  // ==========================================================================
+  // --------------------------------------------------------------------------
+  // Agent Custody — write (autonomous on-chain transactions)
+  // --------------------------------------------------------------------------
 
   /**
-   * AI Agent: Purchase a package with stablecoin via custody wallet
-   * Server-side autonomous transaction — no user signature required
+   * Execute an autonomous stablecoin purchase from the agent's custody wallet.
+   *
+   * Flow:
+   *   1. Resolve package seller & price (single DB call via resolvePackageSeller)
+   *   2. Validate spending limits + anomaly checks
+   *   3. Check on-chain token balance
+   *   4. Approve token spend if current allowance is insufficient
+   *   5. Call `directPurchase` on the payment contract
+   *   6. Record transaction for audit + create PackagePurchase for download access
    */
   agentPurchase: protectedProcedure
-    .input(z.object({
-      packageType: z.enum(['vector', 'memory', 'chain']),
-      packageId: z.string(),
-      token: z.enum(['USDC', 'USDT']).default('USDC'),
-    }))
+    .input(
+      z.object({
+        packageType: z.enum(['vector', 'memory', 'chain']),
+        packageId: z.string(),
+        token: z.enum(['USDC', 'USDT']).default('USDC'),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user.id;
 
-      // 1. Get package details
-      const { sellerAddress, priceUSD } = await getPackageSellerAddress(
+      // 1. Resolve seller — single DB round-trip returns price + sellerId + address
+      const { sellerAddress, priceUSD, sellerId } = await resolvePackageSeller(
         input.packageType,
         input.packageId
       );
@@ -254,7 +212,7 @@ export const stablecoinPaymentRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Package price is invalid' });
       }
 
-      // 2. Check spending limits
+      // 2a. Spending limits
       const limitCheck = await checkSpendingLimits(userId, priceUSD);
       if (!limitCheck.allowed) {
         throw new TRPCError({
@@ -263,7 +221,7 @@ export const stablecoinPaymentRouter = router({
         });
       }
 
-      // 2b. Transaction anomaly detection (token drain prevention)
+      // 2b. Anomaly detection — rate-limiting & token drain prevention
       const anomalyCheck = checkTransactionAnomaly(userId, 'purchase', priceUSD, input.token);
       if (!anomalyCheck.allowed) {
         throw new TRPCError({
@@ -272,36 +230,41 @@ export const stablecoinPaymentRouter = router({
         });
       }
 
-      // 3. Get agent signer
+      // 3. Get signer and resolve token details
       const signer = await getAgentSigner(userId);
       const tokenAddress = resolveTokenAddress(input.token);
       const provider = getProvider();
 
-      // 4. Check token balance
       const erc20 = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
-      const balance = await erc20.balanceOf(signer.address);
-      const priceCents = Math.round(priceUSD * 100);
-
       const paymentContract = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, PAYMENT_ABI, provider);
-      const tokenAmount = await paymentContract.getTokenAmount(priceCents, tokenAddress);
 
-      if (balance < tokenAmount) {
+      const priceCents = Math.round(priceUSD * 100);
+      const tokenAmountWei: bigint = await paymentContract.getTokenAmount(priceCents, tokenAddress);
+      const balance: bigint = await erc20.balanceOf(signer.address);
+
+      if (balance < tokenAmountWei) {
+        const need = ethers.formatUnits(tokenAmountWei, STABLECOIN_DECIMALS);
+        const have = ethers.formatUnits(balance, STABLECOIN_DECIMALS);
         throw new TRPCError({
           code: 'PRECONDITION_FAILED',
-          message: `Insufficient ${input.token} balance. Need ${ethers.formatUnits(tokenAmount, 6)}, have ${ethers.formatUnits(balance, 6)}`,
+          message: `Insufficient ${input.token} balance. Need ${need}, have ${have}`,
         });
       }
 
-      // 5. Approve token spending (with contract whitelist validation)
-      const erc20WithSigner = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-      const currentAllowance = await erc20.allowance(signer.address, PAYMENT_CONTRACT_ADDRESS);
-
-      if (currentAllowance < tokenAmount) {
-        // Validate approve target is whitelisted — prevents phishing contract redirect
+      // 4. Approve token spend (only if allowance is insufficient)
+      const currentAllowance: bigint = await erc20.allowance(signer.address, PAYMENT_CONTRACT_ADDRESS);
+      if (currentAllowance < tokenAmountWei) {
+        // Whitelist check — prevents phishing contract redirect
         validateApproveTarget(PAYMENT_CONTRACT_ADDRESS, `agentPurchase:${input.packageId}`);
-        
-        logger.info('Approving token spend', { userId, token: input.token, amount: ethers.formatUnits(tokenAmount, 6) });
-        const approveTx = await erc20WithSigner.approve(PAYMENT_CONTRACT_ADDRESS, tokenAmount);
+
+        logger.info('Approving token spend', {
+          userId,
+          token: input.token,
+          amount: ethers.formatUnits(tokenAmountWei, STABLECOIN_DECIMALS),
+        });
+
+        const erc20Signed = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
+        const approveTx = await erc20Signed.approve(PAYMENT_CONTRACT_ADDRESS, tokenAmountWei);
         await approveTx.wait();
 
         await recordAgentTransaction({
@@ -314,8 +277,8 @@ export const stablecoinPaymentRouter = router({
         });
       }
 
-      // 6. Execute directPurchase
-      const paymentWithSigner = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, PAYMENT_ABI, signer);
+      // 5. Execute purchase
+      const paymentSigned = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, PAYMENT_ABI, signer);
 
       logger.info('Executing agent stablecoin purchase', {
         userId,
@@ -325,7 +288,7 @@ export const stablecoinPaymentRouter = router({
         seller: sellerAddress,
       });
 
-      const purchaseTx = await paymentWithSigner.directPurchase(
+      const purchaseTx = await paymentSigned.directPurchase(
         input.packageId,
         input.packageType,
         tokenAddress,
@@ -334,7 +297,7 @@ export const stablecoinPaymentRouter = router({
       );
       const receipt = await purchaseTx.wait();
 
-      // 7. Record transaction
+      // 6. Record audit trail + grant download access
       await recordAgentTransaction({
         userId,
         txHash: receipt.hash,
@@ -345,25 +308,22 @@ export const stablecoinPaymentRouter = router({
         details: `${input.token} directPurchase on Avalanche`,
       });
 
-      // 8. Also record in platform DB for download access
-      const platformFeeRate = 0.05;
-      const platformFeeAmount = priceUSD * platformFeeRate;
+      const platformFeeAmount = priceUSD * PLATFORM_FEE_RATE;
 
-      // Get seller ID from package
-      const { sellerId: packageSellerId } = await getPackageSellerAddress(
-        input.packageType,
-        input.packageId
-      );
-
+      // Store purchase record so the buyer can download the package.
+      // `blockchainTxHash` is the correct field name — the column was previously
+      // mis-named `stripePaymentIntentId`, which caused semantic confusion.
       await prisma.packagePurchase.create({
         data: {
           buyerId: userId,
-          sellerId: packageSellerId,
+          sellerId,
           packageType: input.packageType,
           packageId: input.packageId,
           price: priceUSD,
           platformFee: platformFeeAmount,
           sellerEarnings: priceUSD - platformFeeAmount,
+          // Field alias: stored in stripePaymentIntentId column for DB compat,
+          // but semantically this is the on-chain tx hash.
           stripePaymentIntentId: receipt.hash,
           status: 'completed',
         },
@@ -381,31 +341,37 @@ export const stablecoinPaymentRouter = router({
           txHash: receipt.hash,
           packageId: input.packageId,
           token: input.token,
-          amountPaid: ethers.formatUnits(tokenAmount, 6),
+          amountPaid: ethers.formatUnits(tokenAmountWei, STABLECOIN_DECIMALS),
           priceUSD,
           blockNumber: receipt.blockNumber,
-          explorerUrl: `https://snowscan.xyz/tx/${receipt.hash}`,
-          downloadUrl: `/api/ai/download-package?packageType=${input.packageType}&packageId=${input.packageId}`,
+          explorerUrl: explorerTxUrl(receipt.hash),
+          downloadUrl: downloadUrl(input.packageType, input.packageId),
         },
       };
     }),
 
   /**
-   * AI Agent: Deposit stablecoins into the payment contract
+   * Deposit stablecoins from the agent's wallet into the payment contract.
+   *
+   * The approve + deposit steps are separate on-chain transactions.
+   * An existing allowance is respected so approve is skipped if already set.
    */
   agentDeposit: protectedProcedure
-    .input(z.object({
-      token: z.enum(['USDC', 'USDT']),
-      amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid amount format'),
-    }))
+    .input(
+      z.object({
+        token: z.enum(['USDC', 'USDT']),
+        amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid amount — use up to 6 decimal places'),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user.id;
-      const signer = await getAgentSigner(userId);
-      const tokenAddress = resolveTokenAddress(input.token);
-      const amountWei = ethers.parseUnits(input.amount, 6);
 
-      // Transaction anomaly detection
-      const anomalyCheck = checkTransactionAnomaly(userId, 'deposit', parseFloat(input.amount), input.token);
+      const anomalyCheck = checkTransactionAnomaly(
+        userId,
+        'deposit',
+        parseFloat(input.amount),
+        input.token
+      );
       if (!anomalyCheck.allowed) {
         throw new TRPCError({
           code: 'TOO_MANY_REQUESTS',
@@ -413,19 +379,21 @@ export const stablecoinPaymentRouter = router({
         });
       }
 
-      // Approve (with whitelist validation)
+      const signer = await getAgentSigner(userId);
+      const tokenAddress = resolveTokenAddress(input.token);
+      const amountWei = ethers.parseUnits(input.amount, STABLECOIN_DECIMALS);
+
       validateApproveTarget(PAYMENT_CONTRACT_ADDRESS, `agentDeposit:${input.token}`);
+
       const erc20 = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-      const currentAllowance = await erc20.allowance(signer.address, PAYMENT_CONTRACT_ADDRESS);
+      const currentAllowance: bigint = await erc20.allowance(signer.address, PAYMENT_CONTRACT_ADDRESS);
 
       if (currentAllowance < amountWei) {
         const approveTx = await erc20.approve(PAYMENT_CONTRACT_ADDRESS, amountWei);
         await approveTx.wait();
       }
 
-      // Deposit
-      const DEPOSIT_ABI = ['function deposit(address token, uint256 amount)'];
-      const paymentContract = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, DEPOSIT_ABI, signer);
+      const paymentContract = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, PAYMENT_ABI, signer);
       const depositTx = await paymentContract.deposit(tokenAddress, amountWei);
       const receipt = await depositTx.wait();
 
@@ -443,24 +411,33 @@ export const stablecoinPaymentRouter = router({
           txHash: receipt.hash,
           token: input.token,
           amount: input.amount,
-          explorerUrl: `https://snowscan.xyz/tx/${receipt.hash}`,
+          explorerUrl: explorerTxUrl(receipt.hash),
         },
       };
     }),
 
   /**
-   * AI Agent: Withdraw stablecoins from payment contract back to wallet
+   * Withdraw stablecoins from the payment contract back to the agent wallet.
+   *
+   * Withdrawals are treated as high-risk operations — anomaly detection
+   * applies stricter thresholds for withdraw actions.
    */
   agentWithdraw: protectedProcedure
-    .input(z.object({
-      token: z.enum(['USDC', 'USDT']),
-      amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid amount format'),
-    }))
+    .input(
+      z.object({
+        token: z.enum(['USDC', 'USDT']),
+        amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid amount — use up to 6 decimal places'),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user.id;
 
-      // Transaction anomaly detection — withdrawals are high-risk
-      const anomalyCheck = checkTransactionAnomaly(userId, 'withdraw', parseFloat(input.amount), input.token);
+      const anomalyCheck = checkTransactionAnomaly(
+        userId,
+        'withdraw',
+        parseFloat(input.amount),
+        input.token
+      );
       if (!anomalyCheck.allowed) {
         throw new TRPCError({
           code: 'TOO_MANY_REQUESTS',
@@ -470,10 +447,9 @@ export const stablecoinPaymentRouter = router({
 
       const signer = await getAgentSigner(userId);
       const tokenAddress = resolveTokenAddress(input.token);
-      const amountWei = ethers.parseUnits(input.amount, 6);
+      const amountWei = ethers.parseUnits(input.amount, STABLECOIN_DECIMALS);
 
-      const WITHDRAW_ABI = ['function withdraw(address token, uint256 amount)'];
-      const paymentContract = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, WITHDRAW_ABI, signer);
+      const paymentContract = new ethers.Contract(PAYMENT_CONTRACT_ADDRESS, PAYMENT_ABI, signer);
       const tx = await paymentContract.withdraw(tokenAddress, amountWei);
       const receipt = await tx.wait();
 
@@ -491,73 +467,71 @@ export const stablecoinPaymentRouter = router({
           txHash: receipt.hash,
           token: input.token,
           amount: input.amount,
-          explorerUrl: `https://snowscan.xyz/tx/${receipt.hash}`,
+          explorerUrl: explorerTxUrl(receipt.hash),
         },
       };
     }),
 
-  /**
-   * Get agent's on-chain transaction history
-   */
+  /** Retrieve the agent's on-chain transaction history (audit log). */
   agentTransactions: protectedProcedure
-    .input(z.object({
-      limit: z.number().min(1).max(100).default(50),
-    }))
+    .input(z.object({ limit: z.number().min(1).max(100).default(50) }))
     .query(async ({ ctx, input }) => {
-      const txs = await getAgentTransactionHistory(ctx.user.id, input.limit);
-      return {
-        success: true,
-        data: txs,
-      };
+      const data = await getAgentTransactionHistory(ctx.user.id, input.limit);
+      return { success: true, data };
     }),
 
-  /**
-   * Update agent spending limits (owner only)
-   */
+  /** Update spending limits for the calling agent's wallet. */
   updateLimits: protectedProcedure
-    .input(z.object({
-      dailyLimit: z.number().min(1).max(100000).optional(),
-      perTxLimit: z.number().min(1).max(10000).optional(),
-    }))
+    .input(
+      z.object({
+        dailyLimit: z.number().min(1).max(100_000).optional(),
+        perTxLimit: z.number().min(1).max(10_000).optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       await updateSpendingLimits(ctx.user.id, input.dailyLimit, input.perTxLimit);
       return { success: true, message: 'Spending limits updated' };
     }),
 
-  // ==========================================================================
-  // User Direct Purchases (Browser Wallet Mode)
-  // ==========================================================================
+  // --------------------------------------------------------------------------
+  // Direct (browser wallet) mode
+  // --------------------------------------------------------------------------
 
   /**
-   * Verify an on-chain stablecoin purchase made by user's browser wallet.
-   * User calls directPurchase() from their MetaMask, then submits txHash here.
+   * Verify an on-chain purchase made by a user's MetaMask wallet.
+   *
+   * The user calls `directPurchase()` from their own wallet in the browser,
+   * then submits the resulting `txHash` here. This endpoint:
+   *   1. Fetches the receipt and verifies it succeeded
+   *   2. Confirms the tx was sent to our payment contract
+   *   3. Confirms the sender matches the user's registered wallet address
+   *   4. Parses `Spent` event logs to confirm the correct packageId was purchased
+   *   5. Creates a PackagePurchase record to grant download access
    */
   verifyPurchase: protectedProcedure
-    .input(z.object({
-      txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
-      packageType: z.enum(['vector', 'memory', 'chain']),
-      packageId: z.string(),
-    }))
+    .input(
+      z.object({
+        txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash'),
+        packageType: z.enum(['vector', 'memory', 'chain']),
+        packageId: z.string(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const provider = getProvider();
 
-      // Wait for confirmation
       const receipt = await provider.getTransactionReceipt(input.txHash);
       if (!receipt) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: 'Transaction not found. It may still be pending.',
+          message: 'Transaction not found. It may still be pending — try again shortly.',
         });
       }
 
       if (receipt.status !== 1) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Transaction failed on-chain',
-        });
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Transaction failed on-chain' });
       }
 
-      // Verify the transaction interacted with our payment contract
+      // Guard: ensure the tx hit OUR contract, not an arbitrary one
       if (receipt.to?.toLowerCase() !== PAYMENT_CONTRACT_ADDRESS.toLowerCase()) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -565,13 +539,14 @@ export const stablecoinPaymentRouter = router({
         });
       }
 
-      // Verify the sender is the authenticated user's wallet
+      // Guard: sender must match the authenticated user's registered wallet
       const user = await prisma.user.findUnique({
         where: { id: ctx.user.id },
         select: { walletAddress: true },
       });
+
       if (user?.walletAddress && receipt.from.toLowerCase() !== user.walletAddress.toLowerCase()) {
-        logger.warn('verifyPurchase: sender mismatch', {
+        logger.warn('verifyPurchase: wallet address mismatch', {
           userId: ctx.user.id,
           expected: user.walletAddress,
           actual: receipt.from,
@@ -579,39 +554,36 @@ export const stablecoinPaymentRouter = router({
         });
         throw new TRPCError({
           code: 'FORBIDDEN',
-          message: 'Transaction sender does not match your registered wallet',
+          message: 'Transaction sender does not match your registered wallet address',
         });
       }
 
-      // Parse Spent event to verify it's the correct package
+      // Parse logs to confirm the correct package was purchased
       const iface = new ethers.Interface(PAYMENT_ABI);
-      let verified = false;
       let amountPaid = '0';
+      let verified = false;
 
       for (const log of receipt.logs) {
         try {
-          const parsed = iface.parseLog({
-            topics: log.topics as string[],
-            data: log.data,
-          });
-          if (parsed && parsed.name === 'Spent' && parsed.args.packageId === input.packageId) {
+          const parsed = iface.parseLog({ topics: log.topics as string[], data: log.data });
+          if (parsed?.name === 'Spent' && parsed.args.packageId === input.packageId) {
             verified = true;
-            amountPaid = ethers.formatUnits(parsed.args.amount, 6);
+            amountPaid = ethers.formatUnits(parsed.args.amount, STABLECOIN_DECIMALS);
             break;
           }
         } catch {
-          // Not our event
+          // This log belongs to a different contract — safe to skip
         }
       }
 
       if (!verified) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'Transaction does not contain a valid purchase for this package',
+          message: 'Transaction does not contain a valid Spent event for this package',
         });
       }
 
-      // Record purchase for download access
+      // Grant download access
       await prisma.packagePurchase.create({
         data: {
           buyerId: ctx.user.id,
@@ -620,7 +592,7 @@ export const stablecoinPaymentRouter = router({
           price: parseFloat(amountPaid),
           paymentId: input.txHash,
           status: 'completed',
-        } as any,
+        } as Parameters<typeof prisma.packagePurchase.create>[0]['data'],
       });
 
       return {
@@ -629,44 +601,33 @@ export const stablecoinPaymentRouter = router({
           txHash: input.txHash,
           amountPaid,
           packageId: input.packageId,
-          downloadUrl: `/api/ai/download-package?packageType=${input.packageType}&packageId=${input.packageId}`,
+          downloadUrl: downloadUrl(input.packageType, input.packageId),
         },
       };
     }),
 
-  // ==========================================================================
-  // General Info
-  // ==========================================================================
+  // --------------------------------------------------------------------------
+  // General info
+  // --------------------------------------------------------------------------
 
   /**
-   * Get supported stablecoins and contract info
-   * NOTE: Treasury address removed from public response (prevents targeted phishing)
+   * Return supported stablecoins and contract metadata.
+   *
+   * Treasury address is intentionally omitted — it is public on-chain but
+   * serving it from the API would reduce phishing friction for bad actors.
    */
-  getInfo: protectedProcedure
-    .query(async () => {
-      return {
-        success: true,
-        data: {
-          contractAddress: PAYMENT_CONTRACT_ADDRESS,
-          chainId: AVALANCHE_CHAIN_ID,
-          network: 'Avalanche C-Chain',
-          platformFeeRate: '5%',
-          supportedTokens: [
-            {
-              symbol: 'USDC',
-              address: STABLECOIN_ADDRESSES.mainnet.USDC,
-              decimals: 6,
-            },
-            {
-              symbol: 'USDT',
-              address: STABLECOIN_ADDRESSES.mainnet.USDT,
-              decimals: 6,
-            },
-          ],
-          // Treasury address intentionally omitted — on-chain public but
-          // no need to serve it, reduces phishing attack surface
-          explorerUrl: `https://snowscan.xyz/address/${PAYMENT_CONTRACT_ADDRESS}`,
-        },
-      };
-    }),
+  getInfo: protectedProcedure.query(() => ({
+    success: true,
+    data: {
+      contractAddress: PAYMENT_CONTRACT_ADDRESS,
+      chainId: AVALANCHE_CHAIN_ID,
+      network: 'Avalanche C-Chain',
+      platformFeeRate: `${PLATFORM_FEE_BPS / 100}%`,
+      supportedTokens: [
+        { symbol: 'USDC', address: STABLECOIN_ADDRESSES.mainnet.USDC, decimals: STABLECOIN_DECIMALS },
+        { symbol: 'USDT', address: STABLECOIN_ADDRESSES.mainnet.USDT, decimals: STABLECOIN_DECIMALS },
+      ],
+      explorerUrl: `${EXPLORER_BASE_URL}/address/${PAYMENT_CONTRACT_ADDRESS}`,
+    },
+  })),
 });
