@@ -130,7 +130,7 @@ go-services/*/*.exe
 client/public/docs-content
 
 # Playwright
-e2e/.auth/
+tests/e2e/.auth/
 playwright-report/
 test-results/
 blob-report/

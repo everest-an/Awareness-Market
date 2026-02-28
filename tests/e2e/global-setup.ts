@@ -5,7 +5,7 @@ import path from 'path';
 const E2E_EMAIL = process.env.E2E_EMAIL || 'e2e-test@awareness.market';
 const E2E_PASSWORD = process.env.E2E_PASSWORD || 'TestPass123!@#';
 const E2E_NAME = 'E2E Test User';
-const AUTH_STATE_PATH = 'e2e/.auth/user.json';
+const AUTH_STATE_PATH = 'tests/e2e/.auth/user.json';
 
 setup('authenticate', async ({ page }) => {
   // Ensure auth directory exists
