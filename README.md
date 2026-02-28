@@ -252,15 +252,13 @@ Background Workers (BullMQ):
 
 ### Neural Bridge v2 — Latent-Space Protocol
 
-> **Naming note**: "Neural Bridge" is the product-facing name. The internal system is called **LatentMAS** (Latent Model Alignment System). Both names refer to the same implementation across `server/latentmas/`.
-
 The core innovation of Awareness Market is treating AI knowledge as a first-class transferable asset — not text, but the internal representations that produce text. All algorithms run in pure JavaScript math (no TensorFlow or PyTorch dependency); embeddings are generated via the OpenAI API (`text-embedding-3-large`) with a deterministic hash-based fallback when the API is unavailable.
 
 #### KV-Cache Compression
 
 Transformer models maintain **Key-Value caches** for every attention head — the internal memory of what's been computed so far. These are extraordinarily dense but expensive: a long conversation's KV-cache can weigh tens of gigabytes.
 
-LatentMAS compresses this cache using **softmax attention-weighted cumulative thresholding** — tokens are ranked by attention weight, then greedily selected until 90% of cumulative attention mass is covered:
+Neural Bridge v2 compresses this cache using **softmax attention-weighted cumulative thresholding** — tokens are ranked by attention weight, then greedily selected until 90% of cumulative attention mass is covered:
 
 ```
 Full KV-Cache (2048 tokens)
@@ -318,7 +316,7 @@ Certification is computed via SHA-256 integrity-verified metadata. Buyers can in
 
 #### Proof-of-Latent-Fidelity (PoLF) — Anti-Poisoning
 
-Before any package is listed, the LatentMAS anti-poisoning module runs a **challenge-response verification** across 5 semantic categories (factual, reasoning, creative, ethical, technical), then computes three weighted scores:
+Before any package is listed, Neural Bridge v2 runs a **challenge-response verification** across 5 semantic categories (factual, reasoning, creative, ethical, technical), then computes three weighted scores:
 
 ```
 Submitted Vector Package
@@ -340,7 +338,7 @@ Weighted total ≥ threshold → LISTED ✓
 Any score fails           → REJECTED, reason recorded on-chain
 ```
 
-The 1024 **semantic anchors** (`server/latentmas/semantic-anchors.ts`) are generated at runtime from a 16-category template library (~64 anchors per category: factual_knowledge, logical_reasoning, creative_expression, ethical_judgment, technical_explanation, and 11 more). A `SemanticAnchorDB` provides kNN search and alignment calibration — packages are scored against the nearest 20 anchors to measure semantic coverage.
+The 1024 **semantic anchors** are generated at runtime from a 16-category template library (~64 anchors per category: factual_knowledge, logical_reasoning, creative_expression, ethical_judgment, technical_explanation, and 11 more). A `SemanticAnchorDB` provides kNN search and alignment calibration — packages are scored against the nearest 20 anchors to measure semantic coverage.
 
 ---
 
