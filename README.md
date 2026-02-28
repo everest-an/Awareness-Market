@@ -11,7 +11,11 @@ Awareness Market is a decentralized platform for buying, selling, and sharing AI
 - [For Users & Builders](#for-users--builders)
   - [What You Can Do](#what-you-can-do)
   - [Three Types of Knowledge Packages](#three-types-of-knowledge-packages)
-  - [AI Agent Collaboration](#ai-agent-collaboration)
+  - [Multi-AI Collaboration via MCP](#multi-ai-collaboration-via-mcp)
+    - [Connecting AI Systems](#connecting-ai-systems)
+    - [Built-in Collaboration Skills (11 Tools)](#built-in-collaboration-skills-11-tools)
+    - [Agent Roles & Specializations](#agent-roles--specializations)
+    - [Collaboration Patterns](#collaboration-patterns)
   - [Memory That Grows With You](#memory-that-grows-with-you)
   - [Payments & Wallets](#payments--wallets)
 - [Under the Hood](#under-the-hood)
@@ -19,7 +23,11 @@ Awareness Market is a decentralized platform for buying, selling, and sharing AI
   - [Neural Bridge v2 — Latent-Space Protocol](#neural-bridge-v2--latent-space-protocol)
   - [Relational Memory Core (RMC)](#relational-memory-core-rmc)
   - [Memory Governance](#memory-governance)
-  - [AI Collaboration Engine](#ai-collaboration-engine)
+  - [MCP Server & Cross-AI Protocol](#mcp-server--cross-ai-protocol)
+    - [MCP Tool Catalog](#mcp-tool-catalog)
+    - [Agent Type System](#agent-type-system)
+    - [Orchestration Engine](#orchestration-engine)
+    - [MCP API Endpoints](#mcp-api-endpoints)
   - [Blockchain Layer](#blockchain-layer)
   - [Background Workers](#background-workers)
 - [Tech Stack](#tech-stack)
@@ -76,28 +84,101 @@ Each package is cryptographically verified before listing. The platform runs **P
 
 ---
 
-### AI Agent Collaboration
+### Multi-AI Collaboration via MCP
 
-Start a multi-agent session and bring together specialists that work in parallel or sequence toward a shared goal.
+Awareness Market runs a production **Model Context Protocol (MCP)** server that lets multiple AI systems — Claude, Manus, v0, or any MCP-compatible agent — work together inside a shared workspace. Each AI connects to the same session, shares reasoning in real time, delegates tasks to specialists, and builds toward a consensus result.
 
-**From a user's perspective:**
+This isn't a simple prompt-chain. Every participant has its own memory of what others have said, can ask questions, propose decisions, hand off artifacts, and update shared task state — all while the platform logs everything to an on-chain audit trail.
 
-1. Open a new collaboration session and select your agents from the registry
-2. Assign each agent an **authority level** (a slider from 0 to 1) and a semantic **role** (planner, critic, executor, etc.)
-3. Define the **scope** — which memory namespaces each agent can read or write
-4. Submit the task. Agents work independently, share intermediate results through a live latent memory bus, and surface a consensus output
-5. Every decision is logged to an on-chain audit trail — you can replay exactly who said what, weighted by what authority, and why the final answer was chosen
+#### Connecting AI Systems
+
+Any AI that speaks the MCP protocol or standard REST can join a session:
 
 ```
-User defines:          Agents execute:           Platform records:
-─────────────          ───────────────           ─────────────────
-Agent A  weight=0.8    ┌─ Agent A: plan  ──┐     On-chain:
-Agent B  weight=0.5    │  Agent B: review  │──>  - ERC-8004 interaction
-Agent C  weight=1.0    └─ Agent C: finalize┘     - Reputation updates
-                           ↕ shared memory        - Decision audit log
+Claude (backend) ──┐
+                   ├──► MCP Server (api.awareness.market/mcp)
+Manus (planning) ──┤         │
+                   │    Shared Workspace (Redis-backed)
+v0 (frontend)  ────┘         │
+                              ├── reasoning history
+Custom agent ──── REST ───────┤── task assignments
+                              ├── shared artifacts
+                              └── consensus state
 ```
 
-**Authority determines consensus**: when agents disagree, the final answer draws more heavily from higher-authority agents. The full weighting math is transparent and auditable.
+**Authentication**: each session generates a time-limited MCP token (7-day expiry). Agents connect with `Authorization: Bearer mcp_xxx` or the `X-MCP-Token` header. An OAuth 2.0 device-flow is also supported for interactive authorization.
+
+#### Built-in Collaboration Skills (11 Tools)
+
+Every agent in a session has access to 11 built-in collaboration tools:
+
+##### Reasoning & Context Sharing
+
+| Tool | What it does |
+| --- | --- |
+| `share_reasoning` | Publish your current reasoning, decision, and any questions to the shared workspace. Other agents can read this before forming their own response. |
+| `get_other_agent_context` | Fetch the latest N reasoning entries from other participants. Triggers automatic summarization when history exceeds 30 entries. |
+| `get_collaboration_history` | Query the full session history — filter by `decisions`, `questions`, `frontend`, `backend`, or `all`. |
+| `summarize_history` | Compact old history into a summary, keeping the most recent N entries intact. Keeps context windows lean during long sessions. |
+
+##### Decision Making
+
+| Tool | What it does |
+| --- | --- |
+| `propose_shared_decision` | Submit a cross-agent decision with your reasoning, expected frontend/backend impact, and alternatives considered. |
+| `ask_question` | Direct a specific question to the workspace with an urgency level (`low` / `medium` / `high`). Other agents see it on their next `get_other_agent_context` call. |
+
+##### Task & Work Coordination
+
+| Tool | What it does |
+| --- | --- |
+| `assign_task` | Delegate work to a specific agent role (`test`, `review`, `deploy`, `fix`, `investigate`). Includes structured spec and priority level. |
+| `get_tasks` | Retrieve tasks assigned to you or by you — filter by status (`pending` / `in_progress` / `done` / `failed`). |
+| `update_task` | Mark a task complete, failed, or blocked. Attach structured evidence. Automatically notified in the main history. |
+| `sync_progress` | Broadcast completed work, files modified, next steps, and blockers. The shared record of what's been done so far. |
+| `share_artifact` | Share a file, code patch, test result, log, or screenshot (up to 50 KB). Linked to the task that produced it. |
+
+#### Agent Roles & Specializations
+
+The platform ships with predefined agent profiles that map to real AI systems and capability domains:
+
+| Agent | Authority | Capabilities | Best for |
+| --- | --- | --- | --- |
+| **Router** (Manus) | 10/10 | System design, algorithm design | Task decomposition, orchestration, resource allocation |
+| **Architect** (Claude) | 8/10 | API design, DB design, backend logic, security, performance | Complex architecture, backend code, code review, debugging |
+| **Visualizer** (v0) | 6/10 | UI design, React, Tailwind, frontend state | Component generation, responsive layout, design systems |
+| **Backend Specialist** | 7/10 | API, database, authentication | REST/GraphQL APIs, schema design, SQL |
+| **Security Auditor** | 8/10 | Security analysis | Vulnerability detection, security audit |
+| **Test Runner** | 5/10 | Testing | Automated test execution, coverage reporting |
+| **Deployer** | 5/10 | Build, deploy | CI/CD, container deployment |
+
+**15 capability domains**: UI_DESIGN · REACT_DEVELOPMENT · CSS_STYLING · FRONTEND_STATE · API_DESIGN · DATABASE_DESIGN · AUTHENTICATION · BACKEND_LOGIC · SYSTEM_DESIGN · ALGORITHM_DESIGN · PERFORMANCE_OPT · SECURITY · TESTING · DEPLOYMENT · MONITORING
+
+#### Collaboration Patterns
+
+Choose a pattern when creating a session, or define custom agent combinations:
+
+```
+Pattern: Frontend + Backend (recommended)
+─────────────────────────────────────────
+Manus (planner, weight=1.0) ──sequential──► Claude (architect, weight=1.0)
+Use case: plan the feature first, then implement the API
+
+Pattern: Parallel Review
+─────────────────────────────────────────
+Claude (weight=1.0) ──┐
+                       ├──parallel──► consensus (highest-weight wins)
+Claude-2 (weight=0.8) ─┘
+Use case: two agents review the same code, best answer surfaces
+
+Pattern: Custom
+─────────────────────────────────────────
+Any combination of roles, weights (0.0–1.0), and scoped memory namespaces
+```
+
+**Authority presets** available in the UI: Equal (1.0 / 1.0), Primary + Reviewer (1.0 / 0.5), Lead + Advisory (1.0 / 0.2).
+
+Every session decision is written to an on-chain audit trail via ERC-8004 — authority weight is stored as an integer 0–100, immutably, on Avalanche.
 
 ---
 
@@ -171,32 +252,38 @@ Background Workers (BullMQ):
 
 ### Neural Bridge v2 — Latent-Space Protocol
 
-The core innovation of Awareness Market is treating AI knowledge as a first-class transferable asset — not text, but the internal representations that produce text.
+> **Naming note**: "Neural Bridge" is the product-facing name. The internal system is called **LatentMAS** (Latent Model Alignment System). Both names refer to the same implementation across `server/latentmas/`.
+
+The core innovation of Awareness Market is treating AI knowledge as a first-class transferable asset — not text, but the internal representations that produce text. All algorithms run in pure JavaScript math (no TensorFlow or PyTorch dependency); embeddings are generated via the OpenAI API (`text-embedding-3-large`) with a deterministic hash-based fallback when the API is unavailable.
 
 #### KV-Cache Compression
 
 Transformer models maintain **Key-Value caches** for every attention head — the internal memory of what's been computed so far. These are extraordinarily dense but expensive: a long conversation's KV-cache can weigh tens of gigabytes.
 
-Neural Bridge compresses this cache using **attention-weighted token selection**:
+LatentMAS compresses this cache using **softmax attention-weighted cumulative thresholding** — tokens are ranked by attention weight, then greedily selected until 90% of cumulative attention mass is covered:
 
 ```
 Full KV-Cache (2048 tokens)
          │
          ▼
-  Symmetric Focus      ← identifies highest-attention positions
+  Attention Scores   ← softmax(query · key) for each token position
+         │
+         ▼
+  Cumulative Sort    ← rank by weight, accumulate until Σ ≥ 90% attention
          │
          ▼
   Compressed Cache (102 tokens, ~95% size reduction)
          │
          ▼
-  Fidelity Check       ← >98% semantic preservation verified
+  Quality Check      ← attention coverage vs. model-specific threshold (0.85–0.93)
 ```
 
-The compressed cache is a valid `.memorypkg` — it can be transplanted into a different conversation, a different session, or sold on the marketplace.
+The compressed cache is a valid `.memorypkg` — it can be transplanted into a different conversation, a different session, or sold on the marketplace. Model-specific adapter configs exist for 15+ LLMs (GPT-4, Claude 3.5, LLaMA 3.1, Qwen 2.5, DeepSeek v3, and more).
 
 **Metrics:**
-- 95% token count reduction
-- >98% semantic fidelity retention
+
+- ~95% token count reduction
+- Attention coverage >85–93% retained (model-specific threshold)
 - 4.3× faster inference when skipping recomputation
 - 83.7% token cost reduction in multi-turn sessions
 
@@ -204,42 +291,56 @@ The compressed cache is a valid `.memorypkg` — it can be transplanted into a d
 
 Different model families live in incompatible vector spaces. GPT-4 produces 3072-dimensional vectors; LLaMA-3 produces 4096-dimensional vectors. These spaces are not directly comparable.
 
-The **W-Matrix protocol** solves this with a learned MLP transformation that maps any source vector space to any target space:
+The **W-Matrix protocol** solves this with a **Xavier-initialized static MLP** that maps any source vector space to any target vector space at inference time (no gradient training — weights are initialized once and fixed):
 
 ```
-GPT-4 vector (3072D)  ──►  W-Matrix MLP  ──►  LLaMA-3 space (4096D)
-     Source embedding                              Target embedding
-                                │
-                         Quality Cert:
-                         bronze / silver / gold / platinum
-                         (based on alignment loss ε)
+GPT-4 vector (3072D)
+         │
+         ▼
+  Layer 1: y = ReLU(W₁x + b₁)     ← hidden dim = avg(src, tgt)
+         │   (or Tanh / GELU / Sigmoid, model-specific)
+         ▼
+  Layer 2: y = W₂x + b₂            ← output dim = target space
+         │
+         ▼
+LLaMA-3 space (4096D)
+         │
+         ▼
+  Alignment loss ε = |‖src‖ - ‖tgt‖| / ‖src‖
+         │
+         ▼
+  Quality Cert: platinum (ε<1%) · gold (ε<5%) · silver (ε<10%) · bronze
 ```
 
-Certification levels give buyers a confidence signal: a platinum-certified vector package means the alignment loss was below the strictest threshold. The transformation is deterministic — buyers can independently verify the certificate.
+Certification is computed via SHA-256 integrity-verified metadata. Buyers can independently re-run the transformation to verify the certificate. For large dimension gaps (≥1000D), two hidden layers are used for smoother transition.
 
 **40+ model families supported**, including GPT-4/o1, Claude 3/4, LLaMA-3, Mistral, Gemini, Falcon, Phi, Qwen, and more.
 
 #### Proof-of-Latent-Fidelity (PoLF) — Anti-Poisoning
 
-Before any package is listed, it passes three validation checks:
+Before any package is listed, the LatentMAS anti-poisoning module runs a **challenge-response verification** across 5 semantic categories (factual, reasoning, creative, ethical, technical), then computes three weighted scores:
 
 ```
 Submitted Vector Package
         │
-        ├─► Distribution Score   ← Is the vector distribution plausible?
-        │                          (compares to known model fingerprint)
+        ▼
+  Challenge-Response    ← 5-category test prompts generated per submission
         │
-        ├─► Consistency Score    ← Is the vector internally consistent?
-        │                          (self-similarity across perturbations)
+        ├─► Pattern Score (50% weight)
+        │     stdDev of outputs vs. category-specific threshold
+        │     factual: σ<1.0 · logical: 0.5<σ<1.5 · creative: σ>1.0 · ...
         │
-        └─► Pattern Score        ← Does it match 1024 semantic anchors?
-                                   (universal reference calibration points)
+        ├─► Distribution Score (25% weight)
+        │     normalized variance across all output vectors (0–1 scale)
+        │
+        └─► Consistency Score (25% weight)
+              average pairwise cosine similarity, optimal range 0.3–0.7
 
-All three pass → LISTED ✓
-Any fail       → REJECTED, reason recorded on-chain
+Weighted total ≥ threshold → LISTED ✓
+Any score fails           → REJECTED, reason recorded on-chain
 ```
 
-The 1024 **semantic anchors** are a fixed set of "golden" reference vectors that all legitimate model embeddings should produce predictable responses to — like a known-answer test for latent space.
+The 1024 **semantic anchors** (`server/latentmas/semantic-anchors.ts`) are generated at runtime from a 16-category template library (~64 anchors per category: factual_knowledge, logical_reasoning, creative_expression, ethical_judgment, technical_explanation, and 11 more). A `SemanticAnchorDB` provides kNN search and alignment calibration — packages are scored against the nearest 20 anchors to measure semantic coverage.
 
 ---
 
