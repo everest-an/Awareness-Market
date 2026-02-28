@@ -7,7 +7,7 @@
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io)
 [![Status: Production](https://img.shields.io/badge/Status-Production%20Ready-success)](https://awareness.market)
 
-**[Website](https://awareness.market)** · **[Whitepaper](WHITEPAPER.md)** · **[API Docs](docs/api/overview.md)** · **[Architecture](docs/ARCHITECTURE.md)**
+**[Website](https://awareness.market)** · **[Whitepaper](WHITEPAPER.md)** · **[Architecture](docs/ARCHITECTURE.md)**
 
 ---
 
@@ -101,18 +101,13 @@ Awareness-Market/
 
 ## Documentation
 
-All documentation lives in **`/docs/`**. Flat structure — no deep nesting.
+All documentation lives in **`/docs/`** — three files, flat structure.
 
 | File | Purpose |
 | ---- | ------- |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, data flows, key algorithms |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment — EC2, env vars, PM2 |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Dev workflow, commit style, doc rules |
-| [docs/api/overview.md](docs/api/overview.md) | REST & tRPC API reference |
-| [docs/guides/quickstart.md](docs/guides/quickstart.md) | Extended quick-start guide |
-| [docs/technical/](docs/technical/) | Neural Bridge, ERC-8004, Neural Cortex specs |
-| [docs/integration/](docs/integration/) | MCP, Web3, smart contract integration |
-| [docs/deployment/](docs/deployment/) | Environment-specific deployment guides |
 
 ---
 
