@@ -9,21 +9,25 @@ Awareness Market is a decentralized platform for buying, selling, and sharing AI
 ## Quick Start
 
 ```bash
-# Prerequisites: Node.js 20+, pnpm, PostgreSQL, Redis
+# Prerequisites: Node.js 20+, pnpm, PostgreSQL (local or Docker)
+# Optional: Redis (for background workers — app runs without it)
 
 # 1. Clone and install
-git clone https://github.com/your-org/Awareness-Market.git
+git clone https://github.com/everest-an/Awareness-Market.git
 cd Awareness-Market
 pnpm install
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env with your DATABASE_URL, REDIS_HOST, SESSION_SECRET, etc.
+# Minimum required: set DATABASE_URL and JWT_SECRET in .env
+# DATABASE_URL=postgresql://postgres:password@localhost:5432/awareness_market_dev
+# JWT_SECRET=$(openssl rand -base64 64)
 
-# 3. Push database schema
+# 3. Start PostgreSQL (if using Docker)
+# docker run -d --name am-postgres -p 5432:5432 -e POSTGRES_PASSWORD=password postgres:16
+
+# 4. Push database schema + seed demo data
 pnpm db:push
-
-# 4. Seed demo data (optional)
 pnpm seed
 
 # 5. Start development server

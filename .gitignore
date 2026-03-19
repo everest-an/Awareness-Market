@@ -137,3 +137,10 @@ blob-report/
 
 # Archived files (history preserved in git log)
 .archive/
+
+# Security-sensitive files
+*.pem
+*.key
+*.p12
+*.pfx
+config/secrets/

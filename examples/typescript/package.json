@@ -1,0 +1,12 @@
+{
+  "name": "awareness-market-examples",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "quickstart": "tsx quickstart.ts",
+    "mcp": "tsx mcp_collaboration.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}

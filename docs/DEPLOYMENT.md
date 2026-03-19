@@ -9,10 +9,10 @@ Production deployment guide for Awareness Market on EC2 + RDS + PM2.
 | Resource | Value |
 | -------- | ----- |
 | App server | EC2 (Amazon Linux 2023) |
-| SSH | `ssh -i ~/.ssh/ec2-aws.pem ec2-user@api.awareness.market` |
+| SSH | `ssh -i ~/.ssh/your-key.pem ec2-user@<your-ec2-host>` |
 | App path | `/home/ec2-user/Awareness-Market` |
 | Process manager | PM2 — 2 cluster instances on port 3001 |
-| Database | PostgreSQL on RDS (`awareness-network-db.cezeeou48sif.us-east-1.rds.amazonaws.com`) |
+| Database | PostgreSQL on RDS (`<your-rds-endpoint>.rds.amazonaws.com`) |
 | Frontend | Vite build served via Nginx |
 
 ---
@@ -109,7 +109,7 @@ Trigger `.github/workflows/deploy-backend-quick.yml` manually from GitHub Action
 The workflow uses `StrictHostKeyChecking=no`. If the security group blocks `ssh-keyscan`, add this to the SSH command:
 
 ```bash
-ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@api.awareness.market
+ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@<your-ec2-host>
 ```
 
 ---
@@ -117,7 +117,7 @@ ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@api.awareness.market
 ## Manual Deploy (EC2 SSH)
 
 ```bash
-ssh -i ~/.ssh/ec2-aws.pem ec2-user@api.awareness.market
+ssh -i ~/.ssh/your-key.pem ec2-user@<your-ec2-host>
 
 cd /home/ec2-user/Awareness-Market
 
@@ -254,10 +254,10 @@ Full guide: `docs/deployment/QUICK_START_LLAMA.md`
 
 ```bash
 # API alive
-curl https://api.awareness.market/health
+curl https://<your-api-domain>/health
 
 # tRPC ping
-curl https://api.awareness.market/api/trpc/health.ping
+curl https://<your-api-domain>/api/trpc/health.ping
 ```
 
 Expected response: `{"result":{"data":{"ok":true}}}`
