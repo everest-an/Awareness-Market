@@ -123,9 +123,9 @@ __pycache__/
 .local/
 
 # Go compiled binaries
-go-services/*/memory-exchange
-go-services/*/w-matrix-marketplace
-go-services/*/*.exe
+experimental/go-services/*/memory-exchange
+experimental/go-services/*/w-matrix-marketplace
+experimental/go-services/*/*.exe
 
 client/public/docs-content
 
@@ -134,3 +134,6 @@ tests/e2e/.auth/
 playwright-report/
 test-results/
 blob-report/
+
+# Archived files (history preserved in git log)
+.archive/

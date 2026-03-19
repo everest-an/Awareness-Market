@@ -576,16 +576,14 @@ export class CollaborationEngine {
     } catch (error) {
       logger.error('MCP Sync call failed, using fallback', { error, sessionId });
 
-      // ✅ Fallback: Return simulated response if MCP endpoint is unavailable
+      // Return degraded status — do not simulate a successful response
       return {
-        results: agents.map(a => ({
-          agent_id: a.id,
-          text: `[Fallback] Agent ${a.id} processed: ${task}`,
-          metadata: { ...a.metadata, fallback: true }
-        })),
-        consensus: `[Fallback] Collaborative consensus for: ${task}`,
-        mergedContext: { sessionId, task, timestamp: new Date().toISOString(), fallback: true },
-        actionItems: ['MCP Sync unavailable - using fallback', 'Check MCP endpoint configuration']
+        results: [],
+        consensus: '',
+        mergedContext: { sessionId, task, timestamp: new Date().toISOString(), status: 'degraded' },
+        actionItems: ['MCP Sync endpoint unavailable', 'Verify MCP server is running and reachable'],
+        status: 'degraded',
+        error: error instanceof Error ? error.message : 'MCP Sync call failed'
       };
     }
   }
@@ -656,12 +654,8 @@ export class CollaborationEngine {
     } catch (error) {
       logger.error('Workflow creation failed, using fallback', { error, sessionId });
 
-      // ✅ Fallback: Generate placeholder workflow ID
-      const workflowId = `wf_${sessionId}_${Date.now()}_fallback`;
-
-      logger.warn('Using fallback workflow ID', { workflowId });
-
-      return workflowId;
+      logger.error('Workflow creation failed — no fallback available', { sessionId });
+      throw new Error(`Failed to create workflow for session ${sessionId}: ${error instanceof Error ? error.message : 'unknown error'}`);
     }
   }
 

@@ -112,6 +112,10 @@ function Router() {
       
       <Route path="/docs/collaboration" component={AiCollaborationDocs} />
       <Route path="/dev" component={DevDashboard} />
+      <Route path="/dev/latent-test" component={LatentTest} />
+      <Route path="/dev/neural-bridge-v2" component={NeuralBridgeV2Demo} />
+      <Route path="/dev/workflow" component={WorkflowDemo} />
+      <Route path="/dev/kv-cache" component={KVCacheDemo} />
       <Route path="/workspace" component={WorkspaceList} />
       <Route path="/workspace/new" component={WorkspaceSetup} />
       <Route path="/workspace/:id" component={WorkspaceDetail} />
@@ -148,14 +152,14 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/reasoning-chains" component={ReasoningChainMarket} />
       <Route path="/reasoning-chains/publish" component={ReasoningChainPublish} />
-      <Route path="/latent-test" component={LatentTest} />
-      <Route path="/w-matrix" component={LatentTest} />
-      <Route path="/w-matrix/tester">{() => <Redirect to="/latent-test" />}</Route>
-      <Route path="/neural-bridge-v2-demo" component={NeuralBridgeV2Demo} />
+      <Route path="/latent-test">{() => <Redirect to="/dev/latent-test" />}</Route>
+      <Route path="/w-matrix">{() => <Redirect to="/dev/latent-test" />}</Route>
+      <Route path="/w-matrix/tester">{() => <Redirect to="/dev/latent-test" />}</Route>
+      <Route path="/neural-bridge-v2-demo">{() => <Redirect to="/dev/neural-bridge-v2" />}</Route>
       {/* Redirects for deprecated pages */}
       <Route path="/w-matrix-marketplace">{() => <Redirect to="/w-matrix" />}</Route>
       <Route path="/vector-packages">{() => <Redirect to="/marketplace" />}</Route>
-      <Route path="/workflow-demo" component={WorkflowDemo} />
+      <Route path="/workflow-demo">{() => <Redirect to="/dev/workflow" />}</Route>
       <Route path="/workflow-history" component={WorkflowHistory} />
       <Route path="/workflow-history/:sessionId" component={WorkflowSessionDetail} />
       <Route path="/workflow-playback/:sessionId" component={WorkflowPlayback} />
@@ -200,7 +204,7 @@ function Router() {
       <Route path="/service-health" component={ServiceHealth} />
 
       <Route path="/usage-analytics" component={UsageAnalytics} />
-      <Route path="/kv-cache-demo" component={KVCacheDemo} />
+      <Route path="/kv-cache-demo">{() => <Redirect to="/dev/kv-cache" />}</Route>
       <Route path="/memory-provenance/:id" component={MemoryProvenance} />
       {/* AI Visualization - all routes go to NeuralCortex */}
       <Route path="/golem-visualizer">{() => <Redirect to="/neural-cortex" />}</Route>

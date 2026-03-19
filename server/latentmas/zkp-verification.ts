@@ -24,7 +24,7 @@ const logger = createLogger('ZKPVerification');
 // Types
 // ============================================================================
 
-export type ProofSystem = 'groth16' | 'plonk' | 'stark' | 'mock';
+export type ProofSystem = 'groth16' | 'plonk' | 'stark' | 'development';
 
 export interface ZKPConfig {
   system: ProofSystem;
@@ -118,9 +118,9 @@ export class ZKPVerificationEngine {
   private verifyingKey?: VerifyingKey;
   private isInitialized: boolean = false;
 
-  constructor(config: ZKPConfig = { system: 'mock' }) {
+  constructor(config: ZKPConfig = { system: 'development' }) {
     this.config = {
-      system: config.system || 'mock',
+      system: config.system || 'development',
       curveType: config.curveType || 'bn254',
       securityLevel: config.securityLevel || 128,
       enableOptimizations: config.enableOptimizations ?? true,
@@ -158,7 +158,7 @@ export class ZKPVerificationEngine {
     } catch (error) {
       logger.error('Failed to initialize ZKP system', { error });
       // Fall back to mock system
-      this.config.system = 'mock';
+      this.config.system = 'development';
       this.isInitialized = true;
       logger.warn('Using mock ZKP system');
     }
@@ -178,7 +178,7 @@ export class ZKPVerificationEngine {
       return;
     }
 
-    if (this.config.system === 'mock') {
+    if (this.config.system === 'development') {
       // Generate mock keys for testing
       this.provingKey = this.generateMockProvingKey();
       this.verifyingKey = this.generateMockVerifyingKey();
@@ -313,7 +313,7 @@ export class ZKPVerificationEngine {
       return this.generateRemoteProof(remoteBackend, witness);
     }
 
-    if (this.config.system === 'mock') {
+    if (this.config.system === 'development') {
       return this.generateMockProof(witness);
     }
 
@@ -424,7 +424,7 @@ export class ZKPVerificationEngine {
       throw new Error('Verifying key not loaded');
     }
 
-    if (this.config.system === 'mock') {
+    if (this.config.system === 'development') {
       // Mock verification - check structure is valid
       return (
         proof.pi_a.length === 2 &&

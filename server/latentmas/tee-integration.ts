@@ -277,7 +277,7 @@ export class TEEIntegrationEngine {
           attestation = await this.performSEVAttestation();
           break;
         case 'none':
-          attestation = await this.performMockAttestation();
+          attestation = await this.performDevelopmentAttestation();
           break;
         default:
           throw new Error(`Attestation not supported for provider: ${this.config.provider}`);
@@ -347,7 +347,7 @@ export class TEEIntegrationEngine {
       timestamp: new Date(),
       digest,
       pcrs,
-      certificate: this.generateMockCertificate(),
+      certificate: this.generateDevelopmentCertificate(),
       cabundle: [],
       publicKey,
       nonce,
@@ -369,13 +369,13 @@ export class TEEIntegrationEngine {
   }
 
   /**
-   * Mock attestation for development/testing
+   * Development-mode attestation (simulated, not for production use)
    */
-  private async performMockAttestation(): Promise<AttestationDocument> {
+  private async performDevelopmentAttestation(): Promise<AttestationDocument> {
     const publicKey = this.generateKeyPair().publicKey;
 
     return {
-      moduleId: 'mock-tee',
+      moduleId: 'development-tee',
       timestamp: new Date(),
       digest: crypto.randomBytes(32).toString('hex'),
       pcrs: {},
@@ -667,7 +667,7 @@ export class TEEIntegrationEngine {
     };
   }
 
-  private generateMockCertificate(): string {
+  private generateDevelopmentCertificate(): string {
     return Buffer.from('MOCK_X509_CERTIFICATE').toString('base64');
   }
 

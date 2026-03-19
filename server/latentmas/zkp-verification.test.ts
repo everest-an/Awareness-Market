@@ -57,16 +57,16 @@ describe('ZKPVerificationEngine - Initialization', () => {
   });
 
   test('should initialize with mock system', async () => {
-    engine = new ZKPVerificationEngine({ system: 'mock' });
+    engine = new ZKPVerificationEngine({ system: 'development' });
     await engine.initialize();
 
     const stats = engine.getStats();
-    expect(stats.proofSystem).toBe('mock');
+    expect(stats.proofSystem).toBe('development');
   });
 
   test('should initialize with custom config', async () => {
     engine = new ZKPVerificationEngine({
-      system: 'mock',
+      system: 'development',
       curveType: 'bls12-381',
       securityLevel: 256,
     });
@@ -76,7 +76,7 @@ describe('ZKPVerificationEngine - Initialization', () => {
   });
 
   test('should track initialization stats', async () => {
-    engine = new ZKPVerificationEngine({ system: 'mock' });
+    engine = new ZKPVerificationEngine({ system: 'development' });
     await engine.initialize();
 
     const stats = engine.getStats();
@@ -93,7 +93,7 @@ describe('ZKPVerificationEngine - Vector Commitments', () => {
   let engine: ZKPVerificationEngine;
 
   beforeEach(async () => {
-    engine = new ZKPVerificationEngine({ system: 'mock' });
+    engine = new ZKPVerificationEngine({ system: 'development' });
     await engine.initialize();
   });
 
@@ -147,7 +147,7 @@ describe('ZKPVerificationEngine - Quality Proofs', () => {
   let engine: ZKPVerificationEngine;
 
   beforeEach(async () => {
-    engine = new ZKPVerificationEngine({ system: 'mock' });
+    engine = new ZKPVerificationEngine({ system: 'development' });
     await engine.initialize();
   });
 
@@ -172,7 +172,7 @@ describe('ZKPVerificationEngine - Quality Proofs', () => {
 
     const proof = await engine.proveQuality(vector, qualityScore, threshold);
 
-    expect(proof.proof.system).toBe('mock');
+    expect(proof.proof.system).toBe('development');
     expect(proof.proof.pi_a).toHaveLength(2);
     expect(proof.proof.pi_b).toHaveLength(2);
     expect(proof.proof.pi_c).toHaveLength(2);
@@ -225,7 +225,7 @@ describe('ZKPVerificationEngine - Proof Verification', () => {
   let engine: ZKPVerificationEngine;
 
   beforeEach(async () => {
-    engine = new ZKPVerificationEngine({ system: 'mock' });
+    engine = new ZKPVerificationEngine({ system: 'development' });
     await engine.initialize();
   });
 
@@ -239,7 +239,7 @@ describe('ZKPVerificationEngine - Proof Verification', () => {
     const result = await engine.verifyQuality(proof);
 
     expect(result.valid).toBe(true);
-    expect(result.proofSystem).toBe('mock');
+    expect(result.proofSystem).toBe('development');
     expect(result.verificationTime).toBeGreaterThan(0);
   });
 
@@ -310,7 +310,7 @@ describe('ZKPVerificationEngine - Batch Verification', () => {
   let engine: ZKPVerificationEngine;
 
   beforeEach(async () => {
-    engine = new ZKPVerificationEngine({ system: 'mock' });
+    engine = new ZKPVerificationEngine({ system: 'development' });
     await engine.initialize();
   });
 
@@ -368,7 +368,7 @@ describe('ZKPVerificationEngine - Circuit Constraints', () => {
   let engine: ZKPVerificationEngine;
 
   beforeEach(async () => {
-    engine = new ZKPVerificationEngine({ system: 'mock' });
+    engine = new ZKPVerificationEngine({ system: 'development' });
     await engine.initialize();
   });
 
@@ -450,7 +450,7 @@ describe('ZKPVerificationEngine - Integration', () => {
   let engine: ZKPVerificationEngine;
 
   beforeEach(async () => {
-    engine = new ZKPVerificationEngine({ system: 'mock' });
+    engine = new ZKPVerificationEngine({ system: 'development' });
     await engine.initialize();
   });
 
@@ -532,7 +532,7 @@ describe('ZKPVerificationEngine - Singleton', () => {
   });
 
   test('initializeZKP should return initialized engine', async () => {
-    const engine = await initializeZKP({ system: 'mock' });
+    const engine = await initializeZKP({ system: 'development' });
 
     expect(engine).toBeDefined();
     expect(engine.isReady()).toBe(true);
@@ -547,7 +547,7 @@ describe('ZKPVerificationEngine - Performance', () => {
   let engine: ZKPVerificationEngine;
 
   beforeEach(async () => {
-    engine = new ZKPVerificationEngine({ system: 'mock' });
+    engine = new ZKPVerificationEngine({ system: 'development' });
     await engine.initialize();
   });
 
