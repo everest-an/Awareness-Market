@@ -9,13 +9,12 @@
 </p>
 
 <p align="center">
+  <a href="https://arxiv.org/abs/2410.10813"><img src="https://img.shields.io/badge/LongMemEval_R%405-95.6%25-brightgreen?style=for-the-badge" alt="LongMemEval R@5 95.6%" /></a>
   <a href="https://awareness.market/"><img src="https://img.shields.io/badge/Website-awareness.market-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website" /></a>
   <a href="https://awareness.market/docs"><img src="https://img.shields.io/badge/Docs-awareness.market%2Fdocs-14B8A6?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Docs" /></a>
   <a href="https://discord.com/invite/nMDrT538Qa"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-2563EB?style=for-the-badge" alt="License Apache 2.0" /></a>
 </p>
-
-[![LongMemEval R@5](https://img.shields.io/badge/LongMemEval_R%405-95.6%25-brightgreen)](https://arxiv.org/abs/2410.10813)
 
 <p align="center">
   <img src="assets/branding/local-20s.gif" alt="Awareness Local" style="width:min(1200px,100%);height:auto;" />

@@ -19,9 +19,9 @@
     <circle cx="64" cy="72" r="7" fill="url(#dot)"/>
   </g>
 
-  <g fill="#F8FAFC" font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif">
+  <g fill="#0F172A" font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif">
     <text x="210" y="118" font-size="72" font-weight="700" letter-spacing="0.5">Awareness Local</text>
-    <text x="212" y="162" font-size="24" font-weight="500" fill="#94A3B8">
+    <text x="212" y="162" font-size="24" font-weight="500" fill="#334155">
       Persistent Memory for AI Coding Agents
     </text>
   </g>

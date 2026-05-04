@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://arxiv.org/abs/2410.10813"><img src="https://img.shields.io/badge/LongMemEval_R%405-95.6%25-brightgreen?style=for-the-badge" alt="LongMemEval R@5 95.6%" /></a>
   <a href="https://awareness.market/"><img src="https://img.shields.io/badge/官网-awareness.market-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="官网" /></a>
   <a href="https://awareness.market/docs"><img src="https://img.shields.io/badge/文档-awareness.market%2Fdocs-14B8A6?style=for-the-badge&logo=readthedocs&logoColor=white" alt="文档" /></a>
   <a href="https://discord.com/invite/nMDrT538Qa"><img src="https://img.shields.io/badge/Discord-加入社区-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
@@ -18,8 +19,6 @@
 <p align="center">
   <img src="assets/branding/local-20s.gif" alt="Awareness Local" style="width:min(1200px,100%);height:auto;" />
 </p>
-
-[![LongMemEval R@5](https://img.shields.io/badge/LongMemEval_R%405-95.6%25-brightgreen)](https://arxiv.org/abs/2410.10813)
 
 **给你的 AI 编程助手加上持久记忆。一个命令即可，本地优先，无需账号。**
 
