@@ -5,8 +5,14 @@
 </p>
 
 <p align="center">
+  <img src="assets/branding/awareness-wordmark.svg" alt="Awareness Local — 面向 AI 编程代理的持久记忆" width="760" />
+</p>
+
+<p align="center">
   <a href="https://awareness.market/"><img src="https://img.shields.io/badge/官网-awareness.market-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="官网" /></a>
+  <a href="https://awareness.market/docs"><img src="https://img.shields.io/badge/文档-awareness.market%2Fdocs-14B8A6?style=for-the-badge&logo=readthedocs&logoColor=white" alt="文档" /></a>
   <a href="https://discord.com/invite/nMDrT538Qa"><img src="https://img.shields.io/badge/Discord-加入社区-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/许可证-Apache%202.0-2563EB?style=for-the-badge" alt="许可证 Apache 2.0" /></a>
 </p>
 
 <p align="center">
@@ -16,6 +22,8 @@
 [![LongMemEval R@5](https://img.shields.io/badge/LongMemEval_R%405-95.6%25-brightgreen)](https://arxiv.org/abs/2410.10813)
 
 **给你的 AI 编程助手加上持久记忆。一个命令即可，本地优先，无需账号。**
+
+Awareness Local 是一个面向 AI 编程代理的本地优先 MCP 记忆服务。它为 Cursor、Claude Code、Copilot、Cline 等 MCP IDE 提供跨会话持久记忆、语义+关键词混合检索，以及可复用的知识卡片能力。
 
 Awareness Local 是一个面向 AI 编程代理的本地优先记忆系统。它在你的机器上运行轻量守护进程，以 Markdown 方式存储记忆，使用 FTS5 + 向量混合检索，并通过 MCP 协议接入 IDE。
 

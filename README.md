@@ -1,21 +1,29 @@
 # Awareness Local
 
-[![LongMemEval R@5](https://img.shields.io/badge/LongMemEval_R%405-95.6%25-brightgreen)](https://arxiv.org/abs/2410.10813)
-
 <p align="center">
   <strong>Languages:</strong> English | <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
-  <a href="https://awareness.market/"><img src="https://img.shields.io/badge/Website-awareness.market-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website" /></a>
-  <a href="https://discord.com/invite/nMDrT538Qa"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
+  <img src="assets/branding/awareness-wordmark.svg" alt="Awareness Local — Persistent Memory for AI Coding Agents" width="760" />
 </p>
+
+<p align="center">
+  <a href="https://awareness.market/"><img src="https://img.shields.io/badge/Website-awareness.market-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website" /></a>
+  <a href="https://awareness.market/docs"><img src="https://img.shields.io/badge/Docs-awareness.market%2Fdocs-14B8A6?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Docs" /></a>
+  <a href="https://discord.com/invite/nMDrT538Qa"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-2563EB?style=for-the-badge" alt="License Apache 2.0" /></a>
+</p>
+
+[![LongMemEval R@5](https://img.shields.io/badge/LongMemEval_R%405-95.6%25-brightgreen)](https://arxiv.org/abs/2410.10813)
 
 <p align="center">
   <img src="assets/branding/local-20s.gif" alt="Awareness Local" style="width:min(1200px,100%);height:auto;" />
 </p>
 
 **Give your AI agent persistent memory. One command. No account. Works offline.**
+
+Awareness Local is a local-first MCP memory server for AI coding agents. It gives Cursor, Claude Code, Copilot, Cline, and other MCP IDEs persistent memory, hybrid semantic + keyword retrieval, and reusable knowledge cards for long-running software projects.
 
 Awareness Local is a local-first memory system for AI coding agents. It runs a lightweight daemon on your machine that stores memories as Markdown files, searches with hybrid FTS5 + embedding, and connects to any IDE via the MCP protocol.
 
