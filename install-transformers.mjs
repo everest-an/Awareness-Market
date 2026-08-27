@@ -8,6 +8,15 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { createRequire } from 'module';
+
+// This file is ESM ("type": "module"), where `require` does not exist. The
+// require.resolve() below therefore threw ReferenceError on every single run,
+// making the "already installed" early-exit unreachable and running the catch
+// branch unconditionally. Every `npm install` — and every `npx -y` cold start,
+// since postinstall runs then too — kicked off a nested install of a large
+// package that was already a declared dependency.
+const require = createRequire(import.meta.url);
 
 // Check if @huggingface/transformers is installed
 try {
