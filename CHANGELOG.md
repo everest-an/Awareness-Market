@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.12.4] - 2026-08-28
+
+### Changed - a daemon that starts without a working index now says so
+
+When better-sqlite3 cannot load, the daemon falls back to a no-op index and
+carries on starting. 0.12.3 made that visible to **you**, through `/healthz` and
+`awareness-local status`. This release makes it visible to **us** as well, so the
+underlying install failure can be fixed rather than rediscovered one user at a
+time.
+
+The existing `daemon_started` event now carries `success`, plus a short
+`error_code` when the index is dead — one of `sqlite_rebuild_failed`,
+`sqlite_unavailable`, `sqlite_dead_after_rebuild`. Until now a daemon with no
+working memory reported a start event **identical** to a healthy one: production
+counted 1193 installs reporting a start against only 357 that ever called a
+tool, and nothing recorded what happened to the difference.
+
+**On privacy:** `error_code` is a fixed constant, never the exception message.
+Exception text contains absolute paths, and this is a memory product — its users
+are exactly the people who would object to that being transmitted. The telemetry
+sanitiser drops any property that is not on an explicit allow-list; verified at
+runtime that `file_path` and `error_message` are discarded. Telemetry stays
+opt-out via `telemetry.enabled = false` in `.awareness/config.json`.
+
 ## [0.12.3] - 2026-08-28
 
 ### Fixed - Windows MCP was completely dead (critical)

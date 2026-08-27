@@ -166,6 +166,13 @@ export class AwarenessLocalDaemon {
     this._archetypeIndex = null;
     this._archetypeIndexBuildInFlight = null;
 
+    // Why the indexer fell back to the no-op, or null when it started cleanly.
+    // Set in start() at the three SQLite failure branches and read once by the
+    // daemon_started telemetry event, which is otherwise identical for a healthy
+    // and a memory-less daemon. One of:
+    //   'sqlite_rebuild_failed' | 'sqlite_unavailable' | 'sqlite_dead_after_rebuild'
+    this._indexerDegraded = null;
+
     // Debounce timer for fs.watch reindex
     this._reindexTimer = null;
     this._reindexDebounceMs = 1000;
@@ -245,6 +252,7 @@ export class AwarenessLocalDaemon {
           } catch (e2) {
             console.error(`[awareness-local] SQLite still unavailable after rebuild: ${e2.message}`);
             this.indexer = createNoopIndexer(`SQLite unavailable after rebuild: ${e2.message}`);
+            this._indexerDegraded = 'sqlite_dead_after_rebuild';
           }
         } else {
           // This branch used to be completely silent — the rebuild failed and
@@ -252,11 +260,13 @@ export class AwarenessLocalDaemon {
           console.error(`[awareness-local] better-sqlite3 rebuild failed: ${e.message}`);
           console.error('[awareness-local] Running WITHOUT an index — nothing will be searchable. Try: npm rebuild better-sqlite3');
           this.indexer = createNoopIndexer(`better-sqlite3 rebuild failed: ${e.message}`);
+          this._indexerDegraded = 'sqlite_rebuild_failed';
         }
       } else {
         console.error(`[awareness-local] SQLite indexer unavailable: ${e.message}`);
         console.error('[awareness-local] Falling back to file-only mode (no search). Install better-sqlite3: npm install better-sqlite3');
         this.indexer = createNoopIndexer(`SQLite indexer unavailable: ${e.message}`);
+        this._indexerDegraded = 'sqlite_unavailable';
       }
     }
 
@@ -304,12 +314,25 @@ export class AwarenessLocalDaemon {
       const cfg = this._loadConfig();
       initTelemetry({ config: cfg, projectDir: this.projectDir, version: PKG_VERSION });
       const tel = getTelemetry();
+      // `success` distinguishes a working start from one where the indexer fell
+      // back to the no-op. That distinction is the entire reason this field
+      // exists: a degraded daemon still reaches this line and still reports
+      // daemon_started, so without it a user whose memory silently does not work
+      // is indistinguishable from a healthy one. Production telemetry showed
+      // 1193 daemon_started against only 357 installs that ever called a tool,
+      // and nothing recorded why the gap existed.
+      //
+      // error_code is a fixed short constant, never the exception message: those
+      // contain absolute paths, and this is a memory product whose users are
+      // exactly the people who would object to that being transmitted.
       tel?.track('daemon_started', {
         daemon_version: PKG_VERSION,
         os: process.platform,
         node_version: process.version,
         arch: process.arch,
         locale: (Intl.DateTimeFormat().resolvedOptions().locale) || 'unknown',
+        success: !this._indexerDegraded,
+        ...(this._indexerDegraded ? { error_code: this._indexerDegraded } : {}),
       });
     } catch (err) {
       // Never let telemetry init block daemon startup.
