@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pre-publish gate for @awareness-sdk/local.
+ * Pre-publish gate for @awareness.market/local.
  *
  * Runs EVERY hard check that must pass before this package hits npm.
  * If anything drifts (SSOT not synced, spec not aligned, localhost in
@@ -125,7 +125,7 @@ const checkSpecCopies = () => {
 
 // ---------------------------------------------------------------------------
 
-console.log('Pre-publish gate · @awareness-sdk/local');
+console.log('Pre-publish gate · @awareness.market/local');
 checkLocalhostInDefaults();
 checkPromptSsot();
 checkSharedScripts();

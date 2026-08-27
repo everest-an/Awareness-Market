@@ -16,7 +16,7 @@ export async function handleHttpRequest(daemon, req, res) {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Mcp-Session-Id, X-Awareness-Project-Dir, X-Awareness-Project-Dir-B64',
+      'Access-Control-Allow-Headers': 'Content-Type, Mcp-Session-Id, X-Awareness-Project-Dir, X-Awareness-Project-Dir-B64, Authorization, X-Awareness-Memory-Id, X-Awareness-Session-Id, X-Awareness-Bridge-Token',
     });
     res.end();
     return;

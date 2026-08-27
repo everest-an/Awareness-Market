@@ -338,8 +338,8 @@ if (format === 'json') {
     console.log(`    ⚠  R6 (grep-friendly title) pass rate ${agg.r6_pass}%. Many titles use`);
     console.log(`       generic words like "Decision made" / "Bug fixed" that cannot be`);
     console.log(`       retrieved by BM25 or embedding. Verify your agent is reading the`);
-    console.log(`       latest SSOT prompts — update @awareness-sdk/openclaw-memory and`);
-    console.log(`       @awareness-sdk/setup to 0.9.0+ for R6-R8 guidance.`);
+    console.log(`       latest SSOT prompts — update @awareness.market/openclaw-memory and`);
+    console.log(`       @awareness.market/setup to 0.9.0+ for R6-R8 guidance.`);
   }
   if (agg.r7_pass < 60) {
     console.log(`    ⚠  R7 (topic-specific tags) pass rate ${agg.r7_pass}%. Many cards use`);

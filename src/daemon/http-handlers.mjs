@@ -9,8 +9,20 @@ export function handleHealthz(daemon, res, { version }) {
     ? daemon.indexer.getStats()
     : { totalMemories: 0, totalKnowledge: 0, totalTasks: 0, totalSessions: 0 };
 
+  // A degraded index must never present as healthy. The noop fallback is a
+  // truthy, shape-complete object, so the check above succeeds and getStats()
+  // cheerfully returns all zeros — previously indistinguishable from a
+  // brand-new empty workspace. Reporting `status: 'ok'` there is what let a
+  // dead index go unnoticed: writes were accepted, recall returned nothing,
+  // and every surface agreed everything was fine.
+  const indexerOk = !daemon.indexer?.degraded;
+
   return jsonResponse(res, {
-    status: 'ok',
+    status: indexerOk ? 'ok' : 'degraded',
+    indexer: {
+      ok: indexerOk,
+      reason: indexerOk ? null : (daemon.indexer?.degradedReason || 'indexer unavailable'),
+    },
     mode: 'local',
     version,
     uptime: daemon._startedAt
@@ -18,6 +30,10 @@ export function handleHealthz(daemon, res, { version }) {
       : 0,
     pid: process.pid,
     port: daemon.port,
+    // The Web UI has always been served here, but nothing ever said so.
+    // Exposing it on /healthz gives every client (CLI, IDE, scripts) one
+    // authoritative place to read the dashboard address from.
+    ui_url: `http://localhost:${daemon.port}/`,
     project_dir: daemon.projectDir,
     search_mode: daemon._embedder ? 'hybrid' : 'fts5-only',
     embedding: {

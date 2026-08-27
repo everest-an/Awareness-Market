@@ -1,8 +1,8 @@
 /**
- * Locks the AwarenessClaw envelope-strip fix in daemon._remember (2026-04-18).
+ * Locks the OCT-Agent envelope-strip fix in daemon._remember (2026-04-18).
  *
  * User screenshot showed 3 knowledge-card titles all starting with
- * "Request:" — the envelope prefix leaked from AwarenessClaw desktop's
+ * "Request:" — the envelope prefix leaked from OCT-Agent desktop's
  * `Request: X\nResult: Y` chat turn_briefs because `_remember` only called
  * `classifyNoiseEvent` (skip-or-keep judgment), never `cleanContent`
  * (strip envelope). These tests verify:
@@ -48,7 +48,7 @@ describe('cleanContent — envelope strip (sanity checks before daemon-level tes
 });
 
 
-describe('daemon._remember — AwarenessClaw envelope integration', () => {
+describe('daemon._remember — OCT-Agent envelope integration', () => {
   async function loadDaemonModule() {
     // Dynamic import so we can mock storage + indexer before the daemon
     // instance is constructed.
@@ -79,7 +79,7 @@ describe('daemon._remember — AwarenessClaw envelope integration', () => {
     return { fake, stored, indexed };
   }
 
-  it('auto-title from AwarenessClaw turn_brief does NOT start with "Request:"', async () => {
+  it('auto-title from OCT-Agent turn_brief does NOT start with "Request:"', async () => {
     const mod = await loadDaemonModule();
     const { fake, stored, indexed } = makeFakeDaemon(mod);
 

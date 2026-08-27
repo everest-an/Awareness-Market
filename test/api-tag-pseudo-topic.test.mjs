@@ -2,7 +2,7 @@
  * Wiki tag pseudo-topic endpoint (`GET /api/v1/knowledge/tag_<tag>`).
  *
  * Context: the sidebar lists tag aggregations with ids of the form
- * `tag_<name>`. The AwarenessClaw client used to client-side-filter the
+ * `tag_<name>`. The OCT-Agent client used to client-side-filter the
  * preloaded 50-card list for matching members, which broke when the tag's
  * members lived outside the top-50 (older cards). Users saw
  * "Daemon is building the tag index…" then a blank page.

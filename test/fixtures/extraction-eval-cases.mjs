@@ -454,14 +454,14 @@ export const EVAL_CASES = [
     category_under_test: 'important_detail',
     content:
       'Important fact about the project: the Awareness Memory team is 2 ' +
-      'engineers full-time (Edwin + one agent contributor) plus part-time ' +
+      'engineers full-time (Everest + one agent contributor) plus part-time ' +
       'LLM agent contributors. Main account email is everest9812@gmail.com, ' +
-      'GitHub org is edwin-hao-ai.',
+      'GitHub org is everest-an.',
     expect: {
       MUST_EMIT: [{
         category: 'important_detail',
         title_contains: /team|project|account/i,
-        summary_contains: [/team|engineer|edwin/i],
+        summary_contains: [/team|engineer|everest/i],
         summary_min_chars: 40,
       }],
     },
@@ -495,7 +495,7 @@ export const EVAL_CASES = [
     style: 'general',
     category_under_test: 'plan_intention',
     content:
-      'Plan: user intends to open-source AwarenessClaw publicly in Q2 2026, ' +
+      'Plan: user intends to open-source OCT-Agent publicly in Q2 2026, ' +
       'with a landing page at awareness.market and automated DMG/exe/AppImage ' +
       'builds through GitHub Releases. Target: 500 GitHub stars in 90 days post-launch.',
     expect: {

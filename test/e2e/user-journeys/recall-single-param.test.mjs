@@ -19,6 +19,7 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import { daemonAliveOrFailInCI } from '../../helpers/require-daemon.mjs';
 
 const DAEMON = 'http://127.0.0.1:37800';
 const TEST_TAG = `f053-e2e-${Date.now()}`;
@@ -65,10 +66,8 @@ function unwrapMcp(result) {
 }
 
 async function daemonAlive() {
-  try {
-    const r = await httpJson('GET', '/healthz');
-    return r.status === 200;
-  } catch { return false; }
+  // Skipping is a local convenience, never a CI outcome — see helpers/require-daemon.mjs.
+  return daemonAliveOrFailInCI(DAEMON, 'L4 recall single-param');
 }
 
 /**

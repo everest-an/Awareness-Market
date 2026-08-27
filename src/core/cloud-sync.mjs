@@ -17,6 +17,10 @@ import { performHandshake } from './sync/sync-handshake.mjs';
 import { createOptimisticPusher } from './sync/sync-push-optimistic.mjs';
 import { createCardPuller } from './sync/sync-pull-cards.mjs';
 import { createConflictHandler } from './sync/sync-conflict.mjs';
+// Batch A · sync outbox integration
+import { ensureOutboxTable, enqueue as outboxEnqueue, markTerminal as outboxMarkTerminal } from './sync/sync-outbox.mjs';
+// Batch C · peer prefetcher (prefetcher, not router — recall() untouched)
+import { createPeerPrefetcher } from './sync/peer-prefetcher.mjs';
 
 const LOG_PREFIX = '[CloudSync]';
 const SSE_RECONNECT_BASE_MS = 5_000;
@@ -107,6 +111,7 @@ export class CloudSync {
     this._inflightSync = null;
     ensureSyncSchema(indexer);
     ensureConflictSchema(indexer);
+    ensureOutboxTable(indexer.db);
 
     // v2 sync modules — injectable HTTP client + sub-handlers
     this._syncHttp = createSyncHttp({
@@ -130,6 +135,10 @@ export class CloudSync {
       memoryId: this.memoryId,
       deviceId: this.deviceId,
     });
+    // Batch C · peer prefetch — background, best-effort, recall untouched.
+    // Started via startPeerPrefetch() (opt-in) so existing deployments that
+    // never call it keep identical behavior.
+    this._prefetcher = createPeerPrefetcher({ cloudSync: this, indexer });
   }
 
   _buildCtx() {
@@ -315,6 +324,7 @@ export class CloudSync {
     this._stopped = true;
     stopSSE(this._sseState);
     if (this._periodicTimer) { clearInterval(this._periodicTimer); this._periodicTimer = null; }
+    await this.stopPeerPrefetch();
     // Wait for any in-flight fullSync() to drain before returning, so the
     // caller can safely close the DB without racing with push/pull queries.
     if (this._inflightSync) {
@@ -322,6 +332,22 @@ export class CloudSync {
       this._inflightSync = null;
     }
     console.log(`${LOG_PREFIX} Stopped`);
+  }
+
+  /**
+   * Batch C · Start background peer prefetch (opt-in). Defaults to a 60s
+   * interval — faster than the periodic fullSync, so frequently-published
+   * peers get their cards local sooner. recall() is not touched.
+   */
+  startPeerPrefetch(intervalMs = 60_000) {
+    if (!this.isEnabled()) return;
+    this._prefetcher?.start(intervalMs);
+  }
+
+  async stopPeerPrefetch() {
+    if (this._prefetcher) {
+      try { await this._prefetcher.stop(); } catch { /* best-effort */ }
+    }
   }
 
   getSyncHistory(limit = 20) { return getSyncHistoryImpl(this.indexer, limit); }
@@ -474,9 +500,29 @@ export class CloudSync {
       };
       if (card.cloud_id) pushCard.id = card.cloud_id;
 
+      // Batch A · outbox: enqueue before push so the sync indicator shows in-flight state
+      const outboxMsgId = `${card.id}_${Date.now()}`;
+      const outboxExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      try {
+        outboxEnqueue(this.indexer.db, {
+          userId: this.memoryId,
+          messageId: outboxMsgId,
+          kind: 'card.upsert',
+          refId: card.id,
+          correlationId: outboxMsgId,
+          targetDeviceId: this.deviceId,
+          expiresAt: outboxExpiresAt,
+        });
+      } catch { /* outbox is best-effort — never block a push on bookkeeping */ }
+
+      // W1 · carry the outbox messageId to the cloud so a lost-response retry is
+      // deduped server-side (ingest_deliveries) instead of becoming a second write.
+      pushCard.message_id = outboxMsgId;
+
       const result = await this._optimisticPusher.pushCardWithVersion(pushCard);
 
       if (result.status === 'created' || result.status === 'updated') {
+        try { outboxMarkTerminal(this.indexer.db, outboxMsgId, 'acked'); } catch { /* ok */ }
         try {
           this.indexer.db.prepare(
             `UPDATE knowledge_cards SET synced_to_cloud = 1, version = ?, cloud_id = ?,
@@ -489,6 +535,7 @@ export class CloudSync {
         } catch (err) { console.warn(`${LOG_PREFIX} Failed to update local card after push:`, err.message); }
         synced++;
       } else if (result.status === 'conflict') {
+        try { outboxMarkTerminal(this.indexer.db, outboxMsgId, 'acked'); } catch { /* ok */ }
         conflicts++;
         createLocalConflict(this.indexer, {
           card_id: card.id,
@@ -498,6 +545,7 @@ export class CloudSync {
           conflict_type: 'version_mismatch',
         });
       } else {
+        try { outboxMarkTerminal(this.indexer.db, outboxMsgId, 'failed', {error: result.error || 'unknown'}); } catch { /* ok */ }
         errors++;
         console.warn(`${LOG_PREFIX} Card push failed for ${card.id}: ${result.error || 'unknown'}`);
       }

@@ -10,10 +10,10 @@
  * package, and ESM resolution does not fall back.
  *
  * This journey:
- *   1. Create an empty tempdir (no prior AwarenessClaw or daemon state).
+ *   1. Create an empty tempdir (no prior OCT-Agent or daemon state).
  *   2. Install the current local package source into it — `npm pack` of
  *      sdks/local, then `npm install` of the tarball. This mirrors what
- *      `npx @awareness-sdk/local@<new-version>` will do for a real user.
+ *      `npx @awareness.market/local@<new-version>` will do for a real user.
  *   3. Boot `awareness-local start` on an unused port.
  *   4. Assert /healthz responds 200 within a grace window.
  *   5. Assert /mcp responds to tools/list.
@@ -96,7 +96,7 @@ describe('L4 E2E: fresh npm install → daemon boots on clean tempdir', { concur
     tarball = path.join(tmpDir, pack.stdout.trim().split('\n').pop());
 
     // Install into the tempdir so every nested dep resolves under
-    // `<tmpDir>/node_modules/@awareness-sdk/local/...`.
+    // `<tmpDir>/node_modules/@awareness.market/local/...`.
     fs.writeFileSync(
       path.join(tmpDir, 'package.json'),
       JSON.stringify({ name: 'daemon-boot-fixture', version: '0.0.0', private: true }),
@@ -123,7 +123,7 @@ describe('L4 E2E: fresh npm install → daemon boots on clean tempdir', { concur
     assert.ok(fs.existsSync(bin), `daemon entrypoint not found at ${bin}`);
 
     daemonChild = spawn(process.execPath, [bin, 'start', '--port', String(port), '--project', projectDir], {
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
       detached: false,
     });
     daemonChild.stdout.on('data', (d) => process.stderr.write(`[daemon.out] ${d}`));

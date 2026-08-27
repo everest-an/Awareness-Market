@@ -26,6 +26,16 @@ export async function remember(daemon, params) {
     return { error: 'content is required for remember action' };
   }
 
+  // Pin the workspace for the whole write. `_switching` (http-router.mjs:34)
+  // only rejects requests that have not started yet — a request already inside
+  // keeps running while switchProject() closes the old index.db and rebinds
+  // daemon.indexer to a different project. Reading daemon.indexer live after an
+  // await would therefore file this memory into the WRONG project's database,
+  // silently. Background pipelines already pin this way (see
+  // engine/perception-resolve.mjs:20-23); the request path did not.
+  const projectAtStart = daemon.projectDir;
+  const indexerAtStart = daemon.indexer;
+
   const noiseReason = classifyNoiseEvent(params);
   if (noiseReason) {
     return { status: 'skipped', reason: noiseReason };
@@ -56,13 +66,46 @@ export async function remember(daemon, params) {
     agent_role: params.agent_role || 'builder_agent',
     session_id: params.session_id || '',
     source: params.source || 'mcp',
+    // F-064 · external-chat provenance ({ site, url, model, captured_at }).
+    // null for regular MCP writes; passes through to memoryStore + indexer.
+    metadata: params.metadata != null ? params.metadata : null,
   };
+
+  // F-064 · Dedup on write (opt-in via dedup_same_source; used by the
+  // External AI Memory Bridge). Gated so the existing MCP write path keeps
+  // its original behaviour.
+  //   • source_only (default) → decision A: dedup within the same source,
+  //     cross-source identical content stays as two provenance records.
+  //   • global               → collapse identical content across ALL sources.
+  if (params.dedup_same_source) {
+    const dedupMode = resolveDedupMode(daemon);
+    const dupId = dedupMode === 'global'
+      ? daemon.indexer.findByContentHash(contentForPersist)
+      : daemon.indexer.findByContentHashAndSource(contentForPersist, memory.source);
+    if (dupId) {
+      return { status: 'duplicate', id: dupId, mode: 'local', dedup_mode: dedupMode };
+    }
+  }
+
+  // Fail fast BEFORE touching disk if the workspace moved under us. Returning
+  // an explicit error (rather than silently dropping the write, as background
+  // pipelines do) is deliberate: the caller asked us to remember something, so
+  // "it vanished" is never an acceptable outcome — the client must be able to
+  // retry against the right project.
+  if (daemon.projectDir !== projectAtStart) {
+    return {
+      error: 'workspace_switched',
+      message: 'Workspace changed while this memory was being written; nothing was saved. Retry.',
+    };
+  }
 
   // Write markdown file
   const { id, filepath } = await daemon.memoryStore.write(memory);
 
-  // Index in SQLite (sanitized content so FTS + embeddings skip the envelope prefix)
-  daemon.indexer.indexMemory(id, { ...memory, filepath }, contentForPersist);
+  // Index in SQLite (sanitized content so FTS + embeddings skip the envelope prefix).
+  // Use the pinned indexer, never daemon.indexer: after the await above the
+  // daemon may point at another project, and writing there would corrupt it.
+  indexerAtStart.indexMemory(id, { ...memory, filepath }, contentForPersist);
 
   // Fire-and-forget embedding + knowledge extraction
   daemon._embedAndStore(id, contentForPersist).catch(() => {});
@@ -140,4 +183,25 @@ export async function remember(daemon, params) {
   }
 
   return result;
+}
+
+/**
+ * F-064 Phase 2 · Resolve the active memory deduplication mode.
+ *
+ * Precedence: env `AWARENESS_MEMORY_DEDUP_MODE` > config.memory.deduplication_mode
+ * > 'source_only' (safe default — keeps cross-source provenance). Only the two
+ * known values are honoured; anything else falls through to the default.
+ *
+ * @param {object} daemon
+ * @returns {'source_only'|'global'}
+ */
+export function resolveDedupMode(daemon) {
+  const env = String(process.env.AWARENESS_MEMORY_DEDUP_MODE || '').trim().toLowerCase();
+  if (env === 'global' || env === 'source_only') return env;
+  try {
+    const cfg = daemon?._loadConfig?.();
+    const mode = cfg?.memory?.deduplication_mode;
+    if (mode === 'global' || mode === 'source_only') return mode;
+  } catch { /* config unavailable → default */ }
+  return 'source_only';
 }

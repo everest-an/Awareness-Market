@@ -1,0 +1,389 @@
+{
+  "schema": "agent-memory-state/test-vectors/v2",
+  "purpose": "Conformance vectors for an independent implementation. v1 checks that an implementation computes one hash correctly; v2 checks that it implements the state machine: sequence monotonicity, prior-root linkage, the optional-field encodings, and every rejection. Passing v2 is the bar the roadmap's open call for a second implementation refers to.",
+  "usage": "Recompute each chain entry's transitionId and nextStateRoot from its delta, in order, feeding each nextStateRoot into the next prevStateRoot. Then confirm each rejection input is refused with the stated error. `node scripts/check-vectors.mjs` runs this against the TypeScript reference; contracts/test/unit/VectorsV2.t.sol runs the same file against the Solidity registry.",
+  "types": {
+    "experienceDelta": "ExperienceDelta(bytes32 spaceId,uint64 sequence,bytes32 prevStateRoot,bytes32 deltaCommitment,bytes32 provenanceCommitment,bytes32 profileId,bytes32 locatorCommitment)",
+    "memoryState": "MemoryState(bytes32 prevStateRoot,bytes32 transitionId)",
+    "memorySpace": "MemorySpace(address initialController,bytes32 salt)",
+    "spaceRegistration": "SpaceRegistration(bytes32 spaceId,address controller,address authorizer)"
+  },
+  "typehashes": {
+    "experienceDelta": "0x4f020f86bc06d852f1fde17853b4d92a70214eeab8e09718028124af097d070d",
+    "memoryState": "0xf3148762556cbf851baf4b9a205e18ff4e6b366a58a3a1ef58e8626ba41beadb",
+    "memorySpace": "0x9ae5478f084ad3b841da58a9cb2354d153cddec59ee64d0cb741fa9d08884531"
+  },
+  "eip712": {
+    "name": "AgentMemoryState",
+    "version": "1",
+    "chainId": "1",
+    "verifyingContract": "0x4444444444444444444444444444444444444444",
+    "domainSeparator": "0xc8e1b4a128b4de377427c24ccea92cac6d7c77f8fe55f4b2984432bbc3b3d5b9"
+  },
+  "space": {
+    "controller": "0x2222222222222222222222222222222222222222",
+    "authorizer": "0x3333333333333333333333333333333333333333",
+    "salt": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+    "registrationId": "0x7bea30aa6018c9c8a3e66bd9573377af482dc791994af8c50698e3fc9d4e5d64"
+  },
+  "chain": [
+    {
+      "label": "genesis-minimal",
+      "exercises": "Genesis: sequence 1 on a fresh Space, prevStateRoot = 0, no optional commitments.",
+      "delta": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "1",
+        "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "deltaCommitment": "0x5b47b6772009b9c4ea1208e864bcf93b7e72d54f7b5d9cb10c9b28d7dd2618f3",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0xf4db3f0dd4575042d810d3d0138aeb4db0204b2c07c67e6ee92b61e60cf12b43",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "witness": {
+        "payload": "{\"op\":\"upsert\",\"resourceId\":\"memory-1\",\"value\":\"first write\"}",
+        "payloadEncoding": "utf-8",
+        "deltaSalt": "0xe2bc4b74f00ef81c6eddb35dc834b8fde6b8153a4f5df3650061e1a483c70845",
+        "provenance": null,
+        "provenanceSalt": null,
+        "locator": null,
+        "locatorSalt": null
+      },
+      "expected": {
+        "transitionId": "0xbf09658a69f4ddee84793bfa631678be2b9558027bb23d5eb0d392da3807766f",
+        "nextStateRoot": "0x8c7d75419fa306ebc9452e305da7dd45fb57764ed41357adbc63f1ed0b2e787c",
+        "signingDigest": "0x74da0c09343a94c0246fe4f78799b29a69fa16ce46c524bf89d00db8d5f6bcb6"
+      }
+    },
+    {
+      "label": "with-provenance",
+      "exercises": "provenanceCommitment present, locatorCommitment absent (zero).",
+      "delta": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "2",
+        "prevStateRoot": "0x8c7d75419fa306ebc9452e305da7dd45fb57764ed41357adbc63f1ed0b2e787c",
+        "deltaCommitment": "0xd01fb61bfccd5945554099dc863ce9c50982ad2cb96c6887d661e79499e2880b",
+        "provenanceCommitment": "0x1d13ad773713076aabd27cfc01ad30420be2a49d47188897edecc60c376f566d",
+        "profileId": "0xf4db3f0dd4575042d810d3d0138aeb4db0204b2c07c67e6ee92b61e60cf12b43",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "witness": {
+        "payload": "{\"op\":\"upsert\",\"resourceId\":\"memory-2\",\"value\":\"written because of a verdict\"}",
+        "payloadEncoding": "utf-8",
+        "deltaSalt": "0xe1dcf36eec213df795a22db61d1b76879fbebeca618464bf33b243e675030ac4",
+        "provenance": "{\"attestation_refs\":[{\"scheme\":\"example/v0\",\"ref\":\"0x01\"}]}",
+        "provenanceSalt": "0x4e2f39c9a1b4ae1d72e035add72c5a487d9075a50a73af1822078f8213a71161",
+        "locator": null,
+        "locatorSalt": null
+      },
+      "expected": {
+        "transitionId": "0xf0f3638f6e490eec5a0c68881a3a1aee2bbb97f80ea59970a7450a8a88eee135",
+        "nextStateRoot": "0xc6da1121e8fa4687a007bd82706934b1f1cf66d25c7e1d5fe81a3cd21b5df0e8",
+        "signingDigest": "0x5a63d87fe53357ccfb2b2b1498d21438770419f8c28ca03e887c2796e2f447fd"
+      }
+    },
+    {
+      "label": "with-locator",
+      "exercises": "locatorCommitment present, provenanceCommitment absent (zero).",
+      "delta": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "3",
+        "prevStateRoot": "0xc6da1121e8fa4687a007bd82706934b1f1cf66d25c7e1d5fe81a3cd21b5df0e8",
+        "deltaCommitment": "0x9071981d9c98d82cbde9086b51243a05b5a7526eac4219239f366775dc68e614",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0x12f847bb4c61f33cb8f64a27a1ab87f9df0672b14b0200790155f8a468ebf3cc",
+        "locatorCommitment": "0x06a0484b91d9f80f5735618e76e5b60519ea31f43b505b975991d8d681d11257"
+      },
+      "witness": {
+        "payload": "{\"op\":\"upsert\",\"resourceId\":\"memory-3\",\"value\":\"stored off chain\"}",
+        "payloadEncoding": "utf-8",
+        "deltaSalt": "0x413cd6a9994f5f5ad681392fb763ea758683b44c3e27d7438074f34c188dae24",
+        "provenance": null,
+        "provenanceSalt": null,
+        "locator": "ipfs://bafybeigdyrzt5example",
+        "locatorSalt": "0xa2376e8893b77fb4787d0b7425d48de74475d1b818d8ba695c757157a05b5253"
+      },
+      "expected": {
+        "transitionId": "0xd3f8c0c5f64e89220e4e5deeeba15c27a46d13093e87249752f0e2e691e87ab3",
+        "nextStateRoot": "0x22e40c77f32baa0f3fa278735f00513142137ba9b84894e863b73b870bc57683",
+        "signingDigest": "0x8c137d8fd64dc249b2c25c77395166136f2c6a1b85e11beb8577a40459b13b5f"
+      }
+    },
+    {
+      "label": "with-both",
+      "exercises": "Both optional commitments present in one delta.",
+      "delta": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "4",
+        "prevStateRoot": "0x22e40c77f32baa0f3fa278735f00513142137ba9b84894e863b73b870bc57683",
+        "deltaCommitment": "0x2e6da5063d794640679c5d0dca6fe35e745ff3490ebefa8094787b1b5a976726",
+        "provenanceCommitment": "0xc1cf0c619d97feced08c57872d153d2400c7933847076f973b824c0a308516f8",
+        "profileId": "0x12f847bb4c61f33cb8f64a27a1ab87f9df0672b14b0200790155f8a468ebf3cc",
+        "locatorCommitment": "0x1dd20f022131eb2a4a931b763b271e7837c82019967aceb5751408b21e3fc4f7"
+      },
+      "witness": {
+        "payload": "{\"op\":\"upsert\",\"resourceId\":\"memory-4\",\"value\":\"both optional fields\"}",
+        "payloadEncoding": "utf-8",
+        "deltaSalt": "0x7cfd57eab48018779d7ebb31d04428f0fead3da3d5af40a35e4dd5db165f249c",
+        "provenance": "{\"attestation_refs\":[{\"scheme\":\"example/v0\",\"ref\":\"0x02\"}]}",
+        "provenanceSalt": "0x35aef5530904c0368215ec7e1afd15ec4483ef9e3803443bb5bc11cf01be0bbd",
+        "locator": "ipfs://bafybeigdyrzt5other",
+        "locatorSalt": "0x4c3e91796f868ef820956e4fa0a4b8518f9b9bbafe7045488e18b812df982b4f"
+      },
+      "expected": {
+        "transitionId": "0x58391637ee612d8428950f1719fb9f748997beadda9d99ed44a4d945badd8b95",
+        "nextStateRoot": "0x78c1d1160970583c54c471630b5ed600bea15009ace4341f935c5ffebcf41470",
+        "signingDigest": "0xb3bc152579f83c409d6577a912f400abec29c1bf17f0ce92e3b726e9fa065a5b"
+      }
+    },
+    {
+      "label": "profile-change",
+      "exercises": "profileId changes mid-chain: a Space is not pinned to one profile, and the registry does not interpret profileId at all.",
+      "delta": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "5",
+        "prevStateRoot": "0x78c1d1160970583c54c471630b5ed600bea15009ace4341f935c5ffebcf41470",
+        "deltaCommitment": "0x6f796f589f4dc5434ff561bf7ddf6f55b7034d33df0a7c01b188a290966d13ce",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0x61a33f1af37c9d185da54ea55f5bfc962210d12be56971beb100f817d1bf5b91",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "witness": {
+        "payload": "{\"op\":\"delete\",\"resourceId\":\"memory-1\"}",
+        "payloadEncoding": "utf-8",
+        "deltaSalt": "0xc796c7e0bef66a3e93a5e3fdcee8b9afaa607e4b5d71d5670d608f8826aafc5a",
+        "provenance": null,
+        "provenanceSalt": null,
+        "locator": null,
+        "locatorSalt": null
+      },
+      "expected": {
+        "transitionId": "0x9a3c0991f44d8ca53d8d6c2c1335ee41ced0ee3d1326d05a8263e2de08d4f795",
+        "nextStateRoot": "0x117eef97c73e70f84c51dd4b1d2b8a54afc3c07991b15417b23bb2d9fcec1915",
+        "signingDigest": "0xe54a675b6a65b45c69d7843bcdbcae6d8450faad97c62c45db5012359649ed40"
+      }
+    }
+  ],
+  "rejections": [
+    {
+      "name": "UnknownSpace",
+      "target": "commitTransition",
+      "signature": "UnknownSpace()",
+      "input": {
+        "spaceId": "0xc4f05be744a3f4b7886c2ce3495b645c680ed2c498edab010a5d1f983c462980",
+        "sequence": "6",
+        "prevStateRoot": "0x117eef97c73e70f84c51dd4b1d2b8a54afc3c07991b15417b23bb2d9fcec1915",
+        "deltaCommitment": "0x3d09a0e4cefa3ed0c94c7a1c7b902d2a4d638e167274c8c156ecf042262c5033",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0xf4db3f0dd4575042d810d3d0138aeb4db0204b2c07c67e6ee92b61e60cf12b43",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "why": "Committing into a Space that was never registered.",
+      "checkedBefore": "Every delta-field check: an unregistered Space is rejected before deltaCommitment or profileId are inspected.",
+      "selector": "0x1b7779a8"
+    },
+    {
+      "name": "ZeroDeltaCommitment",
+      "target": "commitTransition",
+      "signature": "ZeroDeltaCommitment()",
+      "input": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "6",
+        "prevStateRoot": "0x117eef97c73e70f84c51dd4b1d2b8a54afc3c07991b15417b23bb2d9fcec1915",
+        "deltaCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0xf4db3f0dd4575042d810d3d0138aeb4db0204b2c07c67e6ee92b61e60cf12b43",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "why": "A zero deltaCommitment would commit to nothing; zero is reserved as the absent marker for the optional fields.",
+      "checkedBefore": "profileId, sequence, prevStateRoot.",
+      "selector": "0xeea004b3"
+    },
+    {
+      "name": "ZeroProfileId",
+      "target": "commitTransition",
+      "signature": "ZeroProfileId()",
+      "input": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "6",
+        "prevStateRoot": "0x117eef97c73e70f84c51dd4b1d2b8a54afc3c07991b15417b23bb2d9fcec1915",
+        "deltaCommitment": "0x3d09a0e4cefa3ed0c94c7a1c7b902d2a4d638e167274c8c156ecf042262c5033",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "why": "profileId is mandatory: it is how a consumer knows how to interpret deltaCommitment.",
+      "checkedBefore": "sequence, prevStateRoot.",
+      "selector": "0x4f0ebc85"
+    },
+    {
+      "name": "BadSequence (skips ahead)",
+      "target": "commitTransition",
+      "signature": "BadSequence(uint64,uint64)",
+      "input": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "7",
+        "prevStateRoot": "0x117eef97c73e70f84c51dd4b1d2b8a54afc3c07991b15417b23bb2d9fcec1915",
+        "deltaCommitment": "0x3d09a0e4cefa3ed0c94c7a1c7b902d2a4d638e167274c8c156ecf042262c5033",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0xf4db3f0dd4575042d810d3d0138aeb4db0204b2c07c67e6ee92b61e60cf12b43",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expectedArgs": {
+        "expected": "6",
+        "received": "7"
+      },
+      "why": "Sequence must be exactly head + 1. A gap would make the history unverifiable without out-of-band knowledge of what is missing.",
+      "checkedBefore": "prevStateRoot.",
+      "selector": "0x607f66d9"
+    },
+    {
+      "name": "BadSequence (replays a committed sequence)",
+      "target": "commitTransition",
+      "signature": "BadSequence(uint64,uint64)",
+      "input": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "5",
+        "prevStateRoot": "0x117eef97c73e70f84c51dd4b1d2b8a54afc3c07991b15417b23bb2d9fcec1915",
+        "deltaCommitment": "0x3d09a0e4cefa3ed0c94c7a1c7b902d2a4d638e167274c8c156ecf042262c5033",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0xf4db3f0dd4575042d810d3d0138aeb4db0204b2c07c67e6ee92b61e60cf12b43",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expectedArgs": {
+        "expected": "6",
+        "received": "5"
+      },
+      "why": "Re-committing at an already-used sequence. This is the case that makes TransitionAlreadyExists unreachable in practice — see notes.transitionAlreadyExists.",
+      "checkedBefore": "prevStateRoot.",
+      "selector": "0x607f66d9"
+    },
+    {
+      "name": "BadPreviousState",
+      "target": "commitTransition",
+      "signature": "BadPreviousState(bytes32,bytes32)",
+      "input": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "6",
+        "prevStateRoot": "0x8c7d75419fa306ebc9452e305da7dd45fb57764ed41357adbc63f1ed0b2e787c",
+        "deltaCommitment": "0x3d09a0e4cefa3ed0c94c7a1c7b902d2a4d638e167274c8c156ecf042262c5033",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0xf4db3f0dd4575042d810d3d0138aeb4db0204b2c07c67e6ee92b61e60cf12b43",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expectedArgs": {
+        "expected": "0x117eef97c73e70f84c51dd4b1d2b8a54afc3c07991b15417b23bb2d9fcec1915",
+        "received": "0x8c7d75419fa306ebc9452e305da7dd45fb57764ed41357adbc63f1ed0b2e787c"
+      },
+      "why": "Correct sequence but a prior root from earlier in the chain: the linkage check is what forbids forking a Space's history.",
+      "checkedBefore": "transitionId computation and authorization.",
+      "selector": "0x559eba4d"
+    },
+    {
+      "name": "InvalidAuthorization (wrong signer)",
+      "target": "commitTransition",
+      "signature": "InvalidAuthorization()",
+      "input": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "6",
+        "prevStateRoot": "0x117eef97c73e70f84c51dd4b1d2b8a54afc3c07991b15417b23bb2d9fcec1915",
+        "deltaCommitment": "0x3d09a0e4cefa3ed0c94c7a1c7b902d2a4d638e167274c8c156ecf042262c5033",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0xf4db3f0dd4575042d810d3d0138aeb4db0204b2c07c67e6ee92b61e60cf12b43",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "authorization": "A 65-byte ECDSA signature that recovers to an address other than the Space authorizer.",
+      "why": "Authorization is checked against the Space's recorded authorizer, not the caller.",
+      "checkedBefore": "State mutation: a rejected transition leaves the head untouched.",
+      "selector": "0x2ce87eeb"
+    },
+    {
+      "name": "InvalidAuthorization (malformed length)",
+      "target": "commitTransition",
+      "signature": "InvalidAuthorization()",
+      "input": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "sequence": "6",
+        "prevStateRoot": "0x117eef97c73e70f84c51dd4b1d2b8a54afc3c07991b15417b23bb2d9fcec1915",
+        "deltaCommitment": "0x3d09a0e4cefa3ed0c94c7a1c7b902d2a4d638e167274c8c156ecf042262c5033",
+        "provenanceCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "profileId": "0xf4db3f0dd4575042d810d3d0138aeb4db0204b2c07c67e6ee92b61e60cf12b43",
+        "locatorCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "authorization": "A signature whose length is neither 0 (direct call) nor 65.",
+      "why": "Length is guarded before recovery so a malformed signature is a clean rejection rather than an abort inside ECDSA.recover.",
+      "selector": "0x2ce87eeb"
+    },
+    {
+      "name": "ZeroSpaceId",
+      "target": "registerSpace",
+      "signature": "ZeroSpaceId()",
+      "input": {
+        "spaceId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "controller": "0x2222222222222222222222222222222222222222",
+        "authorizer": "0x3333333333333333333333333333333333333333",
+        "salt": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "why": "Zero is not a valid namespace.",
+      "selector": "0xf09c6069"
+    },
+    {
+      "name": "ZeroAddress",
+      "target": "registerSpace",
+      "signature": "ZeroAddress()",
+      "input": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "controller": "0x0000000000000000000000000000000000000000",
+        "authorizer": "0x3333333333333333333333333333333333333333",
+        "salt": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "why": "A Space with a zero controller could never be administered or rotated.",
+      "checkedBefore": "The spaceId derivation check.",
+      "selector": "0xd92e233d"
+    },
+    {
+      "name": "InvalidSpaceId",
+      "target": "registerSpace",
+      "signature": "InvalidSpaceId(bytes32,bytes32)",
+      "input": {
+        "spaceId": "0x3f6577840453b94b451b7eadb9c46cbb5c0cd63f9c16d9fd67f154042dd7d30a",
+        "controller": "0x2222222222222222222222222222222222222222",
+        "authorizer": "0x3333333333333333333333333333333333333333",
+        "salt": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "expectedArgs": {
+        "expected": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "received": "0x3f6577840453b94b451b7eadb9c46cbb5c0cd63f9c16d9fd67f154042dd7d30a"
+      },
+      "why": "spaceId MUST equal deriveSpaceId(controller, salt): a Space id is a commitment to who created it, not a name anyone may claim.",
+      "selector": "0x83034ee3"
+    },
+    {
+      "name": "SpaceAlreadyRegistered",
+      "target": "registerSpace",
+      "signature": "SpaceAlreadyRegistered()",
+      "input": {
+        "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+        "controller": "0x2222222222222222222222222222222222222222",
+        "authorizer": "0x3333333333333333333333333333333333333333",
+        "salt": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "why": "Re-registering an existing Space would reset its head — the one operation that could erase a history without leaving a trace.",
+      "precondition": "The Space from `space` has already been registered.",
+      "selector": "0x7102b336"
+    }
+  ],
+  "notes": {
+    "transitionAlreadyExists": "The reference registry defines TransitionAlreadyExists(), but it is not reachable through commitTransition: transitionId binds sequence and prevStateRoot, both of which are checked against the head first, so a duplicate id requires a head that has not advanced — impossible after a successful commit. It is retained as defence in depth. An implementation is not required to produce this error, but MUST NOT let a duplicate transitionId overwrite a stored transition. No vector is supplied because none can be constructed; saying so explicitly is better than leaving an implementer to hunt for one.",
+    "authorizationPaths": "Three authorization paths exist and only the first is exercised by a pure recomputation: direct call (msg.sender == authorizer and an empty signature), ERC-1271 (contract authorizer), and 65-byte ECDSA. The signingDigest published per chain entry is what an ECDSA authorizer signs; signatures themselves are not published because they depend on a private key an implementer should supply for their own tests.",
+    "saltSecrecy": "Every salt here is public and derived from a label. That is correct for test vectors and wrong for deployments: a commitment over a low-entropy payload hides nothing once its salt is known."
+  },
+  "v1Reference": {
+    "note": "v1 is not superseded; its single-delta values are restated here so an implementer can confirm both files describe the same protocol. v2 uses the same Space as v1 — identical controller and salt, therefore an identical spaceId — but different payloads and salts, so v1's transitionId is not the same as this chain's sequence-1 transitionId. Both are correct: a transitionId binds the commitments, not just the position.",
+    "sameSpaceIdAsV1": true,
+    "transitionId": "0xdd00dd6eb3aec704b5455502647a0caacf23be6c724eda4a60d9645291e7f4e5",
+    "nextStateRoot": "0x9684a8d3571c5cd9c1e3abb1b0c0797b9fef6965e9002aeefba91e8cb1163754",
+    "domainSeparator": "0xc8e1b4a128b4de377427c24ccea92cac6d7c77f8fe55f4b2984432bbc3b3d5b9",
+    "typehashesMatch": true
+  }
+}

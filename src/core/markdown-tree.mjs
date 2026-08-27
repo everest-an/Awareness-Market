@@ -80,12 +80,20 @@ export function dateBucket(dateISO) {
  * @param {{ category?: string, title?: string, created_at?: string }} card
  * @returns {{ relPath: string, absPath: string, slug: string }}
  */
+// relPath is an identifier, not a filesystem path, so it is built with path.posix
+// while absPath keeps path.join. The two are not interchangeable on Windows: path.join
+// yields `cards\2026\04\x.md`, and wiki-generator.mjs groups by directory with
+// `relPath.includes('/')` / `lastIndexOf('/')`, which silently finds nothing. The same
+// value also travels into markdown links, cross-device sync, and Obsidian wikilinks,
+// none of which accept a backslash. A card written on Windows was therefore unfindable
+// from any other platform — and the round-trip tests that would have said so had been
+// red long enough to read as normal.
 export function resolveCardPath(awarenessDir, card) {
   const { year, month, ymd } = dateBucket(card.created_at);
   const cat = slugify(card.category || 'insight');
   const titleSlug = slugify(card.title || '');
   const slug = `${ymd}-${cat}-${titleSlug}`;
-  const relPath = path.join(SUBDIRS.cards, year, month, `${slug}.md`);
+  const relPath = path.posix.join(SUBDIRS.cards, year, month, `${slug}.md`);
   return {
     relPath,
     absPath: path.join(awarenessDir, relPath),
@@ -98,7 +106,7 @@ export function resolveCardPath(awarenessDir, card) {
  */
 export function resolveTopicPath(awarenessDir, topicName) {
   const slug = slugify(topicName);
-  const relPath = path.join(SUBDIRS.topics, `${slug}.md`);
+  const relPath = path.posix.join(SUBDIRS.topics, `${slug}.md`);
   return { relPath, absPath: path.join(awarenessDir, relPath), slug };
 }
 
@@ -107,7 +115,7 @@ export function resolveTopicPath(awarenessDir, topicName) {
  */
 export function resolveJournalPath(awarenessDir, dateISO) {
   const { ymd } = dateBucket(dateISO);
-  const relPath = path.join(SUBDIRS.journal, `${ymd}.md`);
+  const relPath = path.posix.join(SUBDIRS.journal, `${ymd}.md`);
   return { relPath, absPath: path.join(awarenessDir, relPath), slug: ymd };
 }
 
@@ -116,7 +124,7 @@ export function resolveJournalPath(awarenessDir, dateISO) {
  */
 export function resolveEntityPath(awarenessDir, entityName) {
   const slug = slugify(entityName);
-  const relPath = path.join(SUBDIRS.entities, `${slug}.md`);
+  const relPath = path.posix.join(SUBDIRS.entities, `${slug}.md`);
   return { relPath, absPath: path.join(awarenessDir, relPath), slug };
 }
 

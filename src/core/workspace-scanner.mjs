@@ -58,6 +58,9 @@ export function getCurrentCommit(projectDir) {
       encoding: 'utf8',
       timeout: 10000,
       stdio: ['pipe', 'pipe', 'pipe'],
+      // Without this the detached daemon pops a console window on Windows
+      // every time it scans. stdio is already piped, so nothing is lost.
+      windowsHide: true,
     }).trim();
   } catch {
     return null;
@@ -102,7 +105,7 @@ export function getGitChanges(projectDir, lastCommit) {
   try {
     const output = execSync(
       `git diff --name-status -M ${lastCommit}..HEAD`,
-      { cwd: projectDir, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
+      { cwd: projectDir, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true }
     );
     return parseGitDiffOutput(output);
   } catch {

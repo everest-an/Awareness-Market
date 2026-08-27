@@ -176,9 +176,9 @@ describe('F-056 extraction prompt composition', () => {
 describe('F-056 per-language template fidelity', () => {
   it('every template file is wired into at least one surface (live-or-die)', async () => {
     const fs = await import('node:fs');
+    const fsp = await import('node:fs/promises');
     const path = await import('node:path');
     const url = await import('node:url');
-    const { execSync } = await import('node:child_process');
 
     const here = path.dirname(url.fileURLToPath(import.meta.url));
     const repoRoot = path.resolve(here, '..', '..', '..');
@@ -187,25 +187,63 @@ describe('F-056 per-language template fidelity', () => {
 
     assert.ok(files.length > 0, 'expected at least one template .md');
 
-    // For each template, grep every surface for its BEGIN marker. A
+    // For each template, scan every surface for its BEGIN marker. A
     // template with zero hits is a dead template and must be deleted or
     // wired per sdks/_shared/prompts/README.md "live-or-die rule".
-    const orphans = [];
-    for (const file of files) {
-      const slot = file.replace(/\.md$/, '');
-      let hits = 0;
+    //
+    // Implementation note: this deliberately does NOT shell out to `grep`.
+    // On Windows there is no `grep` in the default PATH, so execSync would
+    // throw and every template would be misreported as an orphan — a false
+    // red that hid real drift and masked genuinely wired templates. A
+    // portable recursive scan over the same roots (sdks/ + backend/, minus
+    // node_modules/.git/_shared/prompts) gives identical results on every
+    // platform and fails loudly instead of silently zeroing hits.
+    const SURFACE_ROOTS = ['sdks', 'backend'];
+    const SKIP_DIRS = new Set(['node_modules', '.git', '.stryker-tmp']);
+    const wiredMarkers = new Map(); // slot -> Set<file>
+
+    async function walk(root, rel = '') {
+      const abs = path.join(root, rel);
+      let entries;
       try {
-        // grep returns non-zero exit when there are no matches — swallow it.
-        const stdout = execSync(
-          `grep -rl "SHARED:${slot} BEGIN" sdks/ backend/ 2>/dev/null | grep -v "_shared/prompts/" || true`,
-          { cwd: repoRoot, encoding: 'utf8' },
-        );
-        hits = stdout.split('\n').filter(Boolean).length;
+        entries = await fsp.readdir(abs, { withFileTypes: true });
       } catch {
-        hits = 0;
+        return;
       }
-      if (hits === 0) orphans.push(slot);
+      for (const entry of entries) {
+        const childRel = rel ? path.join(rel, entry.name) : entry.name;
+        if (entry.isDirectory()) {
+          if (SKIP_DIRS.has(entry.name)) continue;
+          await walk(root, childRel);
+        } else if (entry.isFile()) {
+          // Scan every text file (JS/TS/PY/MD/JSON...), not just .md —
+          // slot markers live in code surfaces too (extraction-instruction.mjs,
+          // recall.js, tools.ts, ...). The original grep-based implementation
+          // matched all files; the portable scan must do the same.
+          let content;
+          try {
+            content = await fsp.readFile(path.join(abs, entry.name), 'utf8');
+          } catch {
+            continue; // binary / non-UTF8 file — no marker can live there
+          }
+          for (const file of files) {
+            const slot = file.replace(/\.md$/, '');
+            if (content.includes(`SHARED:${slot} BEGIN`)) {
+              if (!wiredMarkers.has(slot)) wiredMarkers.set(slot, new Set());
+              wiredMarkers.get(slot).add(path.relative(repoRoot, path.join(abs, entry.name)));
+            }
+          }
+        }
+      }
     }
+
+    for (const root of SURFACE_ROOTS) {
+      await walk(path.join(repoRoot, root));
+    }
+
+    const orphans = files
+      .map((f) => f.replace(/\.md$/, ''))
+      .filter((slot) => !wiredMarkers.has(slot));
 
     assert.deepEqual(
       orphans,

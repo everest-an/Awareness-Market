@@ -204,7 +204,7 @@ export function buildInitResult({
     }
   } catch { /* graph tables may not exist yet */ }
 
-  // Field shape stays stable for downstream clients (setup-cli, AwarenessClaw,
+  // Field shape stays stable for downstream clients (setup-cli, OCT-Agent,
   // cloud SDKs). Previously-heavy fields are preserved as empty values so
   // `result.init_guides?.write_guide` etc. still resolve (to undefined),
   // instead of throwing on missing property access.

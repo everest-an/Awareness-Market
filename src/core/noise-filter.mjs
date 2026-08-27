@@ -81,6 +81,41 @@ const DROP_LINE_PATTERNS = [
 // Greeting-only (single-line)
 const GREETING_PATTERN = /^\s*(hi|hello|hey|thanks|thank you|ok|okay|yes|no|sure)[\s!.?]*$/i;
 
+// ---- F-064: External-chat UI chrome (source-aware) -------------------------
+// Browser captures from 豆包 / Gemini / ChatGPT / DeepSeek / 元宝 drag in
+// button labels and AI-disclaimer boilerplate. These are only stripped when
+// source === 'external_chat', so IDE/MCP writes are never touched.
+const EXTERNAL_CHAT_UI_NOISE_PATTERNS = [
+  /重新生成/g,
+  /复制代码/g,
+  /复制/g,
+  /分享/g,
+  /点赞/g,
+  /踩/g,
+  /内容由\s*AI\s*生成[,，]?\s*请仔细甄别/gi,
+  /以上内容由\s*AI\s*生成/gi,
+  /\bregenerate( response)?\b/gi,
+  /\bcopy code\b/gi,
+  /\bcopy\b/gi,
+  /\bshare\b/gi,
+  /\bgood response\b/gi,
+  /\bbad response\b/gi,
+  /\bAI-generated, for reference only\b/gi,
+];
+
+/**
+ * Strip external-chat UI chrome from content. Returns the residual text.
+ * @param {string} raw
+ * @returns {string}
+ */
+function stripExternalChatChrome(raw) {
+  let text = String(raw || '');
+  for (const pat of EXTERNAL_CHAT_UI_NOISE_PATTERNS) {
+    text = text.replace(pat, ' ');
+  }
+  return text.replace(/\s+/g, ' ').trim();
+}
+
 // ---- Helpers ---------------------------------------------------------------
 
 function stripMarkdownPrefix(content) {
@@ -159,6 +194,16 @@ export function classifyNoiseEvent(params = {}) {
 
   if (!trimmedRaw) {
     return 'empty_content filtered';
+  }
+
+  // --- F-064: External-chat UI chrome (source-aware) ---
+  // Only applies to browser-bridge captures. If the content is nothing but
+  // button labels / AI disclaimers, drop it before it poisons recall.
+  if (String(params.source || '') === 'external_chat' && !hasStructuredInsights) {
+    const residual = stripExternalChatChrome(trimmedRaw);
+    if (countMeaningfulChars(residual) < MIN_MEANINGFUL_CHARS) {
+      return 'external_chat_ui_noise filtered';
+    }
   }
 
   // --- B-004 / 0.7.3: System metadata prefix — hard block ---

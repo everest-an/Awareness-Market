@@ -14,6 +14,140 @@
  */
 
 import { scanDraft } from '../../core/secret-scanner.mjs';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Read an F-075 / D17 SSOT template from sdks/_shared/prompts/ at runtime.
+ * The template is the canonical instruction set; the sync script
+ * (scripts/sync-shared-prompts.mjs) fans it into the marker block above as
+ * documentation, and this loader reads the same file so the host-LLM prompt
+ * and the template can never drift. Returns null if the template is missing
+ * (degrade to historical hand-written instructions, never fail the flow).
+ */
+function loadTemplate(name) {
+  const repoRoot = path.resolve(HERE, '..', '..', '..', '..', '..');
+  const templatePath = path.join(repoRoot, 'sdks', '_shared', 'prompts', `${name}.md`);
+  try {
+    const raw = readFileSync(templatePath, 'utf8');
+    // Strip the leading HTML meta-comment (same rule the sync script uses).
+    return raw.replace(/^<!--[\s\S]*?-->\s*/m, '').trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * F-075 / D17 SSOT slots — managed by scripts/sync-shared-prompts.mjs.
+ * The templates in sdks/_shared/prompts/ are the canonical instruction sets
+ * for the vibe-publish flow; the sync script fans them into the markers below
+ * (as documentation), and loadPublishTemplate/loadSecretScannerTemplate read
+ * the same files at runtime so the host-LLM prompt and the templates can
+ * never drift apart. Do not hand-edit the injected blocks.
+ *
+ * <!-- SHARED:publish BEGIN -->
+## Vibe-Publish Manifest Synthesis
+
+Given:
+- \`captured_context\`: the last N turns of the current session (tool calls, user messages, produced artifacts)
+- \`candidate_skill_md\`: an auto-extracted SKILL.md skeleton (may be empty)
+- \`kind\`: either \`agent\` or \`memory_pack\`
+
+Produce a single JSON object named \`publish_draft\` with this shape:
+
+\`\`\`
+{
+  "kind": "agent" | "memory_pack",
+  "slug": "<kebab-case, 3-48 chars, ascii only>",
+  "version": "0.1.0",
+  "title": "<short human title in original language>",
+  "tagline": "<one-line pitch, ≤120 chars>",
+  "description": "<markdown body, 400-1200 chars — what it does, when to use, prerequisites>",
+  "category": "onboarding|workflow|expertise|incident|research|personal|other",
+  "tags": ["<3-8 lowercase tags>"],
+  "default_locale": "<bcp47, e.g. 'zh-CN'>",
+  "supported_locales": ["<list including default_locale>"],
+  "i18n": {
+    "en": { "title": "...", "tagline": "...", "description": "..." }
+  },
+  "skill_md": "<final SKILL.md content, ready to ship>",
+  "contents": {
+    "cards": [<IDs of knowledge_cards to bundle — packs only>],
+    "entities": [<canonical_names — packs only>],
+    "facts": [<fact IDs — packs only>]
+  },
+  "compatibility": {
+    "tested_on": ["claude-code", "cursor", ...],
+    "degraded_on": [],
+    "unsupported": []
+  },
+  "attribution": {
+    "upstream_source": "<URL or null>",
+    "upstream_license": "<SPDX id or null>",
+    "upstream_commit": "<sha or null>"
+  }
+}
+\`\`\`
+
+### Rules
+- \`slug\` must be deterministic from \`title\` (lowercase, hyphens, drop stopwords). Do not invent randomness.
+- \`skill_md\` is the canonical deliverable. Keep it under 4 KB; prefer \`Read <url>\` references over inlined procedure.
+- \`description\` in the **original language**; always also populate \`i18n.en\`.
+- \`compatibility.tested_on\` must only list runtimes that actually appear in \`captured_context\` (via \`source_runtime\` or tool-call provenance). Never guess.
+- If \`captured_context\` is too thin (<3 meaningful turns), return \`{ "publish_draft": null, "reason": "insufficient_context" }\` instead of fabricating.
+- Never include secrets, tokens, emails, or absolute filesystem paths — the secret scanner will reject, but you should pre-filter.
+- Attribution: if the session forked an existing agent/pack, carry \`upstream_source\` + \`upstream_license\` through. MIT/Apache-2.0/BSD are OK; GPL/AGPL must be flagged in \`description\`.
+<!-- SHARED:publish END -->
+ *
+ * <!-- SHARED:secret-scanner-rules BEGIN -->
+## Secret / PII Scan Rules (pre-publish)
+
+Before emitting \`publish_draft\`, scan \`skill_md\`, \`description\`, \`contents\`, and any embedded code blocks. If ANY match, set \`secret_scan_report.blocked = true\` and include offending category + redacted excerpt.
+
+### Hard blockers (must redact, cannot publish)
+
+| Category | Pattern (examples) |
+|---|---|
+| Generic API key | \`sk-[A-Za-z0-9]{20,}\`, \`AIza[0-9A-Za-z_\\-]{35}\`, \`xox[baprs]-[A-Za-z0-9-]{10,}\` |
+| Cloud creds | \`AKIA[0-9A-Z]{16}\`, \`ASIA[0-9A-Z]{16}\`, GCP service-account JSON blocks |
+| GitHub | \`gh[pousr]_[A-Za-z0-9]{36,}\`, \`github_pat_[A-Za-z0-9_]{80,}\` |
+| npm / PyPI / ClawHub | \`npm_[A-Za-z0-9]{36}\`, \`pypi-AgEI[A-Za-z0-9_\\-]+\`, \`clh_[A-Za-z0-9_\\-]+\` |
+| Anthropic / OpenAI | \`sk-ant-[A-Za-z0-9_\\-]+\`, \`sk-proj-[A-Za-z0-9_\\-]+\` |
+| Private keys | \`-----BEGIN (RSA|EC|OPENSSH|PGP) PRIVATE KEY-----\` |
+| JWT | \`eyJ[A-Za-z0-9_\\-]+\\.[A-Za-z0-9_\\-]+\\.[A-Za-z0-9_\\-]+\` |
+| DB URL with password | \`postgres(ql)?://[^:]+:[^@]+@\`, \`mongodb(\\+srv)?://[^:]+:[^@]+@\`, \`redis://[^:]+:[^@]+@\` |
+| Generic "secret-like" | \`(password|passwd|secret|token|api[_-]?key)\\s*[:=]\\s*["']?[A-Za-z0-9_\\-]{16,}\` |
+
+### Soft warnings (allow but flag for reviewer)
+
+| Category | Example |
+|---|---|
+| Email addresses | personal emails, not \`@example.com\` |
+| Absolute file paths | \`/Users/<name>/...\`, \`/home/<name>/...\`, \`C:\\\\Users\\\\<name>\\\\...\` |
+| IP addresses | non-RFC1918 IPv4 |
+| Internal hostnames | \`*.internal\`, \`*.corp\`, \`*.lan\` |
+| Phone numbers | E.164 format |
+
+### Redaction strategy
+Replace the full match with \`<REDACTED:<category>>\`. Keep a 4-char prefix for log triage, e.g. \`sk-a****<REDACTED:anthropic_key>\`.
+
+### Output shape (attach to publish_draft)
+\`\`\`
+"secret_scan_report": {
+  "blocked": false,
+  "hard_hits": [],
+  "soft_hits": [
+    { "category": "absolute_path", "excerpt": "/Users/<REDACTED>/Awareness/..." }
+  ]
+}
+\`\`\`
+
+If \`blocked: true\`, the backend rejects the draft with \`ERR_SECRET_BLOCKED\` and the author sees the category list (never the raw secret).
+<!-- SHARED:secret-scanner-rules END -->
+ */
 
 /**
  * Assemble the context bundle from the daemon's current session state.
@@ -94,6 +228,25 @@ export function assembleContextBundle({ daemon, slug, description }) {
  *   }
  */
 export function synthesisInstructions(slug, description) {
+  const publishTemplate = loadTemplate('publish');
+  const scannerTemplate = loadTemplate('secret-scanner-rules');
+  if (publishTemplate) {
+    // F-075 / D17 SSOT: the canonical instruction set + secret rules come
+    // from sdks/_shared/prompts/. The templates are richer than the
+    // historical hand-written fallback (i18n.en, contents, compatibility,
+    // attribution, insufficient_context degradation), so prefer them whenever
+    // they are present.
+    return [
+      'You are about to publish an agent or pack to the Awareness Marketplace.',
+      `User-supplied slug: ${slug}`,
+      description ? `User-supplied description: ${description}` : '',
+      '',
+      publishTemplate,
+      scannerTemplate ? `\n${scannerTemplate}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
   return [
     'You are about to publish an agent or pack to the Awareness Marketplace.',
     `User-supplied slug: ${slug}`,

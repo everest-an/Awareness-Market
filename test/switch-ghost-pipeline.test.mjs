@@ -96,10 +96,19 @@ test('switch A→B→C with active graph-embedder pipelines does not flood log w
   seedWorkspace(wsB, 200);
   seedWorkspace(wsC, 200);
 
+  // Sandbox the workspace registry. This test spawns the real CLI and performs
+  // four registrations per run (daemon root + A/B/C); with no isolation at all
+  // it wrote every one of them into the developer's real registry — 196 of one
+  // machine's 308 entries came from 49 runs of this file. Unlike the other
+  // suites it never even set HOME, so macOS and Linux leaked too.
+  const sandboxHome = path.join(root, 'home');
+  fs.mkdirSync(sandboxHome, { recursive: true });
+
   const logStream = fs.openSync(logFile, 'w');
   const child = spawn(process.execPath, [CLI, 'start', '--foreground', '--project', daemonRoot, '--port', String(PORT)], {
-    stdio: ['ignore', logStream, logStream],
+    stdio: ['ignore', logStream, logStream], windowsHide: true,
     detached: false,
+    env: { ...process.env, HOME: sandboxHome, USERPROFILE: sandboxHome, AWARENESS_HOME: sandboxHome },
   });
 
   t.after(async () => {

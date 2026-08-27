@@ -236,10 +236,20 @@ async function cmdStart(flags) {
 
   // Record workspace usage (memoryId/lastUsed/name). Port is no longer
   // allocated per-workspace — every workspace shares the default daemon port.
-  try {
-    const { registerWorkspace } = await import('../src/core/config.mjs');
-    registerWorkspace(projectDir, { port });
-  } catch { /* best-effort */ }
+  //
+  // Deliberately NOT called yet. This used to run before the probe below, and
+  // saveWorkspaces() is a synchronous writeFileSync+rename — fully durable
+  // before it returns. So every `start` that immediately exited (already
+  // running, hot-switch, or a failed switch) had still permanently registered
+  // the directory. That is how registries reached thousands of entries: one
+  // throwaway `start` against a temp dir left a row forever. Register only on
+  // the paths where the workspace genuinely becomes active.
+  const recordWorkspace = async () => {
+    try {
+      const { registerWorkspace } = await import('../src/core/config.mjs');
+      registerWorkspace(projectDir, { port });
+    } catch { /* best-effort */ }
+  };
 
   // Single-daemon policy: if an Awareness daemon already runs on this port,
   // switch its active workspace instead of spawning a duplicate on a new port.
@@ -247,9 +257,14 @@ async function cmdStart(flags) {
   if (existing) {
     const existingDir = existing.project_dir ? path.resolve(existing.project_dir) : '';
     if (existingDir === path.resolve(projectDir)) {
+      // Already serving this project — it is genuinely active, so record it.
+      await recordWorkspace();
       console.log(
         `Awareness Local daemon already running (PID ${existing.pid}, port ${port})`
       );
+      // The "already running" branch used to end here. Users who ran `start`
+      // expecting to be told where the UI is got a dead end instead.
+      console.log(`  Dashboard:    http://localhost:${port}/`);
       process.exit(0);
     }
     // Different project on same port → hot-switch.
@@ -257,11 +272,16 @@ async function cmdStart(flags) {
       project_dir: projectDir,
     });
     if (switchRes && switchRes.status === 200) {
+      // The switch succeeded, so this workspace is now the active one.
+      await recordWorkspace();
       console.log(
         `Switched daemon workspace to ${projectDir} (PID ${existing.pid}, port ${port})`
       );
       process.exit(0);
     }
+    // Switch failed — the daemon is serving someone else and we are exiting
+    // with an error. Registering here would leave a row for a workspace that
+    // never became active.
     console.error(
       `[awareness-local] Port ${port} is held by another process but workspace switch failed:\n` +
       `  ${switchRes ? `HTTP ${switchRes.status}: ${switchRes.body.slice(0, 200)}` : 'no response'}\n` +
@@ -269,6 +289,11 @@ async function cmdStart(flags) {
     );
     process.exit(1);
   }
+
+  // No daemon on this port — we are about to become it, so this workspace is
+  // genuinely active. Register before starting so the entry exists even if the
+  // daemon later crashes (the registry is how the UI lists known projects).
+  await recordWorkspace();
 
   if (foreground) {
     // Run in foreground — import daemon and start
@@ -375,6 +400,9 @@ async function cmdStart(flags) {
         detached: true,
         stdio: ['ignore', logFd, logFd],
         cwd: projectDir,
+        // Without this Windows flashes a console window on every daemon start.
+        // Output already goes to the log file, so nothing becomes less visible.
+        windowsHide: true,
         env: { ...process.env },
       }
     );
@@ -416,9 +444,9 @@ async function cmdStart(flags) {
           fs.writeFileSync(firstRunFlag, new Date().toISOString());
           const url = `http://localhost:${port}/`;
           const { exec } = await import('node:child_process');
-          if (process.platform === 'darwin') exec(`open "${url}"`);
-          else if (process.platform === 'linux') exec(`xdg-open "${url}"`);
-          else if (process.platform === 'win32') exec(`start "" "${url}"`);
+          if (process.platform === 'darwin') exec(`open "${url}"`, { windowsHide: true });
+          else if (process.platform === 'linux') exec(`xdg-open "${url}"`, { windowsHide: true });
+          else if (process.platform === 'win32') exec(`start "" "${url}"`, { windowsHide: true });
         } catch { /* ignore open failures */ }
       }
     } else {
@@ -494,7 +522,11 @@ async function cmdStatus(flags) {
       const pidPath = path.join(projectDir, AWARENESS_DIR, PID_FILENAME);
       try { fs.unlinkSync(pidPath); } catch { /* ignore */ }
     }
-    process.exit(0);
+    // Exit non-zero: "not running" is not success. This used to exit 0, so any
+    // script gating on `awareness-local status` — a health check, a CI step, a
+    // wrapper that starts the daemon only if needed — read a dead daemon as a
+    // healthy one and carried on.
+    process.exit(1);
   }
 
   // Fetch health info
@@ -517,13 +549,30 @@ async function cmdStatus(flags) {
     console.log(`  Uptime:          ${uptimeStr}`);
     console.log(`  Project:         ${data.project_dir || projectDir}`);
 
+    // Surface a degraded index prominently. `status` used to print
+    // "Memories: 0" for a completely dead index, which reads exactly like a
+    // fresh workspace — the single most misleading line in this tool.
+    const indexerBroken = data.indexer && data.indexer.ok === false;
+    if (indexerBroken) {
+      console.log('');
+      console.log('  !! INDEX UNAVAILABLE — nothing is being indexed or recalled.');
+      console.log(`     Reason: ${data.indexer.reason || 'unknown'}`);
+      console.log('     The counts below are meaningless while this is broken.');
+      console.log('');
+    }
+
     if (data.stats) {
       const s = data.stats;
-      console.log(`  Memories:        ${s.totalMemories || 0}`);
+      console.log(`  Memories:        ${s.totalMemories || 0}${indexerBroken ? '  (index dead)' : ''}`);
       console.log(`  Knowledge Cards: ${s.totalKnowledge || 0}`);
       console.log(`  Open Tasks:      ${s.totalTasks || 0}`);
       console.log(`  Sessions:        ${s.totalSessions || 0}`);
     }
+
+    // /healthz already reported these; status was discarding them.
+    console.log(`  Search Mode:     ${data.search_mode || 'unknown'}`);
+    console.log(`  Embeddings:      ${data.embedding?.available ? 'available' : 'unavailable (FTS only)'}`);
+    console.log(`  Dashboard:       ${data.ui_url || `http://localhost:${port}/`}`);
 
     // Check cloud sync status
     const awarenessDir = path.join(projectDir, AWARENESS_DIR);
@@ -545,6 +594,45 @@ async function cmdStatus(flags) {
   } catch {
     console.log(`Awareness Local: running (PID ${pid})`);
     console.log(`  Raw response: ${resp.body}`);
+  }
+}
+
+/**
+ * Print the Web UI URL and open it in the default browser.
+ *
+ * The daemon has always served a dashboard on its HTTP port, but no idempotent
+ * surface ever named it — `start` only mentions it on a *fresh* start, and the
+ * first-run auto-open fires exactly once per machine. This command is the
+ * always-available answer to "where is the UI?".
+ */
+async function cmdDashboard(flags) {
+  const projectDir = resolveProjectDir(flags);
+  const port = resolvePort(flags, projectDir);
+
+  const health = await probeAwarenessDaemon(port);
+  if (!health) {
+    console.error(`Awareness Local daemon is not running on port ${port}.`);
+    console.error('Start it first:');
+    console.error('  awareness-local start');
+    process.exit(1);
+  }
+
+  const url = health.ui_url || `http://localhost:${port}/`;
+  console.log(`Awareness Local dashboard: ${url}`);
+  if (health.indexer && health.indexer.ok === false) {
+    console.log(`  !! index unavailable: ${health.indexer.reason || 'unknown'}`);
+  }
+
+  if (flags['no-open'] === true) return;
+
+  try {
+    const { exec } = await import('node:child_process');
+    if (process.platform === 'darwin') exec(`open "${url}"`, { windowsHide: true });
+    else if (process.platform === 'linux') exec(`xdg-open "${url}"`, { windowsHide: true });
+    else if (process.platform === 'win32') exec(`start "" "${url}"`, { windowsHide: true });
+    else console.log('  (open the URL manually — unsupported platform)');
+  } catch {
+    console.log('  (could not launch a browser — open the URL manually)');
   }
 }
 
@@ -682,6 +770,218 @@ async function cmdBenchmark(flags) {
 }
 
 // ---------------------------------------------------------------------------
+// F-088 · anchor — ERC-8350 memory anchoring (status | flush)
+// The private key exists only inside this process for the duration of one flush:
+// prompted with hidden input, never written to disk, never sent to the daemon.
+// ---------------------------------------------------------------------------
+
+async function cmdAnchor(flags) {
+  const sub = process.argv.slice(3).find((a) => !a.startsWith('-')) || 'status';
+  const projectDir = flags.dir ? String(flags.dir) : process.cwd();
+  const {loadLocalConfig} = await import('../src/core/config.mjs');
+  const port = flags.port || loadLocalConfig(projectDir)?.daemon?.port || 37800;
+  const base = `http://127.0.0.1:${port}/api/v1`;
+
+  const status = await (await fetch(`${base}/anchor/status`)).json();
+  if (!status.enabled) {
+    console.log('Anchoring is disabled.');
+    console.log('Enable it in .awareness/config.json → anchoring.enabled = true');
+    console.log('and set anchoring.controller_address, then restart the daemon.');
+    return;
+  }
+
+  if (sub === 'status') {
+    console.log(`Space:        ${status.spaceId || '(created on first build)'}`);
+    console.log(`Controller:   ${status.controller || '(not configured)'}`);
+    console.log(`Chain:        ${status.chainId} · registry ${status.registry}`);
+    console.log(`Local head:   seq ${status.lastBuilt.seq}${status.lastBuilt.root ? ` · root ${status.lastBuilt.root.slice(0, 18)}…` : ''}`);
+    console.log(`Anchored:     ${status.anchored.count} transition(s)`);
+    console.log(`Pending:      ${status.pending.length}`);
+    for (const p of status.pending) {
+      console.log(`  seq ${p.seq} · ${p.opsCount} ops · ${p.transitionId.slice(0, 18)}… · ${p.createdAt}`);
+    }
+    if (status.pending.length) {
+      const gas = status.pending.length * status.estGasPerCommit;
+      console.log(`Est. gas:     ~${gas.toLocaleString()} (+110k once for Space registration)`);
+      console.log(`Run 'awareness-local anchor flush' to broadcast.`);
+    }
+    return;
+  }
+
+  if (sub !== 'flush') {
+    console.error(`Unknown anchor subcommand: ${sub} (expected 'status' or 'flush')`);
+    process.exit(1);
+  }
+
+  if (!status.pending.length) { console.log('Nothing to anchor.'); return; }
+  if (!status.controller) { console.error('anchoring.controller_address is not configured.'); process.exit(1); }
+
+  const key = await promptHidden(
+    `Anchoring ${status.pending.length} transition(s) to chain ${status.chainId}.\n` +
+    `Paste the private key for ${status.controller} (input hidden): `
+  );
+  const privKeyHex = key.startsWith('0x') ? key : `0x${key}`;
+
+  const {flushOutbox} = await import('../src/daemon/anchoring/flush.mjs');
+  const {pending} = await (await fetch(`${base}/anchor/outbox`)).json();
+  try {
+    const results = await flushOutbox({
+      rpcUrl: status.rpcUrl, chainId: status.chainId, registry: status.registry,
+      privKeyHex, controller: status.controller,
+      spaceId: status.spaceId, spaceSalt: status.spaceSalt,
+      rows: pending,
+      onConfirm: async (seq, txHash) => {
+        await fetch(`${base}/anchor/confirm`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({seq, tx_hash: txHash}),
+        });
+      },
+      log: (m) => console.log(`  ${m}`),
+    });
+    const sent = results.filter((r) => !r.skipped).length;
+    console.log(`Done: ${sent} anchored, ${results.length - sent} reconciled.`);
+  } catch (err) {
+    console.error(`Flush failed (outbox is intact, re-run to resume): ${err.message}`);
+    process.exit(1);
+  }
+}
+
+/** Hidden-input prompt: echoes '*' per keypress, never the characters. */
+function promptHidden(promptText) {
+  return new Promise((resolve) => {
+    process.stdout.write(promptText);
+    const stdin = process.stdin;
+    stdin.setRawMode?.(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+    let value = '';
+    const onData = (ch) => {
+      if (ch === '\r' || ch === '\n') {
+        stdin.setRawMode?.(false);
+        stdin.pause();
+        stdin.off('data', onData);
+        process.stdout.write('\n');
+        resolve(value.trim());
+      } else if (ch === '') { // Ctrl-C
+        process.stdout.write('\n');
+        process.exit(130);
+      } else if (ch === '' || ch === '') { // backspace
+        value = value.slice(0, -1);
+      } else {
+        value += ch;
+      }
+    };
+    stdin.on('data', onData);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Command: deals — read/publish on the public Open Deal Board (cloud REST).
+// Anonymous by default: no API key needed; publish goes through the guest quota
+// (per-IP daily limit + global circuit breaker, enforced server-side).
+// ---------------------------------------------------------------------------
+
+const DEFAULT_DEALS_BASE = 'https://awareness.market/api/v1';
+
+function dealsBase(flags) {
+  const raw = typeof flags['base-url'] === 'string'
+    ? flags['base-url']
+    : process.env.AWARENESS_BASE_URL || DEFAULT_DEALS_BASE;
+  return raw.replace(/\/+$/, '');
+}
+
+function dealsWebBase(baseUrl) {
+  // Derive the human-facing site origin from the API base (strip /api/v1).
+  return baseUrl.replace(/\/api\/v1\/?$/, '');
+}
+
+async function cmdDeals(flags) {
+  const sub = process.argv.slice(3).find((a) => !a.startsWith('-')) || 'list';
+  const baseUrl = dealsBase(flags);
+  const webBase = dealsWebBase(baseUrl);
+
+  if (sub === 'list') {
+    const params = new URLSearchParams();
+    if (flags.q) params.set('q', String(flags.q));
+    if (flags.direction) params.set('direction', String(flags.direction));
+    if (flags.category) params.set('category', String(flags.category));
+    if (flags.region) params.set('region', String(flags.region));
+    const limit = flags.limit ? Math.max(1, Math.min(parseInt(flags.limit, 10) || 20, 50)) : 20;
+    params.set('limit', String(limit));
+
+    const res = await fetch(`${baseUrl}/public/deals?${params}`);
+    if (!res.ok) {
+      console.error(`Error: GET /public/deals failed (${res.status})`);
+      process.exit(1);
+    }
+    const data = await res.json();
+    const deals = Array.isArray(data?.deals) ? data.deals : [];
+
+    if (flags.json === true) {
+      console.log(JSON.stringify(data, null, 2));
+      return;
+    }
+
+    const total = data?.total ?? deals.length;
+    console.log(`Open Deal Board — ${total} listing(s)`);
+    if (deals.length === 0) {
+      console.log('No listings match. Publish one with: awareness-local deals publish');
+      return;
+    }
+    console.log('');
+    for (const d of deals) {
+      const dir = d.direction === 'supply' ? 'SUPPLY ' : 'DEMAND ';
+      const meta = [d.category, d.region].filter(Boolean).join(' · ');
+      console.log(`[${dir}] ${d.title}${meta ? ` (${meta})` : ''}`);
+      if (d.body) {
+        const body = String(d.body);
+        console.log(`    ${body.slice(0, 160)}${body.length > 160 ? '…' : ''}`);
+      }
+      console.log(`    ${webBase}/deals/${d.id}`);
+      console.log('');
+    }
+    return;
+  }
+
+  if (sub === 'publish') {
+    const missing = ['direction', 'category', 'title', 'body'].filter((k) => !flags[k]);
+    if (missing.length > 0) {
+      console.error(`Error: --${missing.join(' --')} required for publish`);
+      console.error('Example: awareness-local deals publish --direction supply --category compute --title "H100 available" --body "40x H100 SXM, Shenzhen, sealed." [--region CN-SZ] [--contact-visibility public|on_request|private]');
+      process.exit(1);
+    }
+    const payload = {
+      direction: String(flags.direction),
+      category: String(flags.category),
+      title: String(flags.title),
+      body: String(flags.body),
+    };
+    if (flags.region) payload.region = String(flags.region);
+    if (flags['contact-visibility']) payload.contact_visibility = String(flags['contact-visibility']);
+
+    const res = await fetch(`${baseUrl}/deals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error(`Error: POST /deals failed (${res.status}) ${text.slice(0, 300)}`);
+      process.exit(1);
+    }
+    const deal = await res.json();
+    console.log('Published (anonymous) ✓');
+    console.log(`  id:    ${deal.id}`);
+    console.log(`  title: ${deal.title}`);
+    console.log(`  url:   ${webBase}/deals/${deal.id}`);
+    return;
+  }
+
+  console.error(`Unknown deals subcommand: ${sub} (use 'list' | 'publish')`);
+  process.exit(1);
+}
+
+// ---------------------------------------------------------------------------
 // Help
 // ---------------------------------------------------------------------------
 
@@ -696,31 +996,47 @@ Commands:
   start     Start the daemon (default)
   stop      Stop the daemon
   status    Show daemon status and stats
+  dashboard Print the Web UI URL and open it in your browser
   reindex   Rebuild the search index
   mcp       Run as stdio MCP server
+  anchor    ERC-8350 memory anchoring: 'anchor status' | 'anchor flush' (F-088)
   benchmark Run recall benchmark against a JSONL dataset
+  deals     Open Deal Board: 'deals list' | 'deals publish' (anonymous, no API key)
 
 Options:
   --project <dir>      Project directory (default: current directory)
   --port <port>        HTTP port (default: 37800)
   --foreground         Run in foreground (don't detach)
+  --no-open            Dashboard: print the URL without launching a browser
   --dataset <path>     Benchmark JSONL dataset path
   --backend <kind>     builtin | qmd | hybrid | all (benchmark only)
   --report <path>      Write benchmark JSON report
   --markdown-report <path>  Write benchmark Markdown report
   --reindex            Rebuild the benchmark target index before running
   --json               Print benchmark report as JSON
+  --base-url <url>     Deals API base (default https://awareness.market/api/v1)
+  --q <text>           Deals free-text search
+  --direction <d>      Deals filter: supply | demand
+  --category <c>       Deals filter: compute | colocation | logistics
+  --region <r>         Deals filter: region code (SG, HK, CN-SZ...)
+  --limit <n>          Deals result limit (1-50, default 20)
+  --title <text>       Deals publish: listing title
+  --body <text>        Deals publish: listing body
+  --contact-visibility Deals publish: public | on_request | private
   --help               Show this help message
 
 Examples:
-  npx @awareness-sdk/local start
-  npx @awareness-sdk/local status
-  npx @awareness-sdk/local stop
-  npx @awareness-sdk/local reindex --project /path/to/project
-  npx @awareness-sdk/local mcp --project /path/to/project --port 37800
-  npx @awareness-sdk/local benchmark --project /path/to/project --dataset tests/memory-benchmark/datasets/recall_core.jsonl
-  npx @awareness-sdk/local benchmark --project tests/memory-benchmark/projects/core-recall --dataset tests/memory-benchmark/datasets/recall_core.jsonl --backend builtin --reindex
-  npx @awareness-sdk/local benchmark --project tests/memory-benchmark/projects/universal-core --dataset tests/memory-benchmark/datasets/universal_core.jsonl --backend all --reindex --report tests/memory-benchmark/reports/universal_core.json
+  npx @awareness.market/local start
+  npx @awareness.market/local status
+  npx @awareness.market/local dashboard
+  npx @awareness.market/local stop
+  npx @awareness.market/local reindex --project /path/to/project
+  npx @awareness.market/local mcp --project /path/to/project --port 37800
+  npx @awareness.market/local benchmark --project /path/to/project --dataset tests/memory-benchmark/datasets/recall_core.jsonl
+  npx @awareness.market/local benchmark --project tests/memory-benchmark/projects/core-recall --dataset tests/memory-benchmark/datasets/recall_core.jsonl --backend builtin --reindex
+  npx @awareness.market/local benchmark --project tests/memory-benchmark/projects/universal-core --dataset tests/memory-benchmark/datasets/universal_core.jsonl --backend all --reindex --report tests/memory-benchmark/reports/universal_core.json
+  npx @awareness.market/local deals list --q H100 --direction supply
+  npx @awareness.market/local deals publish --direction supply --category compute --title "H100 available" --body "40x H100 SXM, Shenzhen"
 `);
 }
 
@@ -746,6 +1062,9 @@ async function main() {
     case 'status':
       await cmdStatus(flags);
       break;
+    case 'dashboard':
+      await cmdDashboard(flags);
+      break;
     case 'reindex':
       await cmdReindex(flags);
       break;
@@ -754,6 +1073,12 @@ async function main() {
       break;
     case 'benchmark':
       await cmdBenchmark(flags);
+      break;
+    case 'deals':
+      await cmdDeals(flags);
+      break;
+    case 'anchor':
+      await cmdAnchor(flags);
       break;
     default:
       console.error(`Unknown command: ${command}`);
@@ -766,44 +1091,3 @@ main().catch((err) => {
   console.error(`Fatal error: ${err.message}`);
   process.exit(1);
 });
-
-// ---------------------------------------------------------------------------
-// Command: install-transformers
-// ---------------------------------------------------------------------------
-
-async function cmdInstallTransformers(flags) {
-  console.log('Installing @huggingface/transformers...');
-  
-  try {
-    // Try to require the transformers module to see if it's already installed
-    require.resolve('@huggingface/transformers');
-    console.log('@huggingface/transformers is already installed.');
-    return;
-  } catch (e) {
-    // Not installed, proceed with installation
-  }
-  
-  const { execSync } = await import('child_process');
-  
-  try {
-    // Determine the package manager based on lock files
-    const projectRoot = process.cwd();
-    const fs = await import('fs');
-    let cmd = 'npm install @huggingface/transformers@^3.0.0';
-    
-    if (fs.existsSync('yarn.lock')) {
-      cmd = 'yarn add @huggingface/transformers@^3.0.0';
-    } else if (fs.existsSync('pnpm-lock.yaml')) {
-      cmd = 'pnpm add @huggingface/transformers@^3.0.0';
-    }
-    
-    console.log(`Running: ${cmd}`);
-    execSync(cmd, { stdio: 'inherit' });
-    
-    console.log('@huggingface/transformers installed successfully!');
-    console.log('Awareness Local now has vector search capabilities.');
-  } catch (err) {
-    console.error('Failed to install @huggingface/transformers:', err.message);
-    process.exit(1);
-  }
-}

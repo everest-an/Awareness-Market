@@ -285,8 +285,16 @@ export class SearchEngine {
         // runs ≥3 chars) is specific enough to retrieve itself. Short
         // ambiguous queries ("auth bug", "deploy") still benefit from
         // context enrichment.
+        //
+        // F-056 S5 fix: single-character DIGITS are signal tokens too.
+        // "pgvector setup step 1" counts pgvector/setup/step = 3 word tokens,
+        // which is < 4, so enrichment fired and diluted the query with
+        // "tech note pgvector setup gui" — the expanded query then ranked
+        // "step 2" above "step 1" semantically. A query with an explicit
+        // ordinal (step 1 / v2 / part 3) is already specific; do not enrich.
         const signalTokens = (semantic_query.match(/[\p{L}\p{N}_]{3,}/gu) || []);
-        if (signalTokens.length < 4) {
+        const hasOrdinal = /(^|\s)(step|part|v|version|stage|phase)\s*[0-9]+(\s|$)/i.test(semantic_query);
+        if (signalTokens.length < 4 && !hasOrdinal) {
           const recentMems = this.indexer.getRecentMemories(3_600_000, 8);
           const hint = this._buildSessionContextHint(recentMems);
           if (hint) enrichedSemantic = `${semantic_query} ${hint}`;
@@ -547,6 +555,26 @@ export class SearchEngine {
         item.rrfScore = (item.rrfScore ?? 0) + penalty;
       }
     }
+
+    // F-056 S5 · exact-title-phrase override. When the query contains a
+    // distinctive phrase (e.g. "step 1", "v2", "part 3"), the card whose
+    // title contains that phrase verbatim must rank Top-1 — this is the only
+    // signal that survives both the trigram-FTS blind spot (single-char "1"
+    // not indexed) and the embedding model's inability to separate "step 1"
+    // from "step 2". It is a zero/one override of rrfScore for exact title
+    // hits, applied AFTER the channels fuse so nothing downstream can
+    // outrank an exact match. Not a weight change: G4-guarded constants are
+    // untouched; this only reorders the already-fused pool.
+    const exactTitlePhrase = this._exactTitlePhraseFromQuery(query);
+    if (exactTitlePhrase) {
+      const topPhraseScore = Math.max(...fused.map((i) => i.rrfScore ?? 0), 0) + 1;
+      for (const item of fused) {
+        const title = String(item.title || '').toLowerCase();
+        if (title.includes(exactTitlePhrase.toLowerCase())) {
+          item.rrfScore = topPhraseScore;
+        }
+      }
+    }
     fused.sort((a, b) => (b.rrfScore ?? 0) - (a.rrfScore ?? 0));
 
     // F-053 Phase 3 · recency-primary ranking for recall-recent archetype.
@@ -621,7 +649,11 @@ export class SearchEngine {
       for (let i = 0; i < list.length; i++) {
         const r = list[i];
         if (!r || !r.id) continue;
-        const contrib = 1 / (RRF_K + i + 1);
+        // F-056 S5 · exact title-phrase hit (phrase_hit=1) is promoted to
+        // rank 0 so the embedding channel cannot outrank an exact match
+        // ("step 1" in title beats "step 2" even when trigram-BM25 ties).
+        const effectiveRank = r.phrase_hit === 1 ? 0 : i;
+        const contrib = 1 / (RRF_K + effectiveRank + 1);
         const existing = scoreMap.get(r.id);
         if (existing) {
           existing.rrfScore += contrib;
@@ -633,6 +665,22 @@ export class SearchEngine {
     const out = [...scoreMap.values()];
     out.sort((a, b) => b.rrfScore - a.rrfScore);
     return out.slice(0, limit);
+  }
+
+  /**
+   * Extract a distinctive title phrase from the query — a word immediately
+   * followed by a numeral (e.g. "step 1", "v2", "part 3"). Such phrases are
+   * exactly what the trigram FTS tokenizer cannot index (single-char "1")
+   * and the embedding model cannot separate ("step 1" vs "step 2"), so an
+   * exact title-substring match on them is the strongest available signal.
+   * Returns null when the query has no such phrase (most queries — avoids
+   * reordering on vague semantic searches).
+   */
+  _exactTitlePhraseFromQuery(query) {
+    const q = String(query || '').toLowerCase().trim();
+    const m = q.match(/\b(step|part|v|version|stage|phase|section|chapter|round|level)\s*(\d+)\b/i);
+    if (!m) return null;
+    return `${m[1].toLowerCase()} ${m[2]}`;
   }
 
   /**
@@ -742,6 +790,9 @@ export class SearchEngine {
     let ftsResults = [];
     if (recall_mode !== 'semantic' && ftsQuery) {
       ftsResults = this._ftsSearch(ftsQuery, scope, searchOpts);
+      if (process.env.DEBUG_RECALL) {
+        console.log(`[searchLocalBuiltin] fts=${ftsResults.length} ${ftsResults.slice(0, 3).map((r) => `${r.id?.slice(0, 12)} ph=${r.phrase_hit ?? '?'}`).join(' | ')}`);
+      }
     }
 
     // Channel 2: Embedding cosine similarity (~10ms typical)
@@ -1324,7 +1375,19 @@ export class SearchEngine {
 
     // Sort by similarity descending, take top-K
     scored.sort((a, b) => b.embeddingScore - a.embeddingScore);
-    if (process.env.DEBUG_RECALL) console.log(`[_embeddingSearch] top3: ${scored.slice(0,3).map(s => `${s.id.slice(0,20)}=${s.embeddingScore.toFixed(3)}`).join(' | ')}`);
+    if (process.env.DEBUG_RECALL) {
+      const withTitles = scored.slice(0, 3).map((s) => {
+        let t = String(s.title || '');
+        if (!t) {
+          try {
+            const row = this.indexer.db.prepare('SELECT title FROM knowledge_cards WHERE id = ?').get(s.id);
+            t = row?.title || '';
+          } catch { /* non-fatal */ }
+        }
+        return `${s.id.slice(0, 20)}=${s.embeddingScore.toFixed(3)} title=${t.slice(0, 28)}`;
+      });
+      console.log(`[_embeddingSearch] top3: ${withTitles.join(' | ')}`);
+    }
     return scored.slice(0, opts.limit || 10);
   }
 
@@ -1350,7 +1413,14 @@ export class SearchEngine {
     // Assign RRF scores from FTS5 channel
     for (let i = 0; i < ftsResults.length; i++) {
       const r = ftsResults[i];
-      const rrfContrib = 1 / (RRF_K + i + 1); // rank is 1-indexed
+      // F-056 S5 · an exact title-phrase hit (phrase_hit=1, from the
+      // searchKnowledge tiebreaker) is a stronger signal than rank position
+      // alone: "step 1" in the title beats "step 2" even if trigram-BM25
+      // ties them. Promote it to rank 0 (maximum RRF contribution) so the
+      // embedding channel cannot outrank an exact match. This is a signal
+      // reuse, not a weight change — RRF_K is untouched.
+      const effectiveRank = r.phrase_hit === 1 ? 0 : i;
+      const rrfContrib = 1 / (RRF_K + effectiveRank + 1);
       const existing = scoreMap.get(r.id);
       if (existing) {
         existing.rrfScore += rrfContrib;

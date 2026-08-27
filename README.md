@@ -1,96 +1,12 @@
-# Awareness Local
+# @awareness.market/local
 
-<p align="center">
-  <strong>Languages:</strong> English | <a href="./README.zh-CN.md">简体中文</a>
-</p>
+[![npm](https://img.shields.io/npm/v/@awareness.market/local?color=7b68ee)](https://www.npmjs.com/package/@awareness.market/local) [![LongMemEval R@5](https://img.shields.io/badge/LongMemEval_R%405-96.0%25-brightgreen)](https://arxiv.org/abs/2410.10813) [![Discord](https://img.shields.io/discord/1043506996906836079?color=5865F2&logo=discord&logoColor=white&label=Discord)](https://discord.com/invite/nMDrT538Qa)
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/awareness-wordmark-dark.svg" />
-    <img src="assets/branding/awareness-wordmark.svg" alt="Awareness Local — Persistent Memory for AI Coding Agents" width="760" />
-  </picture>
-</p>
-
-<p align="center">
-  <a href="https://arxiv.org/abs/2410.10813"><img src="https://img.shields.io/badge/LongMemEval_R%405-95.6%25-brightgreen?style=for-the-badge" alt="LongMemEval R@5 95.6%" /></a>
-  <a href="https://awareness.market/"><img src="https://img.shields.io/badge/Website-awareness.market-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website" /></a>
-  <a href="https://awareness.market/docs"><img src="https://img.shields.io/badge/Docs-awareness.market%2Fdocs-14B8A6?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Docs" /></a>
-  <a href="https://discord.com/invite/nMDrT538Qa"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-2563EB?style=for-the-badge" alt="License Apache 2.0" /></a>
-</p>
-
-<p align="center">
-  <img src="assets/branding/local-20s.gif" alt="Awareness Local" style="width:min(1200px,100%);height:auto;" />
-</p>
-
-**Give your AI agent persistent memory. One command. No account. Works offline.**
-
-Awareness Local is a local-first MCP memory server for AI coding agents. It gives Cursor, Claude Code, Copilot, Cline, and other MCP IDEs persistent memory, hybrid semantic + keyword retrieval, and reusable knowledge cards for long-running software projects.
-
-It runs a lightweight daemon on your machine, stores memory as Markdown, indexes recall with SQLite FTS5 + embeddings, and keeps your AI workflow fast, explainable, and offline-ready.
-
-```bash
-npx @awareness-sdk/setup
-```
-
-That's it. Your AI agent now remembers everything across sessions.
-
----
-
-## Why Awareness Local
-
-AI coding agents lose context between sessions. Awareness Local provides cross-session memory recall so agents can continue work without re-explaining architecture, past decisions, pending tasks, and implementation constraints.
-
-- Persistent memory for AI coding agents
-- Local-first MCP server with offline support
-- Hybrid retrieval (keyword + semantic)
-- Knowledge card extraction for decisions, solutions, and risks
-
-## Quick Start
-
-```bash
-npx @awareness-sdk/setup
-```
-
-Then open your IDE and start coding. Awareness tools become available for recall, record, and session initialization.
-
-## Popular Use Cases
-
-- Long-running codebase migrations across many sessions
-- Team handoffs where AI should remember prior implementation context
-- Personal coding workflows that need durable preferences and conventions
-- Multi-agent setups that share decision history and task memory
-
-## FAQ
-
-### Does Awareness Local work offline?
-
-Yes. Local mode works fully offline with memory stored on your machine.
-
-### Where is data stored?
-
-Memory is stored as Markdown in `.awareness/`, with a local SQLite index for retrieval.
-
-### Do I need a cloud account?
-
-No. Cloud sync is optional and can be enabled later.
-
-### Which IDEs are supported?
-
-Any MCP-compatible IDE, including Cursor, Claude Code, Copilot, Cline, Windsurf, and others.
-
-## Navigation
-
-- [Benchmark: LongMemEval](#benchmark-longmemeval-iclr-2025)
-- [Supported IDEs](#supported-ides-13)
-- [How It Works](#how-it-works)
-- [MCP Tools](#mcp-tools-available-in-your-ide)
-- [Cloud Sync](#cloud-sync-optional)
-- [SDK & Plugin Ecosystem](#sdk--plugin-ecosystem)
+Local-first AI agent memory system. No account needed.
 
 ## Benchmark: LongMemEval (ICLR 2025)
 
-Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industry standard benchmark for long-term conversational memory. 500 human-curated questions across 5 core capabilities.
+Awareness Memory is evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industry standard benchmark for long-term conversational memory, published at ICLR 2025. 500 human-curated questions across 5 core capabilities.
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -106,7 +22,7 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 ║   │                                                 │        ║
 ║   │   Recall@1    77.6%    (388 / 500)              │        ║
 ║   │   Recall@3    91.8%    (459 / 500)              │        ║
-║   │   Recall@5    95.6%    (478 / 500)  ◀ PRIMARY   │        ║
+║   │   Recall@5    96.0%    (480 / 500)  ◀ PRIMARY   │        ║
 ║   │   Recall@10   97.4%    (487 / 500)              │        ║
 ║   │                                                 │        ║
 ║   └─────────────────────────────────────────────────┘        ║
@@ -119,6 +35,8 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
+### Leaderboard
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │          Long-Term Memory Retrieval — R@5 Leaderboard       │
@@ -127,7 +45,7 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 │  System                         │  R@5      │  Note         │
 ├─────────────────────────────────┼───────────┼───────────────┤
 │  MemPalace (ChromaDB raw)       │  96.6%    │  R@5 only *   │
-│  ★ Awareness Memory (Hybrid)    │  95.6%    │  Hybrid RRF   │
+│  ★ Awareness Memory (Hybrid)    │  96.0%    │  Hybrid RRF   │
 │  OMEGA                          │  95.4%    │  QA Accuracy  │
 │  Mastra (GPT-5-mini)            │  94.9%    │  QA Accuracy  │
 │  Mastra (GPT-4o)                │  84.2%    │  QA Accuracy  │
@@ -140,6 +58,8 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Accuracy by Question Type
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │     Awareness Memory — R@5 by Question Type                 │
@@ -151,14 +71,14 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 │  single-session-user     ████████████████████████▎     88.6%│
 │  single-session-pref     ███████████████████████▏      86.7%│
 │                                                             │
-│  Overall                 █████████████████████████▉    95.6%│
+│  Overall                 █████████████████████████▉    96.0%│
 │                                                             │
 │  ┌───────────────────────────────────────────────┐          │
 │  │  Ablation Study                               │          │
 │  │  ─────────────────────────────────────────    │          │
 │  │  Vector-only:   92.6%  ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░     │          │
 │  │  BM25-only:     91.4%  ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░     │          │
-│  │  Hybrid RRF:    95.6%  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░  ★  │          │
+│  │  Hybrid RRF:    96.0%  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░  ★  │          │
 │  │                        Hybrid = +3% over any  │          │
 │  │                        single method alone    │          │
 │  └───────────────────────────────────────────────┘          │
@@ -167,170 +87,127 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Zero LLM calls. [Reproducible benchmark scripts →](https://github.com/edwin-hao-ai/Awareness/tree/main/benchmarks/longmemeval)
+Zero LLM calls. Runs on Apple M1 8GB in 14 minutes. [Reproducible benchmark scripts →](https://github.com/everest-an/Awareness/tree/main/benchmarks/longmemeval)
 
 ---
 
-## What It Does
+## How it compares (honest)
 
-**Before:** Every session starts from scratch. You re-explain the codebase, re-justify decisions, watch the agent redo work.
+| System | LongMemEval R@5 | Local / zero-API | Setup |
+| --- | ---: | --- | --- |
+| **Awareness Local** | **96.0%** | Yes | `npx @awareness.market/setup` |
+| MemPalace | 96.6% | Yes | Manual |
+| Mem0 | 49.0% (OSS) / 93.4% (self-reported) | Graph = paid | SDK + API key |
+| Zep | 63.8% | SaaS | Cloud |
 
-**After:** Your agent says *"I remember you were migrating from MySQL to PostgreSQL. Last session you completed the schema changes and had 2 TODOs remaining..."*
+- **Workflow rules injection** — Awareness writes rules into your IDE config so the agent *automatically* uses memory (init at start, recall before work, record after changes). Mem0/Zep require manual orchestration.
+- **Structured knowledge (13 categories)** — decisions, pitfalls, workflows, skills, preferences — not just raw snippets.
+- **Zero LLM calls on retrieval** — hybrid FTS5 + vector, fully offline.
 
-```
-Session 1                          Session 2
-┌─────────────────────────┐       ┌─────────────────────────┐
-│ Agent: "What database?" │       │ Agent: "I remember we   │
-│ You: "PostgreSQL..."    │       │ chose PostgreSQL for     │
-│ Agent: "What framework?"│  →    │ JSON support. You had    │
-│ You: "FastAPI..."       │       │ 2 TODOs left. Let me     │
-│ (repeat every session)  │       │ continue from there."    │
-└─────────────────────────┘       └─────────────────────────┘
-```
+Full factual comparison: [Awareness vs. Alternatives](https://awareness.market/sdk-docs/ALTERNATIVES.md)
 
----
+## Install
 
-## Supported IDEs (13+)
 
-| IDE | Auto-detected | Plugin |
-|-----|:---:|:---:|
-| **Claude Code** | ✅ | [`awareness-memory`](https://github.com/edwin-hao-ai/Awareness-SDK/tree/main/claudecode) |
-| **Cursor** | ✅ | via MCP |
-| **Windsurf** | ✅ | via MCP |
-| **OpenClaw** | ✅ | [`@awareness-sdk/openclaw-memory`](https://www.npmjs.com/package/@awareness-sdk/openclaw-memory) |
-| **Cline** | ✅ | via MCP |
-| **GitHub Copilot** | ✅ | via MCP |
-| **Codex CLI** | ✅ | via MCP |
-| **Kiro** | ✅ | via MCP |
-| **Trae** | ✅ | via MCP |
-| **Zed** | ✅ | via MCP |
-| **JetBrains (Junie)** | ✅ | via MCP |
-| **Augment** | ✅ | via MCP |
-| **AntiGravity (Jules)** | ✅ | via MCP |
-
----
-
-## How It Works
-
-```
-Your IDE / AI Agent
-    │
-    │  MCP Protocol (localhost:37800)
-    ▼
-┌────────────────────────────────────┐
-│  Awareness Local Daemon            │
-│                                    │
-│  Markdown files    → Human-readable, git-friendly
-│  SQLite FTS5       → Fast keyword search
-│  Local embedding   → Semantic search (optional: npm i @huggingface/transformers)
-│  Knowledge cards   → Auto-extracted decisions, solutions, risks
-│  Web Dashboard     → http://localhost:37800/
-│                                    │
-│  Cloud sync (optional)             │
-│  → One-click device-auth           │
-│  → Bidirectional sync              │
-│  → Semantic vector search          │
-│  → Team collaboration              │
-└────────────────────────────────────┘
-```
-
-### Your Data
-
-All memories stored as **Markdown files** in `.awareness/` — human-readable, editable, git-friendly:
-
-```
-.awareness/
-├── memories/
-│   ├── 2026-03-22_decided-to-use-postgresql.md
-│   ├── 2026-03-22_fixed-auth-bug.md
-│   └── ...
-├── knowledge/
-│   ├── decisions/postgresql-over-mysql.md
-│   └── solutions/auth-token-refresh.md
-├── tasks/
-│   └── open/implement-rate-limiting.md
-└── index.db  (search index, auto-rebuilt)
-```
-
----
-
-## Features
-
-### MCP Tools (available in your IDE)
-
-| Tool | What it does |
-|------|-------------|
-| `awareness_init` | Load session context — recent knowledge, tasks, rules |
-| `awareness_recall` | Search memories — progressive disclosure (summary → full) |
-| `awareness_record` | Save decisions, code changes, insights — with knowledge extraction |
-| `awareness_lookup` | Fast lookup — tasks, knowledge cards, session history, risks |
-| `awareness_get_agent_prompt` | Get agent-specific prompts for multi-agent setups |
-
-### Progressive Disclosure (Smart Token Usage)
-
-Instead of dumping everything into context, Awareness uses a two-phase recall:
-
-```
-Phase 1: awareness_recall(query, detail="summary")
-  → Lightweight index (~80 tokens each): title + summary + score
-  → Agent reviews and picks what's relevant
-
-Phase 2: awareness_recall(detail="full", ids=[...])
-  → Complete content for selected items only
-  → No truncation, no wasted tokens
-```
-
-### Web Dashboard
-
-Visit `http://localhost:37800/` to browse memories, knowledge cards, tasks, and manage cloud sync.
-
-### Cloud Sync (Optional)
-
-Connect to [Awareness Cloud](https://awareness.market) for:
-- Semantic vector search (100+ languages)
-- Cross-device real-time sync
-- Team collaboration
-- Memory marketplace
 
 ```bash
-npx @awareness-sdk/setup --cloud
-# Or click "Connect to Cloud" in the dashboard
+npm install -g @awareness.market/local
 ```
 
----
+## Quick Start
 
-## SDK & Plugin Ecosystem
+```bash
+# Start the local daemon
+awareness-local start
+```
 
-Awareness Local is part of the Awareness ecosystem:
+```javascript
+import { record, retrieve } from "@awareness.market/local/api";
 
-| Package | For | Install |
-|---------|-----|---------|
-| **[Awareness Local](https://github.com/edwin-hao-ai/Awareness-Local)** | Local daemon + MCP server | `npx @awareness-sdk/setup` |
-| **[Python SDK](https://pypi.org/project/awareness-memory-cloud/)** | `wrap_openai()` / `wrap_anthropic()` interceptors | `pip install awareness-memory-cloud` |
-| **[TypeScript SDK](https://www.npmjs.com/package/@awareness-sdk/memory-cloud)** | `wrapOpenAI()` / `wrapAnthropic()` interceptors | `npm i @awareness-sdk/memory-cloud` |
-| **[OpenClaw Plugin](https://www.npmjs.com/package/@awareness-sdk/openclaw-memory)** | Auto-recall + auto-capture | `openclaw plugins install @awareness-sdk/openclaw-memory` |
-| **[Claude Code Plugin](https://github.com/edwin-hao-ai/Awareness-SDK/tree/main/claudecode)** | Skills + hooks | `/plugin marketplace add edwin-hao-ai/Awareness-SDK` → `/plugin install awareness-memory@awareness` |
-| **[Setup CLI](https://www.npmjs.com/package/@awareness-sdk/setup)** | One-command setup for 13+ IDEs | `npx @awareness-sdk/setup` |
+await record({ content: "Refactored auth middleware." });
+const result = await retrieve({ query: "What did we refactor?" });
+console.log(result.results);
+```
 
-Full SDK docs: [awareness.market/docs](https://awareness.market/docs)
+## Web Dashboard
 
----
+The daemon serves a local web UI at **<http://localhost:37800/>** — browse your
+memories, knowledge cards, tasks and sessions, and check index health.
 
-## Requirements
+It is available whenever the daemon is running, and only then. If the page does
+not load, the daemon is not up: run `awareness-local start`.
 
-- Node.js 18+
-- Any MCP-compatible IDE
+```bash
+# Print the dashboard URL and open it in your default browser
+awareness-local dashboard
 
-No Python, no Docker, no cloud account needed.
+# Print the URL only (no browser launch) — handy over SSH
+awareness-local dashboard --no-open
+```
+
+`awareness-local status` also prints the dashboard URL, and `GET /healthz`
+returns it as the `ui_url` field. If you started the daemon on a custom port
+(`awareness-local start --port 41000`), pass the same `--port` to `dashboard`
+and `status`.
+
+The UI is bound to localhost and is not exposed to your network.
+
+### Re-running the setup wizard
+
+The first-run wizard remembers that you finished it, so it will not reappear.
+To walk through it again — after connecting cloud sync, or on a workspace you
+set up differently — open:
+
+```
+http://localhost:37800/?onboarding=1
+```
+
+The parameter is removed from the address bar immediately, so refreshing or
+bookmarking the page will not restart the wizard again.
+
+## Perception (Record-Time Signals)
+
+When you call `record()`, the response may include a `perception` array -- automatic signals the system surfaces without you asking. These are computed from pure DB queries (no LLM calls), adding less than 50ms of latency.
+
+**Signal types:**
+
+| Type | Description |
+|------|-------------|
+| `contradiction` | New content conflicts with an existing knowledge card |
+| `resonance` | Similar past experience found in memory |
+| `pattern` | Recurring theme detected (e.g., same category appearing often) |
+| `staleness` | A related knowledge card hasn't been updated in a long time |
+| `related_decision` | A past decision is relevant to what you just recorded |
+
+```javascript
+const result = await awareness_record({
+  action: "remember",
+  content: "Decided to use RS256 for JWT signing",
+  insights: { knowledge_cards: [{ title: "JWT signing", category: "decision", summary: "..." }] }
+});
+
+if (result.perception) {
+  for (const signal of result.perception) {
+    console.log(`[${signal.type}] ${signal.message}`);
+    // [pattern] This is the 4th 'decision' card -- recurring theme
+    // [resonance] Similar past experience: "JWT auth migration"
+  }
+}
+```
+
+## What makes Awareness different
+
+Most memory systems pick one extraction strategy. Awareness combines them:
+
+- **Hybrid retrieval by default** — BM25 full-text + vector cosine + knowledge-graph 1-hop expansion, fused with Reciprocal Rank Fusion. 96.0% R@5 on LongMemEval, zero LLM calls on the retrieval side.
+- **Salience-aware extraction** (v0.7.3+) — the client's own LLM self-scores every card on `novelty` / `durability` / `specificity`; cards scoring below 0.4 on either novelty or durability are dropped server-side. Framework metadata (`Sender (untrusted metadata)`, `turn_brief`, `[Operational context ...]`) is filtered before extraction runs, so raw logs never leak into your knowledge base.
+- **Project isolation** — `X-Awareness-Project-Dir` header scopes memory per project. Your work memory doesn't leak into your personal memory, even on the same machine.
+- **Learning over time** — Ebbinghaus-style card decay, skill crystallization from repeated patterns (F-032 / F-034), workspace graph self-prune to keep `index.db` bounded (F-050).
+- **Zero-LLM backend** — all extraction runs on the client's LLM (Claude, GPT-4, Gemini, local Llama). The backend is a coordinator + storage layer; no inference costs pass through to you.
+- **One memory, many clients** — same daemon reachable via Claude Code skills, OpenClaw plugin, npm / pip / ClawHub, and a plain MCP server. Install any one surface and the rest just work against the same memory.
+
+See [`docs/analysis/MEMPALACE_COMPARISON_2026-04-17.md`](https://github.com/everest-an/Awareness/blob/main/docs/analysis/MEMPALACE_COMPARISON_2026-04-17.md) for the honest side-by-side against MemPalace (96.6% R@5 via raw verbatim storage) — what we'd adopt from their approach and what we keep from ours.
 
 ## License
 
-Apache 2.0
-
----
-
-### Tags & Integration
-**IDE Support:** [Cursor](https://cursor.com), [Windsurf](https://codeium.com/windsurf), [Trae](https://www.trae.sh), [Zed](https://zed.dev), VS Code, JetBrains.
-**Compatible with:** OpenClaw, AutoGPT, LangChain, MetaGPT.
-**Key Technology:** OMP (Open Memory Protocol), LatentMAS, Shared Thought Space, One-click Deployment.
-**Focus:** Solving AI "Lobster Memory" (Long-term memory loss), Automating complex workflows, Simplifying Agent setup.
+Apache-2.0

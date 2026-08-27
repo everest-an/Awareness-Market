@@ -102,6 +102,12 @@ export class MemoryStore {
       related: Array.isArray(memory.related) ? memory.related : [],
     };
 
+    // F-064 · external-chat provenance. Serialise objects to a JSON string so
+    // the minimal YAML writer (scalars only) round-trips it as a quoted value.
+    // Pre-serialised strings pass through; empty/malformed values are omitted.
+    const metaJson = serializeMetadataField(memory.metadata);
+    if (metaJson) frontMatter.metadata = metaJson;
+
     // Sync state fields (only emit when present)
     if (memory.cloud_id) frontMatter.cloud_id = memory.cloud_id;
     if (memory.last_pushed_at) frontMatter.last_pushed_at = memory.last_pushed_at;
@@ -452,6 +458,31 @@ function slugifyTitle(text, maxLen = 50) {
   }
 
   return slug || 'untitled';
+}
+
+/**
+ * F-064 · Normalise a metadata value to a JSON string for YAML front matter.
+ * Accepts a plain object (serialise), a pre-serialised JSON string (pass
+ * through), or null/undefined (→ null). Malformed values degrade to null.
+ *
+ * @param {object|string|null|undefined} value
+ * @returns {string|null}
+ */
+function serializeMetadataField(value) {
+  if (value == null) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  }
+  if (typeof value === 'object') {
+    try {
+      const json = JSON.stringify(value);
+      return json && json !== '{}' ? json : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 /**

@@ -11,8 +11,17 @@ import {
  * Create a noop indexer fallback when better-sqlite3 is not available.
  * Provides stubs for every method/property accessed on the real Indexer,
  * including `db.prepare(sql).get/all/run()` and `db.transaction()`.
+ *
+ * The `degraded` flag is load-bearing, not decoration. This object is
+ * shape-complete and truthy, so `if (!daemon.indexer)` guards all pass and a
+ * completely dead index is indistinguishable from an empty one: /healthz kept
+ * reporting `status: "ok"`, `status` printed `Memories: 0`, and writes returned
+ * `{status:'ok'}` while vanishing. Anything that reports health MUST consult
+ * this flag rather than the object's truthiness.
+ *
+ * @param {string} [reason] human-readable cause, surfaced to the user
  */
-export function createNoopIndexer() {
+export function createNoopIndexer(reason = 'better-sqlite3 unavailable') {
   const noopStmt = { get: () => undefined, all: () => [], run: () => ({ changes: 0 }) };
   const noopDb = {
     prepare: () => noopStmt,
@@ -21,6 +30,8 @@ export function createNoopIndexer() {
     pragma: () => {},
   };
   return {
+    degraded: true,
+    degradedReason: reason,
     db: noopDb,
     incrementalIndex: async () => ({ indexed: 0, skipped: 0 }),
     indexMemory: () => ({ indexed: false }),
@@ -33,13 +44,18 @@ export function createNoopIndexer() {
     getOpenTasks: () => [],
     getRecentSessions: () => [],
     getStats: () => ({ totalMemories: 0, totalKnowledge: 0, totalTasks: 0, totalSessions: 0 }),
-    createSession: (source, agentRole = 'builder_agent') => ({
-      id: `ses_${Date.now()}_noop`,
+    createSession: (source, agentRole = 'builder_agent', opts = {}) => ({
+      id: opts.id || `ses_${Date.now()}_noop`,
       source: source || null,
       agent_role: agentRole,
       started_at: new Date().toISOString(),
+      workspace: opts.workspace ?? null,
     }),
     updateSession: () => {},
+    getSession: () => null,
+    listSessions: () => [],
+    findByContentHashAndSource: () => null,
+    findByContentHash: () => null,
     supersedeCard: () => false,
     getEvolutionChain: () => [],
     storeEmbedding: () => {},

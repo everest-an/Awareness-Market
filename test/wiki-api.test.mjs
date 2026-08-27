@@ -146,7 +146,7 @@ describe('Wiki API endpoints', () => {
     assert.equal(moc.id, 'kc_moc_001');
   });
 
-  it('topics: MOC card_count is live-computed and matches GET /knowledge/:id members', () => {
+  it('topics: MOC card_count is live-computed and matches GET /knowledge/:id members', async () => {
     // Stale link_count_outgoing must NOT leak into the topics response.
     // Force the stored count to a bogus value and verify apiListTopics ignores it.
     indexer.db.prepare(
@@ -160,8 +160,10 @@ describe('Wiki API endpoints', () => {
     // 3 seeded cards (kc_001/002/005) share the 'database' tag with this MOC
     assert.equal(moc.card_count, 3, 'live count must recompute, not trust stored 999');
 
+    // apiGetKnowledgeCard is async (yields to the event loop for MOC member
+    // resolution); await it or the response is still empty when we read it.
     const detailRes = mockRes();
-    apiGetKnowledgeCard(daemon(), null, detailRes, 'kc_moc_001');
+    await apiGetKnowledgeCard(daemon(), null, detailRes, 'kc_moc_001');
     assert.equal(detailRes.json.members.length, moc.card_count,
       'sidebar count must equal rendered members');
 
@@ -333,9 +335,9 @@ describe('Wiki API endpoints', () => {
 
   // ── Knowledge Card Detail ──
 
-  it('card detail: returns full data', () => {
+  it('card detail: returns full data', async () => {
     const res = mockRes();
-    apiGetKnowledgeCard(daemon(), null, res, 'kc_001');
+    await apiGetKnowledgeCard(daemon(), null, res, 'kc_001');
     assert.equal(res.status, 200);
     const c = res.json;
     assert.equal(c.id, 'kc_001');
@@ -350,9 +352,9 @@ describe('Wiki API endpoints', () => {
     assert.equal(c.members.length, 0, 'non-MOC cards should have empty members');
   });
 
-  it('card detail: MOC card returns members matched by shared tag', () => {
+  it('card detail: MOC card returns members matched by shared tag', async () => {
     const res = mockRes();
-    apiGetKnowledgeCard(daemon(), null, res, 'kc_moc_001');
+    await apiGetKnowledgeCard(daemon(), null, res, 'kc_moc_001');
     assert.equal(res.status, 200);
     const c = res.json;
     assert.equal(c.card_type, 'moc');
@@ -371,24 +373,24 @@ describe('Wiki API endpoints', () => {
     }
   });
 
-  it('card detail: related cards are same category excluding self', () => {
+  it('card detail: related cards are same category excluding self', async () => {
     const res = mockRes();
-    apiGetKnowledgeCard(daemon(), null, res, 'kc_001');
+    await apiGetKnowledgeCard(daemon(), null, res, 'kc_001');
     const related = res.json.related_cards;
     assert.ok(related.length > 0);
     assert.ok(related.every(r => r.category === 'decision'));
     assert.ok(!related.find(r => r.id === 'kc_001'));
   });
 
-  it('card detail: 404 for nonexistent', () => {
+  it('card detail: 404 for nonexistent', async () => {
     const res = mockRes();
-    apiGetKnowledgeCard(daemon(), null, res, 'kc_nope');
+    await apiGetKnowledgeCard(daemon(), null, res, 'kc_nope');
     assert.equal(res.status, 404);
   });
 
-  it('card detail: 503 when no indexer', () => {
+  it('card detail: 503 when no indexer', async () => {
     const res = mockRes();
-    apiGetKnowledgeCard({ indexer: null }, null, res, 'kc_001');
+    await apiGetKnowledgeCard({ indexer: null }, null, res, 'kc_001');
     assert.equal(res.status, 503);
   });
 

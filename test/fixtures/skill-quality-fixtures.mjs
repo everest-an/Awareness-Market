@@ -138,7 +138,7 @@ export const SKILL_FIXTURES = [
       'openclaw client.ts v0.6.13 and earlier only accept action="write"/"update_task". qwen + others default to "remember" and die. Fix is client-side (plugin upgrade) not daemon-side.',
     methods: [
       { step: 1, description: 'Reproduce: `openclaw agent --local -m "..." --verbose on --json` — look for `awareness_record returned non-standard result` + `Unknown action: remember` in assistant `thinking` payload.' },
-      { step: 2, description: 'Upgrade plugin: `npx clawhub install @awareness-sdk/openclaw-memory@latest --force` then restart openclaw. Minimum v0.6.15 has the fix (client.ts accepts remember/remember_batch/submit_insights).' },
+      { step: 2, description: 'Upgrade plugin: `npx clawhub install @awareness.market/openclaw-memory@latest --force` then restart openclaw. Minimum v0.6.15 has the fix (client.ts accepts remember/remember_batch/submit_insights).' },
       { step: 3, description: 'Confirm fixed: rerun the same prompt, assistant should NOT fall back to writing markdown files; daemon `totalKnowledge` count should increase by 1+.' },
     ],
     trigger_conditions: [
@@ -153,18 +153,18 @@ export const SKILL_FIXTURES = [
   },
 
   {
-    name: 'cut an AwarenessClaw macOS DMG release (signed + notarized)',
+    name: 'cut an OCT-Agent macOS DMG release (signed + notarized)',
     summary:
-      'Signed + notarized DMG cut for `AwarenessClaw/packages/desktop`. Unnotarized builds trigger Gatekeeper warnings that users cannot bypass. Never ship raw packages.',
+      'Signed + notarized DMG cut for `OCT-Agent/packages/desktop`. Unnotarized builds trigger Gatekeeper warnings that users cannot bypass. Never ship raw packages.',
     methods: [
-      { step: 1, description: 'Bump `AwarenessClaw/packages/desktop/package.json` version + prepend user-visible CHANGELOG entry.' },
-      { step: 2, description: 'Package: `cd AwarenessClaw/packages/desktop && PYTHON_PATH=/usr/bin/python3 CSC_IDENTITY_AUTO_DISCOVERY=true CSC_NAME="Beijing VGO Co;Ltd (5XNDF727Y6)" APPLE_KEYCHAIN_PROFILE="AwarenessClawNotary" npm run package:mac`. Expect ~3-5min — notarytool waits on Apple.' },
-      { step: 3, description: 'Verify signature: `spctl -a -vv release/AwarenessClaw-<v>-arm64.dmg` prints `Notarized Developer ID`. Then `stapler validate <dmg>` confirms the ticket is attached.' },
-      { step: 4, description: 'Upload to GitHub Release: `cp release/AwarenessClaw-<v>-arm64.dmg /tmp/AwarenessClaw.dmg && gh release upload v0.3.0 /tmp/AwarenessClaw.dmg --repo everest-an/AwarenessClaw-Download --clobber` — filename MUST stay AwarenessClaw.dmg (official download link anchor).' },
-      { step: 5, description: 'SSH update app-versions.json on prod: `ssh server \'cat > /opt/awareness/data/app-versions.json << EOF\n{"awarenessclaw":{"latestVersion":"x.y.z","downloadUrl":"https://awareness.market/"}}\nEOF\'` — hot update, no container restart.' },
+      { step: 1, description: 'Bump `OCT-Agent/packages/desktop/package.json` version + prepend user-visible CHANGELOG entry.' },
+      { step: 2, description: 'Package: `cd OCT-Agent/packages/desktop && PYTHON_PATH=/usr/bin/python3 CSC_IDENTITY_AUTO_DISCOVERY=true CSC_NAME="Beijing VGO Co;Ltd (5XNDF727Y6)" APPLE_KEYCHAIN_PROFILE="AwarenessClawNotary" npm run package:mac`. Expect ~3-5min — notarytool waits on Apple.' },
+      { step: 3, description: 'Verify signature: `spctl -a -vv release/OCT-Agent-<v>-arm64.dmg` prints `Notarized Developer ID`. Then `stapler validate <dmg>` confirms the ticket is attached.' },
+      { step: 4, description: 'Upload to GitHub Release: `cp release/OCT-Agent-<v>-arm64.dmg /tmp/OCT-Agent.dmg && gh release upload v<v> /tmp/OCT-Agent.dmg --repo everest-an/OCT-Agent --clobber` — release tag now follows desktop version (v0.4.9+), DMG filename stable as OCT-Agent.dmg.' },
+      { step: 5, description: 'SSH update app-versions.json on prod: `ssh server \'cat > /opt/awareness/data/app-versions.json << EOF\n{"oct-agent":{"latestVersion":"x.y.z","downloadUrl":"https://github.com/everest-an/OCT-Agent/releases/download/v<x.y.z>/OCT-Agent.dmg"},"awarenessclaw":{"latestVersion":"x.y.z","downloadUrl":"https://github.com/everest-an/OCT-Agent/releases/download/v<x.y.z>/OCT-Agent.dmg"}}\nEOF\'` — hot update, no container restart. Keep both keys for legacy clients.' },
     ],
     trigger_conditions: [
-      { pattern: 'release AwarenessClaw DMG', weight: 0.95 },
+      { pattern: 'release OCT-Agent DMG', weight: 0.95 },
       { pattern: 'sign and notarize macOS', weight: 0.85 },
       { pattern: 'ship desktop app', weight: 0.8 },
     ],

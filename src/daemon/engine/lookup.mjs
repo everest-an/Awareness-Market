@@ -16,15 +16,23 @@ import { splitPreferences } from '../helpers.mjs';
  * @returns {Promise<object>}
  */
 export async function lookup(daemon, params) {
+  // Pin the indexer. This function awaits (dynamic imports in the wiki branch)
+  // and keeps querying afterwards, so a workspace switch mid-call would splice
+  // rows from two different projects into one result set. Reads are less
+  // damaging than the writes in remember.mjs / submit-insights.mjs, but a lookup
+  // that silently mixes projects is exactly the cross-workspace leak F-055 was
+  // filed for. See CLAUDE.md "workspace 切换：请求路径必须 pin".
+  const indexerAtStart = daemon.indexer;
+
   const { type, limit = 10, status, category, priority, session_id, agent_role, query } = params;
 
   switch (type) {
     case 'context': {
       // Full context dump with preference separation
-      const stats = daemon.indexer.getStats();
-      const knowledge = daemon.indexer.getRecentKnowledge(limit);
-      const tasks = daemon.indexer.getOpenTasks(0);
-      const rawSessions = daemon.indexer.getRecentSessions(7);
+      const stats = indexerAtStart.getStats();
+      const knowledge = indexerAtStart.getRecentKnowledge(limit);
+      const tasks = indexerAtStart.getOpenTasks(0);
+      const rawSessions = indexerAtStart.getRecentSessions(7);
       // De-noise: only sessions with content; fallback to 3 most recent
       let sessions = rawSessions.filter(s => s.memory_count > 0 || s.summary);
       if (sessions.length === 0) sessions = rawSessions.slice(0, 3);
@@ -60,7 +68,7 @@ export async function lookup(daemon, params) {
         sqlParams.push(limit);
       }
 
-      const tasks = daemon.indexer.db.prepare(sql).all(...sqlParams);
+      const tasks = indexerAtStart.db.prepare(sql).all(...sqlParams);
       return { tasks, total: tasks.length, mode: 'local' };
     }
 
@@ -84,7 +92,7 @@ export async function lookup(daemon, params) {
       sql += ' ORDER BY created_at DESC LIMIT ?';
       sqlParams.push(limit);
 
-      const cards = daemon.indexer.db.prepare(sql).all(...sqlParams);
+      const cards = indexerAtStart.db.prepare(sql).all(...sqlParams);
       return { knowledge_cards: cards, total: cards.length, mode: 'local' };
     }
 
@@ -103,7 +111,7 @@ export async function lookup(daemon, params) {
       sql += ' ORDER BY created_at DESC LIMIT ?';
       sqlParams.push(limit);
 
-      const risks = daemon.indexer.db.prepare(sql).all(...sqlParams);
+      const risks = indexerAtStart.db.prepare(sql).all(...sqlParams);
       return { risks, total: risks.length, mode: 'local' };
     }
 
@@ -121,13 +129,13 @@ export async function lookup(daemon, params) {
       sql += ' ORDER BY started_at DESC LIMIT ?';
       sqlParams.push(limit);
 
-      const sessions = daemon.indexer.db.prepare(sql).all(...sqlParams);
+      const sessions = indexerAtStart.db.prepare(sql).all(...sqlParams);
       return { sessions, total: sessions.length, mode: 'local' };
     }
 
     case 'timeline': {
       // Timeline = recent memories ordered by time
-      const memories = daemon.indexer.db
+      const memories = indexerAtStart.db
         .prepare(
           "SELECT * FROM memories WHERE status = 'active' ORDER BY created_at DESC LIMIT ?"
         )
@@ -152,10 +160,10 @@ export async function lookup(daemon, params) {
 
       let skills;
       try {
-        skills = daemon.indexer.db.prepare(skillSql).all(...skillParams);
+        skills = indexerAtStart.db.prepare(skillSql).all(...skillParams);
       } catch {
         // Fallback to legacy knowledge_cards if skills table doesn't exist yet
-        skills = daemon.indexer.db.prepare(
+        skills = indexerAtStart.db.prepare(
           "SELECT * FROM knowledge_cards WHERE category = 'skill' AND status = 'active' ORDER BY created_at DESC LIMIT ?"
         ).all(limit);
       }
@@ -184,7 +192,7 @@ export async function lookup(daemon, params) {
 
       // 2. Derive staleness signals from old knowledge cards (30-day threshold, unified)
       try {
-        const staleCards = daemon.indexer.db
+        const staleCards = indexerAtStart.db
           .prepare(
             `SELECT title, category, COALESCE(updated_at, created_at) AS last_touch
              FROM knowledge_cards
@@ -209,7 +217,7 @@ export async function lookup(daemon, params) {
 
       // 3. Derive pattern signals from tag co-occurrence (not just category count)
       try {
-        const recentCards = daemon.indexer.db
+        const recentCards = indexerAtStart.db
           .prepare(
             `SELECT tags FROM knowledge_cards
              WHERE status = 'active' AND created_at > datetime('now', '-7 days')`

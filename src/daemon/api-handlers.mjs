@@ -14,9 +14,16 @@ import {
 import { apiPromptInject } from './prompt-injector.mjs';
 import { track } from '../core/telemetry.mjs';
 import { isUnsafeWorkspaceRoot } from '../core/workspace-root.mjs';
+import { stats as outboxStats, problems as outboxProblems } from '../core/sync/sync-outbox.mjs';
 
 export async function handleApiRoute(daemon, req, res, url) {
   const route = url.pathname.replace('/api/v1', '');
+
+  // F-088: ERC-8350 anchoring routes (lazy import — module only loads when hit)
+  if (route.startsWith('/anchor')) {
+    const {handleAnchorRoute} = await import('./anchor-api-handlers.mjs');
+    return handleAnchorRoute(daemon, req, res, route);
+  }
 
   if (route === '/stats' && req.method === 'GET') {
     const stats = daemon.indexer ? daemon.indexer.getStats() : {};
@@ -27,12 +34,25 @@ export async function handleApiRoute(daemon, req, res, url) {
     return apiListMemories(daemon, req, res, url);
   }
 
+  // F-064 · External AI Memory Bridge write endpoint (browser-friendly).
+  if (route === '/memories' && req.method === 'POST') {
+    return apiRecordMemory(daemon, req, res);
+  }
+
   if (route === '/memories/search' && req.method === 'GET') {
     return apiSearchMemories(daemon, req, res, url);
   }
 
-  // F-072 · host-LLM friendly prompt injector (no-key, read-only)
+  // F-072 · host-LLM friendly prompt injector (read-only)
+  // F-085 (R1) · gated so a same-machine web page (untrusted Origin) can no
+  // longer read local memories. Native host-LLM (no Origin) + extension (bridge
+  // token) still pass. Escape hatch for rare web-based host-LLMs on a non-
+  // whitelisted Origin: AWARENESS_PROMPT_INJECT_OPEN=1.
   if (route === '/prompt/inject' && req.method === 'GET') {
+    if (process.env.AWARENESS_PROMPT_INJECT_OPEN !== '1'
+      && !(await isBridgeRequestTrusted(daemon, req))) {
+      return jsonResponse(res, { error: 'forbidden_origin' }, 403);
+    }
     return apiPromptInject(daemon, req, res, url);
   }
 
@@ -62,8 +82,55 @@ export async function handleApiRoute(daemon, req, res, url) {
     return apiSyncStatus(daemon, req, res);
   }
 
+  // Batch A · sync outbox visibility — bind 127.0.0.1 + validate Origin, response must
+  // not contain card content (ref_id, title, summary).
+  if (route === '/sync/problems' && req.method === 'GET') {
+    if (!isLocalhostOrigin(req)) return jsonResponse(res, { error: 'forbidden_origin' }, 403);
+    return apiSyncProblems(daemon, req, res);
+  }
+
+  if (route === '/sync/retry' && req.method === 'POST') {
+    if (!isLocalhostOrigin(req)) return jsonResponse(res, { error: 'forbidden_origin' }, 403);
+    return apiSyncRetry(daemon, req, res);
+  }
+
   if (route === '/workspaces' && req.method === 'GET') {
     return apiWorkspaces(res, url);
+  }
+
+  // F-064 Phase 2 · Session CRUD (reuses the native sessions table — no new
+  // table). Powers the browser extension's "bind this site to a session".
+  if (route === '/sessions' && req.method === 'GET') {
+    return apiListSessions(daemon, req, res, url);
+  }
+  if (route === '/sessions' && req.method === 'POST') {
+    return apiCreateSession(daemon, req, res);
+  }
+
+  // F-064 Phase 2 · External bindings (site ↔ workspace ↔ session), global
+  // routing table persisted at ~/.awareness/external-bindings.json.
+  if (route === '/bindings' && req.method === 'GET') {
+    return apiListBindings(daemon, req, res, url);
+  }
+  if (route === '/bindings' && req.method === 'POST') {
+    return apiUpsertBinding(daemon, req, res);
+  }
+  if (route === '/bindings' && req.method === 'DELETE') {
+    return apiDeleteBinding(daemon, req, res, url);
+  }
+
+  // F-064 Phase 3 · Bridge Token (Option C). The browser extension's service
+  // worker runs off a chrome-extension://<id> origin that is NOT in the site
+  // allowlist; a per-install bearer token bypasses the Origin check on write.
+  // Minting is Origin-gated (isTokenMintOrigin) so websites can't steal one.
+  if (route === '/bridge/token' && req.method === 'GET') {
+    return apiBridgeTokenStatus(daemon, req, res);
+  }
+  if (route === '/bridge/token' && req.method === 'POST') {
+    return apiMintBridgeToken(daemon, req, res);
+  }
+  if (route === '/bridge/token' && req.method === 'DELETE') {
+    return apiRevokeBridgeToken(daemon, req, res, url);
   }
 
   if (route === '/config' && req.method === 'GET') {
@@ -263,6 +330,389 @@ export function apiListMemories(daemon, _req, res, url) {
     .all(...params)[0]?.c ?? 0;
 
   return jsonResponse(res, { items: rows, total, limit, offset });
+}
+
+// ---------------------------------------------------------------------------
+// F-064 · External AI Memory Bridge — write endpoint (POST /api/v1/memories)
+// ---------------------------------------------------------------------------
+
+// Decision B · CSRF/origin allowlist. A browser capture on doubao.com sends
+// `Origin: https://www.doubao.com`; a native/curl client sends none. Only
+// localhost + the supported chat sites (and the product domain) may write.
+const TRUSTED_ORIGIN_HOST_SUFFIXES = [
+  'chatgpt.com',
+  'openai.com',
+  'gemini.google.com',
+  'deepseek.com',
+  'doubao.com',
+  'yuanbao.tencent.com',
+  // F-064 Phase 3 · Kimi (Moonshot) — two live domains: kimi.com (intl) and
+  // kimi.moonshot.cn (CN). Content-script relays (no-token path) write from
+  // these origins, so both suffixes must be trusted.
+  'kimi.com',
+  'moonshot.cn',
+  'awareness.market',
+];
+
+const LOCALHOST_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+/**
+ * F-064 · Validate the request Origin against the trust allowlist.
+ * Missing Origin (native clients, curl) is allowed — only a present-but-
+ * untrusted Origin is rejected (classic CSRF surface).
+ * @param {string|undefined} originHeader
+ * @returns {boolean}
+ */
+export function isTrustedBridgeOrigin(originHeader) {
+  if (!originHeader) return true; // native / curl — no browser Origin
+  let hostname;
+  try {
+    hostname = new URL(originHeader).hostname;
+  } catch {
+    return false; // malformed Origin → reject
+  }
+  if (LOCALHOST_HOSTNAMES.has(hostname)) return true;
+  return TRUSTED_ORIGIN_HOST_SUFFIXES.some(
+    (suffix) => hostname === suffix || hostname.endsWith('.' + suffix),
+  );
+}
+
+/**
+ * F-064 · When AWARENESS_BRIDGE_REQUIRE_AUTH=1 (cloud-facing deploy), the
+ * write endpoint demands an Authorization header. Off by default so local
+ * desktop users are unaffected.
+ */
+function bridgeRequiresAuth() {
+  return process.env.AWARENESS_BRIDGE_REQUIRE_AUTH === '1';
+}
+
+/**
+ * F-085 (R1) · Shared trust gate for browser-facing endpoints (record + inject).
+ * A same-machine malicious web page's fetch ALWAYS carries its own (untrusted)
+ * Origin, so Origin-checking is what blocks it. Passes when: a valid bridge
+ * token is presented (the extension service worker), OR the Origin is absent
+ * (native host-LLM runtime / curl) or whitelisted. Missing Origin is trusted
+ * because non-browser callers can't be CSRF'd.
+ */
+async function isBridgeRequestTrusted(daemon, req) {
+  const bridgeToken = req.headers['x-awareness-bridge-token'];
+  const tokenValid = bridgeToken
+    ? (await getBridgeTokenStore(daemon)).isValid(String(bridgeToken))
+    : false;
+  return tokenValid || isTrustedBridgeOrigin(req.headers.origin);
+}
+
+/**
+ * Batch A · sync outbox Origin guard. The daemon binds 127.0.0.1, so any
+ * request from the daemon's own web UI has a localhost origin. Absent Origin
+ * (curl, native host-LLM) is also allowed — non-browser callers can't be CSRF'd.
+ */
+function isLocalhostOrigin(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true; // non-browser caller
+  try {
+    const hostname = new URL(origin).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+  } catch { return false; }
+}
+
+export async function apiRecordMemory(daemon, req, res) {
+  // F-064 Phase 3 (Option C) · A valid Bridge Token bypasses the site Origin
+  // allowlist — this is how the extension's service worker (which fetches off a
+  // `chrome-extension://<id>` origin, not a whitelisted chat site) is trusted.
+  // No token → fall back to the Decision B site Origin allowlist (CSRF guard).
+  if (!(await isBridgeRequestTrusted(daemon, req))) {
+    return jsonResponse(res, { error: 'forbidden_origin' }, 403);
+  }
+
+  // Decision B · cloud-mode Authorization
+  if (bridgeRequiresAuth() && !req.headers.authorization) {
+    return jsonResponse(res, { error: 'authorization_required' }, 401);
+  }
+
+  let body;
+  try {
+    const raw = await readBody(req);
+    body = raw ? JSON.parse(raw) : {};
+  } catch (err) {
+    if (err && /too large/i.test(err.message || '')) {
+      return jsonResponse(res, { error: 'payload_too_large' }, 413);
+    }
+    return jsonResponse(res, { error: 'invalid_json' }, 400);
+  }
+
+  if (!body || typeof body.content !== 'string' || !body.content.trim()) {
+    return jsonResponse(res, { error: 'content is required' }, 400);
+  }
+
+  // F-064 Phase 2 · Session↔workspace ownership guard (FM-6). If the caller
+  // passes a session_id that already exists in THIS workspace's DB but was
+  // stamped to a different workspace, reject cross-workspace writes. Empty /
+  // unknown / matching / legacy-null sessions pass through (lenient for
+  // curl + fresh external sessions).
+  if (typeof body.session_id === 'string' && body.session_id.trim() && daemon.indexer?.getSession) {
+    const existing = daemon.indexer.getSession(body.session_id.trim());
+    if (existing && existing.workspace) {
+      const owner = path.resolve(existing.workspace);
+      const current = path.resolve(daemon.projectDir || process.cwd());
+      if (owner !== current) {
+        return jsonResponse(res, { error: 'session_workspace_mismatch' }, 409);
+      }
+    }
+  }
+
+  // Decision C · reuse the existing session model. source defaults to
+  // external_chat so the bridge captures are always source-scoped.
+  const params = {
+    content: body.content,
+    source: body.source || 'external_chat',
+    session_id: body.session_id || '',
+    title: body.title || '',
+    tags: Array.isArray(body.tags) ? body.tags : [],
+    event_type: body.event_type || 'turn_summary',
+    agent_role: body.agent_role || 'external_agent',
+    metadata: sanitizeInboundMetadata(body.metadata),
+    insights: body.insights || undefined,
+    // Decision A · same-source dedup for bridge writes.
+    dedup_same_source: true,
+  };
+
+  try {
+    const result = await daemon._remember(params);
+    // remember() returns { error } for validation failures — map to 4xx/5xx.
+    if (result && result.error) {
+      const status = /too large/i.test(result.error) ? 413 : 400;
+      return jsonResponse(res, result, status);
+    }
+    return jsonResponse(res, result);
+  } catch (err) {
+    console.error('[api] POST /memories failed:', err.message);
+    return jsonResponse(res, { error: 'record_failed', detail: err.message }, 500);
+  }
+}
+
+/**
+ * F-064 · Accept only a plain object as metadata; anything else (string,
+ * array, number) degrades to null so a bad payload never breaks the write.
+ * @param {*} value
+ * @returns {object|null}
+ */
+export function sanitizeInboundMetadata(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// F-064 Phase 2 · Session CRUD (reuse native sessions table, decision C)
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /api/v1/sessions — list sessions for the current workspace, newest first.
+ * Optional `?source=external_chat` isolates bridge sessions from IDE sessions.
+ * Optional `?limit=N` (default 100, capped 500).
+ */
+export function apiListSessions(daemon, _req, res, url) {
+  if (!daemon.indexer?.listSessions) {
+    return jsonResponse(res, { sessions: [], total: 0 });
+  }
+  const source = url.searchParams.get('source') || undefined;
+  const limitRaw = url.searchParams.get('limit');
+  const limit = limitRaw != null ? parseInt(limitRaw, 10) : undefined;
+  const sessions = daemon.indexer.listSessions({ source, limit });
+  return jsonResponse(res, { sessions, total: sessions.length });
+}
+
+/**
+ * POST /api/v1/sessions — create an external-chat session bound to the current
+ * workspace. Body: { source?, agent_role?, prefix? }. Generates an `ext_...` id
+ * (or honours a custom `prefix`) and stamps `workspace = resolve(projectDir)`.
+ */
+export async function apiCreateSession(daemon, req, res) {
+  if (!daemon.indexer?.createSession) {
+    return jsonResponse(res, { error: 'Indexer not available' }, 503);
+  }
+
+  let body = {};
+  try {
+    const raw = await readBody(req);
+    if (raw) body = JSON.parse(raw);
+  } catch {
+    return jsonResponse(res, { error: 'invalid_json' }, 400);
+  }
+
+  const source = typeof body.source === 'string' && body.source.trim()
+    ? body.source.trim()
+    : 'external_chat';
+  const agentRole = typeof body.agent_role === 'string' && body.agent_role.trim()
+    ? body.agent_role.trim()
+    : 'external_agent';
+
+  // Normalise the id prefix to a safe slug; default `ext`.
+  const rawPrefix = typeof body.prefix === 'string' ? body.prefix.trim() : '';
+  const prefix = (rawPrefix.replace(/[^a-zA-Z0-9_-]/g, '') || 'ext').slice(0, 24);
+  const id = `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  const workspace = path.resolve(daemon.projectDir || process.cwd());
+  try {
+    const session = daemon.indexer.createSession(source, agentRole, { id, workspace });
+    return jsonResponse(res, session);
+  } catch (err) {
+    return jsonResponse(res, { error: 'create_session_failed', detail: err.message }, 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// F-064 Phase 2 · External bindings (site ↔ workspace ↔ session)
+// ---------------------------------------------------------------------------
+
+/** Lazily construct the daemon-scoped BindingStore (global JSON file). */
+async function getBindingStore(daemon) {
+  if (!daemon.bindingStore) {
+    const { BindingStore } = await import('../core/binding-store.mjs');
+    daemon.bindingStore = new BindingStore();
+  }
+  return daemon.bindingStore;
+}
+
+// ---------------------------------------------------------------------------
+// F-064 Phase 3 · Bridge Token (Option C) — SW-origin write authorization
+// ---------------------------------------------------------------------------
+
+/** Lazily construct the daemon-scoped BridgeTokenStore (global JSON file). */
+async function getBridgeTokenStore(daemon) {
+  if (!daemon.bridgeTokenStore) {
+    const { BridgeTokenStore } = await import('../core/bridge-token-store.mjs');
+    daemon.bridgeTokenStore = new BridgeTokenStore();
+  }
+  return daemon.bridgeTokenStore;
+}
+
+/**
+ * Only an extension service worker (`chrome-extension://` / `moz-extension://`),
+ * a localhost tool, or a native client (no Origin) may MINT a bridge token.
+ * A website in a normal tab (https://evil.com) is rejected so it cannot steal a
+ * token via the CORS-`*` response and then forge writes.
+ * @param {string|undefined} originHeader
+ * @returns {boolean}
+ */
+export function isTokenMintOrigin(originHeader) {
+  if (!originHeader) return true; // native / curl
+  let parsed;
+  try {
+    parsed = new URL(originHeader);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol === 'chrome-extension:' || parsed.protocol === 'moz-extension:') return true;
+  if (LOCALHOST_HOSTNAMES.has(parsed.hostname)) return true;
+  return false;
+}
+
+/**
+ * GET /api/v1/bridge/token — non-sensitive status (never returns token values).
+ * `{ has_token: boolean, count: number }`.
+ */
+export async function apiBridgeTokenStatus(daemon, _req, res) {
+  const store = await getBridgeTokenStore(daemon);
+  return jsonResponse(res, { has_token: store.hasAny(), count: store.count() });
+}
+
+/**
+ * POST /api/v1/bridge/token — mint a new token. Origin-gated (Journey 0b).
+ * Body (optional): { label }. Returns `{ status:'ok', token, created_at }`.
+ */
+export async function apiMintBridgeToken(daemon, req, res) {
+  if (!isTokenMintOrigin(req.headers.origin)) {
+    return jsonResponse(res, { error: 'forbidden_origin' }, 403);
+  }
+  let label = null;
+  try {
+    const raw = await readBody(req);
+    if (raw) label = JSON.parse(raw)?.label ?? null;
+  } catch { /* body optional */ }
+  const store = await getBridgeTokenStore(daemon);
+  const minted = store.mint(label);
+  return jsonResponse(res, { status: 'ok', ...minted });
+}
+
+/** DELETE /api/v1/bridge/token — revoke a token via `?token=` or JSON body. */
+export async function apiRevokeBridgeToken(daemon, req, res, url) {
+  let token = url.searchParams.get('token');
+  if (!token) {
+    try {
+      const raw = await readBody(req);
+      if (raw) token = JSON.parse(raw)?.token;
+    } catch { /* ignore */ }
+  }
+  if (typeof token !== 'string' || !token.trim()) {
+    return jsonResponse(res, { error: 'token is required' }, 400);
+  }
+  const store = await getBridgeTokenStore(daemon);
+  const revoked = store.revoke(token);
+  return jsonResponse(res, { status: 'ok', revoked });
+}
+
+/** GET /api/v1/bindings — list all bindings, or one via `?site=`. */
+export async function apiListBindings(daemon, _req, res, url) {
+  const store = await getBindingStore(daemon);
+  const site = url.searchParams.get('site');
+  if (site) {
+    const binding = store.get(site);
+    return jsonResponse(res, { bindings: binding ? [binding] : [], total: binding ? 1 : 0 });
+  }
+  const bindings = store.list();
+  return jsonResponse(res, { bindings, total: bindings.length });
+}
+
+/**
+ * POST /api/v1/bindings — upsert a site→workspace→session binding.
+ * Body: { site, workspace?, session_id? }. `site` is required (FM-7).
+ */
+export async function apiUpsertBinding(daemon, req, res) {
+  let body = {};
+  try {
+    const raw = await readBody(req);
+    if (raw) body = JSON.parse(raw);
+  } catch {
+    return jsonResponse(res, { error: 'invalid_json' }, 400);
+  }
+
+  if (typeof body.site !== 'string' || !body.site.trim()) {
+    return jsonResponse(res, { error: 'site is required' }, 400);
+  }
+
+  const store = await getBindingStore(daemon);
+  try {
+    const binding = store.upsert({
+      site: body.site,
+      workspace: body.workspace,
+      session_id: body.session_id,
+    });
+    return jsonResponse(res, { status: 'ok', binding });
+  } catch (err) {
+    return jsonResponse(res, { error: 'binding_failed', detail: err.message }, 400);
+  }
+}
+
+/** DELETE /api/v1/bindings?site=doubao.com — remove a binding. */
+export async function apiDeleteBinding(daemon, req, res, url) {
+  let site = url.searchParams.get('site');
+  if (!site) {
+    // Allow the site in a JSON body as a fallback for clients that can't set
+    // a query string on DELETE.
+    try {
+      const raw = await readBody(req);
+      if (raw) site = JSON.parse(raw)?.site;
+    } catch { /* ignore */ }
+  }
+  if (typeof site !== 'string' || !site.trim()) {
+    return jsonResponse(res, { error: 'site is required' }, 400);
+  }
+  const store = await getBindingStore(daemon);
+  const removed = store.remove(site);
+  return jsonResponse(res, { status: 'ok', removed });
 }
 
 export async function apiSearchMemories(daemon, _req, res, url) {
@@ -480,7 +930,54 @@ export function apiSyncStatus(daemon, _req, res) {
     last_push_at: cloud.last_push_at || deriveLast('push'),
     last_pull_at: cloud.last_pull_at || deriveLast('pull'),
     history,
+    // Batch A · outbox stats for sync indicator
+    outbox: getOutboxStats(daemon),
   });
+}
+
+/** Batch A · outbox stats scoped to the current cloud user. */
+function getOutboxStats(daemon) {
+  try {
+    const db = daemon.indexer?.db;
+    const config = daemon._loadConfig();
+    const userId = config?.cloud?.memory_id;
+    if (!db || !userId) return { pending: 0, acked: 0, failed: 0, expired: 0 };
+    return outboxStats(db, userId);
+  } catch { return { pending: 0, acked: 0, failed: 0, expired: 0 }; }
+}
+
+/**
+ * Batch A · GET /api/v1/sync/problems — failed/expired outbox rows grouped by kind.
+ * Response MUST NOT contain card content (ref_id, title, summary).
+ */
+export function apiSyncProblems(daemon, _req, res) {
+  try {
+    const db = daemon.indexer?.db;
+    const config = daemon._loadConfig();
+    const userId = config?.cloud?.memory_id;
+    if (!db || !userId) return jsonResponse(res, []);
+    const result = outboxProblems(db, userId);
+    return jsonResponse(res, result);
+  } catch { return jsonResponse(res, []); }
+}
+
+/**
+ * Batch A · POST /api/v1/sync/retry — reset failed outbox rows back to pending
+ * so the next sync cycle picks them up. Does NOT touch expired rows (those are
+ * dead by definition — a day-old write is not safe to apply).
+ */
+export async function apiSyncRetry(daemon, req, res) {
+  try {
+    const db = daemon.indexer?.db;
+    const config = daemon._loadConfig();
+    const userId = config?.cloud?.memory_id;
+    if (!db || !userId) return jsonResponse(res, { reset: 0 });
+    const result = db.prepare(
+      `UPDATE sync_outbox SET status = 'pending', attempts = 0, last_error = NULL,
+       updated_at = ? WHERE user_id = ? AND status = 'failed'`,
+    ).run(new Date().toISOString(), userId);
+    return jsonResponse(res, { reset: result.changes });
+  } catch { return jsonResponse(res, { reset: 0 }); }
 }
 
 /**
@@ -494,7 +991,7 @@ export function apiSyncStatus(daemon, _req, res) {
  *                      When present, the response shape flips to
  *                      `{ workspaces: [{ path, ...entry }], total }` which
  *                      is much smaller for users with thousands of registered
- *                      workspaces (e.g. AwarenessClaw Memory tab previously
+ *                      workspaces (e.g. OCT-Agent Memory tab previously
  *                      pulled a 450KB 2600-entry blob on every load).
  *   - `q=<substr>`   — case-insensitive path substring filter. Applied before
  *                      limit.
@@ -561,7 +1058,7 @@ export async function apiUpdateConfig(daemon, req, res) {
 
   const configPath = path.join(daemon.awarenessDir, 'config.json');
   const config = daemon._loadConfig();
-  const allowedSections = ['daemon', 'embedding', 'cloud', 'git_sync', 'agent', 'extraction'];
+  const allowedSections = ['daemon', 'embedding', 'cloud', 'git_sync', 'agent', 'extraction', 'memory'];
   for (const section of allowedSections) {
     if (patch[section] && typeof patch[section] === 'object') {
       config[section] = { ...(config[section] || {}), ...patch[section] };
@@ -608,7 +1105,7 @@ export async function apiCloudAuthOpenBrowser(_daemon, req, res) {
 
 /**
  * Detect whether the daemon itself is running on a headless / remote host.
- * Used by apiCloudAuthStart to advise callers (AwarenessClaw UI, CLI) that
+ * Used by apiCloudAuthStart to advise callers (OCT-Agent UI, CLI) that
  * opening a browser on the daemon side makes no sense. See F-035.
  */
 function daemonIsHeadless() {
@@ -631,7 +1128,7 @@ export async function apiCloudAuthStart(daemon, _req, res) {
     const data = await daemon._httpJson('POST', `${apiBase}/auth/device/init`, {});
     track('cloud_auth_initiated', { from_step: 'onboarding' });
     // Enrich response with headless hint + UI-ready verification URL so
-    // callers (AwarenessClaw Memory UI, setup wizard, etc.) know whether
+    // callers (OCT-Agent Memory UI, setup wizard, etc.) know whether
     // to skip their own "open browser" attempt.
     const verificationUrl = data.user_code && data.verification_uri
       ? `${data.verification_uri}?code=${encodeURIComponent(data.user_code)}`

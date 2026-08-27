@@ -1,8 +1,8 @@
 /**
- * Content-quality + token-saving scorecard for the AwarenessClaw envelope-strip
+ * Content-quality + token-saving scorecard for the OCT-Agent envelope-strip
  * fix in daemon._remember (2026-04-18).
  *
- * Simulates a realistic batch of AwarenessClaw turn_briefs
+ * Simulates a realistic batch of OCT-Agent turn_briefs
  * (Request:/Result: envelope), each long enough to pass the short_noise
  * filter so we actually exercise the envelope-strip path.
  *
@@ -58,7 +58,7 @@ const SIMULATED_BATCH = [
 function tokEst(s) { return Math.max(1, Math.floor(s.length / 3)); }
 
 
-describe('Scorecard — AwarenessClaw envelope strip on realistic batch', () => {
+describe('Scorecard — OCT-Agent envelope strip on realistic batch', () => {
   it('composite score >= 8.5 / 10', async () => {
     const mod = await import('../src/daemon.mjs');
     const stored = [];
@@ -116,9 +116,9 @@ describe('Scorecard — AwarenessClaw envelope strip on realistic batch', () => 
 
     console.log();
     console.log('=' .repeat(66));
-    console.log('AwarenessClaw envelope-strip · Content Quality + Token-Saving');
+    console.log('OCT-Agent envelope-strip · Content Quality + Token-Saving');
     console.log('=' .repeat(66));
-    console.log(`Batch size:          ${SIMULATED_BATCH.length} AwarenessClaw turn_briefs`);
+    console.log(`Batch size:          ${SIMULATED_BATCH.length} OCT-Agent turn_briefs`);
     console.log(`Stored:              ${n}   (${skipped} skipped by short_noise / other gates)`);
     console.log();
     console.log('── Content quality (on stored items) ──');

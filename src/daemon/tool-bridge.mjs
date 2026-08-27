@@ -423,7 +423,7 @@ export async function callMcpTool(daemon, name, args) {
         const memoryId = daemon?.cloudConfig?.memoryId || daemon?.memoryId;
         if (!apiBase || !apiKey) {
           result = mcpResult({
-            error: 'cloud_not_configured: vibe-publish requires cloud auth. Run `npx @awareness-sdk/setup --cloud` to link a memory.',
+            error: 'cloud_not_configured: vibe-publish requires cloud auth. Run `npx @awareness.market/setup --cloud` to link a memory.',
           });
           break;
         }

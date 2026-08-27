@@ -1,5 +1,5 @@
 /**
- * Public API for @awareness-sdk/local
+ * Public API for @awareness.market/local
  *
  * Exports high-level functions for external callers (setup-cli, plugins, etc.).
  * This is the package's main entry point (package.json "main" / "exports").

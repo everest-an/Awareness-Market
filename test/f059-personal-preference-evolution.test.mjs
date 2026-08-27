@@ -17,11 +17,72 @@
  * daemon must be running. The test switches to a per-scenario scratch
  * directory so it never pollutes the user's real DB.
  */
-import test from 'node:test';
+import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { daemonAliveOrFailInCI } from './helpers/require-daemon.mjs';
+import { acquireDaemonLock } from './helpers/daemon-lock.mjs';
 
+/* Serialise against other daemon-driving suites — see helpers/daemon-lock.mjs.
+ * Running concurrently with F-055 made both fail in a way that looked like a
+ * cross-workspace data leak; the daemon was fine, the suites were racing. */
 const DAEMON = 'http://localhost:37800';
+
+let releaseDaemon = () => {};
+let originalProject = null;
+
+before(async () => {
+  releaseDaemon = await acquireDaemonLock('F-059');
+  // Where the daemon was, so teardown can put it back and free the handles it
+  // holds on our scratch dirs.
+  try {
+    const h = await (await fetch(`${DAEMON}/healthz`)).json();
+    originalProject = h?.project_dir || null;
+  } catch { originalProject = null; }
+});
+
+/* Scratch workspaces handed to the daemon, deleted when the run ends.
+ *
+ * The header above claims this suite never pollutes the user's data, but it did:
+ * the paths were hardcoded POSIX `/tmp/...` (which resolves to E:\tmp on
+ * Windows) and were never removed. AWARENESS_HOME cannot help here — the
+ * registry write happens inside the out-of-process daemon, which has its own
+ * environment. Deleting the directory is what lets the daemon prune the row.
+ */
+const scratchDirs = new Set();
+
+// Single teardown, ordered deliberately: move the daemon off our dirs, delete
+// them, then release the lock. The daemon keeps index.db open, and Windows will
+// not delete a directory with an open file in it — leaving one behind means a
+// permanent registry row, which is the accumulation this suite caused.
+after(async () => {
+  if (originalProject) {
+    try {
+      await fetch(`${DAEMON}/api/v1/workspace/switch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_dir: originalProject }),
+      });
+      await new Promise((r) => setTimeout(r, 600));
+    } catch { /* daemon gone — dirs are free anyway */ }
+  }
+
+  const stuck = [];
+  for (const dir of scratchDirs) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch (err) {
+      stuck.push(`${dir} (${err.code || err.message})`);
+    }
+  }
+  if (stuck.length) {
+    console.warn(`[f059] could not remove ${stuck.length} scratch dir(s):\n  ${stuck.join('\n  ')}`);
+  }
+
+  releaseDaemon();
+});
 
 async function mcp(name, args) {
   const r = await fetch(`${DAEMON}/mcp`, {
@@ -40,8 +101,9 @@ async function mcp(name, args) {
 }
 
 async function freshScratch() {
-  const dir = `/tmp/f059-pref-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const dir = path.join(os.tmpdir(), `f059-pref-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
   fs.mkdirSync(dir, { recursive: true });
+  scratchDirs.add(dir);
   fs.writeFileSync(`${dir}/README.md`, 'f059 scratch');
   const r = await fetch(`${DAEMON}/api/v1/workspace/switch`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -53,10 +115,8 @@ async function freshScratch() {
 }
 
 async function daemonAlive() {
-  try {
-    const r = await fetch(`${DAEMON}/healthz`);
-    return r.ok;
-  } catch { return false; }
+  // Skipping is a local convenience, never a CI outcome — see helpers/require-daemon.mjs.
+  return daemonAliveOrFailInCI(DAEMON, 'F-059 preference evolution');
 }
 
 test('F-059 · S1 identical personal_preference dedups', async (t) => {

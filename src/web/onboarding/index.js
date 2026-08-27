@@ -268,8 +268,39 @@
     go(start);
   }
 
+  /* Explicit re-run entry point: http://localhost:37800/?onboarding=1
+   *
+   * Completion is stored in localStorage, so a user who has finished the wizard
+   * can never see it again in that browser. The only re-run affordance was the
+   * status chip's CTA, which is labelled "Connect cloud →" and is hidden
+   * outright once cloud sync is on — i.e. for a fully configured user there was
+   * no way back in at all. AwarenessOnboarding.reset() already existed; this
+   * just gives it an address a human can type or a doc can link to.
+   *
+   * The parameter is stripped from the URL immediately so a refresh (or a
+   * bookmark) does not silently restart the wizard every time.
+   */
+  function forcedByUrl() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('onboarding') !== '1') return false;
+      params.delete('onboarding');
+      const qs = params.toString();
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + (qs ? '?' + qs : '') + window.location.hash,
+      );
+      return true;
+    } catch {
+      return false;   // never let URL parsing break page load
+    }
+  }
+
   function maybeAutoLaunch() {
-    if (State.shouldAutoLaunch()) {
+    const forced = forcedByUrl();
+    if (forced) State.reset();
+    if (forced || State.shouldAutoLaunch()) {
       // Defer to after DOM is settled so we never block first paint.
       if (document.readyState === 'complete') {
         setTimeout(launch, 200);

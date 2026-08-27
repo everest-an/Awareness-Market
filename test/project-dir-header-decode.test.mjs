@@ -84,15 +84,18 @@ describe('daemon project-dir header decode (CJK/emoji safety)', () => {
     const b64 = Buffer.from(other, 'utf8').toString('base64');
     const { status, json } = await request(port, { 'X-Awareness-Project-Dir-B64': b64 });
     assert.equal(status, 409);
-    assert.equal(json.requested_project, other);
+    // The daemon returns the *normalized* (path.resolve'd) form — on Windows
+    // that gains a drive prefix (E:\Users\张三\...). Assert against the same
+    // normalization instead of a Unix-literal expectation.
+    assert.equal(json.requested_project, path.resolve(other));
   });
 
   it('B64 carrying emoji path → correctly decoded', async () => {
-    const emojiPath = '/Users/edwinhao/Project 🚀';
+    const emojiPath = '/Users/everestan/Project 🚀';
     const b64 = Buffer.from(emojiPath, 'utf8').toString('base64');
     const { status, json } = await request(port, { 'X-Awareness-Project-Dir-B64': b64 });
     assert.equal(status, 409);
-    assert.equal(json.requested_project, emojiPath);
+    assert.equal(json.requested_project, path.resolve(emojiPath));
   });
 
   it('B64 takes priority over legacy header when both present', async () => {

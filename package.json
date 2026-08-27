@@ -1,8 +1,12 @@
 {
-  "name": "@awareness-sdk/local",
-  "version": "0.11.6",
+  "name": "@awareness.market/local",
+  "version": "0.12.3",
   "description": "Local-first AI agent memory system. No account needed.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/everest-an/Awareness-Market.git"
+  },
   "type": "module",
   "bin": {
     "awareness-local": "bin/cli.cjs"
@@ -18,11 +22,14 @@
   "dependencies": {
     "@huggingface/transformers": "^3.0.0",
     "@modelcontextprotocol/sdk": "1.29.0",
+    "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
     "better-sqlite3": "^12.8.0",
     "ignore": "^7.0.5",
     "mammoth": "^1.12.0",
     "pdf-parse": "^2.4.5",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.0 || ^4.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -62,6 +69,11 @@
     "benchmark:universal:robust": "node bin/awareness-local.mjs benchmark --project ../../tests/memory-benchmark/projects/universal-core --dataset ../../tests/memory-benchmark/datasets/universal_robust.jsonl --backend builtin --reindex --report ../../tests/memory-benchmark/reports/universal_robust_builtin.json --markdown-report ../../tests/memory-benchmark/reports/universal_robust_builtin.md",
     "start": "node bin/awareness-local.mjs start",
     "postinstall": "node install-transformers.mjs",
-    "prepublishOnly": "node scripts/prepublish-gate.mjs"
-  }
+    "prepublishOnly": "node scripts/prepublish-gate.mjs",
+    "check:vector-drift": "node scripts/check-vector-drift.mjs"
+  },
+  "bugs": {
+    "url": "https://github.com/everest-an/Awareness-Market/issues"
+  },
+  "homepage": "https://awareness.market"
 }

@@ -216,6 +216,11 @@
       "name": "awareness_timeline",
       "short_desc": "Bi-temporal fact stream for one entity (active + superseded)",
       "long_desc": "Returns the full time-machine view for a single entity, ordered by valid_from desc — both active and superseded facts. Use this for 'how did X evolve over time' / 'what did we believe about X last month' queries."
+    },
+    {
+      "name": "awareness_find_deals",
+      "short_desc": "Search the public Open Deal Board (business supply and demand)",
+      "long_desc": "Search a PUBLIC board of business supply and demand broadcasts. Use when the user wants to find a counterparty — a supplier, buyer, spare capacity, inventory or partner (e.g. \"who has H100s in Singapore\", \"找液冷机柜托管\").\n\nNOT a memory tool: it neither reads nor writes the user memory, and it needs NO API key, so it works even when Awareness memory is unconfigured.\n\nPARAMS: query (free text, works in Chinese and English), direction (\"supply\" | \"demand\"), category, region, limit (1-50, default 20).\n\nREPORTING RULES — Awareness vouches for no one and issues no badges. Report what publisher.evidence shows (days active, broadcasts published, deals confirmed by both parties, upheld reports) and let the user judge. provenance.anchored means the record is anchored on-chain (ERC-8350): it proves the record existed then and is unaltered — it does NOT mean the contents are true, so never call an anchored listing \"verified\" or \"guaranteed\". Contact details are never returned; link the user to the listing URL.\n\nNo-MCP fallback for other assistants: https://awareness.market/deals.md returns the whole board as ~3 KB of Markdown and accepts the same filters as query params."
     }
   ],
   "mcp_instructions": [
@@ -526,7 +531,7 @@
       "notes_lines": [
         "## OpenClaw Notes",
         "- OpenClaw uses a plugin-based configuration via ~/.openclaw/openclaw.json.",
-        "- Install as plugin: openclaw plugins install @awareness-sdk/openclaw-memory",
+        "- Install as plugin: openclaw plugins install @awareness.market/openclaw-memory",
         "- Or install as skill: npx clawhub@latest install awareness-memory",
         "- MCP tools are exposed through the plugin system, no rules file needed."
       ]

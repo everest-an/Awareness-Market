@@ -52,6 +52,9 @@ export function createOptimisticPusher({ http, memoryId, deviceId }) {
       local_id: card.local_id ?? card.localId ?? null,
       device_id: deviceId ?? null,
       schema_version: Number.isInteger(card.schema_version) ? card.schema_version : 1,
+      // W1 idempotency key: the outbox messageId travels with the payload so a
+      // lost-response retry is deduped cloud-side (ingest_deliveries table).
+      message_id: card.message_id ?? null,
     };
     if (card.id) body.id = card.id;
 

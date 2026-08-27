@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS memories (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   content_hash TEXT,
-  synced_to_cloud INTEGER DEFAULT 0
+  synced_to_cloud INTEGER DEFAULT 0,
+  metadata TEXT
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
@@ -129,7 +130,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   started_at TEXT NOT NULL,
   ended_at TEXT,
   memory_count INTEGER DEFAULT 0,
-  summary TEXT
+  summary TEXT,
+  workspace TEXT
 );
 
 CREATE TABLE IF NOT EXISTS embeddings (
@@ -218,11 +220,39 @@ CREATE TABLE IF NOT EXISTS graph_embeddings (
   created_at TEXT NOT NULL,
   FOREIGN KEY (node_id) REFERENCES graph_nodes(id)
 );
+
+CREATE TABLE IF NOT EXISTS card_provenance (
+  card_id             TEXT PRIMARY KEY,
+  source_authority    TEXT NOT NULL,
+  origin_device_id    TEXT,
+  delivery_message_id TEXT,
+  recorded_at         TEXT NOT NULL
+);
 `;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * W3 · Infer card source authority for the card_provenance side table.
+ *
+ *   user_input      — card content authored by the user (explicit source)
+ *   auto_extraction — LLM-extracted from session events (default)
+ *   inference       — derived/synthesized (e.g. future inference paths)
+ *
+ * The ordering user_input > auto_extraction > inference is used by conflict
+ * detection: a user-authored card beats an extracted one when they disagree.
+ * Kept as a pure function so tests can assert the mapping without a daemon.
+ */
+export function inferSourceAuthority(card) {
+  const source = String(card?.source || '').toLowerCase();
+  const type = String(card?.card_type || '').toLowerCase();
+  if (source.includes('user') || source.includes('explicit')) return 'user_input';
+  if (type === 'moc') return 'auto_extraction'; // internally generated MOC
+  if (source.includes('infer')) return 'inference';
+  return 'auto_extraction';
+}
 
 /**
  * Infer growth_stage from source_memories reference count.
@@ -250,6 +280,32 @@ function inferGrowthStage(card) {
  */
 function sha256(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+/**
+ * F-064 · Normalise a metadata value to a JSON string for the memories.metadata
+ * column. Accepts a plain object (serialise), a pre-serialised JSON string
+ * (pass through), or null/undefined (→ null). Malformed values degrade to null
+ * so a bad metadata payload never breaks the main write path.
+ *
+ * @param {object|string|null|undefined} value
+ * @returns {string|null}
+ */
+function serializeMetadata(value) {
+  if (value == null) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  }
+  if (typeof value === 'object') {
+    try {
+      const json = JSON.stringify(value);
+      return json && json !== '{}' ? json : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 /**
@@ -398,6 +454,52 @@ export class Indexer {
     // ALTER shipped — breaks _pushCardsV2. updated_at used by lifecycle-manager
     // garbage collection. Both must exist on every upgraded DB.
     this._migrateCardLocalIdAndUpdatedAt();
+    // F-064: Add metadata column to memories for External AI Memory Bridge.
+    this._migrateExternalChatMetadata();
+    // F-064 Phase 2: Add workspace column to sessions for external-chat
+    // session↔workspace ownership validation.
+    this._migrateSessionWorkspace();
+  }
+
+  /**
+   * F-064 Phase 2 migration: adds `workspace TEXT` to the sessions table.
+   *
+   * External-chat sessions created by the browser bridge (`ext_...`) are
+   * stamped with the resolved projectDir they belong to, so a later
+   * `POST /api/v1/memories` carrying a foreign session_id can be rejected
+   * with 409 (session_workspace_mismatch). Forward-compatible — legacy IDE
+   * sessions keep `workspace IS NULL` and are treated as "unscoped / current".
+   */
+  _migrateSessionWorkspace() {
+    try {
+      const cols = this.db.prepare(`PRAGMA table_info(sessions)`).all();
+      const colNames = new Set(cols.map((c) => c.name));
+      if (!colNames.has('workspace')) {
+        this.db.exec('ALTER TABLE sessions ADD COLUMN workspace TEXT');
+      }
+    } catch (err) {
+      console.warn('[indexer] sessions.workspace migration warning:', err.message);
+    }
+  }
+
+  /**
+   * F-064 migration: adds `metadata TEXT` to the memories table.
+   *
+   * Stores JSON-encoded provenance for external-chat captures (豆包/Gemini/…):
+   * `{ site, url, model, captured_at, ... }`. Forward-compatible — existing
+   * rows keep `metadata IS NULL`, and every read path treats NULL as "no
+   * metadata", so upgraded DBs and older memories are untouched.
+   */
+  _migrateExternalChatMetadata() {
+    try {
+      const cols = this.db.prepare(`PRAGMA table_info(memories)`).all();
+      const colNames = new Set(cols.map((c) => c.name));
+      if (!colNames.has('metadata')) {
+        this.db.exec('ALTER TABLE memories ADD COLUMN metadata TEXT');
+      }
+    } catch (err) {
+      console.warn('[indexer] memories.metadata migration warning:', err.message);
+    }
   }
 
   /**
@@ -669,10 +771,10 @@ export class Indexer {
     this._stmtUpsertMemory = this.db.prepare(`
       INSERT INTO memories (id, filepath, type, title, session_id, agent_role,
                             source, status, tags, created_at, updated_at, content_hash, synced_to_cloud,
-                            cloud_id, version, schema_version, sync_status, last_pushed_at, last_pulled_at)
+                            cloud_id, version, schema_version, sync_status, last_pushed_at, last_pulled_at, metadata)
       VALUES (@id, @filepath, @type, @title, @session_id, @agent_role,
               @source, @status, @tags, @created_at, @updated_at, @content_hash, @synced_to_cloud,
-              @cloud_id, @version, @schema_version, @sync_status, @last_pushed_at, @last_pulled_at)
+              @cloud_id, @version, @schema_version, @sync_status, @last_pushed_at, @last_pulled_at, @metadata)
       ON CONFLICT(id) DO UPDATE SET
         filepath     = excluded.filepath,
         type         = excluded.type,
@@ -690,11 +792,26 @@ export class Indexer {
         schema_version = excluded.schema_version,
         sync_status  = excluded.sync_status,
         last_pushed_at = excluded.last_pushed_at,
-        last_pulled_at = excluded.last_pulled_at
+        last_pulled_at = excluded.last_pulled_at,
+        metadata     = excluded.metadata
     `);
 
     this._stmtGetMemoryHash = this.db.prepare(
       `SELECT content_hash FROM memories WHERE id = ?`
+    );
+
+    // F-064 · same-source dedup: find an existing memory with identical
+    // content_hash AND the same source. Cross-source identical content is
+    // intentionally NOT deduped (two independent provenance records).
+    this._stmtFindByHashAndSource = this.db.prepare(
+      `SELECT id FROM memories WHERE content_hash = ? AND source IS ? AND status != 'deleted' LIMIT 1`
+    );
+
+    // F-064 Phase 2 · global dedup (memory_deduplication_mode='global'):
+    // find ANY existing memory with the same content_hash, regardless of
+    // source. Opt-in — the default source_only mode uses the statement above.
+    this._stmtFindByHash = this.db.prepare(
+      `SELECT id FROM memories WHERE content_hash = ? AND status != 'deleted' LIMIT 1`
     );
 
     // -- memories_fts upsert (delete + insert, FTS5 has no ON CONFLICT) ---
@@ -779,8 +896,8 @@ export class Indexer {
 
     // -- sessions ---------------------------------------------------------
     this._stmtInsertSession = this.db.prepare(`
-      INSERT INTO sessions (id, source, agent_role, started_at)
-      VALUES (@id, @source, @agent_role, @started_at)
+      INSERT INTO sessions (id, source, agent_role, started_at, workspace)
+      VALUES (@id, @source, @agent_role, @started_at, @workspace)
     `);
 
     this._stmtUpdateSession = this.db.prepare(`
@@ -879,6 +996,9 @@ export class Indexer {
       sync_status: metadata.sync_status || 'pending_push',
       last_pushed_at: metadata.last_pushed_at || null,
       last_pulled_at: metadata.last_pulled_at || null,
+      // F-064 · JSON-encoded provenance for external-chat captures. Accepts an
+      // object (serialise) or a pre-serialised string; NULL when absent.
+      metadata: serializeMetadata(metadata.metadata),
     };
 
     // Wrap in a transaction so the metadata + FTS rows are atomic.
@@ -895,6 +1015,47 @@ export class Indexer {
     upsert();
 
     return { indexed: true };
+  }
+
+  /**
+   * F-064 · Look up an existing memory whose content_hash matches AND whose
+   * source is identical. Used by the write path to dedup repeated external-chat
+   * captures WITHOUT collapsing cross-source records (same text from Claude
+   * Code vs 豆包 stays as two independent provenance rows).
+   *
+   * @param {string} content — raw content (hashed with the same sha256 as indexMemory)
+   * @param {string|null} source — the source scope to dedup within
+   * @returns {string|null} existing memory id, or null when no same-source dup
+   */
+  findByContentHashAndSource(content, source) {
+    if (typeof content !== 'string' || content.length === 0) return null;
+    try {
+      const hash = sha256(content);
+      const row = this._stmtFindByHashAndSource.get(hash, source ?? null);
+      return row ? row.id : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * F-064 Phase 2 · Global dedup: look up any existing memory whose
+   * content_hash matches, ignoring source. Used when
+   * memory_deduplication_mode='global' collapses identical content across
+   * every source into one record.
+   *
+   * @param {string} content — raw content (hashed with the same sha256 as indexMemory)
+   * @returns {string|null} existing memory id, or null when no dup
+   */
+  findByContentHash(content) {
+    if (typeof content !== 'string' || content.length === 0) return null;
+    try {
+      const hash = sha256(content);
+      const row = this._stmtFindByHash.get(hash);
+      return row ? row.id : null;
+    } catch {
+      return null;
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -967,6 +1128,27 @@ export class Indexer {
         content: card.content || '',
         tags: tags || '',
       });
+      // W3 · card_provenance side table — source authority for conflict
+      // detection. Deliberately a SIDE table: summary/tags/status are in the
+      // ERC-8350 digest preimage, so a provenance column on knowledge_cards
+      // would sit one careless JOIN away from a hash that Sepolia committed
+      // to (F-088 D3 pattern — anchor_state).
+      const authority = inferSourceAuthority(card);
+      this.db.prepare(
+        `INSERT INTO card_provenance (card_id, source_authority, origin_device_id, delivery_message_id, recorded_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(card_id) DO UPDATE SET
+           source_authority = excluded.source_authority,
+           origin_device_id = excluded.origin_device_id,
+           delivery_message_id = excluded.delivery_message_id,
+           recorded_at = excluded.recorded_at`,
+      ).run(
+        card.id,
+        authority,
+        card.origin_device_id ?? null,
+        card.delivery_message_id ?? null,
+        now,
+      );
     });
     upsert();
   }
@@ -1224,12 +1406,55 @@ Return ONLY JSON: {"title": "...", "summary": "..."}`;
    * @param {string} [agentRole='builder_agent']
    * @returns {{ id: string, source: string, agent_role: string, started_at: string }}
    */
-  createSession(source, agentRole = 'builder_agent') {
+  createSession(source, agentRole = 'builder_agent', opts = {}) {
     const now = nowISO();
-    const id = `ses_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const row = { id, source: source || null, agent_role: agentRole, started_at: now };
+    const id = opts.id || `ses_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const row = {
+      id,
+      source: source || null,
+      agent_role: agentRole,
+      started_at: now,
+      // F-064 Phase 2 · stamp the owning workspace for external-chat sessions.
+      workspace: opts.workspace ?? null,
+    };
     this._stmtInsertSession.run(row);
     return { ...row };
+  }
+
+  /**
+   * F-064 Phase 2 · Fetch a single session row by id (or null if absent).
+   * @param {string} id
+   * @returns {object|null}
+   */
+  getSession(id) {
+    if (!id) return null;
+    try {
+      return this.db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(id) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * F-064 Phase 2 · List sessions, newest first. Optional source filter lets
+   * the browser bridge separate external_chat sessions from IDE sessions.
+   * @param {{ source?: string, limit?: number }} [opts]
+   * @returns {object[]}
+   */
+  listSessions(opts = {}) {
+    const limit = Number.isFinite(opts.limit) ? Math.max(1, Math.min(500, opts.limit)) : 100;
+    try {
+      if (opts.source) {
+        return this.db
+          .prepare(`SELECT * FROM sessions WHERE source = ? ORDER BY started_at DESC LIMIT ?`)
+          .all(opts.source, limit);
+      }
+      return this.db
+        .prepare(`SELECT * FROM sessions ORDER BY started_at DESC LIMIT ?`)
+        .all(limit);
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -1311,6 +1536,35 @@ Return ONLY JSON: {"title": "...", "summary": "..."}`;
    * @param {number}   [options.offset=0]
    * @returns {Array<Object>}
    */
+  /**
+   * Build a SQL expression that returns 1 when a knowledge card's title
+   * contains EVERY query token verbatim, else 0.
+   *
+   * F-056 S5: the trigram FTS tokenizer cannot index single-character tokens,
+   * so "step 1" vs "step 2" tie on bm25. This expression breaks the tie by
+   * exact-title-substring with AND semantics — the card whose title literally
+   * contains all queried tokens (including "1") wins. It is a zero/one
+   * tiebreaker, not a weight change: the G4-guarded constants are untouched.
+   */
+  _queryPhraseMatchExpr(ftsQuery) {
+    const tokens = this._queryPhraseTokens(ftsQuery);
+    if (tokens.length === 0) return '0';
+    return `CASE WHEN ${tokens.map(() => `k.title LIKE ?`).join(' AND ')} THEN 1 ELSE 0 END`;
+  }
+
+  /**
+   * Extract the distinct phrase tokens used by the title-substring tiebreaker.
+   * Mirrors _queryPhraseMatchExpr so the placeholder count always matches.
+   */
+  _queryPhraseTokens(ftsQuery) {
+    const tokens = String(ftsQuery || '')
+      .replace(/"/g, '')
+      .split(/\s+(?:OR|AND)\s+/i)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 1 && t.length <= 40);
+    return [...new Set(tokens)];
+  }
+
   searchKnowledge(query, options = {}) {
     const ftsQuery = sanitiseFtsQuery(query);
     if (!ftsQuery) return [];
@@ -1327,11 +1581,23 @@ Return ONLY JSON: {"title": "...", "summary": "..."}`;
       params.push(...options.categories);
     }
 
+    // Phrase-match tiebreaker params: the SELECT clause placeholders bind FIRST
+    // (SQLite binds by text order), so phraseTokens come before the WHERE params.
+    const phraseTokens = this._queryPhraseTokens(ftsQuery);
+    params.unshift(...phraseTokens);
     params.push(limit, offset);
 
     // F-038 T-005.5: Three-dimensional weighted ranking
     // score = bm25 × 0.70 + log(recall_count+1) × 0.15 + link_count × 0.15
     // Note: bm25() returns negative values (lower = better match), so we negate it
+    //
+    // F-056 S5 fix · trigram tokenizer cannot index single-char tokens, so
+    // "step 1" vs "step 2" produce IDENTICAL bm25 (both match "step", neither
+    // matches "1"/"2"). When bm25 ties, an exact substring match of a full
+    // query phrase in the title (e.g. "step 1" inside "pgvector setup step 1")
+    // must break the tie in favour of the exact-hit card. This does not touch
+    // the G4-guarded weights — it adds a zero-or-one tiebreaker term, not a
+    // weight change.
     const sql = `
       SELECT k.*,
         bm25(knowledge_fts) AS bm25_raw,
@@ -1339,11 +1605,12 @@ Return ONLY JSON: {"title": "...", "summary": "..."}`;
           (-bm25(knowledge_fts)) * 0.70
           + ln(COALESCE(k.recall_count, 0) + 1) * 0.15
           + (COALESCE(k.link_count_incoming, 0) + COALESCE(k.link_count_outgoing, 0)) * 0.15
-        ) AS weighted_rank
+        ) AS weighted_rank,
+        ${this._queryPhraseMatchExpr(ftsQuery)} AS phrase_hit
       FROM knowledge_fts
       JOIN knowledge_cards k ON k.id = knowledge_fts.id
       WHERE ${conditions.join(' AND ')}
-      ORDER BY weighted_rank DESC
+      ORDER BY weighted_rank DESC, phrase_hit DESC, k.created_at ASC
       LIMIT ? OFFSET ?
     `;
 

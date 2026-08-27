@@ -431,7 +431,7 @@
       "notes_lines": [
         "## OpenClaw Notes",
         "- OpenClaw uses a plugin-based configuration via ~/.openclaw/openclaw.json.",
-        "- Install as plugin: openclaw plugins install @awareness-sdk/openclaw-memory",
+        "- Install as plugin: openclaw plugins install @awareness.market/openclaw-memory",
         "- Or install as skill: npx clawhub@latest install awareness-memory",
         "- MCP tools are exposed through the plugin system, no rules file needed."
       ]

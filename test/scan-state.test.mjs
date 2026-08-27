@@ -87,7 +87,8 @@ describe('appendScanError', () => {
 describe('getScanStatePath', () => {
   it('returns path inside .awareness directory', () => {
     const p = getScanStatePath('/tmp/project');
-    assert.equal(p, '/tmp/project/.awareness/scan-state.json');
+    // path.join normalizes separators per-platform (Windows: \tmp\project\...)
+    assert.equal(p, path.join('/tmp/project', '.awareness', 'scan-state.json'));
   });
 });
 

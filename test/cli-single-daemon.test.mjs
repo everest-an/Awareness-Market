@@ -27,9 +27,15 @@ const CLI = path.resolve(__dirname, '../bin/awareness-local.mjs');
 test('registerWorkspace: new workspace reuses default 37800 even when occupied', async (t) => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'aw-reg-'));
   const originalHome = process.env.HOME;
+  const originalAwHome = process.env.AWARENESS_HOME;
   process.env.HOME = tmp;
+  // os.homedir() reads USERPROFILE on Windows and ignores HOME, so HOME alone
+  // leaks straight into the real user profile. AWARENESS_HOME is the portable knob.
+  process.env.AWARENESS_HOME = tmp;
   t.after(() => {
     process.env.HOME = originalHome;
+    if (originalAwHome === undefined) delete process.env.AWARENESS_HOME;
+    else process.env.AWARENESS_HOME = originalAwHome;
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
@@ -61,9 +67,15 @@ test('registerWorkspace: new workspace reuses default 37800 even when occupied',
 test('registerWorkspace: existing entry is updated, port preserved', async (t) => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'aw-reg-'));
   const originalHome = process.env.HOME;
+  const originalAwHome = process.env.AWARENESS_HOME;
   process.env.HOME = tmp;
+  // os.homedir() reads USERPROFILE on Windows and ignores HOME, so HOME alone
+  // leaks straight into the real user profile. AWARENESS_HOME is the portable knob.
+  process.env.AWARENESS_HOME = tmp;
   t.after(() => {
     process.env.HOME = originalHome;
+    if (originalAwHome === undefined) delete process.env.AWARENESS_HOME;
+    else process.env.AWARENESS_HOME = originalAwHome;
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
@@ -126,7 +138,7 @@ function runCli(args, env = {}) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [CLI, ...args], {
       env: { ...process.env, ...env },
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
     });
     let stdout = '';
     let stderr = '';
@@ -148,7 +160,7 @@ test('CLI start: existing daemon on same project → exits with "already running
 
   const res = await runCli(
     ['start', '--project', projectDir, '--port', '37833'],
-    { HOME: tmpHome },
+    { HOME: tmpHome, AWARENESS_HOME: tmpHome },
   );
   assert.equal(res.code, 0, `CLI exit 0, got ${res.code}\nstderr: ${res.stderr}`);
   assert.match(res.stdout, /already running/i);
@@ -176,7 +188,7 @@ test('CLI start: existing daemon on different project → POSTs /workspace/switc
 
   const res = await runCli(
     ['start', '--project', newProject, '--port', '37834'],
-    { HOME: tmpHome },
+    { HOME: tmpHome, AWARENESS_HOME: tmpHome },
   );
   assert.equal(res.code, 0, `exit 0, got ${res.code}\nstderr: ${res.stderr}`);
   assert.match(res.stdout, /Switched daemon workspace/i);

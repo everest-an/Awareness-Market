@@ -65,7 +65,7 @@ async function main() {
 
   // Transcript a real user might produce
   const transcript = [
-    'I want to publish @awareness-sdk/openclaw-memory 0.6.16 to npm. My default registry is the China mirror (npmmirror) which REJECTS publish.',
+    'I want to publish @awareness.market/openclaw-memory 0.6.16 to npm. My default registry is the China mirror (npmmirror) which REJECTS publish.',
     'Agent walked me through: (1) run sync-shared-scripts and sync-shared-prompts check, (2) bump version + CHANGELOG, (3) publish with explicit --registry=https://registry.npmjs.org/ and --access public, (4) verify with npm view.',
     'This was a complete workflow — save it as a reusable skill.',
   ].join('\n\n');

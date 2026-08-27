@@ -181,6 +181,16 @@ body {
 .badge-confidence.high { border-color: var(--green); color: var(--green); }
 .badge-confidence.mid { border-color: var(--yellow); color: var(--yellow); }
 .badge-confidence.low { border-color: var(--red); color: var(--red); }
+/* F-088 · on-chain anchor badges */
+.badge-anchor { border: 1px solid var(--accent); color: var(--accent); }
+.badge-anchor.pending { border: 1px dashed var(--border); color: var(--text-muted); }
+.anchor-strip { border-top: 1px solid var(--border); padding: 8px 10px; font-size: 0.78rem; }
+.anchor-strip summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+.anchor-strip summary::-webkit-details-marker { display: none; }
+.anchor-strip .chain-tag { margin-left: auto; font-size: 0.68rem; border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; color: var(--text-muted); }
+.anchor-strip .anchor-body { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; color: var(--text-muted); font-size: 0.74rem; }
+.anchor-strip .anchor-body code { font-size: 0.72rem; cursor: pointer; }
+.anchor-strip .anchor-hint { border-top: 1px dashed var(--border); margin-top: 4px; padding-top: 6px; }
 .badge-growth { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; }
 .badge-evergreen { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
 .badge-budding { background: rgba(234,179,8,0.12); color: #fbbf24; border: 1px solid rgba(234,179,8,0.25); }
@@ -385,6 +395,23 @@ body {
     <!-- Workspace picker dropdown (positioned dynamically by JS) -->
     <div id="ws-picker" style="display:none;position:fixed;z-index:50;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,0.4);min-width:340px;max-width:440px;max-height:420px;overflow-y:auto"></div>
     <div class="header-right">
+      <!-- Batch A · SyncIndicator: four-state outbox visibility (sync-outbox-visibility) -->
+      <div id="sync-indicator" class="sync-indicator" title="Sync status" style="display:none">
+        <button id="sync-indicator-btn" class="sync-indicator-btn" onclick="toggleSyncPanel()" type="button" style="display:flex;align-items:center;gap:6px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;cursor:pointer;color:var(--text-primary);font-size:0.85rem;transition:border-color 150ms,background 150ms" onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--bg-hover)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg-tertiary)'">
+          <span id="sync-indicator-icon" style="font-size:0.95rem;line-height:1">&#10003;</span>
+          <span id="sync-indicator-label" style="font-size:0.75rem;color:var(--text-secondary)"></span>
+        </button>
+        <div id="sync-panel" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;width:300px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:60;overflow:hidden">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:600;font-size:0.85rem">Sync Issues</span>
+            <button onclick="toggleSyncPanel()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem" type="button">&#10005;</button>
+          </div>
+          <div id="sync-panel-body" style="max-height:240px;overflow-y:auto;padding:6px 0"></div>
+          <div id="sync-panel-retry" style="padding:8px 14px;border-top:1px solid var(--border);display:none">
+            <button onclick="retrySync()" id="sync-retry-btn" style="width:100%;padding:8px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:0.8rem" type="button">Retry failed items</button>
+          </div>
+        </div>
+      </div>
       <button class="btn-ghost btn-sm" onclick="openSearch()" title="Search (Cmd+K)" style="display:flex;align-items:center;gap:4px;">
         <span style="font-size:0.9rem">&#128269;</span> <span style="font-size:0.72rem;color:var(--text-muted)">&#8984;K</span>
       </button>
@@ -418,6 +445,8 @@ body {
             <input type="text" id="sidebar-filter" placeholder="Filter..." oninput="filterSidebar(this.value)" />
           </div>
           <div class="sidebar-scroll" id="sidebar-scroll"></div>
+          <!-- F-088 · workspace anchor status (hidden unless anchoring is enabled) -->
+          <div id="anchor-strip" style="display:none"></div>
         </aside>
         <main class="content-area" id="content-area">
           <div class="loading"><div class="spinner"></div><p>Loading insights...</p></div>
@@ -1049,7 +1078,48 @@ document.getElementById('top-tabs').addEventListener('click', function(e) {
 });
 
 // ── Sidebar rendering ──
+// ---- F-088 · on-chain anchor UI (read-only; flush stays CLI-only) ----
+let ANCHOR_CARDS = null; // card_id → {seq, status, tx}; null = not loaded / disabled
+async function loadAnchorStrip() {
+  const strip = document.getElementById('anchor-strip');
+  if (!strip) return;
+  const st = await api('/anchor/status');
+  if (!st || !st.enabled) { strip.style.display = 'none'; ANCHOR_CARDS = null; return; }
+  const m = await api('/anchor/cards');
+  ANCHOR_CARDS = (m && m.cards) || {};
+  const short = (h) => h ? h.slice(0, 6) + '…' + h.slice(-4) : '—';
+  const pend = (st.pending || []).length;
+  const anchored = (st.anchored && st.anchored.count) || 0;
+  strip.style.display = '';
+  strip.innerHTML = `
+    <details class="anchor-strip">
+      <summary>&#9939; On-chain anchor
+        <span class="chain-tag">${st.chainId === 11155111 ? 'Sepolia' : 'chain ' + esc(String(st.chainId))}</span>
+      </summary>
+      <div class="anchor-body">
+        <div>seq ${esc(String(st.lastBuilt?.seq ?? 0))} built &middot; ${anchored} anchored &middot; ${pend} pending</div>
+        <div>Space <code title="click to copy" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(st.spaceId || '')}')">${short(st.spaceId)}</code></div>
+        <div>Head root <code>${short(st.lastBuilt?.root)}</code></div>
+        <div class="anchor-hint">&#9432; Run <code>awareness-local anchor flush</code> in a terminal to broadcast${pend ? ` (${pend} waiting)` : ''}. Keys never touch this UI.</div>
+      </div>
+    </details>`;
+  const sum = `&#9939; On-chain anchor &middot; ${anchored} anchored${pend ? ` &middot; ${pend} pending` : ''}`;
+  strip.querySelector('summary').innerHTML = sum +
+    ` <span class="chain-tag">${st.chainId === 11155111 ? 'Sepolia' : 'chain ' + esc(String(st.chainId))}</span>`;
+}
+function anchorBadge(cardId) {
+  if (!ANCHOR_CARDS) return '';
+  const a = ANCHOR_CARDS[cardId];
+  if (!a) return '';
+  if (a.status === 'anchored') {
+    const title = a.tx ? `tx ${a.tx.slice(0, 10)}… — anchored on-chain` : 'anchored on-chain';
+    return `<span class="badge badge-anchor" title="${esc(title)}">&#9939; seq ${a.seq}</span>`;
+  }
+  return `<span class="badge badge-anchor pending" title="in outbox, not yet flushed">&#9939;&#824; seq ${a.seq}</span>`;
+}
+
 async function loadSidebarData() {
+  loadAnchorStrip(); // fire-and-forget: never blocks sidebar rendering
   const [topicsRes, skillsRes, tasksRes, knowledgeRes, timelineRes, statsRes, perceptionsRes] = await Promise.all([
     api('/topics'), api('/skills'), api('/tasks'), api('/knowledge?limit=500'), api('/timeline?days=14'), api('/stats'),
     api('/perceptions?state=active,snoozed&limit=50')
@@ -1511,7 +1581,7 @@ async function renderCardDetail(area, cardId) {
   // Main content
   html += '<div class="card-detail-main">';
   html += `<div class="card-detail-title">${esc(c.title || 'Untitled')}</div>`;
-  html += `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${catBadge(c.category)} ${growthBadge(c.growth_stage)} <span class="badge badge-confidence ${confClass(conf)}">${Math.round(conf*100)}%</span></div>`;
+  html += `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${catBadge(c.category)} ${growthBadge(c.growth_stage)} <span class="badge badge-confidence ${confClass(conf)}">${Math.round(conf*100)}%</span> ${anchorBadge(cardId)}</div>`;
   html += `<div class="card-detail-body">${renderMd(c.summary || 'No content.')}</div>`;
 
   // Evolution chain
@@ -2793,19 +2863,21 @@ async function renderSettingsPanel() {
 
   // Load workspaces async
   try {
-    const ws = await (await fetch('/api/v1/workspaces')).json();
+    // Always pass `?limit=` so the daemon takes the paginated branch. Without it
+    // apiWorkspaces() falls through to the legacy back-compat branch and returns
+    // the entire registry map (real users hit 2600 entries / ~450KB per load).
+    const ws = await (await fetch('/api/v1/workspaces?limit=200')).json();
+    // Paginated shape: { workspaces: [{ path, port, name, lastUsed, ... }], total }
+    // Legacy / error shape: { "<path>": { port, name, lastUsed, ... } } or {}
+    const wsEntries = Array.isArray(ws && ws.workspaces)
+      ? ws.workspaces.filter(w => w && w.path).map(w => [w.path, w])
+      : Object.entries(ws || {});
     const el = document.getElementById('ws-list');
-    if (!ws || Object.keys(ws).length === 0) {
+    if (wsEntries.length === 0) {
       el.innerHTML = `<span style="color:var(--text-muted);font-size:0.82rem">${t('settings.ws_no')}</span>`;
     } else {
-      const entries = Object.entries(ws)
-        .filter(([dir]) => {
-          if (dir.startsWith('/tmp/') || dir.startsWith('/private/tmp/') || dir.startsWith('/var/')) return false;
-          if (dir.includes('awareness-local-smoke') || dir.includes('awareness-local-stop') ||
-              dir.includes('awareness-local-embed') || dir.includes('awareness-local-noise') ||
-              dir.includes('awareness-local-focus') || dir.includes('XXXXXX')) return false;
-          return true;
-        })
+      const entries = wsEntries
+        .filter(([dir]) => !isTempWorkspacePath(dir))
         .sort((a, b) => (b[1].lastUsed || '').localeCompare(a[1].lastUsed || ''));
       let h = '';
       for (const [dir, w] of entries) {
@@ -2823,6 +2895,43 @@ async function renderSettingsPanel() {
       el.innerHTML = h || `<span style="color:var(--text-muted);font-size:0.82rem">${t('settings.ws_no_user')}</span>`;
     }
   } catch {}
+}
+
+/**
+ * Hide throwaway temp/test workspaces from the settings list.
+ *
+ * The previous inline filter was POSIX-only ('/tmp/', '/private/tmp/', '/var/'),
+ * so on Windows every `C:\Users\<user>\AppData\Local\Temp\...` scratch dir showed
+ * up as a real workspace. Separators are normalised to '/' and the path is
+ * lower-cased so one pattern set covers Win32 and POSIX.
+ */
+function isTempWorkspacePath(dir) {
+  const raw = String(dir || '');
+  if (!raw) return true;
+  let n = raw.replace(/\\/g, '/').toLowerCase();
+  if (!n.endsWith('/')) n += '/';
+
+  // POSIX temp roots
+  if (n.startsWith('/tmp/') || n.startsWith('/private/tmp/') || n.startsWith('/var/')) return true;
+
+  // Windows temp roots:
+  //   %LOCALAPPDATA%\Temp  -> C:\Users\<u>\AppData\Local\Temp\...
+  //   %WINDIR%\Temp        -> C:\Windows\Temp\...
+  //   legacy               -> C:\Temp\...
+  if (n.includes('/appdata/local/temp/')) return true;
+  if (n.includes('/appdata/roaming/temp/')) return true;
+  if (/^[a-z]:\/windows\/temp\//.test(n)) return true;
+  if (/^[a-z]:\/temp\//.test(n)) return true;
+  // UNC-normalised drive form (\\?\C:\...)
+  if (/^\/\/\?\/[a-z]:\/(windows\/)?temp\//.test(n)) return true;
+
+  // mkstemp/mktemp template leftovers (kept case-sensitive, as before)
+  if (raw.includes('XXXXXX')) return true;
+
+  // Known smoke/e2e scratch dirs
+  return raw.includes('awareness-local-smoke') || raw.includes('awareness-local-stop') ||
+    raw.includes('awareness-local-embed') || raw.includes('awareness-local-noise') ||
+    raw.includes('awareness-local-focus');
 }
 
 function settingDisplay(label, value, isHtml) {
@@ -3143,6 +3252,134 @@ init();
 /* ── Expose i18n primitives to window for decoupled modules (onboarding, etc.) ── */
 window.LOCALES = LOCALES;
 window.t = t;
+
+/* ═══════════════════════════════════════════════════════════════════
+   Batch A · SyncIndicator — four-state outbox visibility
+   (docs/features/sync-outbox-visibility/PLAN.md)
+   Polls /api/v1/sync/status (+ /problems on open), renders:
+     ✓ synced · ⟳ syncing N · ⚠ N retry · ⊘ N expired
+   Clickable only for failed/expired; panel shows kind/count/error
+   (NEVER card content — privacy red line).
+   ═══════════════════════════════════════════════════════════════════ */
+const SyncIndicator = (() => {
+  const el = document.getElementById('sync-indicator');
+  const btn = document.getElementById('sync-indicator-btn');
+  const icon = document.getElementById('sync-indicator-icon');
+  const label = document.getElementById('sync-indicator-label');
+  const panel = document.getElementById('sync-panel');
+  const panelBody = document.getElementById('sync-panel-body');
+  const retryBox = document.getElementById('sync-panel-retry');
+  const retryBtn = document.getElementById('sync-retry-btn');
+  const POLL_MS = 30000;
+  let stats = null;
+  let problems = [];
+  let panelOpen = false;
+
+  const KIND_LABELS = {
+    'card.upsert': 'Cards',
+    'card.delete': 'Card delete',
+    'task.upsert': 'Tasks',
+    'skill.upsert': 'Skills',
+    'memory.append': 'Memories',
+    'sync.ack': 'Sync ACK',
+  };
+
+  function kindLabel(k) { return KIND_LABELS[k] || k; }
+
+  async function fetchJSON(url) {
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  async function refresh() {
+    try {
+      const data = await fetchJSON('/api/v1/sync/status');
+      if (data && data.outbox) stats = data.outbox;
+    } catch { stats = null; }
+    render();
+    if (panelOpen) await loadProblems();
+  }
+
+  async function loadProblems() {
+    try {
+      const data = await fetchJSON('/api/v1/sync/problems');
+      if (Array.isArray(data)) problems = data;
+    } catch { problems = []; }
+    renderPanel();
+  }
+
+  function render() {
+    if (!stats) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    const failed = stats.failed || 0, expired = stats.expired || 0, pending = stats.pending || 0;
+    if (failed > 0) {
+      icon.textContent = '\u26A0'; icon.style.color = 'var(--yellow)';
+      label.textContent = failed + ' retry';
+      btn.style.cursor = 'pointer';
+    } else if (expired > 0) {
+      icon.textContent = '\u2298'; icon.style.color = 'var(--text-muted)';
+      label.textContent = expired + ' expired';
+      btn.style.cursor = 'pointer';
+    } else if (pending > 0) {
+      icon.textContent = '\u27F3'; icon.style.color = 'var(--blue)';
+      label.textContent = pending + ' syncing';
+      btn.style.cursor = 'default';
+    } else {
+      icon.textContent = '\u2713'; icon.style.color = 'var(--green)';
+      label.textContent = 'synced';
+      btn.style.cursor = 'default';
+    }
+  }
+
+  function renderPanel() {
+    if (problems.length === 0) {
+      panelBody.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:0.8rem">All caught up</div>';
+      retryBox.style.display = 'none';
+      return;
+    }
+    let html = '';
+    for (const p of problems) {
+      const isExpired = p.last_error && p.last_error.includes('TTL_EXPIRED');
+      html += '<div style="padding:10px 14px;border-bottom:1px solid var(--border)">'
+        + '<div style="display:flex;align-items:center;gap:8px">'
+        + '<span style="color:' + (isExpired ? 'var(--text-muted)' : 'var(--yellow)') + '">' + (isExpired ? '\u2298' : '\u26A0') + '</span>'
+        + '<span style="font-size:0.83rem;font-weight:600">' + escapeHtml(kindLabel(p.kind)) + ' \u00B7 ' + p.count + '</span>'
+        + '</div>'
+        + (p.last_error ? '<div style="margin-top:4px;font-size:0.75rem;color:var(--text-muted);margin-left:20px">Last error: ' + escapeHtml(p.last_error) + '</div>' : '')
+        + '</div>';
+    }
+    panelBody.innerHTML = html;
+    retryBox.style.display = 'block';
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  async function retry() {
+    if (!retryBtn) return;
+    retryBtn.disabled = true; retryBtn.textContent = 'Retrying...';
+    try {
+      await fetch('/api/v1/sync/retry', { method: 'POST' });
+      await refresh();
+    } catch { /* best-effort */ }
+    retryBtn.disabled = false; retryBtn.textContent = 'Retry failed items';
+  }
+
+  function toggle() {
+    panelOpen = !panelOpen;
+    panel.style.display = panelOpen ? 'block' : 'none';
+    if (panelOpen) loadProblems();
+  }
+
+  // init
+  refresh();
+  setInterval(refresh, POLL_MS);
+  window.toggleSyncPanel = toggle;
+  window.retrySync = retry;
+  return { refresh, toggle };
+})();
 </script>
 
 <!-- ── F-040 Onboarding: loaded as decoupled modules from /web/onboarding/* ── -->

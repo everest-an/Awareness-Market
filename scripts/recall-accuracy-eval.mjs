@@ -108,7 +108,7 @@ const CARDS = [
     tags: ['docker', 'postgres', 'deploy', 'scram-sha-256'] },
   { key: 'APPLE_NOTARIZE_KEYCHAIN', category: 'workflow',
     title: 'macOS notarization via xcrun notarytool keychain profile',
-    summary: 'AwarenessClaw DMG notarization: first run `xcrun notarytool store-credentials AwarenessClawNotary --apple-id <email> --team-id 5XNDF727Y6 --password <app-specific-pwd>` once per machine. Then `npm run package:mac` with `APPLE_KEYCHAIN_PROFILE=AwarenessClawNotary` will auto-submit for notarization. Verify with `spctl -a -vvv -t install` → accepted + Notarized Developer ID.',
+    summary: 'OCT-Agent DMG notarization: first run `xcrun notarytool store-credentials AwarenessClawNotary --apple-id <email> --team-id 5XNDF727Y6 --password <app-specific-pwd>` once per machine. Then `npm run package:mac` with `APPLE_KEYCHAIN_PROFILE=AwarenessClawNotary` will auto-submit for notarization. Verify with `spctl -a -vvv -t install` → accepted + Notarized Developer ID.',
     tags: ['macos', 'notarize', 'electron', 'xcrun', 'keychain'] },
 ];
 

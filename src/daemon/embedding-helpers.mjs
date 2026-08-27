@@ -41,6 +41,7 @@ export async function warmupEmbedder(daemon) {
  */
 export async function backfillEmbeddings(daemon) {
   if (!daemon._embedder) return;
+  const projectAtStart = daemon.projectDir;
   const missing = daemon.indexer.db
     .prepare('SELECT id, filepath FROM memories WHERE id NOT IN (SELECT memory_id FROM embeddings)')
     .all();
@@ -48,6 +49,16 @@ export async function backfillEmbeddings(daemon) {
   console.log(`[awareness-local] backfilling embeddings for ${missing.length} memories...`);
   let done = 0;
   for (const mem of missing) {
+    // This list belongs to the project we started on. embedAndStore refuses to
+    // write across a switch anyway, but without this the loop would keep
+    // reading and embedding the old project's memories for no reason, and the
+    // completion line would report a count it never actually wrote.
+    if (daemon.projectDir !== projectAtStart) {
+      console.log(
+        `[awareness-local] embedding backfill stopped at ${done}/${missing.length}: workspace switched`,
+      );
+      return;
+    }
     try {
       const result = await daemon.memoryStore.read(mem.id);
       if (result?.content) {
@@ -78,6 +89,22 @@ function _firstLineAsTitle(content) {
 export async function embedAndStore(daemon, memoryId, content, opts = {}) {
   if (!daemon._embedder || !content) return;
   const { title = '' } = opts || {};
+
+  // Pin the workspace. remember() calls this fire-and-forget
+  // (`daemon._embedAndStore(...).catch(() => {})`), so it finishes AFTER the
+  // request returned — and embedding is the slowest step in the whole write
+  // path. If a workspace switch lands in that window, `daemon.indexer` now
+  // points at another project and the vector for project A's memory gets
+  // stored in project B's database.
+  //
+  // This is what made cross-workspace isolation fail in a way that looked
+  // impossible: awareness_lookup reads the memories table and correctly
+  // returned nothing in B, while awareness_recall goes through embeddings and
+  // returned A's content. Pinning the request path alone was not enough —
+  // the writes it spawns have to be pinned too.
+  const projectAtStart = daemon.projectDir;
+  const indexerAtStart = daemon.indexer;
+
   try {
     // F-059 recall tuning · default embedder is multilingual-e5-small
     // (118 MB, 384-dim) so English + CJK + other-language queries all
@@ -106,8 +133,17 @@ export async function embedAndStore(daemon, memoryId, content, opts = {}) {
 
     const vector = await daemon._embedder.embed(passage, 'passage', language);
     if (vector) {
+      // The await above is the long one. Abandon the write if the daemon moved
+      // to another project meanwhile — storing it in the wrong database is far
+      // worse than losing one vector, which the next reindex regenerates.
+      if (daemon.projectDir !== projectAtStart) {
+        console.warn(
+          `[awareness-local] dropped embedding for ${memoryId}: workspace changed mid-embed`,
+        );
+        return;
+      }
       const modelId = daemon._embedder.MODEL_MAP?.[language] || 'Xenova/multilingual-e5-small';
-      daemon.indexer.storeEmbedding(memoryId, vector, modelId);
+      indexerAtStart.storeEmbedding(memoryId, vector, modelId);
     }
   } catch (err) {
     console.warn('[awareness-local] embedding failed for', memoryId, ':', err.message);
@@ -122,7 +158,14 @@ export async function extractAndIndex(daemon, memoryId, content, metadata, preEx
   try {
     if (!daemon.extractor) return;
 
-    await daemon.extractor.extract(content, metadata, preExtractedInsights);
+    // Also fire-and-forget from remember(), and switchProject() swaps
+    // daemon.extractor for the new project's one. Capture the extractor bound
+    // to the workspace this write belongs to, so that even if the daemon moves
+    // on mid-extraction the results land in the project the content came from
+    // — never in whichever project happens to be active when it finishes.
+    const extractorAtStart = daemon.extractor;
+
+    await extractorAtStart.extract(content, metadata, preExtractedInsights);
   } catch (err) {
     console.error('[awareness-local] extraction error:', err.message);
   }

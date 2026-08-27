@@ -9,7 +9,7 @@
  *
  * Flow per fixture:
  *   1. Spawn `claude -p "<task>" --append-system-prompt "<nudge to pick skill>"`
- *      in /Users/edwinhao/.openclaw (daemon's working dir so MCP config loads).
+ *      in /Users/everestan/.openclaw (daemon's working dir so MCP config loads).
  *   2. Disable Bash/Write/Edit so the agent only PLANS, never executes.
  *   3. Capture stdout. Grade on:
  *        - did it name the expected skill (title keyword match), AND
@@ -47,7 +47,7 @@ const FIXTURES = [
     criticalTokens: ['registry.npmjs.org', 'npm publish', 'CHANGELOG'],
   },
   {
-    task: 'Publish @awareness-sdk/openclaw-memory (bump from 0.6.15 to 0.6.16). List the exact shell commands I should run.',
+    task: 'Publish @awareness.market/openclaw-memory (bump from 0.6.15 to 0.6.16). List the exact shell commands I should run.',
     expectedTitleWords: ['publish', 'npm'],
     criticalTokens: ['registry.npmjs.org', 'npm publish', 'npm view'],
   },

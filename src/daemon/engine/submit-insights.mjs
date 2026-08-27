@@ -135,6 +135,16 @@ function _checkCrystallizationLocal(db, newCard) {
  * @returns {Promise<object>}
  */
 export async function submitInsights(daemon, params) {
+  // Pin the workspace for the whole call. This path awaits an LLM classify
+  // (classifyCard), an embedder round-trip per card, and runLifecycleChecks —
+  // seconds of wall-clock during which switchProject() can close index.db and
+  // rebind the daemon's live indexer to another project. Re-reading that live
+  // reference after any of those awaits would classify a card against project A
+  // and then write it into project B: a torn write, not a clean failure.
+  // Pinning keeps the whole insight submission atomic w.r.t. one workspace.
+  const projectAtStart = daemon.projectDir;
+  const indexerAtStart = daemon.indexer;
+
   // Accept insights from `params.insights` (preferred) or fall back to
   // `params.content` when an LLM mistakenly serialised the JSON payload
   // into the content slot (matches the legacy extraction-instruction wording
@@ -190,7 +200,7 @@ export async function submitInsights(daemon, params) {
       // Fails OPEN: if no embedder / error, fall through to verdict='new'.
       let verdict = { verdict: 'new' };
       try {
-        verdict = await classifyCard(daemon.indexer, card, daemon._embedder);
+        verdict = await classifyCard(indexerAtStart, card, daemon._embedder);
       } catch (err) {
         console.warn('[AwarenessDaemon] Evolution check failed (non-fatal):', err.message);
       }
@@ -204,7 +214,7 @@ export async function submitInsights(daemon, params) {
 
       // Merge content into existing card (append summary below "---").
       if (verdict.verdict === 'merge' && verdict.target?.id) {
-        const mergeResult = mergeIntoCard(daemon.indexer, verdict.target.id, card);
+        const mergeResult = mergeIntoCard(indexerAtStart, verdict.target.id, card);
         if (mergeResult.merged) {
           console.log(`[AwarenessDaemon] Merged card into ${verdict.target.id} (sim=${verdict.similarity?.toFixed(2)}): '${(card?.title || '').substring(0, 60)}'`);
           cardsCreated++; // count as ingest for the caller's response shape
@@ -259,7 +269,7 @@ ${card.summary || card.title || ''}
         parent_card_id: parentCardId,
         evolution_type: evolutionType,
       };
-      daemon.indexer.indexKnowledgeCard(cardData);
+      indexerAtStart.indexKnowledgeCard(cardData);
 
       // F-082 Phase 0-3 · additive markdown wiki write (event-driven, never blocks main path)
       try {
@@ -304,7 +314,7 @@ ${card.summary || card.title || ''}
             const vec = await daemon._embedder.embed(passage, 'passage', embLanguage);
             if (vec) {
               const modelId = daemon._embedder.MODEL_MAP?.[embLanguage] || 'Xenova/multilingual-e5-small';
-              daemon.indexer.storeCardEmbedding(cardId, vec, modelId);
+              indexerAtStart.storeCardEmbedding(cardId, vec, modelId);
             }
           } catch (err) {
             if (process.env.DEBUG) console.warn('[submit-insights] card embed failed:', err.message);
@@ -313,11 +323,11 @@ ${card.summary || card.title || ''}
       }
 
       if (parentCardId) {
-        supersedeCard(daemon.indexer, parentCardId, cardId);
+        supersedeCard(indexerAtStart, parentCardId, cardId);
       }
 
       try {
-        const newMocIds = daemon.indexer.tryAutoMoc(cardData);
+        const newMocIds = indexerAtStart.tryAutoMoc(cardData);
         if (newMocIds.length > 0) {
           daemon._refineMocTitles(newMocIds).catch(() => {});
         }
@@ -355,7 +365,7 @@ ${card.summary || card.title || ''}
         continue;
       }
 
-      const { isDuplicate, existingTaskId } = checkTaskDedup(daemon.indexer, item.title);
+      const { isDuplicate, existingTaskId } = checkTaskDedup(indexerAtStart, item.title);
       if (isDuplicate) {
         console.warn(`[AwarenessDaemon] Skipped duplicate task: "${(item.title || '').substring(0, 60)}" (existing: ${existingTaskId})`);
         continue;
@@ -379,7 +389,7 @@ ${item.description || item.title || ''}
       fs.mkdirSync(path.dirname(taskFilepath), { recursive: true });
       fs.writeFileSync(taskFilepath, taskContent, 'utf-8');
 
-      daemon.indexer.indexTask({
+      indexerAtStart.indexTask({
         id: taskId,
         title: item.title || '',
         description: item.description || '',
@@ -402,11 +412,11 @@ ${item.description || item.title || ''}
       const taskId = (completed.task_id || '').trim();
       if (!taskId) continue;
       try {
-        const existing = daemon.indexer.db
+        const existing = indexerAtStart.db
           .prepare('SELECT * FROM tasks WHERE id = ?')
           .get(taskId);
         if (existing && existing.status !== 'done') {
-          daemon.indexer.indexTask({
+          indexerAtStart.indexTask({
             ...existing,
             status: 'done',
             updated_at: nowISO(),
@@ -453,7 +463,7 @@ ${item.description || item.title || ''}
 
       try {
         const now = nowISO();
-        const existing = daemon.indexer.db.prepare(
+        const existing = indexerAtStart.db.prepare(
           `SELECT id FROM skills WHERE name = ? AND status = 'active' LIMIT 1`
         ).get(skill.name);
 
@@ -466,14 +476,14 @@ ${item.description || item.title || ''}
         if (existing) {
           // P1 Fix-5a · merge (not overwrite): fetch full existing row,
           // combine methods / triggers / tags / card_ids with v2.
-          const existingFull = daemon.indexer.db.prepare(
+          const existingFull = indexerAtStart.db.prepare(
             `SELECT summary, methods, trigger_conditions, tags, source_card_ids, confidence, pitfalls, verification FROM skills WHERE id = ?`
           ).get(existing.id);
           const merged = mergeSkill(existingFull, skill);
           // F-059 · union pitfalls/verification lists across merges
           const mergedPitfalls = unionStringArrays(existingFull?.pitfalls, skill.pitfalls);
           const mergedVerify = unionStringArrays(existingFull?.verification, skill.verification);
-          daemon.indexer.db.prepare(`
+          indexerAtStart.db.prepare(`
             UPDATE skills SET
               summary = ?, methods = ?, trigger_conditions = ?, tags = ?,
               source_card_ids = ?, confidence = ?, decay_score = ?,
@@ -496,7 +506,7 @@ ${item.description || item.title || ''}
           targetId = existing.id;
         } else {
           const skillId = `skill_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-          daemon.indexer.db.prepare(`
+          indexerAtStart.db.prepare(`
             INSERT INTO skills
               (id, name, summary, methods, trigger_conditions, tags, source_card_ids,
                pitfalls, verification,
@@ -533,7 +543,7 @@ ${item.description || item.title || ''}
               pitfalls: skill.pitfalls || [],
               verification: skill.verification || [],
             }).total;
-            evaluateSkillGrowth(daemon.indexer, targetId, rubric);
+            evaluateSkillGrowth(indexerAtStart, targetId, rubric);
           } catch { /* growth eval best-effort */ }
 
           // F-059 · bidirectional link. When a skill lists source cards,
@@ -542,7 +552,7 @@ ${item.description || item.title || ''}
           // reference this" without scanning the whole skills table.
           if (Array.isArray(skill.source_card_ids) && skill.source_card_ids.length > 0) {
             try {
-              const upsertLink = daemon.indexer.db.prepare(`
+              const upsertLink = indexerAtStart.db.prepare(`
                 UPDATE knowledge_cards
                    SET linked_skill_ids = CASE
                          WHEN linked_skill_ids IS NULL OR linked_skill_ids = ''
@@ -570,7 +580,7 @@ ${item.description || item.title || ''}
   let crystallizationHint = null;
   if (crystallizationCandidates.length > 0 && submittedSkills.length === 0) {
     const first = crystallizationCandidates[0];
-    crystallizationHint = _checkCrystallizationLocal(daemon.indexer.db, first);
+    crystallizationHint = _checkCrystallizationLocal(indexerAtStart.db, first);
   }
 
   // F-059 · realtime lifecycle scan on the submitted content. Auto-close
@@ -591,7 +601,7 @@ ${item.description || item.title || ''}
     const lifecycleTitle = submittedSkills[0]?.name || (Array.isArray(insights.knowledge_cards) && insights.knowledge_cards[0]?.title) || '';
     if (lifecycleContent) {
       const lifecycle = await runLifecycleChecks(
-        daemon.indexer, lifecycleContent, lifecycleTitle, insights, lifecycleOpts,
+        indexerAtStart, lifecycleContent, lifecycleTitle, insights, lifecycleOpts,
       );
       autoClosedByHybrid = lifecycle.resolved_tasks || [];
       autoMitigatedRisks = lifecycle.mitigated_risks || [];

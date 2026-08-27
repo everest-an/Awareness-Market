@@ -34,9 +34,9 @@ function strArg(name, def) {
 
 const SCENARIOS = {
   1: {
-    title: 'Publish @awareness-sdk/openclaw-memory to npm (complete workflow)',
+    title: 'Publish @awareness.market/openclaw-memory to npm (complete workflow)',
     turns: [
-      'I want to publish @awareness-sdk/openclaw-memory 0.6.16 to npm. My default npm registry is the China mirror which REJECTS publish. Walk me through the complete workflow: (1) what pre-flight checks to run, (2) the exact publish command including the flag to force official registry, (3) how to verify. Then remember this as a reusable skill for future publishes.',
+      'I want to publish @awareness.market/openclaw-memory 0.6.16 to npm. My default npm registry is the China mirror which REJECTS publish. Walk me through the complete workflow: (1) what pre-flight checks to run, (2) the exact publish command including the flag to force official registry, (3) how to verify. Then remember this as a reusable skill for future publishes.',
       'Perfect — this should be saved as a reusable skill titled something like "Publish @awareness-sdk to npm · sync + publish + verify". Please record it now via the awareness-memory plugin so next time I can just call awareness_apply_skill.',
     ],
     expectedSkillKeywords: ['publish', 'npm'],

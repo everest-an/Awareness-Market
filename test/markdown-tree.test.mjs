@@ -55,8 +55,12 @@ test('resolveCardPath: builds cards/YYYY/MM/<date>-<cat>-<slug>.md', () => {
     title: 'Pick pgvector',
     created_at: '2026-04-25T10:32:14Z',
   });
-  assert.equal(r.relPath, path.join('cards', '2026', '04', '2026-04-25-decision-pick-pgvector.md'));
-  assert.ok(r.absPath.startsWith(HOME));
+  assert.equal(r.relPath, path.posix.join('cards', '2026', '04', '2026-04-25-decision-pick-pgvector.md'));
+  // path.normalize(HOME), not HOME: absPath is a filesystem path, so path.join turns
+  // the posix-style constant into `\tmp\...` on Windows and a raw startsWith(HOME)
+  // never matches. relPath is asserted with path.posix above because it is an
+  // identifier, not a filesystem path — the two are deliberately different.
+  assert.ok(r.absPath.startsWith(path.normalize(HOME)));
   assert.equal(r.slug, '2026-04-25-decision-pick-pgvector');
 });
 
@@ -68,16 +72,16 @@ test('resolveCardPath: missing title falls back to "untitled"', () => {
 test('resolveTopicPath: topics/<slug>.md', () => {
   const r = resolveTopicPath(HOME, 'Stripe Onboarding');
   assert.equal(r.slug, 'stripe-onboarding');
-  assert.equal(r.relPath, path.join('topics', 'stripe-onboarding.md'));
+  assert.equal(r.relPath, path.posix.join('topics', 'stripe-onboarding.md'));
 });
 
 test('resolveJournalPath: journal/<YYYY-MM-DD>.md', () => {
   const r = resolveJournalPath(HOME, '2026-04-25T18:00:00Z');
-  assert.equal(r.relPath, path.join('journal', '2026-04-25.md'));
+  assert.equal(r.relPath, path.posix.join('journal', '2026-04-25.md'));
   assert.equal(r.slug, '2026-04-25');
 });
 
 test('resolveEntityPath: entities/<slug>.md', () => {
   const r = resolveEntityPath(HOME, 'pgvector');
-  assert.equal(r.relPath, path.join('entities', 'pgvector.md'));
+  assert.equal(r.relPath, path.posix.join('entities', 'pgvector.md'));
 });

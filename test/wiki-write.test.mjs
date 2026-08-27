@@ -28,7 +28,14 @@ test('writeCardToWiki: writes card .md with frontmatter + body', () => {
     },
   });
   assert.equal(r.warnings.length, 0, `unexpected warnings: ${r.warnings.join('; ')}`);
-  assert.match(r.cardAbsPath, /cards\/2026\/04\/2026-04-25-decision-pick-pgvector\.md$/);
+  // cardAbsPath is a filesystem path, so its separators are platform-native. Normalise
+  // before matching rather than asserting a posix-shaped regex against it — that regex
+  // only ever passed on posix hosts. (relPath, by contrast, is an identifier and is
+  // posix on every platform; see the note in core/markdown-tree.mjs.)
+  assert.match(
+    r.cardAbsPath.split(path.sep).join('/'),
+    /cards\/2026\/04\/2026-04-25-decision-pick-pgvector\.md$/,
+  );
   const text = fs.readFileSync(r.cardAbsPath, 'utf-8');
   assert.match(text, /^---\n/);
   assert.match(text, /id: kc_001/);

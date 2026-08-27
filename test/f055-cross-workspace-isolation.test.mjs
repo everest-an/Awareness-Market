@@ -1,7 +1,7 @@
 /**
  * F-055 cross-workspace isolation · regression test
  *
- * Reported (2026-04-19): user switched AwarenessClaw to a new project
+ * Reported (2026-04-19): user switched OCT-Agent to a new project
  * but the Memory panel still showed memories from the old workspace
  * ("F-055 / F-056 / F-057 PRD 落地" turn_summary from Awareness repo
  * leaking into a freshly-selected unrelated project).
@@ -12,9 +12,28 @@
  * If this test fails, any UI showing cross-workspace content is a
  * daemon bug, not a client bug.
  */
-import test from 'node:test';
+import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { daemonAliveOrFailInCI } from './helpers/require-daemon.mjs';
+import { acquireDaemonLock } from './helpers/daemon-lock.mjs';
+
+/* This suite mutates global daemon state (workspace switch), so it must not run
+ * alongside another suite that does the same. See helpers/daemon-lock.mjs. */
+let releaseDaemon = () => {};
+let originalProject = null;
+
+before(async () => {
+  releaseDaemon = await acquireDaemonLock('F-055');
+  // Remember where the daemon was so we can put it back and free the handles
+  // it holds on our scratch dirs (see the cleanup hook below).
+  try {
+    const h = await (await fetch(`${DAEMON}/healthz`)).json();
+    originalProject = h?.project_dir || null;
+  } catch { originalProject = null; }
+});
 
 const DAEMON = 'http://localhost:37800';
 
@@ -36,8 +55,58 @@ async function mcp(name, args, extraHeaders = {}) {
   return null;
 }
 
+/* Scratch workspaces this file asks the daemon to switch into.
+ *
+ * These must be deleted when the run ends. Setting AWARENESS_HOME does NOT
+ * isolate this suite: it drives an out-of-process daemon over HTTP, and that
+ * daemon has its own environment, so its registerWorkspace() writes to the real
+ * user's registry no matter what this process sets. Deleting the directories is
+ * what makes those entries collectable — the daemon prunes registry rows whose
+ * path no longer exists on the next write. Leaving them behind is how a real
+ * machine accumulated dozens of f055-* rows.
+ */
+const scratchDirs = new Set();
+
+// Single teardown so ordering is explicit: restore the daemon, delete the
+// scratch dirs, and only then hand the daemon to the next suite. Releasing the
+// lock first would let another suite switch the daemon while we are still
+// deleting, which is the same race this lock exists to prevent.
+after(async () => {
+  // Move the daemon off our scratch dirs first. It holds an open handle on
+  // index.db, and Windows refuses to delete a directory containing an open
+  // file — so deleting while the daemon still points at the last scratch dir
+  // silently left it (and its registry row) behind.
+  if (originalProject) {
+    try {
+      await fetch(`${DAEMON}/api/v1/workspace/switch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_dir: originalProject }),
+      });
+      await new Promise((r) => setTimeout(r, 600));
+    } catch { /* daemon already gone — the dirs are free anyway */ }
+  }
+
+  const stuck = [];
+  for (const dir of scratchDirs) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch (err) {
+      stuck.push(`${dir} (${err.code || err.message})`);
+    }
+  }
+  // Never swallow this: a leftover dir means a permanent registry row, which is
+  // exactly the accumulation this suite was found to be causing.
+  if (stuck.length) {
+    console.warn(`[f055] could not remove ${stuck.length} scratch dir(s):\n  ${stuck.join('\n  ')}`);
+  }
+
+  releaseDaemon();
+});
+
 async function switchTo(dir) {
   fs.mkdirSync(dir, { recursive: true });
+  scratchDirs.add(dir);
   if (!fs.existsSync(`${dir}/README.md`)) fs.writeFileSync(`${dir}/README.md`, 'scratch');
   const r = await fetch(`${DAEMON}/api/v1/workspace/switch`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -48,17 +117,15 @@ async function switchTo(dir) {
 }
 
 async function daemonAlive() {
-  try {
-    const r = await fetch(`${DAEMON}/healthz`);
-    return r.ok;
-  } catch { return false; }
+  // Skipping is a local convenience, never a CI outcome — see helpers/require-daemon.mjs.
+  return daemonAliveOrFailInCI(DAEMON, 'F-055 cross-workspace isolation');
 }
 
 test('F-055 · memories written in workspace A are NOT visible in workspace B', async (t) => {
   if (!(await daemonAlive())) { t.skip('daemon not running on 37800'); return; }
 
-  const wsA = `/tmp/f055-iso-A-${Date.now()}`;
-  const wsB = `/tmp/f055-iso-B-${Date.now()}`;
+  const wsA = path.join(os.tmpdir(), `f055-iso-A-${Date.now()}`);
+  const wsB = path.join(os.tmpdir(), `f055-iso-B-${Date.now()}`);
 
   // 1. Switch to workspace A, write a distinctive memory + card
   await switchTo(wsA);
@@ -105,8 +172,8 @@ test('F-055 · memories written in workspace A are NOT visible in workspace B', 
 test('F-055 · project_dir header mismatch returns 409, never leaks data', async (t) => {
   if (!(await daemonAlive())) { t.skip('daemon not running on 37800'); return; }
 
-  const wsA = `/tmp/f055-hdr-A-${Date.now()}`;
-  const wsB = `/tmp/f055-hdr-B-${Date.now()}`;
+  const wsA = path.join(os.tmpdir(), `f055-hdr-A-${Date.now()}`);
+  const wsB = path.join(os.tmpdir(), `f055-hdr-B-${Date.now()}`);
   await switchTo(wsA);
 
   // Daemon is on wsA now. Send a request claiming we're on wsB.
@@ -131,8 +198,8 @@ test('F-055 · project_dir header mismatch returns 409, never leaks data', async
 test('F-055 · workspace_switch is atomic — in-flight requests see consistent project', async (t) => {
   if (!(await daemonAlive())) { t.skip('daemon not running on 37800'); return; }
 
-  const wsA = `/tmp/f055-atomic-A-${Date.now()}`;
-  const wsB = `/tmp/f055-atomic-B-${Date.now()}`;
+  const wsA = path.join(os.tmpdir(), `f055-atomic-A-${Date.now()}`);
+  const wsB = path.join(os.tmpdir(), `f055-atomic-B-${Date.now()}`);
   await switchTo(wsA);
   await mcp('awareness_record', {
     action: 'submit_insights',
@@ -166,11 +233,21 @@ test('F-055 · workspace_switch is atomic — in-flight requests see consistent 
   for (const r of lookups) {
     if (r?.error) continue;  // 503 during switch is acceptable
     const cards = r?.knowledge_cards || [];
-    const hasMarker = cards.some((c) => (c.title || '').includes('Atomic marker A only'));
-    const allACards = cards.every((c) => (c.tags || '').includes('marker-a'));
-    // If we see ANY cards, they must all be from the same workspace
-    if (cards.length > 0) {
-      assert.equal(hasMarker || !allACards, true, 'lookup returned a mixed result — switch was not atomic');
-    }
+    if (cards.length === 0) continue;
+
+    // Partition by origin and require one side to be empty. The previous
+    // assertion here was `hasMarker || !allACards`, which passed on exactly the
+    // case it claimed to catch: a mixed A+B result *contains* the marker, so
+    // hasMarker was true and the check succeeded. It could essentially never
+    // fail, so the one test asserting switch atomicity asserted nothing.
+    const fromA = cards.filter((c) => (c.tags || '').includes('marker-a'));
+    const fromB = cards.filter((c) => !(c.tags || '').includes('marker-a'));
+
+    assert.ok(
+      fromA.length === 0 || fromB.length === 0,
+      `lookup returned a mixed result — switch was not atomic: `
+      + `${fromA.length} card(s) from workspace A + ${fromB.length} from workspace B. `
+      + `titles=${JSON.stringify(cards.map((c) => c.title).slice(0, 5))}`,
+    );
   }
 });

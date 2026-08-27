@@ -5,7 +5,7 @@
  *
  *   Two knowledge cards exist in the DB:
  *     A — about a snake game HTML responsive layout (created via openclaw-plugin)
- *     B — about AwarenessClaw Desktop responsive UI fix (created via openclaw-plugin)
+ *     B — about OCT-Agent Desktop responsive UI fix (created via openclaw-plugin)
  *
  *   User prompt: "没办法下拉，我的屏幕小看不全，你要做成响应式的"
  *   (Can't scroll, screen too small, make it responsive)
@@ -94,8 +94,8 @@ test('recall precision: session context enrichment promotes correct card', (t) =
     // Card B: about AWARENESSCLAW DESKTOP (a different project — this is the wrong card)
     indexCard(indexer, tmpDir, {
       id: 'kc_desktop_001',
-      title: 'AwarenessClaw Desktop responsive UI fix',
-      summary: 'AwarenessClaw Desktop control panel overflows on small screens. ' +
+      title: 'OCT-Agent Desktop responsive UI fix',
+      summary: 'OCT-Agent Desktop control panel overflows on small screens. ' +
                'Fix: overflow-y auto, remove hardcoded height 600px, media query max-width 768px.',
       source: 'openclaw-plugin',
     });

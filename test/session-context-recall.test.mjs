@@ -31,7 +31,7 @@ test('isStructurallyValidKnowledgeCard: rejects sender metadata dump (< 5 prose 
   assert.equal(
     isStructurallyValidKnowledgeCard({
       title: 'Request: Sender (untrusted metadata):',
-      summary: 'Request: Sender (untrusted metadata): ```json { "label": "AwarenessClaw Desktop (openclaw-control-ui)", "id": "openclaw-control-ui" } ```',
+      summary: 'Request: Sender (untrusted metadata): ```json { "label": "OCT-Agent Desktop (openclaw-control-ui)", "id": "openclaw-control-ui" } ```',
       category: 'problem_solution',
     }),
     false,
@@ -176,10 +176,10 @@ test('getRecentMemories: returns only memories within the time window', () => {
     indexer.indexMemory('mem_old_001', {
       filepath: path.join(tmpDir, 'mem_old_001.md'),
       type: 'turn_summary',
-      title: 'AwarenessClaw Desktop responsive fix',
+      title: 'OCT-Agent Desktop responsive fix',
       created_at: ancientTs,
       updated_at: ancientTs,
-    }, 'AwarenessClaw Desktop responsive fix');
+    }, 'OCT-Agent Desktop responsive fix');
 
     const results = indexer.getRecentMemories(3_600_000, 10); // 1h window
     const ids = results.map(r => r.id);
@@ -229,7 +229,7 @@ test('processPreExtracted: drops sender-metadata card, keeps real knowledge card
     knowledge_cards: [
       {
         title: 'Request: Sender (untrusted metadata):',
-        summary: 'Request: Sender (untrusted metadata): ```json { "label": "AwarenessClaw Desktop" } ```',
+        summary: 'Request: Sender (untrusted metadata): ```json { "label": "OCT-Agent Desktop" } ```',
         category: 'problem_solution',
         confidence: 0.7,
       },
@@ -258,8 +258,8 @@ test('processPreExtracted: propagates source from memory metadata to knowledge c
 
   const insights = {
     knowledge_cards: [{
-      title: 'AwarenessClaw Desktop responsive fix',
-      summary: 'AwarenessClaw Desktop layout overflows on small screens. Fix: overflow-y auto.',
+      title: 'OCT-Agent Desktop responsive fix',
+      summary: 'OCT-Agent Desktop layout overflows on small screens. Fix: overflow-y auto.',
       category: 'problem_solution',
       confidence: 0.85,
     }],
@@ -327,7 +327,7 @@ test('SearchEngine.mergeResults: preserves record_source from DB result', () => 
 
   const localResult = {
     id: 'kc_001',
-    title: 'AwarenessClaw responsive layout',
+    title: 'OCT-Agent responsive layout',
     finalScore: 0.8,
     source: 'openclaw-plugin',  // DB source field
     created_at: new Date().toISOString(),

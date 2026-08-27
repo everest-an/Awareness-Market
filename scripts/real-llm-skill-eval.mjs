@@ -101,7 +101,7 @@ const FIXTURES = [
     criticalTokens: ['registry.npmjs.org', '--access public', 'CHANGELOG', 'npm view'],
   },
   {
-    task: 'Push a new version of @awareness-sdk/openclaw-memory — bump from 0.6.15 to 0.6.16',
+    task: 'Push a new version of @awareness.market/openclaw-memory — bump from 0.6.15 to 0.6.16',
     expectedTitleWords: ['publish', 'npm'],
     criticalTokens: ['registry.npmjs.org', 'npm publish', 'npm view'],
   },

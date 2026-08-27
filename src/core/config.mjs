@@ -32,6 +32,7 @@ const SUBDIRS = [
   'tasks/done',
   'documents',   // F-038: converted documents (PDF/DOCX → markdown)
   'workspace',   // F-038: workspace scan state and cache
+  'witness',     // F-088: ERC-8350 private witnesses (salts + payloads, never committed)
 ];
 
 /** Files/patterns that must NOT be committed to Git */
@@ -51,6 +52,9 @@ config.json
 scan-state.json
 documents/
 workspace/
+
+# F-088: ERC-8350 private witnesses (salts + payloads — leaking these opens the commitments)
+witness/
 `;
 
 /** Default configuration matching spec section 7.5 */
@@ -70,6 +74,13 @@ const DEFAULT_CONFIG = Object.freeze({
   },
   extraction: {
     enabled: true,
+  },
+  // F-064 Phase 2 · memory write behaviour.
+  //   deduplication_mode: 'source_only' (default, keeps cross-source
+  //   provenance) | 'global' (collapse identical content across all sources).
+  //   Env AWARENESS_MEMORY_DEDUP_MODE overrides this.
+  memory: {
+    deduplication_mode: 'source_only',
   },
   embedding: {
     language: 'english',
@@ -92,6 +103,15 @@ const DEFAULT_CONFIG = Object.freeze({
     auto_commit: false,
     branch: null,
   },
+  // F-088: ERC-8350 memory anchoring (opt-in). The private key is NEVER stored
+  // here — only the controller ADDRESS; signing happens exclusively in the CLI.
+  anchoring: {
+    enabled: false,
+    chain_id: 11155111,
+    rpc_url: 'https://ethereum-sepolia-rpc.publicnode.com',
+    registry_address: '0xDdf21937ba80b5fF973610877A0955b320C91241',
+    controller_address: '',
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -105,7 +125,7 @@ const DEFAULT_CONFIG = Object.freeze({
  * The 4-hex suffix is derived from a hash of hostname + homedir + platform
  * so it is stable across restarts but distinct across machines.
  *
- * @returns {string} e.g. "mac-edwins-mbp-a3f2"
+ * @returns {string} e.g. "mac-everests-mbp-a3f2"
  */
 export function generateDeviceId() {
   const hostname = os.hostname().toLowerCase();
@@ -258,17 +278,36 @@ export function saveCloudConfig(projectDir, { apiKey, memoryId, apiBase }) {
 // Workspace Registry (~/.awareness/workspaces.json)
 // ---------------------------------------------------------------------------
 
-const WORKSPACES_FILE = path.join(os.homedir(), '.awareness', 'workspaces.json');
 const BASE_PORT = 37800;
+
+/**
+ * Resolve the workspace registry path lazily.
+ *
+ * Deliberately NOT a module-level constant. As a constant it was captured from
+ * `os.homedir()` at import time and could not be redirected, which is why the
+ * test suite ended up writing into the real user's registry: on Windows
+ * `os.homedir()` reads USERPROFILE and ignores HOME, so the suite's `HOME=tmp`
+ * isolation silently leaked. A real user's file accumulated 299 junk entries
+ * from 49 test runs, and one test overwrote the whole file wholesale, relying
+ * on a `finally` block to put it back.
+ *
+ * AWARENESS_HOME gives tests (and sandboxed installs) an explicit, portable
+ * override that works identically on every platform.
+ */
+function workspacesFile() {
+  const home = process.env.AWARENESS_HOME || os.homedir();
+  return path.join(home, '.awareness', 'workspaces.json');
+}
 
 /**
  * Load the workspace registry. Returns {} if file doesn't exist.
  * @returns {Record<string, { memoryId: string, port: number, name: string, lastUsed?: string }>}
  */
 export function loadWorkspaces() {
+  const file = workspacesFile();
   try {
-    if (fs.existsSync(WORKSPACES_FILE)) {
-      return JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf-8'));
+    if (fs.existsSync(file)) {
+      return JSON.parse(fs.readFileSync(file, 'utf-8'));
     }
   } catch { /* corrupted — return empty */ }
   return {};
@@ -279,11 +318,38 @@ export function loadWorkspaces() {
  * @param {Record<string, object>} workspaces
  */
 export function saveWorkspaces(workspaces) {
-  const dir = path.dirname(WORKSPACES_FILE);
+  const file = workspacesFile();
+  const dir = path.dirname(file);
   fs.mkdirSync(dir, { recursive: true });
-  const tmp = WORKSPACES_FILE + '.tmp';
+  const tmp = file + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(workspaces, null, 2), 'utf-8');
-  fs.renameSync(tmp, WORKSPACES_FILE);
+  fs.renameSync(tmp, file);
+}
+
+/**
+ * Drop registry entries whose directory no longer exists.
+ *
+ * The registry was append-only: `unregisterWorkspace()` existed but had zero
+ * call sites, so entries accumulated without bound. Real users reached 2500+
+ * entries / 450KB, which was mistaken for a frontend performance problem and
+ * "fixed" with a `?limit=` pagination patch while the root cause kept growing.
+ * Every temp dir a test or a one-off `start` ever touched stayed forever.
+ *
+ * Pruning on write makes existing garbage self-heal on next use, and keeps the
+ * O(n) `fs.existsSync` scan in `apiWorkspaces` bounded. Entries are only dropped
+ * when the path is genuinely gone, so an unplugged external drive costs one
+ * re-registration rather than silent data loss.
+ *
+ * @param {Record<string, object>} workspaces
+ * @returns {Record<string, object>} same object, dead keys removed
+ */
+function pruneDeadWorkspaces(workspaces) {
+  for (const key of Object.keys(workspaces)) {
+    try {
+      if (!fs.existsSync(key)) delete workspaces[key];
+    } catch { /* unreadable path — leave it alone rather than guess */ }
+  }
+  return workspaces;
 }
 
 /**
@@ -296,7 +362,7 @@ export function saveWorkspaces(workspaces) {
  * @returns {{ memoryId: string, port: number, name: string }}
  */
 export function registerWorkspace(projectDir, opts = {}) {
-  const workspaces = loadWorkspaces();
+  const workspaces = pruneDeadWorkspaces(loadWorkspaces());
   const key = path.resolve(projectDir);
 
   if (workspaces[key]) {
