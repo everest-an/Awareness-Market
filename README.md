@@ -12,11 +12,11 @@
 </p>
 
 <p align="center">
-  <a href="https://arxiv.org/abs/2410.10813"><img src="https://img.shields.io/badge/LongMemEval_R%405-95.6%25-brightgreen?style=for-the-badge" alt="LongMemEval R@5 95.6%" /></a>
+  <a href="https://arxiv.org/abs/2410.10813"><img src="https://img.shields.io/badge/LongMemEval_R%405-96.0%25-brightgreen?style=for-the-badge" alt="LongMemEval R@5 96.0%" /></a>
   <a href="https://awareness.market/"><img src="https://img.shields.io/badge/Website-awareness.market-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website" /></a>
   <a href="https://awareness.market/docs"><img src="https://img.shields.io/badge/Docs-awareness.market%2Fdocs-14B8A6?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Docs" /></a>
   <a href="https://discord.com/invite/nMDrT538Qa"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-2563EB?style=for-the-badge" alt="License Apache 2.0" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2563EB?style=for-the-badge" alt="License MIT" /></a>
 </p>
 
 <p align="center">
@@ -104,17 +104,17 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 ║                                                              ║
 ║   ┌─────────────────────────────────────────────────┐        ║
 ║   │                                                 │        ║
-║   │   Recall@1    77.6%    (388 / 500)              │        ║
-║   │   Recall@3    91.8%    (459 / 500)              │        ║
-║   │   Recall@5    95.6%    (478 / 500)  ◀ PRIMARY   │        ║
-║   │   Recall@10   97.4%    (487 / 500)              │        ║
+║   │   Recall@1    80.2%    (401 / 500)              │        ║
+║   │   Recall@3    92.8%    (464 / 500)              │        ║
+║   │   Recall@5    96.0%    (480 / 500)  ◀ PRIMARY   │        ║
+║   │   Recall@10   98.6%    (493 / 500)              │        ║
 ║   │                                                 │        ║
 ║   └─────────────────────────────────────────────────┘        ║
 ║                                                              ║
-║   Method:     Hybrid RRF (BM25 + Semantic Vector Search)     ║
-║   Embedding:  all-MiniLM-L6-v2 (384d)                       ║
+║   Method:     Hybrid RRF (BM25 + vector, daemon pipeline)    ║
+║   Embedding:  multilingual-e5-small (production model)       ║
 ║   LLM Calls:  0  (pure retrieval, no generation cost)        ║
-║   Hardware:   Apple M1, 8GB RAM — 14 min total               ║
+║   Hardware:   Apple M1, 8GB RAM — 35 min total               ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
@@ -127,7 +127,7 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 │  System                         │  R@5      │  Note         │
 ├─────────────────────────────────┼───────────┼───────────────┤
 │  MemPalace (ChromaDB raw)       │  96.6%    │  R@5 only *   │
-│  ★ Awareness Memory (Hybrid)    │  95.6%    │  Hybrid RRF   │
+│  ★ Awareness Memory (Hybrid)    │  96.0%    │  Hybrid RRF   │
 │  OMEGA                          │  95.4%    │  QA Accuracy  │
 │  Mastra (GPT-5-mini)            │  94.9%    │  QA Accuracy  │
 │  Mastra (GPT-4o)                │  84.2%    │  QA Accuracy  │
@@ -144,14 +144,14 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 ┌─────────────────────────────────────────────────────────────┐
 │     Awareness Memory — R@5 by Question Type                 │
 │                                                             │
-│  knowledge-update        ████████████████████████████ 100%  │
-│  multi-session           ███████████████████████████▋  98.5%│
+│  knowledge-update        ███████████████████████████ 98.7%  │
+│  multi-session           ███████████████████████████▊  99.2%│
 │  single-session-asst     ███████████████████████████▌  98.2%│
-│  temporal-reasoning      █████████████████████████▊    94.7%│
-│  single-session-user     ████████████████████████▎     88.6%│
-│  single-session-pref     ███████████████████████▏      86.7%│
+│  temporal-reasoning      ██████████████████████████▏   93.2%│
+│  single-session-user     ██████████████████████████    92.9%│
+│  single-session-pref     █████████████████████████▎    90.0%│
 │                                                             │
-│  Overall                 █████████████████████████▉    95.6%│
+│  Overall                 ██████████████████████████▉   96.0%│
 │                                                             │
 │  ┌───────────────────────────────────────────────┐          │
 │  │  Ablation Study                               │          │
@@ -159,15 +159,15 @@ Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** — the industr
 │  │  Vector-only:   92.6%  ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░     │          │
 │  │  BM25-only:     91.4%  ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░     │          │
 │  │  Hybrid RRF:    95.6%  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░  ★  │          │
-│  │                        Hybrid = +3% over any  │          │
-│  │                        single method alone    │          │
+│  │  (2026-04 harness run)                        │          │
+│  │  Hybrid = +3% over any single method          │          │
 │  └───────────────────────────────────────────────┘          │
 │                                                             │
 │  arxiv.org/abs/2410.10813          awareness.market         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Zero LLM calls. [Reproducible benchmark scripts →](https://github.com/edwin-hao-ai/Awareness/tree/main/benchmarks/longmemeval)
+Zero LLM calls on retrieval (daemon path). [Reproducible benchmark scripts →](https://github.com/everest-an/Awareness-Market/tree/main/benchmarks/longmemeval)
 
 ---
 
@@ -194,7 +194,7 @@ Session 1                          Session 2
 
 | IDE | Auto-detected | Plugin |
 |-----|:---:|:---:|
-| **Claude Code** | ✅ | [`awareness-memory`](https://github.com/edwin-hao-ai/Awareness-SDK/tree/main/claudecode) |
+| **Claude Code** | ✅ | [`awareness-memory`](https://github.com/everest-an/Awareness-SDK/tree/main/claudecode) |
 | **Cursor** | ✅ | via MCP |
 | **Windsurf** | ✅ | via MCP |
 | **OpenClaw** | ✅ | [`@awareness-sdk/openclaw-memory`](https://www.npmjs.com/package/@awareness-sdk/openclaw-memory) |
@@ -305,11 +305,11 @@ Awareness Local is part of the Awareness ecosystem:
 
 | Package | For | Install |
 |---------|-----|---------|
-| **[Awareness Local](https://github.com/edwin-hao-ai/Awareness-Local)** | Local daemon + MCP server | `npx @awareness-sdk/setup` |
+| **[Awareness Local](https://github.com/everest-an/Awareness-Market)** | Local daemon + MCP server | `npx @awareness-sdk/setup` |
 | **[Python SDK](https://pypi.org/project/awareness-memory-cloud/)** | `wrap_openai()` / `wrap_anthropic()` interceptors | `pip install awareness-memory-cloud` |
 | **[TypeScript SDK](https://www.npmjs.com/package/@awareness-sdk/memory-cloud)** | `wrapOpenAI()` / `wrapAnthropic()` interceptors | `npm i @awareness-sdk/memory-cloud` |
 | **[OpenClaw Plugin](https://www.npmjs.com/package/@awareness-sdk/openclaw-memory)** | Auto-recall + auto-capture | `openclaw plugins install @awareness-sdk/openclaw-memory` |
-| **[Claude Code Plugin](https://github.com/edwin-hao-ai/Awareness-SDK/tree/main/claudecode)** | Skills + hooks | `/plugin marketplace add edwin-hao-ai/Awareness-SDK` → `/plugin install awareness-memory@awareness` |
+| **[Claude Code Plugin](https://github.com/everest-an/Awareness-SDK/tree/main/claudecode)** | Skills + hooks | `/plugin marketplace add everest-an/Awareness-SDK` → `/plugin install awareness-memory@awareness` |
 | **[Setup CLI](https://www.npmjs.com/package/@awareness-sdk/setup)** | One-command setup for 13+ IDEs | `npx @awareness-sdk/setup` |
 
 Full SDK docs: [awareness.market/docs](https://awareness.market/docs)
@@ -331,7 +331,7 @@ If Awareness Local saves you from re-explaining your codebase to your AI agent, 
 
 ## License
 
-Apache 2.0
+MIT
 
 ---
 
