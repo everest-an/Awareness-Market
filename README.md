@@ -323,6 +323,12 @@ Full SDK docs: [awareness.market/docs](https://awareness.market/docs)
 
 No Python, no Docker, no cloud account needed.
 
+## ⭐ Support the project
+
+If Awareness Local saves you from re-explaining your codebase to your AI agent, give it a ⭐ — it helps more developers discover the project and pushes it toward GitHub Trending.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=everest-an/Awareness-Market&type=Date)](https://star-history.com/#everest-an/Awareness-Market)
+
 ## License
 
 Apache 2.0
