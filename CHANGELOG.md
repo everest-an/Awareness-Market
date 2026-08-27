@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.12.5] - 2026-08-28
+
+### Fixed - the README example did not work
+
+The Quick Start on this package's npm page told you to write:
+
+```javascript
+import { record, retrieve } from "@awareness.market/local/api";
+```
+
+Neither function exists. The package's JS exports are daemon *management*
+helpers — `getDaemonUrl`, `checkDaemonHealth`, `getDaemonStatus`, `getMcpUrl`,
+`loadLocalConfig` and five more — and never included a memory API. Anyone who
+copied that snippet got an immediate import error, which is a poor first
+impression for a package that had 886 installs last month.
+
+The example is now the real interface: the daemon speaks MCP over HTTP on
+127.0.0.1:37800, so `awareness_record` / `awareness_recall` are reachable with
+plain `fetch` and no SDK, and structured reads go through
+`GET /api/v1/memories`. Every snippet in the README was executed against a
+running daemon before being written down.
+
+The same fabricated API (`init --type`, `recordSession()`, `getTwin()`) was on
+the documentation site in all three languages and has been replaced there too.
+
+### Fixed - stale package names pointed at an abandoned build
+
+Docs and READMEs referenced `@awareness-sdk/local`, which is stuck at 0.11.6
+(April) and therefore predates every fix in 0.12.x — including the one where
+stdio MCP did not work on Windows at all. They also referenced
+`@awareness.market/setup-cli`, which has never existed on npm; the real package
+is `@awareness.market/setup`. All user-facing references now point at
+`@awareness.market/local`.
+
 ## [0.12.4] - 2026-08-28
 
 ### Changed - a daemon that starts without a working index now says so
