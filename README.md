@@ -30,7 +30,7 @@ Awareness Local is a local-first MCP memory server for AI coding agents. It give
 It runs a lightweight daemon on your machine, stores memory as Markdown, indexes recall with SQLite FTS5 + embeddings, and keeps your AI workflow fast, explainable, and offline-ready.
 
 ```bash
-npx @awareness-sdk/setup
+npx @awareness.market/setup
 ```
 
 That's it. Your AI agent now remembers everything across sessions.
@@ -49,7 +49,7 @@ AI coding agents lose context between sessions. Awareness Local provides cross-s
 ## Quick Start
 
 ```bash
-npx @awareness-sdk/setup
+npx @awareness.market/setup
 ```
 
 Then open your IDE and start coding. Awareness tools become available for recall, record, and session initialization.
@@ -197,7 +197,7 @@ Session 1                          Session 2
 | **Claude Code** | ✅ | [`awareness-memory`](https://github.com/everest-an/Awareness-SDK/tree/main/claudecode) |
 | **Cursor** | ✅ | via MCP |
 | **Windsurf** | ✅ | via MCP |
-| **OpenClaw** | ✅ | [`@awareness-sdk/openclaw-memory`](https://www.npmjs.com/package/@awareness-sdk/openclaw-memory) |
+| **OpenClaw** | ✅ | [`@awareness.market/openclaw-memory`](https://www.npmjs.com/package/@awareness.market/openclaw-memory) |
 | **Cline** | ✅ | via MCP |
 | **GitHub Copilot** | ✅ | via MCP |
 | **Codex CLI** | ✅ | via MCP |
@@ -293,7 +293,7 @@ Connect to [Awareness Cloud](https://awareness.market) for:
 - Memory marketplace
 
 ```bash
-npx @awareness-sdk/setup --cloud
+npx @awareness.market/setup --cloud
 # Or click "Connect to Cloud" in the dashboard
 ```
 
@@ -305,12 +305,12 @@ Awareness Local is part of the Awareness ecosystem:
 
 | Package | For | Install |
 |---------|-----|---------|
-| **[Awareness Local](https://github.com/everest-an/Awareness-Market)** | Local daemon + MCP server | `npx @awareness-sdk/setup` |
+| **[Awareness Local](https://github.com/everest-an/Awareness-Market)** | Local daemon + MCP server | `npx @awareness.market/setup` |
 | **[Python SDK](https://pypi.org/project/awareness-memory-cloud/)** | `wrap_openai()` / `wrap_anthropic()` interceptors | `pip install awareness-memory-cloud` |
 | **[TypeScript SDK](https://www.npmjs.com/package/@awareness-sdk/memory-cloud)** | `wrapOpenAI()` / `wrapAnthropic()` interceptors | `npm i @awareness-sdk/memory-cloud` |
-| **[OpenClaw Plugin](https://www.npmjs.com/package/@awareness-sdk/openclaw-memory)** | Auto-recall + auto-capture | `openclaw plugins install @awareness-sdk/openclaw-memory` |
+| **[OpenClaw Plugin](https://www.npmjs.com/package/@awareness.market/openclaw-memory)** | Auto-recall + auto-capture | `openclaw plugins install @awareness.market/openclaw-memory` |
 | **[Claude Code Plugin](https://github.com/everest-an/Awareness-SDK/tree/main/claudecode)** | Skills + hooks | `/plugin marketplace add everest-an/Awareness-SDK` → `/plugin install awareness-memory@awareness` |
-| **[Setup CLI](https://www.npmjs.com/package/@awareness-sdk/setup)** | One-command setup for 13+ IDEs | `npx @awareness-sdk/setup` |
+| **[Setup CLI](https://www.npmjs.com/package/@awareness.market/setup)** | One-command setup for 13+ IDEs | `npx @awareness.market/setup` |
 
 Full SDK docs: [awareness.market/docs](https://awareness.market/docs)
 

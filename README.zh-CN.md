@@ -30,7 +30,7 @@ Awareness Local 是一个面向 AI 编程代理的本地优先 MCP 记忆服务�
 它在你的机器上运行轻量守护进程，以 Markdown 方式存储记忆，使用 SQLite FTS5 + 向量混合检索，并通过 MCP 协议接入 IDE，让 AI 工作流更连贯、更可解释、可离线。
 
 ```bash
-npx @awareness-sdk/setup
+npx @awareness.market/setup
 ```
 
 就是这么简单。你的 AI 代理可以跨会话记住上下文。
@@ -49,7 +49,7 @@ AI 编程代理常见问题是会话结束后上下文丢失。Awareness Local �
 ## 快速开始
 
 ```bash
-npx @awareness-sdk/setup
+npx @awareness.market/setup
 ```
 
 执行后即可在 IDE 中使用 recall / record / init 等记忆工具。
