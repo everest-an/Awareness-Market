@@ -77,7 +77,7 @@ npx @awareness.market/setup
 
 ### 支持哪些 IDE？
 
-支持所有 MCP 兼容 IDE，包括 Cursor、Claude Code、Copilot、Cline、Windsurf 等。
+支持所有 MCP 兼容 IDE，包括 Cursor、Claude Code、Copilot、Cline、Windsurf 等。ChatGPT 桌面版：设置 → MCP 服务器 → 添加 → Streamable HTTP → `http://127.0.0.1:37800/mcp`（仅本地 daemon，无需认证）。
 
 ## 导航
 

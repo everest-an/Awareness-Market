@@ -77,7 +77,7 @@ No. Cloud sync is optional and can be enabled later.
 
 ### Which IDEs are supported?
 
-Any MCP-compatible IDE, including Cursor, Claude Code, Copilot, Cline, Windsurf, and others.
+Any MCP-compatible IDE, including Cursor, Claude Code, Copilot, Cline, Windsurf, and others. ChatGPT Desktop: Settings → MCP servers → Add server → Streamable HTTP → `http://127.0.0.1:37800/mcp` (local daemon only, no auth needed).
 
 ## Navigation
 
@@ -207,6 +207,7 @@ Session 1                          Session 2
 | **JetBrains (Junie)** | ✅ | via MCP |
 | **Augment** | ✅ | via MCP |
 | **AntiGravity (Jules)** | ✅ | via MCP |
+| **ChatGPT Desktop** | ✅ | via MCP (Streamable HTTP, see FAQ) |
 
 ---
 
