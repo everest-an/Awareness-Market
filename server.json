@@ -1,0 +1,24 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.everest-an/awareness-local",
+  "title": "Awareness Local",
+  "description": "Local-first persistent memory for AI coding agents - 96.0% R@5 on LongMemEval, zero LLM calls.",
+  "version": "0.12.5",
+  "websiteUrl": "https://awareness.market",
+  "repository": {
+    "url": "https://github.com/everest-an/Awareness-Market",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@awareness.market/local",
+      "version": "0.12.5",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "arguments": ["-y", "@awareness.market/local", "mcp"]
+      }
+    }
+  ]
+}
