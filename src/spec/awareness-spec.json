@@ -304,7 +304,8 @@
     "jetbrains",
     "augment",
     "antigravity",
-    "openclaw"
+    "openclaw",
+    "opencode"
   ],
   "ides": {
     "claude-code": {
@@ -534,6 +535,23 @@
         "- Install as plugin: openclaw plugins install @awareness.market/openclaw-memory",
         "- Or install as skill: npx clawhub@latest install awareness-memory",
         "- MCP tools are exposed through the plugin system, no rules file needed."
+      ]
+    },
+    "opencode": {
+      "label": "OpenCode / HyperCode",
+      "rules_file": "AGENTS.md",
+      "mcp_path": null,
+      "strategy": "plugin_config",
+      "conflict_policy": "error_on_invalid_markers",
+      "header": "# Awareness Memory Integration",
+      "preamble_lines": [
+        "MANDATORY agent policy - follow for every task."
+      ],
+      "notes_lines": [
+        "## OpenCode / HyperCode Notes",
+        "- Call awareness_init at session start; awareness_recall before work; awareness_record after each change.",
+        "- Native plugin: @awareness.market/opencode-plugin goes in the config `plugin` array (no MCP config needed).",
+        "- Config file: opencode.jsonc / opencode.json (project or ~/.config/opencode/); HyperCode uses its baked config + .opencode/."
       ]
     }
   }
