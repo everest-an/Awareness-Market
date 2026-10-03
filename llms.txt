@@ -1,0 +1,31 @@
+# Awareness Local
+
+> Local-first AI agent memory daemon. One command, works offline, no account. Markdown storage, hybrid search (SQLite FTS5 + embeddings), MCP protocol, web dashboard. The retrieval pipeline behind the Awareness ecosystem.
+
+Awareness Local is the daemon that gives coding agents persistent memory: it indexes memories as Markdown, retrieves with hybrid BM25 + vector + knowledge-graph search, and exposes everything over MCP (`http://localhost:37800/mcp`) and a REST API — so Claude Code, OpenCode, Cursor, Windsurf, OpenClaw and any MCP client can recall across sessions.
+
+## What it is
+- [README](https://github.com/everest-an/Awareness-Market/blob/main/README.md): install, MCP tools, storage layout, cloud sync
+- [SDK / plugins](https://github.com/everest-an/Awareness-SDK): OpenCode / Claude Code / OpenClaw integrations, Python & TypeScript SDKs
+- [Docs](https://awareness.market/docs) · [Site](https://awareness.market)
+
+## Why it is different
+- Runs fully offline; memory is plain Markdown in `.awareness/` (git-friendly, no account).
+- Hybrid retrieval (FTS5 + embeddings + knowledge graph, RRF-fused) with **zero LLM calls on the retrieval side**.
+- **96.0% Recall@5 on LongMemEval**, measured through this real daemon pipeline — reproducible: [`benchmarks/longmemeval/run_f053_daemon_path.mjs`](https://github.com/everest-an/Awareness-Market/blob/main/benchmarks/longmemeval/run_f053_daemon_path.mjs)
+- Project isolation: memory is scoped per project; a request for a foreign project is rejected (`409 project_mismatch`).
+- Web dashboard at `http://localhost:37800/`.
+
+## MCP tools
+`awareness_init` · `awareness_recall` · `awareness_record` · `awareness_lookup` · `awareness_apply_skill` · `awareness_mark_skill_used` · `awareness_get_agent_prompt` · `awareness_publish_agent` · `awareness_workspace_search`
+
+## Quick start
+```bash
+npx @awareness.market/local start      # daemon on :37800
+```
+
+## Citation
+> Awareness Local (2026). Local-first AI agent memory daemon. everest-an. https://github.com/everest-an/Awareness-Market
+
+## Optional
+- [License](https://github.com/everest-an/Awareness-Market/blob/main/LICENSE) · [server.json](https://github.com/everest-an/Awareness-Market/blob/main/server.json) (MCP registry manifest)
