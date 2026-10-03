@@ -3,7 +3,7 @@
   "name": "io.github.everest-an/awareness-local",
   "title": "Awareness Local",
   "description": "Local-first persistent memory for AI coding agents - 96.0% R@5 on LongMemEval, zero LLM calls.",
-  "version": "0.12.5",
+  "version": "0.12.6",
   "websiteUrl": "https://awareness.market",
   "repository": {
     "url": "https://github.com/everest-an/Awareness-Market",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "@awareness.market/local",
-      "version": "0.12.5",
+      "version": "0.12.6",
       "transport": {
         "type": "stdio",
         "command": "npx",
