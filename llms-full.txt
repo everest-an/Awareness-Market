@@ -1,0 +1,387 @@
+# Awareness Local — llms-full.txt
+
+> Full concatenated, AI-ingestible content. Generated file — regenerate after major docs changes.
+> Canonical: https://github.com/everest-an/Awareness-Market
+
+---
+
+# Awareness Local
+
+<p align="center">
+  <strong>Languages:</strong> English | <a href="./README.zh-CN.md">ç®€ä½“ä¸­æ–‡</a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/awareness-wordmark-dark.svg" />
+    <img src="assets/branding/awareness-wordmark.svg" alt="Awareness Local â€” Persistent Memory for AI Coding Agents" width="760" />
+  </picture>
+</p>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2410.10813"><img src="https://img.shields.io/badge/LongMemEval_R%405-96.0%25-brightgreen?style=for-the-badge" alt="LongMemEval R@5 96.0%" /></a>
+  <a href="https://awareness.market/"><img src="https://img.shields.io/badge/Website-awareness.market-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website" /></a>
+  <a href="https://awareness.market/docs"><img src="https://img.shields.io/badge/Docs-awareness.market%2Fdocs-14B8A6?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Docs" /></a>
+  <a href="https://discord.com/invite/nMDrT538Qa"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2563EB?style=for-the-badge" alt="License MIT" /></a>
+</p>
+
+<p align="center">
+  <img src="assets/branding/local-20s.gif" alt="Awareness Local" style="width:min(1200px,100%);height:auto;" />
+</p>
+
+**Give your AI agent persistent memory. One command. No account. Works offline.**
+
+Awareness Local is a local-first MCP memory server for AI coding agents. It gives Cursor, Claude Code, Copilot, Cline, and other MCP IDEs persistent memory, hybrid semantic + keyword retrieval, and reusable knowledge cards for long-running software projects.
+
+It runs a lightweight daemon on your machine, stores memory as Markdown, indexes recall with SQLite FTS5 + embeddings, and keeps your AI workflow fast, explainable, and offline-ready.
+
+```bash
+npx @awareness.market/setup
+```
+
+That's it. Your AI agent now remembers everything across sessions.
+
+---
+
+## Why Awareness Local
+
+AI coding agents lose context between sessions. Awareness Local provides cross-session memory recall so agents can continue work without re-explaining architecture, past decisions, pending tasks, and implementation constraints.
+
+- Persistent memory for AI coding agents
+- Local-first MCP server with offline support
+- Hybrid retrieval (keyword + semantic)
+- Knowledge card extraction for decisions, solutions, and risks
+
+## Quick Start
+
+```bash
+npx @awareness.market/setup
+```
+
+Then open your IDE and start coding. Awareness tools become available for recall, record, and session initialization.
+
+## Popular Use Cases
+
+- Long-running codebase migrations across many sessions
+- Team handoffs where AI should remember prior implementation context
+- Personal coding workflows that need durable preferences and conventions
+- Multi-agent setups that share decision history and task memory
+
+## FAQ
+
+### Does Awareness Local work offline?
+
+Yes. Local mode works fully offline with memory stored on your machine.
+
+### Where is data stored?
+
+Memory is stored as Markdown in `.awareness/`, with a local SQLite index for retrieval.
+
+### Do I need a cloud account?
+
+No. Cloud sync is optional and can be enabled later.
+
+### Which IDEs are supported?
+
+Any MCP-compatible IDE, including Cursor, Claude Code, Copilot, Cline, Windsurf, and others. ChatGPT Desktop: Settings â†’ MCP servers â†’ Add server â†’ Streamable HTTP â†’ `http://127.0.0.1:37800/mcp` (local daemon only, no auth needed).
+
+## Navigation
+
+- [Benchmark: LongMemEval](#benchmark-longmemeval-iclr-2025)
+- [Supported IDEs](#supported-ides-13)
+- [How It Works](#how-it-works)
+- [MCP Tools](#mcp-tools-available-in-your-ide)
+- [Cloud Sync](#cloud-sync-optional)
+- [SDK & Plugin Ecosystem](#sdk--plugin-ecosystem)
+
+## Benchmark: LongMemEval (ICLR 2025)
+
+Evaluated on **[LongMemEval](https://arxiv.org/abs/2410.10813)** â€” the industry standard benchmark for long-term conversational memory. 500 human-curated questions across 5 core capabilities.
+
+```
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘                                                              â•‘
+â•‘   Awareness Memory â€” LongMemEval Benchmark Results           â•‘
+â•‘   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€           â•‘
+â•‘                                                              â•‘
+â•‘   Benchmark:  LongMemEval (ICLR 2025)                       â•‘
+â•‘   Dataset:    500 human-curated questions                    â•‘
+â•‘   Variant:    LongMemEval_S (~115k tokens per question)      â•‘
+â•‘                                                              â•‘
+â•‘   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”        â•‘
+â•‘   â”‚                                                 â”‚        â•‘
+â•‘   â”‚   Recall@1    80.2%    (401 / 500)              â”‚        â•‘
+â•‘   â”‚   Recall@3    92.8%    (464 / 500)              â”‚        â•‘
+â•‘   â”‚   Recall@5    96.0%    (480 / 500)  â—€ PRIMARY   â”‚        â•‘
+â•‘   â”‚   Recall@10   98.6%    (493 / 500)              â”‚        â•‘
+â•‘   â”‚                                                 â”‚        â•‘
+â•‘   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜        â•‘
+â•‘                                                              â•‘
+â•‘   Method:     Hybrid RRF (BM25 + vector, daemon pipeline)    â•‘
+â•‘   Embedding:  multilingual-e5-small (production model)       â•‘
+â•‘   LLM Calls:  0  (pure retrieval, no generation cost)        â•‘
+â•‘   Hardware:   Apple M1, 8GB RAM â€” 35 min total               â•‘
+â•‘                                                              â•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+```
+
+```
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚          Long-Term Memory Retrieval â€” R@5 Leaderboard       â”‚
+â”‚          LongMemEval (ICLR 2025, 500 questions)             â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  System                         â”‚  R@5      â”‚  Note         â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  MemPalace (ChromaDB raw)       â”‚  96.6%    â”‚  R@5 only *   â”‚
+â”‚  â˜… Awareness Memory (Hybrid)    â”‚  96.0%    â”‚  Hybrid RRF   â”‚
+â”‚  OMEGA                          â”‚  95.4%    â”‚  QA Accuracy  â”‚
+â”‚  Mastra (GPT-5-mini)            â”‚  94.9%    â”‚  QA Accuracy  â”‚
+â”‚  Mastra (GPT-4o)                â”‚  84.2%    â”‚  QA Accuracy  â”‚
+â”‚  Supermemory                    â”‚  81.6%    â”‚  QA Accuracy  â”‚
+â”‚  Zep / Graphiti                 â”‚  71.2%    â”‚  QA Accuracy  â”‚
+â”‚  GPT-4o (full context)          â”‚  60.6%    â”‚  QA Accuracy  â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  * MemPalace 96.6% is Recall@5 only, not QA Accuracy.      â”‚
+â”‚    Palace hierarchy was NOT used in the evaluation.         â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+```
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚     Awareness Memory â€” R@5 by Question Type                 â”‚
+â”‚                                                             â”‚
+â”‚  knowledge-update        â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ 98.7%  â”‚
+â”‚  multi-session           â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–Š  99.2%â”‚
+â”‚  single-session-asst     â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–Œ  98.2%â”‚
+â”‚  temporal-reasoning      â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–   93.2%â”‚
+â”‚  single-session-user     â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ    92.9%â”‚
+â”‚  single-session-pref     â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–Ž    90.0%â”‚
+â”‚                                                             â”‚
+â”‚  Overall                 â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–‰   96.0%â”‚
+â”‚                                                             â”‚
+â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”          â”‚
+â”‚  â”‚  Ablation Study                               â”‚          â”‚
+â”‚  â”‚  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€    â”‚          â”‚
+â”‚  â”‚  Vector-only:   92.6%  â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–‘â–‘â–‘     â”‚          â”‚
+â”‚  â”‚  BM25-only:     91.4%  â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–‘â–‘â–‘     â”‚          â”‚
+â”‚  â”‚  Hybrid RRF:    95.6%  â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–“â–‘  â˜…  â”‚          â”‚
+â”‚  â”‚  (2026-04 harness run)                        â”‚          â”‚
+â”‚  â”‚  Hybrid = +3% over any single method          â”‚          â”‚
+â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜          â”‚
+â”‚                                                             â”‚
+â”‚  arxiv.org/abs/2410.10813          awareness.market         â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+Zero LLM calls on retrieval (daemon path). [Reproducible benchmark scripts â†’](https://github.com/everest-an/Awareness-Market/tree/main/benchmarks/longmemeval)
+
+---
+
+## What It Does
+
+**Before:** Every session starts from scratch. You re-explain the codebase, re-justify decisions, watch the agent redo work.
+
+**After:** Your agent says *"I remember you were migrating from MySQL to PostgreSQL. Last session you completed the schema changes and had 2 TODOs remaining..."*
+
+```
+Session 1                          Session 2
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Agent: "What database?" â”‚       â”‚ Agent: "I remember we   â”‚
+â”‚ You: "PostgreSQL..."    â”‚       â”‚ chose PostgreSQL for     â”‚
+â”‚ Agent: "What framework?"â”‚  â†’    â”‚ JSON support. You had    â”‚
+â”‚ You: "FastAPI..."       â”‚       â”‚ 2 TODOs left. Let me     â”‚
+â”‚ (repeat every session)  â”‚       â”‚ continue from there."    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜       â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+---
+
+## Supported IDEs (13+)
+
+| IDE | Auto-detected | Plugin |
+|-----|:---:|:---:|
+| **Claude Code** | âœ… | [`awareness-memory`](https://github.com/everest-an/Awareness-SDK/tree/main/claudecode) |
+| **Cursor** | âœ… | via MCP |
+| **Windsurf** | âœ… | via MCP |
+| **OpenClaw** | âœ… | [`@awareness.market/openclaw-memory`](https://www.npmjs.com/package/@awareness.market/openclaw-memory) |
+| **Cline** | âœ… | via MCP |
+| **GitHub Copilot** | âœ… | via MCP |
+| **Codex CLI** | âœ… | via MCP |
+| **Kiro** | âœ… | via MCP |
+| **Trae** | âœ… | via MCP |
+| **Zed** | âœ… | via MCP |
+| **JetBrains (Junie)** | âœ… | via MCP |
+| **Augment** | âœ… | via MCP |
+| **AntiGravity (Jules)** | âœ… | via MCP |
+| **ChatGPT Desktop** | âœ… | via MCP (Streamable HTTP, see FAQ) |
+
+---
+
+## How It Works
+
+```
+Your IDE / AI Agent
+    â”‚
+    â”‚  MCP Protocol (localhost:37800)
+    â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  Awareness Local Daemon            â”‚
+â”‚                                    â”‚
+â”‚  Markdown files    â†’ Human-readable, git-friendly
+â”‚  SQLite FTS5       â†’ Fast keyword search
+â”‚  Local embedding   â†’ Semantic search (optional: npm i @huggingface/transformers)
+â”‚  Knowledge cards   â†’ Auto-extracted decisions, solutions, risks
+â”‚  Web Dashboard     â†’ http://localhost:37800/
+â”‚                                    â”‚
+â”‚  Cloud sync (optional)             â”‚
+â”‚  â†’ One-click device-auth           â”‚
+â”‚  â†’ Bidirectional sync              â”‚
+â”‚  â†’ Semantic vector search          â”‚
+â”‚  â†’ Team collaboration              â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+### Your Data
+
+All memories stored as **Markdown files** in `.awareness/` â€” human-readable, editable, git-friendly:
+
+```
+.awareness/
+â”œâ”€â”€ memories/
+â”‚   â”œâ”€â”€ 2026-03-22_decided-to-use-postgresql.md
+â”‚   â”œâ”€â”€ 2026-03-22_fixed-auth-bug.md
+â”‚   â””â”€â”€ ...
+â”œâ”€â”€ knowledge/
+â”‚   â”œâ”€â”€ decisions/postgresql-over-mysql.md
+â”‚   â””â”€â”€ solutions/auth-token-refresh.md
+â”œâ”€â”€ tasks/
+â”‚   â””â”€â”€ open/implement-rate-limiting.md
+â””â”€â”€ index.db  (search index, auto-rebuilt)
+```
+
+---
+
+## Features
+
+### MCP Tools (available in your IDE)
+
+| Tool | What it does |
+|------|-------------|
+| `awareness_init` | Load session context â€” recent knowledge, tasks, rules |
+| `awareness_recall` | Search memories â€” progressive disclosure (summary â†’ full) |
+| `awareness_record` | Save decisions, code changes, insights â€” with knowledge extraction |
+| `awareness_lookup` | Fast lookup â€” tasks, knowledge cards, session history, risks |
+| `awareness_get_agent_prompt` | Get agent-specific prompts for multi-agent setups |
+
+### Progressive Disclosure (Smart Token Usage)
+
+Instead of dumping everything into context, Awareness uses a two-phase recall:
+
+```
+Phase 1: awareness_recall(query, detail="summary")
+  â†’ Lightweight index (~80 tokens each): title + summary + score
+  â†’ Agent reviews and picks what's relevant
+
+Phase 2: awareness_recall(detail="full", ids=[...])
+  â†’ Complete content for selected items only
+  â†’ No truncation, no wasted tokens
+```
+
+### Web Dashboard
+
+Visit `http://localhost:37800/` to browse memories, knowledge cards, tasks, and manage cloud sync.
+
+### Cloud Sync (Optional)
+
+Connect to [Awareness Cloud](https://awareness.market) for:
+- Semantic vector search (100+ languages)
+- Cross-device real-time sync
+- Team collaboration
+- Memory marketplace
+
+```bash
+npx @awareness.market/setup --cloud
+# Or click "Connect to Cloud" in the dashboard
+```
+
+---
+
+## SDK & Plugin Ecosystem
+
+Awareness Local is part of the Awareness ecosystem:
+
+| Package | For | Install |
+|---------|-----|---------|
+| **[Awareness Local](https://github.com/everest-an/Awareness-Market)** | Local daemon + MCP server | `npx @awareness.market/setup` |
+| **[Python SDK](https://pypi.org/project/awareness-memory-cloud/)** | `wrap_openai()` / `wrap_anthropic()` interceptors | `pip install awareness-memory-cloud` |
+| **[TypeScript SDK](https://www.npmjs.com/package/@awareness-sdk/memory-cloud)** | `wrapOpenAI()` / `wrapAnthropic()` interceptors | `npm i @awareness-sdk/memory-cloud` |
+| **[OpenClaw Plugin](https://www.npmjs.com/package/@awareness.market/openclaw-memory)** | Auto-recall + auto-capture | `openclaw plugins install @awareness.market/openclaw-memory` |
+| **[Claude Code Plugin](https://github.com/everest-an/Awareness-SDK/tree/main/claudecode)** | Skills + hooks | `/plugin marketplace add everest-an/Awareness-SDK` â†’ `/plugin install awareness-memory@awareness` |
+| **[Setup CLI](https://www.npmjs.com/package/@awareness.market/setup)** | One-command setup for 13+ IDEs | `npx @awareness.market/setup` |
+
+Full SDK docs: [awareness.market/docs](https://awareness.market/docs)
+
+---
+
+## Requirements
+
+- Node.js 18+
+- Any MCP-compatible IDE
+
+No Python, no Docker, no cloud account needed.
+
+## â­ Support the project
+
+If Awareness Local saves you from re-explaining your codebase to your AI agent, give it a â­ â€” it helps more developers discover the project and pushes it toward GitHub Trending.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=everest-an/Awareness-Market&type=Date)](https://star-history.com/#everest-an/Awareness-Market)
+
+## License
+
+MIT
+
+---
+
+### Tags & Integration
+**IDE Support:** [Cursor](https://cursor.com), [Windsurf](https://codeium.com/windsurf), [Trae](https://www.trae.sh), [Zed](https://zed.dev), VS Code, JetBrains.
+**Compatible with:** OpenClaw, AutoGPT, LangChain, MetaGPT.
+**Key Technology:** OMP (Open Memory Protocol), LatentMAS, Shared Thought Space, One-click Deployment.
+**Focus:** Solving AI "Lobster Memory" (Long-term memory loss), Automating complex workflows, Simplifying Agent setup.
+
+
+---
+
+## llms.txt
+
+# Awareness Local
+
+> Local-first AI agent memory daemon. One command, works offline, no account. Markdown storage, hybrid search (SQLite FTS5 + embeddings), MCP protocol, web dashboard. The retrieval pipeline behind the Awareness ecosystem.
+
+Awareness Local is the daemon that gives coding agents persistent memory: it indexes memories as Markdown, retrieves with hybrid BM25 + vector + knowledge-graph search, and exposes everything over MCP (`http://localhost:37800/mcp`) and a REST API â€” so Claude Code, OpenCode, Cursor, Windsurf, OpenClaw and any MCP client can recall across sessions.
+
+## What it is
+- [README](https://github.com/everest-an/Awareness-Market/blob/main/README.md): install, MCP tools, storage layout, cloud sync
+- [SDK / plugins](https://github.com/everest-an/Awareness-SDK): OpenCode / Claude Code / OpenClaw integrations, Python & TypeScript SDKs
+- [Docs](https://awareness.market/docs) Â· [Site](https://awareness.market)
+
+## Why it is different
+- Runs fully offline; memory is plain Markdown in `.awareness/` (git-friendly, no account).
+- Hybrid retrieval (FTS5 + embeddings + knowledge graph, RRF-fused) with **zero LLM calls on the retrieval side**.
+- **96.0% Recall@5 on LongMemEval**, measured through this real daemon pipeline â€” reproducible: [`benchmarks/longmemeval/run_f053_daemon_path.mjs`](https://github.com/everest-an/Awareness-Market/blob/main/benchmarks/longmemeval/run_f053_daemon_path.mjs)
+- Project isolation: memory is scoped per project; a request for a foreign project is rejected (`409 project_mismatch`).
+- Web dashboard at `http://localhost:37800/`.
+
+## MCP tools
+`awareness_init` Â· `awareness_recall` Â· `awareness_record` Â· `awareness_lookup` Â· `awareness_apply_skill` Â· `awareness_mark_skill_used` Â· `awareness_get_agent_prompt` Â· `awareness_publish_agent` Â· `awareness_workspace_search`
+
+## Quick start
+```bash
+npx @awareness.market/local start      # daemon on :37800
+```
+
+## Citation
+> Awareness Local (2026). Local-first AI agent memory daemon. everest-an. https://github.com/everest-an/Awareness-Market
+
+## Optional
+- [License](https://github.com/everest-an/Awareness-Market/blob/main/LICENSE) Â· [server.json](https://github.com/everest-an/Awareness-Market/blob/main/server.json) (MCP registry manifest)
