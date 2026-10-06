@@ -15,7 +15,8 @@
   <a href="https://arxiv.org/abs/2410.10813"><img src="https://img.shields.io/badge/LongMemEval_R%405-96.0%25-brightgreen?style=for-the-badge" alt="LongMemEval R@5 96.0%" /></a>
   <a href="https://awareness.market/"><img src="https://img.shields.io/badge/官网-awareness.market-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="官网" /></a>
   <a href="https://awareness.market/docs"><img src="https://img.shields.io/badge/文档-awareness.market%2Fdocs-14B8A6?style=for-the-badge&logo=readthedocs&logoColor=white" alt="文档" /></a>
-  <a href="https://discord.com/invite/nMDrT538Qa"><img src="https://img.shields.io/badge/Discord-加入社区-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://discord.com/invite/BMjkCKeqnJ"><img src="https://img.shields.io/badge/Discord-加入社区-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://t.me/awarenessmarket"><img src="https://img.shields.io/badge/Telegram-Join%20Chat-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可证-MIT-2563EB?style=for-the-badge" alt="许可证 MIT" /></a>
 </p>
 
@@ -112,7 +113,7 @@ npx @awareness.market/setup
 
 - 官网： https://awareness.market/
 - 文档： https://awareness.market/docs
-- Discord： https://discord.com/invite/nMDrT538Qa
+- Discord： https://discord.com/invite/BMjkCKeqnJ
 - 英文完整说明： [README.md](./README.md)
 
 ## 许可证
