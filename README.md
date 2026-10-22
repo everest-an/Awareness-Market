@@ -24,9 +24,15 @@
   <img src="assets/branding/local-20s.gif" alt="Awareness Local" style="width:min(1200px,100%);height:auto;" />
 </p>
 
-**Give your AI agent persistent memory. One command. No account. Works offline.**
+**Your AI agent forgets everything when the session ends. Awareness fixes that.**
 
-Awareness Local is a local-first MCP memory server for AI coding agents. It gives Cursor, Claude Code, Copilot, Cline, and other MCP IDEs persistent memory, hybrid semantic + keyword retrieval, and reusable knowledge cards for long-running software projects.
+Awareness is a memory plugin for AI coding agents — Cursor, Claude Code, Copilot, Cline, OpenCode, and any MCP client. It stores what you decided and what you learned as plain Markdown on your machine, then recalls it in the next session: hybrid keyword + semantic retrieval, 96% R@5 on LongMemEval, zero LLM calls at retrieval. Works offline, no account required.
+
+Install with one command:
+
+```bash
+npx @awareness.market/setup
+```
 
 It runs a lightweight daemon on your machine, stores memory as Markdown, indexes recall with SQLite FTS5 + embeddings, and keeps your AI workflow fast, explainable, and offline-ready.
 
