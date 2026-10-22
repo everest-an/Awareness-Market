@@ -11,7 +11,7 @@ status: active
 related: []
 ---
 
-File changed: /Users/edwinhao/Awareness/docs/analysis/KARPATHY_LLM_WIKI_VS_AWARENESS_LOCAL_2026-04-15.md
+File changed: /Users/everestan/Awareness/docs/analysis/KARPATHY_LLM_WIKI_VS_AWARENESS_LOCAL_2026-04-15.md
 Changed: "### 最关键的一步
 
 **把 card_similarities 图谱可视化出来。**

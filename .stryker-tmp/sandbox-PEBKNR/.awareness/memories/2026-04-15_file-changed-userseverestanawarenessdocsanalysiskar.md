@@ -11,7 +11,7 @@ status: active
 related: []
 ---
 
-File changed: /Users/edwinhao/Awareness/docs/analysis/KARPATHY_LLM_WIKI_VS_AWARENESS_LOCAL_2026-04-15.md
+File changed: /Users/everestan/Awareness/docs/analysis/KARPATHY_LLM_WIKI_VS_AWARENESS_LOCAL_2026-04-15.md
 Changed: "### Awareness 当前的内容组织逻辑
 
 **心智模型**：**事件日志 + 知识卡片**
