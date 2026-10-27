@@ -109,7 +109,7 @@ export async function remember(daemon, params) {
 
   // Fire-and-forget embedding + knowledge extraction
   daemon._embedAndStore(id, contentForPersist).catch(() => {});
-  daemon._extractAndIndex(id, contentForPersist, memory, params.insights);
+  daemon._extractAndIndex(id, contentForPersist, { ...memory, id }, params.insights);
 
   // Cloud sync (fire-and-forget)
   if (daemon.cloudSync?.isEnabled()) {

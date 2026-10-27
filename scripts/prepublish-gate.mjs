@@ -70,7 +70,9 @@ const checkSharedScripts = () => {
     pass('(skip) sync-shared-scripts.sh not present — non-monorepo consumer');
     return;
   }
-  const result = spawnSync('bash', [script, '--check'], { cwd: REPO_ROOT, encoding: 'utf8' });
+  // Windows: bash is not on PATH — use Git for Windows' bash when present.
+  const bash = process.platform === 'win32' ? 'C:\\Program Files\\Git\\bin\\bash.exe' : 'bash';
+  const result = spawnSync(bash, [script, '--check'], { cwd: REPO_ROOT, encoding: 'utf8' });
   if (result.status === 0) {
     pass('F-036 shared-scripts · no drift');
   } else {

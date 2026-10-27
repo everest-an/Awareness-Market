@@ -61,6 +61,14 @@ export async function lookup(daemon, params) {
         sqlParams.push(agent_role);
       }
 
+      // Scope model: 'private' records are visible only to the agent that wrote
+      // them. Callers identify themselves with agent_role, which the injected
+      // rules require on every awareness_* call. With no identity there is
+      // nobody to match, so private records stay hidden — a safe default, since
+      // visibility defaults to 'shared' and existing installs are unaffected.
+      conditions.push("COALESCE(visibility, 'shared') != 'private' OR agent_role = ?");
+      sqlParams.push(agent_role || '');
+
       if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
       sql += ' ORDER BY created_at DESC';
       if (limit > 0) {

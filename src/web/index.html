@@ -703,6 +703,45 @@ const LOCALES = {
     'common.metadata': 'Metadata',
     'common.related_cards': 'Related Cards',
     'common.evolution': 'Evolution Chain',
+
+    // Collaboration console
+    'collab.title': 'Collaboration',
+    'collab.console': 'Collaboration Console',
+    'collab.desc': 'Agent dispatch decisions and memory dependency, derived from the shared task ledger. Click a task to drill in.',
+    'collab.empty': 'No tasks in the ledger yet. Tasks appear once agents claim and hand off work via awareness_update_task.',
+    'collab.conflicts': '{n} active conflict(s) in memory',
+    'collab.agents': 'Agents',
+    'collab.agents_active': '{n} active',
+    'collab.dormant': 'Dormant pool',
+    'collab.dormant_meta': '{agents} agents, {tasks} tasks, >7d idle',
+    'collab.paused': 'paused',
+    'collab.frozen': 'frozen',
+    'collab.state': 'state',
+    'collab.state_btn': 'Set state (active / paused / frozen)',
+    'collab.online': 'online (heartbeat <5m)',
+    'collab.offline': 'offline',
+    'collab.tasks_count': '{n} tasks',
+    'collab.unverified': '{n} unverified delivery',
+    'collab.more': '+ {n} more',
+    'collab.dispatch_manual': 'Manual dispatch (pick agent)',
+    'collab.auto': 'Auto-dispatch (score agents)',
+    'collab.release': 'Release claim (back to open)',
+    'collab.stale': 'Lease may be stale',
+    'collab.topology': 'Task Dispatch Topology',
+    'collab.topology_hint': 'One column per agent, ordered by time.',
+    'collab.topology_stale': 'Orange ring = stale lease.',
+    'collab.swimlane': 'Timeline Swimlanes',
+    'collab.swimlane_hint': 'Claim → doing → done per agent.',
+    'collab.memory_ref': 'Memory References',
+    'collab.memory_ref_hint': 'Who wrote which knowledge cards (by agent_role).',
+    'collab.cards_written': '{n} cards written',
+    'collab.dispatched': 'Dispatched to {role}\nscore={score} (idle={idle}, online={online}, load={load})',
+    'collab.no_candidate': 'No active agent available - all paused/frozen.',
+    'collab.not_open': 'Task is no longer open.',
+    'collab.auto_failed': 'Auto-dispatch failed.',
+    'collab.auto_error': 'Auto-dispatch error: {err}',
+    'collab.dispatch_prompt': 'Dispatch to agent_role\nOnline now: {online}\nKnown: {known}',
+    'collab.state_prompt': 'Set state for "{role}"\nCurrent: {cur}\nOptions: {options}',
   },
   zh: {
     'header.search': '搜索',
@@ -862,6 +901,45 @@ const LOCALES = {
     'common.metadata': '元数据',
     'common.related_cards': '相关卡片',
     'common.evolution': '演化链',
+
+    // Collaboration console
+    'collab.title': '协作',
+    'collab.console': '协作控制台',
+    'collab.desc': '基于共享任务账本的 Agent 派发决策与记忆依赖。点击任务查看详情。',
+    'collab.empty': '任务账本还是空的。Agent 通过 awareness_update_task 认领/交接后，任务会出现在这里。',
+    'collab.conflicts': '记忆中有 {n} 个活跃冲突',
+    'collab.agents': 'Agent 列表',
+    'collab.agents_active': '{n} 个活跃',
+    'collab.dormant': '休眠池',
+    'collab.dormant_meta': '{agents} 个 Agent，{tasks} 个任务，>7 天无活动',
+    'collab.paused': '已暂停',
+    'collab.frozen': '已冻结',
+    'collab.state': '状态',
+    'collab.state_btn': '设置状态（active / paused / frozen）',
+    'collab.online': '在线（心跳 <5 分钟）',
+    'collab.offline': '离线',
+    'collab.tasks_count': '{n} 个任务',
+    'collab.unverified': '{n} 个未验收交付',
+    'collab.more': '还有 {n} 个',
+    'collab.dispatch_manual': '手动派活（选择 Agent）',
+    'collab.auto': '自动派活（打分选优）',
+    'collab.release': '释放认领（回到 open）',
+    'collab.stale': '租约可能已过期',
+    'collab.topology': '任务派发拓扑',
+    'collab.topology_hint': '每个 Agent 一列，按时间排序。',
+    'collab.topology_stale': '橙圈 = 租约过期。',
+    'collab.swimlane': '时间泳道',
+    'collab.swimlane_hint': '每个 Agent 的认领 → 进行 → 完成。',
+    'collab.memory_ref': '记忆引用',
+    'collab.memory_ref_hint': '每个 Agent 写了哪些知识卡片（按 agent_role）。',
+    'collab.cards_written': '写了 {n} 张卡片',
+    'collab.dispatched': '已派给 {role}\nscore={score}（idle={idle}, online={online}, load={load}）',
+    'collab.no_candidate': '没有可用的活跃 Agent——全部暂停/冻结。',
+    'collab.not_open': '任务已不是 open 状态。',
+    'collab.auto_failed': '自动派活失败。',
+    'collab.auto_error': '自动派活出错：{err}',
+    'collab.dispatch_prompt': '派给哪个 agent_role？\n当前在线：{online}\n已知：{known}',
+    'collab.state_prompt': '设置 "{role}" 的状态\n当前：{cur}\n可选：{options}',
   },
 };
 
@@ -1120,14 +1198,16 @@ function anchorBadge(cardId) {
 
 async function loadSidebarData() {
   loadAnchorStrip(); // fire-and-forget: never blocks sidebar rendering
-  const [topicsRes, skillsRes, tasksRes, knowledgeRes, timelineRes, statsRes, perceptionsRes] = await Promise.all([
+  const [topicsRes, skillsRes, tasksRes, knowledgeRes, timelineRes, statsRes, perceptionsRes, agentsRes] = await Promise.all([
     api('/topics'), api('/skills'), api('/tasks'), api('/knowledge?limit=500'), api('/timeline?days=14'), api('/stats'),
-    api('/perceptions?state=active,snoozed&limit=50')
+    api('/perceptions?state=active,snoozed&limit=50'), api('/agents')
   ]);
   sidebarData.topics = topicsRes?.items || [];
   sidebarData.skills = skillsRes?.items || [];
   sidebarData.tasks = (tasksRes?.items || []).filter(t => t.status !== 'done');
+  sidebarData.allTasks = tasksRes?.items || [];
   sidebarData.knowledgeCards = knowledgeRes?.items || [];
+  sidebarData.agents = agentsRes?.items || [];
   sidebarData.risks = sidebarData.knowledgeCards.filter(c => c.category === 'pitfall' || c.category === 'risk');
   sidebarData.timeline = timelineRes?.by_day || [];
   sidebarData.perceptions = perceptionsRes?.items || [];
@@ -1171,6 +1251,13 @@ function renderSidebar(filter = '') {
     : '';
   html += `<div class="sb-top-item${selectedItem.type==='perceptions'?' active':''}" onclick="navigate({type:'perceptions'})">
     <span class="sb-group-icon">&#128065;</span> ${t('sidebar.awareness')}${perceptionBadge}
+  </div>`;
+
+  // Collaboration console — multi-agent dispatch + memory dependency visualization
+  const collabTaskCount = (sidebarData.allTasks || sidebarData.tasks || []).length;
+  html += `<div class="sb-top-item${selectedItem.type==='collab'?' active':''}" onclick="navigate({type:'collab'})">
+    <span class="sb-group-icon">&#128257;</span> ${t('collab.title')}
+    <span class="sb-group-count">${collabTaskCount}</span>
   </div>`;
 
   // Topics group
@@ -1362,6 +1449,7 @@ function navigate(item) {
     case 'skills': renderSkillsView(area); break;
     case 'memory': renderMemoryDetail(area, item.id); break;
     case 'perceptions': renderPerceptionCenter(area); break;
+    case 'collab': renderCollaboration(area); break;
     case 'ws_file': renderWorkspaceFile(area, item.id); break;
     case 'ws_doc': renderWorkspaceDoc(area, item.id); break;
     case 'wiki_page': renderWikiPage(area, item.id); break;
@@ -1675,6 +1763,309 @@ function breadcrumb(items) {
   return html;
 }
 
+// ── Collaboration Console ──
+// Multi-agent dispatch + memory dependency, derived from the shared task ledger.
+// Data is fully local: tasks carry agent_role / handoff / verified_by / status;
+// knowledge_cards carry agent_role. No backend changes required.
+const TASK_STATUS_META = {
+  open:        { label: 'Open',        color: '#6b7280' },
+  claimed:     { label: 'Claimed',     color: '#3b82f6' },
+  in_progress: { label: 'In Progress', color: '#eab308' },
+  done:        { label: 'Done',        color: '#22c55e' },
+};
+const LEASE_STALE_MS = 60 * 60 * 1000; // matches lifecycle-manager claim TTL
+
+function taskStatusMeta(s) { return TASK_STATUS_META[s] || TASK_STATUS_META.open; }
+
+function taskLeaseStale(t) {
+  if (t.status !== 'claimed' && t.status !== 'in_progress') return false;
+  if (!t.updated_at) return false;
+  return (Date.now() - new Date(t.updated_at).getTime()) > LEASE_STALE_MS;
+}
+
+function collectAgents(tasks, cards) {
+  const roleOf = (r) => (r || '').trim() || 'unassigned';
+  const map = new Map();
+  for (const t of tasks) {
+    const role = roleOf(t.agent_role);
+    if (!map.has(role)) map.set(role, { role, tasks: [] });
+    map.get(role).tasks.push(t);
+  }
+  for (const [, g] of map) {
+    g.tasks.sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+  }
+  const cardCounts = new Map();
+  for (const c of cards) {
+    const role = roleOf(c.agent_role);
+    cardCounts.set(role, (cardCounts.get(role) || 0) + 1);
+  }
+  return { agents: [...map.values()], cardCounts };
+}
+
+const AGENT_ONLINE_WINDOW_MS = 5 * 60 * 1000; // 5 min heartbeat window = "online"
+
+function agentOnline(role) {
+  const hb = (sidebarData.agents || []).find(a => a.agent_role === role);
+  if (!hb || !hb.last_seen_at) return false;
+  return (Date.now() - new Date(hb.last_seen_at).getTime()) < AGENT_ONLINE_WINDOW_MS;
+}
+
+async function dispatchTaskTo(taskId, agentRole) {
+  await api('/tasks/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, agent_role: agentRole }) });
+  loadSidebarData();
+}
+
+async function autoDispatchTask(taskId) {
+  let res;
+  try {
+    const r = await fetch(API + '/tasks/auto-dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId }) });
+    res = await r.json();
+  } catch (e) {
+    console.error('[auto-dispatch]', e);
+    alert(t('collab.auto_failed'));
+    return;
+  }
+  if (res.status === 'ok') {
+    const d = res.dispatch || {};
+    alert('⚡ ' + t('collab.dispatched', {role: res.agent_role, score: (d.score != null ? d.score.toFixed(1) : '?'), idle: (d.idle ? 'y' : 'n'), online: (d.online ? 'y' : 'n'), load: d.load}));
+  } else if (res.status === 'no_candidate') {
+    alert(t('collab.no_candidate'));
+  } else if (res.status === 'conflict') {
+    alert(t('collab.not_open'));
+  } else if (res.error) {
+    alert(t('collab.auto_error', {err: res.error}));
+  }
+  loadSidebarData();
+}
+
+function dispatchPrompt(taskId) {
+  const seen = (sidebarData.agents || []).map(a => a.agent_role);
+  const online = (sidebarData.agents || []).filter(a => agentOnline(a.agent_role)).map(a => a.agent_role);
+  const candidates = [...new Set([...online, ...seen])];
+  const target = prompt(t('collab.dispatch_prompt', {online: (online.join(', ') || 'none'), known: (seen.join(', ') || 'none')}), candidates[0] || '');
+  if (!target || !target.trim()) return;
+  dispatchTaskTo(taskId, target.trim());
+}
+
+function agentStateOf(role) {
+  const a = (sidebarData.agents || []).find(x => x.agent_role === role);
+  return a?.state || 'active';
+}
+
+async function setAgentStatePrompt(role) {
+  const cur = agentStateOf(role);
+  const options = ['active', 'paused', 'frozen'].filter(s => s !== cur);
+  const target = prompt(t('collab.state_prompt', {role, cur, options: options.join(' / ')}), options[0] || 'active');
+  if (!target) return;
+  const v = String(target).trim().toLowerCase();
+  if (!['active', 'paused', 'frozen'].includes(v)) return;
+  await api('/agents/' + encodeURIComponent(role) + '/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ state: v }) });
+  loadSidebarData();
+}
+
+function renderCollaboration(area) {
+  const tasks = sidebarData.allTasks || sidebarData.tasks || [];
+  const cards = sidebarData.knowledgeCards || [];
+
+  let html = breadcrumb([{ label: 'Overview', item: { type: 'overview' } }, { label: 'Collaboration' }]);
+  html += '<h2 style="font-size:1.2rem;margin-bottom:4px">&#128257; ' + t('collab.console') + '</h2>';
+  html += '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">' + t('collab.desc') + '</div>';
+
+  if (tasks.length === 0) {
+    html += '<div class="empty-state"><p>' + t('collab.empty') + '</p></div>';
+    area.innerHTML = html;
+    return;
+  }
+
+  const { agents, cardCounts } = collectAgents(tasks, cards);
+
+  // Conflict highlight — active contradiction signals from the perception layer
+  const conflicts = (sidebarData.perceptions || []).filter(p => p.signal_type === 'contradiction' && p.state === 'active');
+  if (conflicts.length > 0) {
+    html += `<div style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.3);border-left:3px solid var(--orange);border-radius:var(--radius);padding:10px 14px;margin-bottom:20px">
+      <div style="font-weight:600;font-size:0.85rem;color:var(--orange);margin-bottom:4px">&#9889; ${t('collab.conflicts', {n: conflicts.length})}</div>
+      <div style="font-size:0.76rem;color:var(--text-secondary)">${conflicts.slice(0, 3).map(c => esc(c.title || 'untitled')).join(' &middot; ')}</div>
+    </div>`;
+  }
+
+  html += renderCollabSummary(agents, cardCounts);
+  html += renderCollabDag(agents);
+  html += renderCollabSwimlane(agents);
+  html += renderCollabMemoryRef(agents, cardCounts, cards);
+
+  area.innerHTML = html;
+}
+
+function renderCollabSummary(agents, cardCounts) {
+  const DORMANT_MS = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const active = [];
+  const dormant = [];
+  for (const g of agents) {
+    let latest = 0;
+    for (const t of g.tasks) {
+      const ts = new Date(t.updated_at || t.created_at || 0).getTime();
+      if (ts > latest) latest = ts;
+    }
+    if (latest > 0 && (now - latest) < DORMANT_MS) active.push(g);
+    else dormant.push(g);
+  }
+
+  let html = '<div class="section-gap"><div class="section-title">' + t('collab.agents') + ' <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem">' + agents.length + ' (' + t('collab.agents_active', {n: active.length}) + ')</span></div>';
+  html += '<div class="grid-2">';
+  for (const g of active) {
+    html += collabAgentCard(g);
+  }
+  if (dormant.length > 0) {
+    const totalDormantTasks = dormant.reduce((n, g) => n + g.tasks.length, 0);
+    html += `<div class="card-box" style="border-left:3px solid var(--text-muted);opacity:0.75">
+      <div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">&#128564; ${t('collab.dormant')} <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(${t('collab.dormant_meta', {agents: dormant.length, tasks: totalDormantTasks})})</span></div>
+      <div style="font-size:0.76rem;color:var(--text-muted)">${dormant.map(g => esc(g.role)).join(' · ')}</div>
+    </div>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function collabAgentCard(g) {
+  const counts = {};
+  let unverified = 0;
+  const st = agentStateOf(g.role);
+  for (const t of g.tasks) {
+    counts[t.status] = (counts[t.status] || 0) + 1;
+    if (t.status === 'done' && !t.verified_by) unverified++;
+  }
+  const chips = Object.entries(TASK_STATUS_META).map(([k, m]) => {
+    const n = counts[k] || 0;
+    if (n === 0) return '';
+    return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--text-secondary)"><span style="width:8px;height:8px;border-radius:50%;background:${m.color};display:inline-block"></span>${m.label} ${n}</span>`;
+  }).join('');
+  return `<div class="card-box" style="border-left:3px solid ${st === 'active' ? 'var(--accent)' : (st === 'paused' ? 'var(--yellow)' : 'var(--cyan)')}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="display:flex;align-items:center;gap:6px;min-width:0">
+        <span style="width:8px;height:8px;border-radius:50%;background:${agentOnline(g.role) ? 'var(--green)' : 'var(--text-muted)'};display:inline-block;flex-shrink:0" title="${agentOnline(g.role) ? t('collab.online') : t('collab.offline')}"></span>
+        <span style="font-weight:600;font-size:0.88rem">&#129309; ${esc(g.role)}</span>
+        ${st === 'paused' ? '<span style="font-size:0.66rem;color:var(--yellow)">&#9208; ' + t('collab.paused') + '</span>' : ''}
+        ${st === 'frozen' ? '<span style="font-size:0.66rem;color:var(--cyan)">&#10052; ' + t('collab.frozen') + '</span>' : ''}
+        <button class="btn-ghost btn-sm" style="font-size:0.64rem;padding:1px 5px;flex-shrink:0" title="${t('collab.state_btn')}" onclick="event.stopPropagation();setAgentStatePrompt('${escJs(g.role)}')">${t('collab.state')}</button>
+      </span>
+      <span style="font-size:0.72rem;color:var(--text-muted)">${t('collab.tasks_count', {n: g.tasks.length})}</span>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">${chips || '<span style="font-size:0.72rem;color:var(--text-muted)">—</span>'}</div>
+    ${unverified > 0 ? `<div style="font-size:0.72rem;color:var(--orange);margin-bottom:8px">&#9888; ${t('collab.unverified', {n: unverified})}</div>` : ''}
+    <div style="border-top:1px solid var(--border);padding-top:6px">${g.tasks.slice(0, 6).map(t => collabTaskRow(t)).join('')}</div>
+    ${g.tasks.length > 6 ? `<div style="font-size:0.7rem;color:var(--text-muted);padding-top:4px">+ ${t('collab.more', {n: g.tasks.length - 6})}</div>` : ''}
+  </div>`;
+}
+
+function collabTaskRow(t) {
+  const m = taskStatusMeta(t.status);
+  const stale = taskLeaseStale(t);
+  const releasable = t.status === 'claimed' || t.status === 'in_progress';
+  const dispatchable = t.status === 'open';
+  return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer" onclick="navigate({type:'task',id:'${escJs(t.id)}'})">
+    <span style="width:8px;height:8px;border-radius:50%;background:${m.color};${stale ? 'box-shadow:0 0 0 2px var(--orange);' : ''}flex-shrink:0"></span>
+    <span style="font-size:0.78rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.title || 'Untitled')}</span>
+    ${t.verified_by ? '<span style="font-size:0.68rem;color:var(--green)">&#10003;</span>' : ''}
+    ${stale ? '<span style="font-size:0.68rem;color:var(--orange)" title="' + t('collab.stale') + '">&#9203;</span>' : ''}
+    ${dispatchable ? `<button class="btn-ghost btn-sm" style="font-size:0.68rem;padding:1px 6px;flex-shrink:0" title="${t('collab.auto')}" onclick="event.stopPropagation();autoDispatchTask('${escJs(t.id)}')">&#9889;</button>` : ''}
+    ${dispatchable ? `<button class="btn-ghost btn-sm" style="font-size:0.68rem;padding:1px 6px;flex-shrink:0" title="${t('collab.dispatch_manual')}" onclick="event.stopPropagation();dispatchPrompt('${escJs(t.id)}')">&#10148;</button>` : ''}
+    ${releasable ? `<button class="btn-ghost btn-sm" style="font-size:0.68rem;padding:1px 6px;flex-shrink:0" title="${t('collab.release')}" onclick="event.stopPropagation();releaseTaskClaim('${escJs(t.id)}')">&#8635;</button>` : ''}
+  </div>`;
+}
+
+async function releaseTaskClaim(taskId) {
+  await api('/tasks/' + encodeURIComponent(taskId), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'open' }) });
+  loadSidebarData();
+}
+
+function renderCollabDag(agents) {
+  const colW = 230;
+  const rowH = 46;
+  const nodeR = 7;
+  const padL = 12, padT = 30;
+  const maxTasks = Math.max(1, ...agents.map(g => g.tasks.length));
+  const width = agents.length * colW + padL * 2;
+  const height = maxTasks * rowH + padT + 16;
+
+  let nodes = '';
+  let edges = '';
+  agents.forEach((g, ci) => {
+    const x = padL + ci * colW + colW / 2;
+    nodes += `<text x="${x}" y="16" font-size="12" fill="#e5e7eb" text-anchor="middle" font-weight="600">${esc(g.role)}</text>`;
+    g.tasks.forEach((t, ti) => {
+      const y = padT + ti * rowH + rowH / 2;
+      const m = taskStatusMeta(t.status);
+      const stale = taskLeaseStale(t);
+      const label = t.title || 'Untitled';
+      nodes += `<circle cx="${x}" cy="${y}" r="${nodeR}" fill="${m.color}" stroke="${stale ? '#f97316' : 'transparent'}" stroke-width="${stale ? 2 : 0}" style="cursor:pointer" onclick="navigate({type:'task',id:'${escJs(t.id)}'})"></circle>`;
+      nodes += `<text x="${x + nodeR + 6}" y="${y + 4}" font-size="11" fill="#9ca3af">${esc(label.length > 22 ? label.substring(0, 22) + '…' : label)}</text>`;
+      if (ti > 0) {
+        const py = padT + (ti - 1) * rowH + rowH / 2;
+        edges += `<line x1="${x}" y1="${py + nodeR}" x2="${x}" y2="${y - nodeR}" stroke="#374151" stroke-width="1"></line>`;
+      }
+    });
+  });
+
+  let html = '<div class="section-gap"><div class="section-title">' + t('collab.topology') + '</div>';
+  html += '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px">' + t('collab.topology_hint') + ' <span style="color:var(--orange)">' + t('collab.topology_stale') + '</span></div>';
+  html += `<svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius)">${edges}${nodes}</svg>`;
+  html += '</div>';
+  return html;
+}
+
+function renderCollabSwimlane(agents) {
+  let html = '<div class="section-gap"><div class="section-title">' + t('collab.swimlane') + '</div>';
+  html += '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px">' + t('collab.swimlane_hint') + '</div>';
+  if (agents.length === 0) return html + '</div>';
+
+  const laneH = 40;
+  let svg = '';
+  let maxX = 130;
+  let y = 0;
+  for (const g of agents) {
+    svg += `<text x="4" y="${y + 22}" font-size="11" fill="#e5e7eb" font-weight="600">${esc(g.role)}</text>`;
+    svg += `<line x1="120" y1="${y + laneH / 2}" x2="2000" y2="${y + laneH / 2}" stroke="#374151" stroke-width="1"></line>`;
+    const sorted = [...g.tasks].sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+    let x = 130;
+    for (const t of sorted) {
+      const m = taskStatusMeta(t.status);
+      const label = t.title || 'Untitled';
+      const w = Math.min(120, Math.max(60, label.length * 6 + 20));
+      svg += `<rect x="${x}" y="${y + 10}" width="${w}" height="20" rx="4" fill="${m.color}" opacity="0.85" style="cursor:pointer" onclick="navigate({type:'task',id:'${escJs(t.id)}'})"></rect>`;
+      svg += `<text x="${x + 6}" y="${y + 24}" font-size="9" fill="#111">${esc(label.length > 16 ? label.substring(0, 16) + '…' : label)}</text>`;
+      x += w + 8;
+      if (x > maxX) maxX = x;
+    }
+    y += laneH;
+  }
+  const svgW = Math.max(1280, maxX + 40);
+  const svgH = Math.max(agents.length * laneH, laneH);
+  html += `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;height:auto;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius)">${svg}</svg>`;
+  html += '</div>';
+  return html;
+}
+
+function renderCollabMemoryRef(agents, cardCounts, cards) {
+  let html = '<div class="section-gap"><div class="section-title">' + t('collab.memory_ref') + '</div>';
+  html += '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px">' + t('collab.memory_ref_hint') + '</div>';
+  html += '<div class="grid-2">';
+  for (const g of agents) {
+    const n = cardCounts.get(g.role) || 0;
+    const ownCards = cards.filter(c => ((c.agent_role || '').trim() || 'unassigned') === g.role);
+    const cats = {};
+    for (const c of ownCards) cats[c.category] = (cats[c.category] || 0) + 1;
+    const catStr = Object.entries(cats).slice(0, 4).map(([k, v]) => `${esc(catLabel(k))} ${v}`).join(' · ');
+    html += `<div class="card-box" style="border-left:3px solid var(--purple)">
+      <div style="font-weight:600;font-size:0.84rem;margin-bottom:4px">&#128100; ${esc(g.role)}</div>
+      <div style="font-size:0.78rem;color:var(--text-secondary)">${t('collab.cards_written', {n})}</div>
+      ${catStr ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px">${catStr}</div>` : ''}
+    </div>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
 // ── Task Detail ──
 function renderTaskDetail(area, taskId) {
   const t = sidebarData.tasks.find(x => x.id === taskId) || findInAllTasks(taskId);
@@ -1687,14 +2078,71 @@ function renderTaskDetail(area, taskId) {
     <span style="font-size:0.85rem;color:var(--text-muted)">Priority: ${esc(catLabel(t.priority||'medium'))}</span>
     <select class="task-status-select" data-task-id="${esc(t.id)}" onchange="updateTaskStatus(this)">
       <option value="open"${t.status==='open'?' selected':''}>Open</option>
-      <option value="in_progress"${t.status==='in_progress'?' selected':''}>In Progress</option>
+      <option value="claimed"${t.status==='claimed'?' selected':''}>Claimed</option>
+      <option value="doing"${(t.status==='doing'||t.status==='in_progress')?' selected':''}>Doing</option>
+      <option value="blocked"${t.status==='blocked'?' selected':''}>Blocked</option>
       <option value="done"${t.status==='done'?' selected':''}>Done</option>
+      <option value="failed"${t.status==='failed'?' selected':''}>Failed</option>
     </select>
   </div>`;
   if (t.description) html += `<div style="font-size:0.88rem;color:var(--text-secondary)">${renderMd(t.description)}</div>`;
+  html += renderTaskCollab(t);
   html += `<div style="margin-top:16px;font-size:0.78rem;color:var(--text-muted)">Created: ${formatDate(t.created_at)}</div>`;
 
   area.innerHTML = html;
+}
+
+function renderTaskCollab(t) {
+  let out = '';
+  const LEASE_MIN = 60;
+
+  if (t.status === 'claimed' || t.status === 'doing') {
+    const touched = t.updated_at ? new Date(t.updated_at).getTime() : null;
+    if (touched) {
+      const elapsed = (Date.now() - touched) / 60000;
+      const left = Math.round(LEASE_MIN - elapsed);
+      const pct = Math.max(0, Math.min(100, (left / LEASE_MIN) * 100));
+      const expired = left <= 0;
+      const color = expired ? 'var(--red)' : (pct < 25 ? 'var(--yellow, #d9a441)' : 'var(--green, #4ec9a0)');
+      out += `<div style="margin-top:16px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted)">
+          <span>LEASE${t.agent_role ? ' · ' + esc(t.agent_role) : ''}</span>
+          <span style="color:${color}">${expired ? 'EXPIRED — reclaimable' : left + ' min left'}</span>
+        </div>
+        <div style="margin-top:6px;height:4px;background:var(--bg-hover);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color}"></div>
+        </div>
+      </div>`;
+    }
+  }
+
+  if (t.handoff) {
+    let pack = null;
+    try { pack = typeof t.handoff === 'string' ? JSON.parse(t.handoff) : t.handoff; } catch {}
+    if (pack) {
+      const list = (arr) => Array.isArray(arr) && arr.length
+        ? `<ul style="margin:4px 0 0 16px;padding:0">${arr.map((x) => `<li>${esc(String(x))}</li>`).join('')}</ul>`
+        : '<span style="color:var(--text-muted)">—</span>';
+      out += `<div style="margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px">
+        <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Handoff</div>
+        <div style="margin-top:6px;font-size:0.85rem">${esc(pack.goal || '')}</div>
+        ${pack.files ? `<div style="margin-top:8px;font-size:0.78rem;color:var(--text-muted)">Files</div><div style="font-size:0.82rem">${list(pack.files)}</div>` : ''}
+        ${pack.decisions ? `<div style="margin-top:8px;font-size:0.78rem;color:var(--text-muted)">Decisions</div><div style="font-size:0.82rem">${list(pack.decisions)}</div>` : ''}
+        ${pack.open_questions ? `<div style="margin-top:8px;font-size:0.78rem;color:var(--text-muted)">Open questions</div><div style="font-size:0.82rem">${list(pack.open_questions)}</div>` : ''}
+      </div>`;
+    }
+  }
+
+  if (t.status === 'done') {
+    const ok = !!t.verified_by;
+    out += `<div style="margin-top:12px;border:1px solid ${ok ? 'var(--border)' : 'var(--yellow, #d9a441)'};border-radius:var(--radius-sm);padding:10px 12px;font-size:0.82rem">
+      ${ok
+        ? `<span style="color:var(--green, #4ec9a0)">&#10003; Verified by ${esc(t.verified_by)}</span>${t.verified_at ? ` <span style="color:var(--text-muted)">· ${formatDate(t.verified_at)}</span>` : ''}`
+        : `<span style="color:var(--yellow, #d9a441)">&#9888; Unverified — nobody has signed this off</span>`}
+    </div>`;
+  }
+
+  return out;
 }
 
 function findInAllTasks(id) {

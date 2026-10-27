@@ -425,11 +425,12 @@ export class CloudSync {
     }
     try {
       this.indexer.db.prepare(
-        `INSERT OR IGNORE INTO knowledge_cards (id, category, title, summary, source_memories, confidence,
+        `INSERT OR IGNORE INTO knowledge_cards (id, category, title, summary, source_memories, source, confidence,
          status, tags, parent_card_id, evolution_type, created_at, filepath, synced_to_cloud)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
       ).run(kcId, data.category, data.title, data.summary || '',
-        JSON.stringify(data.source_memories || []), data.confidence || 0.8,
+        JSON.stringify(data.source_memories || []), data.source || 'cloud',
+        data.confidence || 0.8,
         data.status || 'active', JSON.stringify(tags), localParentId,
         data.evolution_type || 'initial', new Date().toISOString(), `cloud-pull:${data.id}`);
       setSyncState(this.indexer, `cloud_kc:${data.id}`, kcId);
@@ -595,13 +596,14 @@ export class CloudSync {
     const now = new Date().toISOString();
     try {
       this.indexer.db.prepare(
-        `INSERT OR IGNORE INTO knowledge_cards (id, category, title, summary, source_memories, confidence,
+        `INSERT OR IGNORE INTO knowledge_cards (id, category, title, summary, source_memories, source, confidence,
          status, tags, parent_card_id, evolution_type, created_at, filepath, synced_to_cloud,
          cloud_id, version, schema_version, last_pulled_at, sync_status, growth_stage, recall_count)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, 'synced', ?, ?)`
       ).run(
         localId, card.category || 'key_point', card.title || '', card.summary || '',
-        JSON.stringify(card.source_memories || []), card.confidence || 0.7,
+        JSON.stringify(card.source_memories || []), card.source || 'cloud',
+        card.confidence || 0.7,
         card.status || 'active', tags, null, 'initial', now,
         `cloud-pull:${card.id}`, card.id, card.version || 1, card.schema_version || 1, now,
         card.growth_stage || 'seedling', card.recall_count || 0,
@@ -692,7 +694,12 @@ export class CloudSync {
               confidence: 0.8,
               status: risk.status === 'resolved' ? 'superseded' : 'active',
               tags: JSON.stringify([risk.level || 'medium']),
-              source_memories: JSON.stringify([]),
+              source: risk.source || 'cloud',
+              source_memories: JSON.stringify(
+                Array.isArray(risk.source_memories)
+                  ? risk.source_memories
+                  : (risk.memory_id ? [risk.memory_id] : (risk.source_memory_id ? [risk.source_memory_id] : [])),
+              ),
               card_type: 'atomic',
               growth_stage: 'seedling',
               created_at: risk.created_at || new Date().toISOString(),

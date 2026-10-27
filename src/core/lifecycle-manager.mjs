@@ -72,6 +72,7 @@ export async function runLifecycleChecks(indexer, content, title, insights, opti
     mitigated_risks: [],
     archived: 0,
     deduped: 0,
+    reclaimed: 0,
   };
 
   if (!indexer?.db) return result;
@@ -79,6 +80,36 @@ export async function runLifecycleChecks(indexer, content, title, insights, opti
   try {
     // 1. Garbage collection: clean up noise tasks and stale items (sync, fast)
     result.archived = _garbageCollect(indexer);
+
+    // 1b. Lease reclaim (ON by default, 60 min). A worker that claims a task then
+    //     dies leaves it stranded in 'claimed'/'doing' forever — a *silent* loss,
+    //     because nothing reports that the work stopped moving. Reclaiming returns
+    //     it to 'open' so the next worker can pick it up. This is the recovery half
+    //     of the atomic claim CAS (daemon.mjs `_updateTask`, `expect_status`).
+    //
+    //     RENEWAL: a live worker holds its lease by repeating the guarded
+    //     transition `{ task_id, status: "doing", expect_status: "doing" }`. The CAS
+    //     path always writes `updated_at`, which is what pushes the cutoff forward,
+    //     so long-running work must renew or a peer may legitimately take the task.
+    //
+    //     Set AWARENESS_CLAIM_TTL_MINUTES=0 to disable, or a larger value to tune.
+    //     See docs/strategy/MULTI_AGENT_TASK_LEDGER.md.
+    const rawClaimTtl = process.env.AWARENESS_CLAIM_TTL_MINUTES;
+    const claimTtlMin = rawClaimTtl === undefined || rawClaimTtl === ''
+      ? 60
+      : Number(rawClaimTtl);
+    if (Number.isFinite(claimTtlMin) && claimTtlMin > 0) {
+      try {
+        const claimCutoff = new Date(Date.now() - claimTtlMin * 60_000).toISOString();
+        const reclaimed = indexer.db
+          .prepare(
+            `UPDATE tasks SET status = 'open', agent_role = NULL, updated_at = ?
+             WHERE status IN ('claimed', 'doing') AND updated_at < ?`
+          )
+          .run(new Date().toISOString(), claimCutoff);
+        result.reclaimed = reclaimed.changes;
+      } catch { /* non-fatal — reclaim is best-effort */ }
+    }
 
     // 2. Embed content once, reuse for both tasks and risks (async, ~10ms)
     let contentVector = null;

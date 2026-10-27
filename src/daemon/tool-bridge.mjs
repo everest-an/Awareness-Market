@@ -45,14 +45,18 @@ function tryParseJson(value) {
  * never see an action enum.
  *
  * Priority (first match wins, so an explicit `action` still overrides):
- *   1. items: array      → remember_batch
- *   2. task_id + status  → update_task
- *   3. content present   → remember (default)
- *   4. insights only     → submit_insights
+ *   1. items: array                    → remember_batch
+ *   2. task_id + status                → update_task
+ *   3. task_id + verified_by           → update_task (attest a closed task)
+ *   4. content present                 → remember (default)
+ *   5. insights only                   → submit_insights
  */
 function inferRecordAction(args) {
   if (Array.isArray(args.items) && args.items.length > 0) return 'remember_batch';
   if (args.task_id && args.status) return 'update_task';
+  // Attestation carries no status by design — it must not move the task — so it
+  // needs its own branch or it falls through to the "nothing to do" error.
+  if (args.task_id && args.verified_by) return 'update_task';
   const hasContent = typeof args.content === 'string'
     ? args.content.length > 0
     : Array.isArray(args.content) && args.content.length > 0;
@@ -449,6 +453,12 @@ export async function callMcpTool(daemon, name, args) {
 
     const success = !isMcpErrorResult(result);
     trackToolCall(name, success);
+    // Presence heartbeat — record who is live right now. agent_role is the
+    // caller's identity and rides on every awareness_* call in a multi-agent
+    // fleet; no heartbeat means the agent stays invisible to the console.
+    if (args && args.agent_role) {
+      try { daemon.indexer?.touchAgentHeartbeat(args.agent_role, name); } catch { /* non-fatal */ }
+    }
     return result;
   } catch (error) {
     if (KNOWN_TOOLS.has(name)) {

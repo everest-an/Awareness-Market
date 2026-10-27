@@ -78,8 +78,8 @@ export function handleWebUi(res, importMetaUrl, pathname = '/') {
       res.writeHead(400); res.end('bad path'); return;
     }
 
-    // Only allow index.html at top level; subpaths must be under onboarding/
-    const isAllowed = rel === 'index.html' || rel.startsWith('onboarding/');
+    // Only allow index.html and console.html at top level; subpaths must be under onboarding/
+    const isAllowed = rel === 'index.html' || rel === 'console.html' || rel.startsWith('onboarding/');
     if (!isAllowed) {
       res.writeHead(404); res.end('not found'); return;
     }

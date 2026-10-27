@@ -29,7 +29,7 @@ export function isCI() {
  * @param {{ timeoutMs?: number }} [opts]
  * @returns {Promise<boolean>}
  */
-export async function probeDaemon(baseUrl, { timeoutMs = 2000 } = {}) {
+  export async function probeDaemon(baseUrl, { timeoutMs = 8000 } = {}) {
   try {
     const r = await fetch(`${baseUrl}/healthz`, {
       signal: AbortSignal.timeout(timeoutMs),

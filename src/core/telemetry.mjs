@@ -21,6 +21,10 @@ import path from 'node:path';
 
 const INSTALLATION_SALT = 'awareness-telemetry-v1';
 const DEFAULT_ENDPOINT = 'https://awareness.market/api/v1';
+// node:test sets NODE_TEST_CONTEXT in its worker process. Used as a structural
+// guard so a test run can never ship events to the PRODUCTION endpoint by
+// accident (see the `remote` note below).
+const IS_TEST_RUN = Boolean(process.env.NODE_TEST_CONTEXT);
 const FLUSH_MS = 60_000;
 const BATCH_TRIGGER = 20;
 const MAX_QUEUE = 500; // hard cap before dropping oldest
@@ -52,11 +56,24 @@ const ALLOWED_PROPERTY_KEYS = new Set([
 ]);
 
 export class Telemetry {
-  constructor({ config, projectDir, version = 'unknown' } = {}) {
+  constructor({ config, projectDir, version = 'unknown', remote } = {}) {
     const telCfg = config?.telemetry || {};
     // Default-on: only disabled when user explicitly sets enabled=false.
     this.enabled = telCfg.enabled !== false;
+    // Remote shipping. enabled=true still records events in-memory (so the
+    // Privacy Settings page can show them), but network sends can be turned
+    // off independently.
+    //
+    // `remote:false` disables it outright. Belt-and-braces: a TEST RUN is never
+    // allowed to reach the PRODUCTION endpoint even if the test forgot to opt
+    // out — that leak shipped 965 fixture rows to prod analytics over 6 months.
+    // Tests that deliberately exercise the network point at their own endpoint
+    // (the established `https://example.test/...` convention), so only the real
+    // production URL is blocked, not the send path itself.
     this.endpoint = telCfg.endpoint || process.env.AWARENESS_TELEMETRY_ENDPOINT || DEFAULT_ENDPOINT;
+    const hitsProdDefault = this.endpoint === DEFAULT_ENDPOINT;
+    this.remote =
+      remote !== false && telCfg.remote !== false && !(IS_TEST_RUN && hitsProdDefault);
     this.version = version;
     this.projectDir = projectDir;
     this.deviceId = config?.device?.id || '';
@@ -142,6 +159,8 @@ export class Telemetry {
 
   async flush() {
     if (!this.enabled || this.queue.length === 0) return;
+    // remote=false (tests): keep the events in memory and never touch the network.
+    if (!this.remote) return;
     const batch = this.queue.splice(0);
     this._persistQueue();
     try {
@@ -169,6 +188,7 @@ export class Telemetry {
   async deleteLocal() {
     this.queue = [];
     this._persistQueue();
+    if (!this.remote) return;
     try {
       const url = this.endpoint.replace(/\/$/, '') + '/telemetry/forget';
       await fetch(url, {

@@ -70,9 +70,9 @@ export async function handleHttpRequest(daemon, req, res) {
       return await daemon._handleApi(req, res, url);
     }
 
-    if (url.pathname === '/' || url.pathname.startsWith('/web')) {
-      return daemon._handleWebUI(res, url.pathname);
-    }
+  if (url.pathname === '/' || url.pathname.startsWith('/web') || url.pathname === '/console.html') {
+    return daemon._handleWebUI(res, url.pathname);
+  }
 
     jsonResponse(res, { error: 'Not Found' }, 404);
   } catch (err) {

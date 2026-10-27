@@ -13,6 +13,8 @@ function setupTelemetry(t) {
     config: { telemetry: { enabled: true }, device: { id: 'device-test' } },
     projectDir: tmp,
     version: 'test',
+    // Never ship fixture events to the production analytics endpoint.
+    remote: false,
   });
   t.after(async () => {
     await getTelemetry()?.shutdown();

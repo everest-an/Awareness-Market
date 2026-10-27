@@ -1,5 +1,203 @@
 # Changelog
 
+## [0.21.1] - 2026-10-28
+
+### Fixed - knowledge card provenance
+
+Cards used to be written with `source = null` and `source_memories = []` no
+matter where they came from, so the provenance columns looked designed but
+were dead. All local write paths now fill them:
+
+- A memory written with inline insights produces a card whose
+  `source_memories` contains that memory id (the remember path was dropping
+  `metadata.id` before extraction).
+- Rule-based extraction copies `metadata.source` onto the card.
+- `submit_insights` records the caller's `source` (default `mcp`) and honours
+  an explicit `source_memory_id`, in both SQLite and the Markdown frontmatter.
+- Cloud-pulled cards and risks keep `source = "cloud"` (plus their memory link
+  when the cloud payload has one).
+- Auto-generated MOC cards identify themselves as `source = "moc"`.
+
+`test/provenance-chain.test.mjs` covers saveCard, the rule fallback,
+`remember()`, and `submit_insights` against a real Indexer.
+
+### Fixed - extracted card file location
+
+`KnowledgeExtractor` looked for `.awareness` on `store.awarenessDir` /
+`store.projectDir`, but the daemon hands it a `MemoryStore` that only exposes
+`rootDir`. Extracted card Markdown therefore landed in
+`process.cwd()/.awareness` instead of the project directory. It now resolves
+the MemoryStore root, so card files sit next to the index that describes them.
+
+## [0.21.0] - 2026-10-25
+
+### Added - collaboration console (web UI)
+
+The local dashboard now has a Collaboration view built from the shared task
+ledger: one card per agent (online dot from a 5-minute heartbeat window,
+pause/freeze badges, task status chips, unverified deliveries), a task
+dispatch topology, timeline swimlanes, and memory references per agent.
+
+### Added - agent presence
+
+Every MCP tool call carrying `agent_role` records a heartbeat in the new
+`agent_heartbeats` table, so the console can show who is live right now.
+Agents that only exist through tasks (including `unassigned`) still appear.
+
+### Added - intervention: pause / freeze
+
+`POST /agents/{role}/state` sets `active | paused | frozen`:
+
+- `paused` cuts routing: dispatch refuses to hand the agent new work.
+- `frozen` freezes memory: `awareness_record` / task updates are rejected
+  with `agent_frozen` while the agent can still read.
+
+### Added - dispatch
+
+- `POST /tasks/dispatch` - manual dispatch to a named agent. Atomic: only
+  succeeds while the task is still `open`, so two dispatchers cannot hand the
+  same task to two agents.
+- `POST /tasks/auto-dispatch` - scores every active agent and assigns the
+  best one:
+
+      score = overlap*2 + idle(+1) + online(+1) - load*0.5
+
+  `overlap` is token overlap between the task text and the agent role,
+  `online` means a heartbeat within 5 minutes, `load` counts
+  claimed/in_progress tasks. The response carries the full scoring trace
+  (top 5 candidates) so the UI can explain the decision.
+
+### Added - tests
+
+`test/collab-console.test.mjs` (14 cases) covers heartbeats, presence
+merging, the frozen write gate, pause/freeze exclusion from scoring, CAS
+dispatch, auto-dispatch traces and the no-candidate path.
+
+### Fixed - i18n
+
+All new collaboration strings now go through `t()` with English and Chinese
+entries; nothing is hardcoded in the markup.
+## [0.20.2] - 2026-10-24
+
+### Fixed - handoff payload validation
+
+`awareness_record` used to persist any string in `handoff` verbatim. A client
+that sent `"not-json"` corrupted the column for every reader that parses it
+(task board, plugins, sync). The daemon now validates before the CAS write:
+strings must parse as a JSON object, objects are stored as JSON, anything else
+returns `{ error: "handoff must be valid JSON" }` / `{ error: "handoff must be
+a JSON object" }` and leaves the row untouched.
+
+Found by the real-daemon run of `scripts/squad-eval.mjs` (5/5 checks now pass
+against a live local daemon, not just the in-process mock). Regression tests:
+`test/task-handoff-validation.test.mjs`.
+
+## [0.15.0] - 2026-10-16
+
+### Added - structured handoff
+
+A task transition can now carry a context pack for whoever picks the work up
+next, so the reasoning travels with the task instead of being re-derived from
+raw memory:
+
+    awareness_record({ task_id, status: "open", expect_status: "doing",
+                       handoff: { goal, files, decisions, open_questions } })
+
+The shape reuses Context Pack v2 rather than inventing a new one. It is stored
+in the same atomic UPDATE as the status transition, so it lands only if the
+caller wins the claim race -- a losing racer cannot attach context to work
+another agent holds.
+
+### Added - visibility column (scope model)
+
+`tasks.visibility` implements the first axis of
+docs/strategy/memory-architecture-v2/02-unified-scope-model.md.
+
+Default is 'shared', which is byte-identical to today's behaviour, so no
+existing install changes. 'private' is opt-in per record. Enforcement IS wired: task queries now exclude
+private rows unless the caller identifies as their owner via agent_role. With no
+identity, private rows stay hidden — a safe default, and existing installs are
+unaffected because visibility defaults to 'shared'.
+
+This shipped incomplete in 0.15.0 and is completed here. I had reverted the
+enforcement after a full-suite run failed; the failure turned out to be a
+pre-existing flake in log-writer.test.mjs (reading the log file before the
+writer flushed), which passes 3/3 in isolation. Reverting on that signal was my
+mistake — the red run was not mine.
+
+
+## [0.14.0] - 2026-10-16
+
+### Changed - lease reclaim is now on by default (60 minutes)
+
+Lease reclaim shipped in 0.13.0 as opt-in (`AWARENESS_CLAIM_TTL_MINUTES > 0`),
+which meant the default experience was: a worker claims a task, dies, and the
+task sits in `claimed` forever. That is a *silent* loss - nothing reports that
+the work stopped moving, so nobody goes looking for it. The recovery half of the
+claim CAS was effectively absent.
+
+It now defaults to 60 minutes and `AWARENESS_CLAIM_TTL_MINUTES=0` turns it off.
+Sixty minutes is comfortably longer than a typical agent task and short enough to
+recover a dead worker within the hour.
+
+Renewal is the counterpart: a live worker extends its lease by repeating the
+guarded transition `{ task_id, status: "doing", expect_status: "doing" }`, since
+the CAS path always writes `updated_at`. This is documented in the
+`expect_status` schema description, because a lease nobody knows how to renew is
+the same trap as a parameter nobody knows exists.
+
+Safe to change now: the feature is days old and was off by default, so no
+existing setup relies on the previous behaviour.
+
+### Fixed - the atomic claim primitive was unreachable from MCP
+
+`expect_status` (the compare-and-swap added in 0.13.0) was implemented in the
+daemon and honoured by the tool bridge, but it was never declared in the
+`awareness_record` input schema. Agents only ever see the schema, so every claim
+took the unconditional path and two agents could both claim the same task - the
+exact race the primitive exists to prevent. The ledger doc still described the
+lease/budget/owner fields as unimplemented, which is how this went unnoticed.
+
+- Declared `expect_status` in the schema and documented the claim / release
+  shapes in its description, so agents can discover the CAS at call time.
+- Added `test/multi-agent-claim.test.mjs`: drives 8 concurrent claimers through
+  the real `callMcpTool` path and asserts exactly one winner, that losers are
+  told who holds the task, that guarded releases work, and that the unconditional
+  path still functions for the indexing route.
+
+## [0.13.0] - 2026-10-13
+
+### Added — task ledger primitives for multi-agent fleets
+
+Three opt-in primitives that turn the task store into a coordination ledger for
+many agents sharing one daemon. **All three default to off**, so existing
+behaviour is byte-unchanged until you set the environment variable.
+
+- **Atomic claim (CAS).** `awareness_record({ task_id, status: "claimed",
+  expect_status: "open", agent_role })` only applies if the row still holds
+  `expect_status`. On a race it returns
+  `{ status: "conflict", current_status, current_agent_role }` instead of
+  overwriting. Verified with 8 concurrent claims → exactly one winner.
+  (`daemon.mjs` `_updateTask`.)
+
+- **Lease / TTL reclaim.** With `AWARENESS_CLAIM_TTL_MINUTES > 0`, a task left in
+  `claimed` / `doing` past the TTL is returned to `open`, so a worker that dies
+  does not strand its work forever. (`core/lifecycle-manager.mjs`.)
+
+- **Agent budget.** With `AWARENESS_AGENT_RECORD_LIMIT_PER_HOUR > 0`, records are
+  capped per `agent_role` per rolling hour; the over-limit call returns
+  `{ error: "budget_exceeded", agent_role, limit, window: "1h", used }`. Keeps one
+  runaway worker from flooding the shared ledger. (`daemon.mjs` `_remember`.)
+
+Task lookup already supports `status` / `priority` / `agent_role` filters, so
+workers can see `claimed` / `doing` work, not just `open`.
+
+No schema migration, no new dependency, pure JS — identical on macOS, Windows and
+Linux. Full test suite: 1537 pass / 0 fail.
+
+See `docs/strategy/MULTI_AGENT_TASK_LEDGER.md` for the ledger schema and the
+orchestrator → N-workers workflow.
+
 ## [0.12.5] - 2026-08-28
 
 ### Fixed - the README example did not work

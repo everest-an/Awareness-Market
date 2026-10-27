@@ -53,6 +53,7 @@ import {
   handleMcpHttp,
 } from './daemon/mcp-http.mjs';
 import { handleHealthz, handleWebUi } from './daemon/http-handlers.mjs';
+import { writeProjectStatus, collectLocalStats } from './daemon/project-status.mjs';
 import { callMcpTool } from './daemon/tool-bridge.mjs';
 import { httpJson } from './daemon/cloud-http.mjs';
 import { startFileWatcher, startWorkspaceWatcher, startGitHeadWatcher } from './daemon/file-watcher.mjs';
@@ -391,6 +392,20 @@ export class AwarenessLocalDaemon {
     // ---- F-038: Workspace scanner (background, non-blocking) ----
     this._initWorkspaceScanner();
 
+    // ---- Publish this project's progress into the shared registry ----
+    // Every project reports itself, so no process has to read another project's
+    // database. Written once at boot and then on a slow timer.
+    try {
+      const publish = () => {
+        try {
+          writeProjectStatus(this.projectDir, collectLocalStats(this.indexer));
+        } catch { /* the registry is advisory; never fail the daemon for it */ }
+      };
+      publish();
+      this._projectStatusTimer = setInterval(publish, 60_000);
+      this._projectStatusTimer.unref?.();
+    } catch { /* older installs without the module simply skip it */ }
+
     // ---- Skill decay timer (every 24h) ----
     this._startSkillDecayTimer();
 
@@ -720,6 +735,43 @@ export class AwarenessLocalDaemon {
   static MAX_CONTENT_BYTES = 1024 * 1024;
   /** Write a single memory, index it, and trigger knowledge extraction. */
   async _remember(params) {
+    // Frozen agents may read but not write — freeze is the memory lockout,
+    // not a routing cut (that's 'paused'). See setAgentState / GET /agents.
+    if (this.indexer?.getAgentState?.(params.agent_role) === 'frozen') {
+      return {
+        error: 'agent_frozen',
+        agent_role: params.agent_role || null,
+        hint: 'Memory is frozen for this agent — set its state back to active to resume writes.',
+      };
+    }
+    // Agent budget (OPT-IN): cap records per agent_role per rolling hour.
+    // AWARENESS_AGENT_RECORD_LIMIT_PER_HOUR=0 (default) disables the check, so stock
+    // behaviour is byte-unchanged. A multi-agent fleet sets it so one runaway worker
+    // cannot flood the shared ledger. Pairs with the task ledger + atomic claim.
+    // See docs/strategy/MULTI_AGENT_TASK_LEDGER.md.
+    const limit = Number(process.env.AWARENESS_AGENT_RECORD_LIMIT_PER_HOUR || 0);
+    if (Number.isFinite(limit) && limit > 0) {
+      const role = params.agent_role || 'builder_agent';
+      try {
+        const since = new Date(Date.now() - 3_600_000).toISOString();
+        const used =
+          this.indexer.db
+            .prepare('SELECT COUNT(*) AS c FROM memories WHERE agent_role = ? AND created_at >= ?')
+            .get(role, since)?.c ?? 0;
+        if (used >= limit) {
+          return {
+            error: 'budget_exceeded',
+            agent_role: role,
+            limit,
+            window: '1h',
+            used,
+            hint: 'Raise AWARENESS_AGENT_RECORD_LIMIT_PER_HOUR, or wait for the window to roll.',
+          };
+        }
+      } catch {
+        // Budget check is best-effort — never block a write on it.
+      }
+    }
     return rememberEngine(this, params);
   }
 
@@ -787,8 +839,27 @@ export class AwarenessLocalDaemon {
     };
   }
 
-  /** Update a task's status. */
+  /**
+   * Update a task's status.
+   *
+   * When `expect_status` is supplied the transition is an ATOMIC compare-and-swap:
+   * the row is only modified if it still holds `expect_status`, and `changes === 0`
+   * means another agent won the race (returned as `status: "conflict"`). This is the
+   * primitive multi-agent claiming needs — e.g. a worker claims an `open` task with
+   * `{ task_id, status: "claimed", expect_status: "open", agent_role }`, and exactly
+   * one of N concurrent workers succeeds.
+   *
+   * Without `expect_status` the original unconditional semantics are preserved
+   * (kept on the `indexTask` path so FTS + task embeddings stay in sync).
+   */
   async _updateTask(params) {
+    if (this.indexer?.getAgentState?.(params.agent_role) === 'frozen') {
+      return {
+        error: 'agent_frozen',
+        agent_role: params.agent_role || null,
+        hint: 'Memory is frozen for this agent — set its state back to active to resume writes.',
+      };
+    }
     if (!params.task_id) {
       return { error: 'task_id is required for update_task' };
     }
@@ -801,16 +872,120 @@ export class AwarenessLocalDaemon {
       return { error: `Task not found: ${params.task_id}` };
     }
 
+    // Attestation is a separate concern from the status machine: a reviewer marks
+    // an already-closed task as checked, which must not disturb the status CAS.
+    // `verified_by IS NULL` in the WHERE makes the second verifier a no-op race
+    // loser rather than letting two reviewers overwrite each other's attestation.
+    if (params.verified_by) {
+      const verified = this.indexer.db
+        .prepare(
+          `UPDATE tasks SET verified_by = ?, verified_at = ?
+           WHERE id = ? AND verified_by IS NULL`
+        )
+        .run(String(params.verified_by), nowISO(), params.task_id);
+
+      if (verified.changes === 0) {
+        const cur = this.indexer.db
+          .prepare('SELECT verified_by, verified_at FROM tasks WHERE id = ?')
+          .get(params.task_id);
+        return {
+          status: 'conflict',
+          task_id: params.task_id,
+          reason: 'already_verified',
+          verified_by: cur?.verified_by ?? null,
+          verified_at: cur?.verified_at ?? null,
+          mode: 'local',
+        };
+      }
+
+      return {
+        status: 'ok',
+        task_id: params.task_id,
+        verified_by: String(params.verified_by),
+        original_status: task.status,
+        mode: 'local',
+      };
+    }
+
+    const nextStatus = params.status || task.status;
+    const nextRole = params.agent_role || task.agent_role || null;
+    const expect = params.expect_status;
+
+    // Atomic CAS path — used for claims. No await between read and write, and the
+    // write itself is guarded by `AND status = ?`, so concurrent claims are safe.
+    if (expect) {
+      // A handoff rides along with the transition so it only lands if this caller
+      // actually won the race — a loser must not attach context to work another
+      // agent holds. COALESCE keeps an existing handoff when none is supplied.
+      // Handoff must be a JSON object: reject malformed payloads instead of
+      // persisting them, otherwise every reader that parses the column breaks.
+      let handoffPayload = params.handoff ?? null;
+      if (typeof handoffPayload === 'string') {
+        try {
+          const parsed = JSON.parse(handoffPayload);
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return { error: 'handoff must be a JSON object' };
+          }
+          handoffPayload = JSON.stringify(parsed);
+        } catch {
+          return { error: 'handoff must be valid JSON' };
+        }
+      } else if (handoffPayload !== null) {
+        if (typeof handoffPayload !== 'object' || Array.isArray(handoffPayload)) {
+          return { error: 'handoff must be a JSON object' };
+        }
+        handoffPayload = JSON.stringify(handoffPayload);
+      }
+      const res = this.indexer.db
+        .prepare(
+          `UPDATE tasks SET status = ?, agent_role = ?, updated_at = ?,
+             handoff = COALESCE(?, handoff)
+           WHERE id = ? AND status = ?`
+        )
+        .run(nextStatus, nextRole, nowISO(), handoffPayload, params.task_id, expect);
+
+      if (res.changes === 0) {
+        const cur = this.indexer.db
+          .prepare('SELECT status, agent_role FROM tasks WHERE id = ?')
+          .get(params.task_id);
+        return {
+          status: 'conflict',
+          task_id: params.task_id,
+          expected_status: expect,
+          current_status: cur?.status ?? null,
+          current_agent_role: cur?.agent_role ?? null,
+          claimed: false,
+          mode: 'local',
+        };
+      }
+
+      // A closed task no longer needs a cached embedding (mirrors indexTask).
+      if (nextStatus !== 'open') {
+        try { this.indexer.db.prepare('DELETE FROM task_embeddings WHERE task_id = ?').run(params.task_id); } catch {}
+      }
+
+      return {
+        status: 'ok',
+        task_id: params.task_id,
+        new_status: nextStatus,
+        agent_role: nextRole,
+        claimed: true,
+        mode: 'local',
+      };
+    }
+
+    // Backward-compatible unconditional path.
     this.indexer.indexTask({
       ...task,
-      status: params.status || task.status,
+      status: nextStatus,
+      agent_role: nextRole,
       updated_at: nowISO(),
     });
 
     return {
       status: 'ok',
       task_id: params.task_id,
-      new_status: params.status || task.status,
+      new_status: nextStatus,
       mode: 'local',
     };
   }

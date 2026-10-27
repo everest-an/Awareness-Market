@@ -1,8 +1,7 @@
 {
   "name": "@awareness.market/local",
-  "version": "0.12.5",
-  "mcpName": "io.github.everest-an/awareness-local",
-  "description": "Local-first AI agent memory system. No account needed.",
+  "version": "0.21.1",
+  "description": "Local-first memory for AI agents. Structured synthetic memory cards (decision / preference / risk), verifiable state history via ERC-8350, hybrid search. Runs offline, no account.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -76,5 +75,13 @@
   "bugs": {
     "url": "https://github.com/everest-an/Awareness-Market/issues"
   },
-  "homepage": "https://awareness.market"
+  "author": "Everest An <e@awareness.market> (https://awareness.market)",
+  "maintainers": [
+    {
+      "name": "Everest An",
+      "email": "e@awareness.market"
+    }
+  ],
+  "homepage": "https://awareness.market",
+  "mcpName": "io.github.everest-an/awareness-local"
 }

@@ -418,6 +418,7 @@ export class KnowledgeExtractor {
       summary: this._extractSummary(content),
       confidence: 0.7,  // rule-based extraction has lower confidence than agent
       tags: metadata.tags || [],
+      source: metadata.source || null,
       source_memory_id: metadata.id,
       created_at: new Date().toISOString(),
     };
@@ -557,6 +558,7 @@ export class KnowledgeExtractor {
         category: card.category,
         title: card.title,
         summary: card.summary || '',
+        source: card.source || null,
         source_memories: card.source_memory_id ? [card.source_memory_id] : [],
         confidence: card.confidence ?? 0.8,
         status: card.status || 'active',
@@ -800,6 +802,7 @@ export class KnowledgeExtractor {
         confidence: 0.6,
         tags: [],
         severity: risk.severity,
+        source: risk.source || metadata.source || null,
         source_memory_id: risk.source_memory_id || metadata.id,
         created_at: risk.created_at,
       };
@@ -1050,6 +1053,10 @@ export class KnowledgeExtractor {
     // MemoryStore exposes the awareness directory path
     if (this.store?.awarenessDir) return this.store.awarenessDir;
     if (this.store?.projectDir) return path.join(this.store.projectDir, '.awareness');
+    // MemoryStore keeps the project root, not projectDir/awarenessDir. Without
+    // this branch every extracted card landed in process.cwd()/.awareness —
+    // the wrong project whenever the daemon runs from anywhere else.
+    if (this.store?.rootDir) return path.join(this.store.rootDir, '.awareness');
     return path.join(process.cwd(), '.awareness');
   }
 

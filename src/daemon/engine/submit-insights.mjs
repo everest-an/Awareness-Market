@@ -65,6 +65,32 @@ function unionStringArrays(existingJson, incoming) {
 }
 
 /**
+ * Normalise the provenance links a caller attached to an insight card.
+ * Accepts the canonical `source_memory_id` plus legacy/array forms so the
+ * Markdown wiki and SQLite row agree on where the card came from.
+ *
+ * @param {object} card
+ * @returns {string[]}
+ */
+function normalizeSourceMemories(card) {
+  if (typeof card?.source_memory_id === 'string' && card.source_memory_id) {
+    return [card.source_memory_id];
+  }
+  if (Array.isArray(card?.source_memories)) {
+    return card.source_memories.filter((id) => typeof id === 'string' && id);
+  }
+  if (typeof card?.source_memories === 'string' && card.source_memories) {
+    try {
+      const parsed = JSON.parse(card.source_memories);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((id) => typeof id === 'string' && id);
+      }
+    } catch { /* legacy malformed value — treat as no links */ }
+  }
+  return [];
+}
+
+/**
  * Detect if a newly created card should trigger a skill-crystallization hint.
  * Returns hint object or null.
  */
@@ -228,6 +254,8 @@ export async function submitInsights(daemon, params) {
       const evolutionType = isUpdate ? 'update' : 'initial';
 
       const cardId = `kc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const cardSource = card.source || params.source || 'mcp';
+      const cardSourceMemories = normalizeSourceMemories(card);
       const cardFilepath = path.join(
         daemon.awarenessDir,
         'knowledge',
@@ -243,6 +271,8 @@ category: ${card.category || 'insight'}
 title: "${(card.title || '').replace(/"/g, '\\"')}"
 confidence: ${card.confidence ?? 0.8}
 status: ${card.status || 'active'}
+source: ${cardSource}
+source_memories: ${JSON.stringify(cardSourceMemories)}
 tags: ${JSON.stringify(card.tags || [])}
 created_at: ${nowISO()}
 ${parentCardId ? `parent_card_id: ${parentCardId}\nevolution_type: ${evolutionType}\n` : ''}---
@@ -257,7 +287,8 @@ ${card.summary || card.title || ''}
         category: card.category || 'insight',
         title: card.title || '',
         summary: card.summary || '',
-        source_memories: JSON.stringify([]),
+        source: cardSource,
+        source_memories: JSON.stringify(cardSourceMemories),
         confidence: card.confidence ?? 0.8,
         status: card.status || 'active',
         tags: card.tags || [],

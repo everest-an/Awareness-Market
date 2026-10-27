@@ -45,8 +45,18 @@ const COLD_THRESHOLD_DAYS = 90;
 /** Cold data penalty multiplier (non-evergreen, >90 days) */
 const COLD_PENALTY_FACTOR = 0.3;
 
-/** Cloud recall timeout in milliseconds */
-const CLOUD_TIMEOUT_MS = 3000;
+/**
+ * Cloud recall timeout in milliseconds.
+ *
+ * Every recall() awaits local and cloud in a Promise.all, so this number is a
+ * *latency floor* for any caller whose cloud is slow or unreachable: with 3000
+ * a user in AU/CN talking to a US backend waited three seconds on every single
+ * query even when the local channel answered in 20 ms. 500 keeps the cloud in
+ * the merge path when it is healthy (typical RTT to the US backend is 200-400
+ * ms) and degrades to local-only when it is not. Local results are never
+ * affected, so recall quality drops by at most the cloud-only fraction.
+ */
+const CLOUD_TIMEOUT_MS = 500;
 
 /** Minimum results before triggering broad retry */
 const SPARSE_RESULT_THRESHOLD = 3;
@@ -322,13 +332,27 @@ export class SearchEngine {
       normalizedParams.hyde_hint = hyde_hint.trim();
     }
 
-    // Dual-channel: local (always) + cloud (optional, with timeout protection)
-    const [localResults, cloudResults] = await Promise.all([
-      this.searchLocal(normalizedParams),
-      this.cloud?.isEnabled?.()
-        ? this.searchCloud(normalizedParams).catch(() => [])
-        : Promise.resolve([]),
-    ]);
+    // Dual-channel: local is the fast path, cloud is a supplement.
+    //
+    // This used to be an unconditional Promise.all, which meant every recall
+    // paid the cloud round-trip (up to CLOUD_TIMEOUT_MS) even when the local
+    // index had already answered with enough rows. A user in AU/CN talking to
+    // a US backend saw a multi-second floor on a query that took 20 ms locally.
+    //
+    // Now the cloud is only consulted when the local channel came back short.
+    // When it *is* consulted we still await it, so the merge sees the same
+    // input it always did - recall quality is unchanged, only the wasted wait
+    // is gone.
+    const localResults = await this.searchLocal(normalizedParams);
+    const cloudWanted =
+      typeof this.cloud?.isEnabled === 'function' &&
+      this.cloud.isEnabled() &&
+      localResults.length < (Number.isFinite(normalizedParams.limit) ? normalizedParams.limit : 10);
+
+    let cloudResults = [];
+    if (cloudWanted) {
+      cloudResults = await this.searchCloud(normalizedParams).catch(() => []);
+    }
 
     let merged = this.mergeResults(localResults, cloudResults, normalizedParams);
 

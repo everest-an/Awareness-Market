@@ -214,3 +214,71 @@ test('Telemetry: flush() POST body matches backend contract', async () => {
     assert.deepEqual(e.properties, { os: 'darwin', daemon_version: '0.6.0' });
   } finally { restore(); }
 });
+
+test('Telemetry: remote:false never POSTs — test-mode guard', async () => {
+  // Regression: a test that enabled telemetry without overriding the endpoint
+  // shipped its fixture events to the PRODUCTION analytics endpoint (242
+  // `awareness_not_real` rows over 6 months). remote:false is the guard.
+  let calls = 0;
+  const projectDir = tmpProject();
+  const realFetch = global.fetch;
+  global.fetch = async () => { calls += 1; return { ok: true }; };
+  try {
+    const tel = new Telemetry({
+      config: { telemetry: { enabled: true }, device: { id: 'dev-test-1' } },
+      projectDir,
+      version: 'test',
+      remote: false,
+    });
+    tel.track('daemon_started', { os: 'darwin' });
+    tel.track('feature_blocked', { feature_name: 'awareness_not_real' });
+    await tel.flush();
+    assert.equal(calls, 0, 'remote:false must not POST events');
+    assert.equal(tel.queue.length, 2, 'events stay in memory for the privacy page');
+    await tel.deleteLocal();
+    assert.equal(calls, 0, 'remote:false must not POST forget either');
+  } finally { global.fetch = realFetch; }
+});
+
+test('Telemetry: a test run cannot reach the PRODUCTION endpoint even without remote:false', async () => {
+  // Structural guard: NODE_TEST_CONTEXT is set under `node --test`, so a test
+  // that forgets remote:false must still be unable to hit the real endpoint.
+  assert.ok(process.env.NODE_TEST_CONTEXT, 'expected to run under node --test');
+  let calls = 0;
+  const projectDir = tmpProject();
+  const realFetch = global.fetch;
+  global.fetch = async () => { calls += 1; return { ok: true }; };
+  try {
+    const tel = new Telemetry({
+      // no endpoint override -> falls through to the production default
+      config: { telemetry: { enabled: true }, device: { id: 'dev-test-1' } },
+      projectDir,
+      version: 'test',
+      // deliberately NOT passing remote:false
+    });
+    assert.equal(tel.remote, false, 'test run must not ship to the prod default');
+    tel.track('daemon_started', { os: 'darwin' });
+    await tel.flush();
+    assert.equal(calls, 0, 'no network from a test run to the production endpoint');
+  } finally { global.fetch = realFetch; }
+});
+
+test('Telemetry: a test run MAY still send to an explicit non-prod endpoint', async () => {
+  // The guard blocks only the production URL, not the send path — existing
+  // tests that verify POST behaviour against their own endpoint keep working.
+  let calls = 0;
+  const projectDir = tmpProject();
+  const realFetch = global.fetch;
+  global.fetch = async () => { calls += 1; return { ok: true }; };
+  try {
+    const tel = new Telemetry({
+      config: { telemetry: { enabled: true, endpoint: 'https://example.test/api/v1' }, device: { id: 'dev-test-1' } },
+      projectDir,
+      version: 'test',
+    });
+    assert.equal(tel.remote, true, 'explicit non-prod endpoint should still send');
+    tel.track('daemon_started', { os: 'darwin' });
+    await tel.flush();
+    assert.equal(calls, 1, 'explicit endpoint receives the POST');
+  } finally { global.fetch = realFetch; }
+});

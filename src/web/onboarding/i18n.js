@@ -37,6 +37,9 @@
     'onb.welcome.skip_all': 'Skip setup, explore myself',
     'onb.welcome.telemetry_label': 'Send anonymous usage analytics',
     'onb.welcome.telemetry_hint': 'Enabled by default to help us improve. We never collect memory content, file paths, queries, or IP addresses. Toggle off anytime in Settings → Privacy.',
+    'onb.welcome.email_label': 'Get release updates by email (optional)',
+    'onb.welcome.email_placeholder': 'you@example.com',
+    'onb.welcome.email_hint': 'Optional, and completely separate from the analytics above. Used only to email you version updates and announcements — never shared, unsubscribe anytime. Leave blank to skip.',
 
     // Step 2 Scan
     'onb.scan.title': "Let's index your first project",
@@ -169,6 +172,9 @@
     'onb.welcome.skip_all': '跳过，自己探索',
     'onb.welcome.telemetry_label': '匿名使用统计',
     'onb.welcome.telemetry_hint': '默认开启，帮助我们改进产品。我们绝不收集记忆内容、文件路径、查询内容或 IP 地址。可随时在 设置 → 隐私 中关闭。',
+    'onb.welcome.email_label': '订阅版本更新邮件（可选）',
+    'onb.welcome.email_placeholder': '你的邮箱@example.com',
+    'onb.welcome.email_hint': '纯选填，与上面的匿名统计完全分开。仅用于发送版本更新与公告，绝不外传，可随时退订；留空即跳过。',
 
     // Step 2 Scan
     'onb.scan.title': '来扫描你的第一个项目',

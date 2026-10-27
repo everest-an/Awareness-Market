@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Collaboration Console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#05070a; --panel:#0b1016; --line:#16212b; --fg:#c8d4de;
+          --mut:#5f7a8c; --acc:#48ffb0; --warn:#d9a441; --bad:#e0526b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  header { display:flex; gap:24px; align-items:baseline; padding:16px 20px;
+           border-bottom:1px solid var(--line); }
+  h1 { font-size:13px; letter-spacing:.22em; text-transform:uppercase;
+       color:var(--acc); margin:0; font-weight:600; }
+  .stat { color:var(--mut); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+  .stat b { color:var(--fg); font-size:16px; margin-right:4px; }
+  main { padding:20px; overflow:auto; }
+  table { border-collapse:collapse; width:100%; }
+  th { text-align:left; font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+       color:var(--mut); font-weight:500; padding:6px 10px;
+       border-bottom:1px solid var(--line); white-space:nowrap; }
+  td { padding:6px 10px; border-bottom:1px solid rgba(22,33,43,.6); vertical-align:top; }
+  tr:hover td { background:rgba(72,255,176,.03); }
+  .agent { color:var(--acc); white-space:nowrap; }
+  .chip { display:inline-block; margin:1px 3px 1px 0; padding:1px 6px;
+          border:1px solid var(--line); border-radius:2px; font-size:11px; color:var(--fg);
+          max-width:230px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+          vertical-align:top; }
+  .chip.claimed { border-color:rgba(217,164,65,.5); }
+  .chip.doing   { border-color:rgba(72,255,176,.45); }
+  .chip.blocked { border-color:rgba(224,82,107,.5); }
+  .chip.done    { border-color:rgba(72,255,176,.2); color:var(--mut); }
+  .chip.failed  { border-color:rgba(224,82,107,.35); color:var(--mut); }
+  .exp { color:var(--bad); font-size:10px; letter-spacing:.1em; }
+  .empty { color:var(--mut); padding:24px; text-align:center; }
+  footer { padding:12px 20px; border-top:1px solid var(--line); color:var(--mut);
+           font-size:10px; letter-spacing:.14em; text-transform:uppercase; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Collaboration Console</h1>
+  <span class="stat"><b id="s-agents">–</b>agents</span>
+  <span class="stat"><b id="s-open">–</b>open</span>
+  <span class="stat"><b id="s-active">–</b>in flight</span>
+  <span class="stat"><b id="s-expired">–</b>leased out</span>
+  <span class="stat"><b id="s-done">–</b>done</span>
+</header>
+
+<section id="projects" style="padding:16px 20px;border-bottom:1px solid var(--line)">
+  <div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-bottom:8px">
+    Projects <span id="p-count" style="color:var(--fg)"></span>
+  </div>
+  <div id="p-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+</section>
+
+<main id="root"><div class="empty">loading…</div></main>
+<footer id="foot"></footer>
+
+<script>
+const LEASE_MIN = 60;
+const LANES = ['open', 'claimed', 'doing', 'blocked', 'done', 'failed'];
+
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+
+function leaseLeft(t) {
+  if (t.status !== 'claimed' && t.status !== 'doing') return null;
+  if (!t.updated_at) return null;
+  return Math.round(LEASE_MIN - (Date.now() - new Date(t.updated_at).getTime()) / 60000);
+}
+
+function render(tasks) {
+  const root = document.getElementById('root');
+  if (!tasks.length) { root.innerHTML = '<div class="empty">no tasks yet</div>'; return; }
+
+  const agents = [...new Set(tasks.map((t) => t.agent_role || '(unassigned)'))].sort();
+  const byLane = new Map(agents.map((a) => [a, LANES.map(() => [])]));
+  for (const t of tasks) {
+    const lane = LANES.indexOf(t.status);
+    if (lane < 0) continue;
+    byLane.get(t.agent_role || '(unassigned)')[lane].push(t);
+  }
+
+  let html = '<table><thead><tr><th>agent</th>' +
+    LANES.map((l) => '<th>' + esc(l) + '</th>').join('') + '</tr></thead><tbody>';
+  for (const a of agents) {
+    const cells = byLane.get(a);
+    html += '<tr><td class="agent">' + esc(a) + '</td>';
+    for (const items of cells) {
+      html += '<td>' + items.map((t) => {
+        const left = leaseLeft(t);
+        const expired = left !== null && left <= 0;
+        return '<span class="chip ' + esc(t.status) + '" title="' + esc(t.title) + '">' +
+          esc((t.title || 'untitled').slice(0, 46)) +
+          (expired ? ' <span class="exp">EXPIRED</span>' : (left !== null ? ' <span class="exp" style="color:var(--mut)">' + left + 'm</span>' : '')) +
+          '</span>';
+      }).join('') + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  root.innerHTML = html;
+
+  const count = (s) => tasks.filter((t) => t.status === s).length;
+  const inFlight = count('claimed') + count('doing');
+  const expired = tasks.filter((t) => { const l = leaseLeft(t); return l !== null && l <= 0; }).length;
+  document.getElementById('s-agents').textContent = agents.length;
+  document.getElementById('s-open').textContent = count('open');
+  document.getElementById('s-active').textContent = inFlight;
+  document.getElementById('s-expired').textContent = expired;
+  document.getElementById('s-done').textContent = count('done');
+  document.getElementById('s-expired').style.color = expired ? 'var(--bad)' : 'var(--fg)';
+  document.getElementById('foot').textContent =
+    tasks.length + ' tasks · ' + agents.length + ' agents · lease ' + LEASE_MIN + ' min';
+}
+
+fetch('/api/v1/tasks')
+  .then((r) => r.json())
+  .then((d) => render(Array.isArray(d) ? d : (d.items || [])))
+  .catch((e) => {
+    document.getElementById('root').innerHTML =
+      '<div class="empty">failed to load: ' + esc(e.message) + '</div>';
+  });
+
+function ago(iso) {
+  if (!iso) return 'never';
+  const d = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(d / 60000);
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
+}
+
+Promise.all([
+  fetch('/api/v1/projects/summary').then((r) => r.json()).catch(() => ({ items: [] })),
+  fetch('/healthz').then((r) => r.json()).catch(() => ({})),
+]).then(([data, health]) => {
+  const active = (health.project_dir || '').toLowerCase();
+  const entries = data.items || [];
+  document.getElementById('p-count').textContent = entries.length;
+  document.getElementById('p-list').innerHTML = entries
+    .map((e) => {
+      const isActive = e.dir.toLowerCase() === active;
+      const t = e.tasks || {};
+      const prog = e.hasDb
+        ? '<span style="color:var(--mut)">open ' + (t.open ?? '–') +
+          ' · doing ' + (t.doing ?? '–') +
+          ' · done ' + (t.done ?? '–') +
+          ' · mem ' + (e.memories ?? '–') + '</span>'
+        : '<span style="color:var(--mut)">no db</span>';
+      return '<span class="chip" style="' + (isActive ? 'border-color:rgba(72,255,176,.7);color:var(--acc)' : '') + '">' +
+        (isActive ? '● ' : '') + esc(e.name) + ' ' + prog +
+        ' <span style="color:var(--mut)">' + ago(e.lastUsed) + '</span></span>';
+    })
+    .join('') || '<span class="empty" style="padding:0">no projects registered</span>';
+});
+
+</script>
+</body>
+</html>

@@ -314,6 +314,7 @@ describe('runLifecycleChecks — garbage collection', () => {
       mitigated_risks: [],
       archived: 0,
       deduped: 0,
+      reclaimed: 0,
     });
   });
 

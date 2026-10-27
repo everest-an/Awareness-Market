@@ -61,6 +61,14 @@
             <span style="font-size:0.74rem">${esc(t('onb.welcome.telemetry_hint'))}</span>
           </span>
         </label>
+        <label class="onb-email-row" style="display:flex;align-items:flex-start;gap:8px;margin:10px 4px 4px;font-size:0.82rem;color:var(--text-secondary)">
+          <span style="flex:1">
+            <strong style="color:var(--text-primary)">${esc(t('onb.welcome.email_label'))}</strong>
+            <input type="email" id="onb-email-opt" autocomplete="email" placeholder="${esc(t('onb.welcome.email_placeholder'))}"
+              style="width:100%;margin-top:6px;padding:7px 9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:0.82rem" />
+            <span style="font-size:0.72rem">${esc(t('onb.welcome.email_hint'))}</span>
+          </span>
+        </label>
         <div class="onb-actions" style="justify-content:center">
           <button class="onb-btn onb-btn-primary" data-action="next">${esc(t('onb.welcome.cta'))} →</button>
         </div>
@@ -79,7 +87,23 @@
         });
       } catch {}
     };
-    root.querySelector('[data-action="next"]').onclick = async () => { await persistOptIn(); onNext(); };
+    const emailInput = root.querySelector('#onb-email-opt');
+    // Opt-in email capture. Fires ONLY when the user actually typed an address,
+    // and only on the explicit "next" — never on skip-all, so an abandoned
+    // onboarding can't sign anyone up. No installation_id is sent, so a
+    // volunteer's address is never linked to their anonymous usage history.
+    const persistEmail = async () => {
+      const email = (emailInput?.value || '').trim();
+      if (!email) return;
+      try {
+        await fetch('/api/v1/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, source: 'daemon-onboarding' }),
+        });
+      } catch {}
+    };
+    root.querySelector('[data-action="next"]').onclick = async () => { await Promise.all([persistOptIn(), persistEmail()]); onNext(); };
     root.querySelectorAll('[data-action="skip-all"]').forEach((b) => {
       b.onclick = async () => { await persistOptIn(); onSkipAll(); };
     });

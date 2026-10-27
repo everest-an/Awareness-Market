@@ -230,7 +230,7 @@ export function getToolDefinitions() {
         'Save to memory. Pass whatever you have — the server infers what to do:\n' +
         '  · `content` (string or string[]) → save as a new memory; attach optional `insights` {knowledge_cards, action_items, risks, skills} inline to skip the extraction round-trip.\n' +
         '  · `items: [...]` → batch save multiple memories.\n' +
-        '  · `task_id` + `status` → update an existing task.\n' +
+        '  · `task_id` + `status` → update an existing task (add `expect_status` to claim it atomically).\n' +
         '  · `insights` alone → submit pre-extracted insights (no new memory).\n' +
         'Examples: awareness_record({ content: "Decided pgvector over Pinecone…", insights: {knowledge_cards: [...]} }); awareness_record({ task_id: "task_abc", status: "done" }).',
       inputSchema: {
@@ -250,11 +250,54 @@ export function getToolDefinitions() {
             description: 'Batch items: array of {content: "..."} objects. Used instead of a string `content` when recording multiple memories at once.',
           },
 
-          // Task-update surface
+          // Task-update surface. Supplying `expect_status` turns the update into
+          // an atomic compare-and-swap, which is how concurrent agents claim the
+          // same task without duplicating work. Omitting it keeps the update
+          // unconditional (the indexing path relies on that to keep FTS in sync).
           task_id: { type: 'string', description: 'Task ID (required for task updates).' },
-          status: { type: 'string', description: 'New task status (e.g. "done").' },
+          status: {
+            type: 'string',
+            description:
+              'New task status. Lifecycle: open -> claimed -> doing -> done | blocked | failed.',
+          },
+          expect_status: {
+            type: 'string',
+            description:
+              'Atomic compare-and-swap guard: the update only lands if the task still holds this status. ' +
+              'To claim work pass { task_id, status: "claimed", expect_status: "open", agent_role }. ' +
+              'Exactly one of N concurrent callers wins; losers get ' +
+              '{ status: "conflict", claimed: false, current_status, current_agent_role } and must pick ' +
+              'different work. Finish a claim with { task_id, status: "done"|"failed", expect_status: "doing" }. ' +
+              'RENEW: claims are leased for 60 minutes by default, and a task left in claimed/doing past the ' +
+              'lease returns to open so a dead worker cannot strand it. Long-running work must renew by ' +
+              'repeating { task_id, status: "doing", expect_status: "doing" } — that writes updated_at, which ' +
+              'is what extends the lease. If you expect to run longer than an hour without renewing, renew ' +
+              'periodically or another agent may legitimately take the task. ' +
+              'Omit for an unconditional update.',
+          },
 
           // Metadata
+          handoff: {
+            type: 'object',
+            description:
+              'Structured context for whoever picks up this task next. Send it with the transition that releases the work — ' +
+              'e.g. { task_id, status: "open", expect_status: "doing", handoff: {...} } — and it is stored only if you win the ' +
+              'atomic claim, so a losing racer cannot attach context to work someone else holds. ' +
+              'Shape (reuse the Context Pack v2 fields): { goal, files: [], decisions: [], open_questions: [] }. ' +
+              'goal = what "done" means; files = the files that matter; decisions = choices already made and why; ' +
+              'open_questions = what the next agent still has to figure out. ' +
+              'Retrieve it via awareness_lookup({ type: "tasks" }) — the task row carries it back.',
+          },
+          verified_by: {
+            type: 'string',
+            description:
+              'Attest that a task\'s finished work was actually checked, by someone other than the agent that closed it. ' +
+              'Pass the verifier identity, e.g. { task_id: "task_abc", verified_by: "reviewer_agent" }. ' +
+              'Sets verified_by/verified_at; does not change the task status. ' +
+              'Only the first verifier wins — a second gets { status: "conflict", reason: "already_verified", verified_by }. ' +
+              'Tasks where verified_by is still null are the unverified deliveries: query them with ' +
+              'awareness_lookup({ type: "tasks", status: "done" }) and check the field.',
+          },
           title: { type: 'string', description: 'Optional memory title (auto-generated if absent).' },
           session_id: { type: 'string' },
           agent_role: { type: 'string' },

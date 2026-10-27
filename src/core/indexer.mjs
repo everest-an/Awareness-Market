@@ -169,6 +169,17 @@ CREATE TABLE IF NOT EXISTS perception_state (
 
 CREATE INDEX IF NOT EXISTS idx_perception_state_state ON perception_state(state);
 CREATE INDEX IF NOT EXISTS idx_perception_state_type ON perception_state(signal_type);
+
+CREATE TABLE IF NOT EXISTS agent_heartbeats (
+  agent_role TEXT PRIMARY KEY,
+  first_seen_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  last_action TEXT,
+  total_actions INTEGER DEFAULT 0,
+  state TEXT DEFAULT 'active'
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_heartbeats_seen ON agent_heartbeats(last_seen_at);
 `;
 
 // ---------------------------------------------------------------------------
@@ -443,7 +454,9 @@ export class Indexer {
     // F-038: Add graph-first schema (nodes + edges)
     this._migrateGraphSchema();
     // F-038 T-005.5: Add recall_count to knowledge_cards
-    this._migrateRecallCount();
+        this._migrateRecallCount();
+        this._migrateTaskVerification();
+        this._migrateTaskScope();
     this._migrateGraphNodesSyncHash();
     // Add novelty_score + salience_reason for HIGH_SALIENCE quality gating
     this._migrateNoveltyScore();
@@ -649,10 +662,61 @@ export class Indexer {
     }
   }
 
-  /**
-   * Add novelty_score and salience_reason columns for HIGH_SALIENCE quality gating.
-   * These fields are extracted by client LLMs and used for dedup/quality filtering.
-   */
+      /**
+       * Add verification columns so a finished task can be attested by someone
+       * other than the agent that closed it.
+       *
+       * Without this, `done` is a self-declaration: an agent marks its own work
+       * complete and the board accumulates "finished" items nobody checked.
+       * A second agent (or a human) sets verified_by; tasks where it stays NULL
+       * are exactly the unverified deliveries, which makes them queryable.
+       */
+      _migrateTaskVerification() {
+        const migrations = [
+          'ALTER TABLE tasks ADD COLUMN verified_by TEXT',
+          'ALTER TABLE tasks ADD COLUMN verified_at TEXT',
+        ];
+        for (const sql of migrations) {
+          try {
+            this.db.exec(sql);
+          } catch {
+            // Column already exists - expected on subsequent runs
+          }
+        }
+      }
+
+      /**
+       * Add handoff and visibility columns.
+       *
+       * handoff carries a structured context pack across a task handover
+       * (goal / files / decisions / open_questions) so the next agent inherits
+       * the reasoning instead of re-deriving it from raw memory.
+       *
+       * visibility implements the scope model from
+       * docs/strategy/memory-architecture-v2/02-unified-scope-model.md:
+       *   'shared'  - visible to every agent in this memory (DEFAULT = today's behaviour)
+       *   'private' - visible only to the agent that wrote it (agent_role match)
+       * Defaulting to 'shared' keeps existing installs byte-identical; private is
+       * opt-in per record.
+       */
+      _migrateTaskScope() {
+        const migrations = [
+          'ALTER TABLE tasks ADD COLUMN handoff TEXT',
+          "ALTER TABLE tasks ADD COLUMN visibility TEXT DEFAULT 'shared'",
+        ];
+        for (const sql of migrations) {
+          try {
+            this.db.exec(sql);
+          } catch {
+            // Column already exists - expected on subsequent runs
+          }
+        }
+      }
+
+      /**
+       * Add novelty_score and salience_reason columns for HIGH_SALIENCE quality gating.
+       * These fields are extracted by client LLMs and used for dedup/quality filtering.
+       */
   _migrateNoveltyScore() {
     const migrations = [
       'ALTER TABLE knowledge_cards ADD COLUMN novelty_score REAL',
@@ -1250,6 +1314,7 @@ export class Indexer {
           confidence: 0.8,
           status: 'active',
           tags: JSON.stringify([tag]),
+          source: 'moc',
           source_memories: JSON.stringify([]),
           link_count_outgoing: count,
           link_count_incoming: 0,
@@ -2125,6 +2190,165 @@ Return ONLY JSON: {"title": "...", "summary": "..."}`;
          ORDER BY created_at DESC`
       )
       .all();
+  }
+
+  /**
+   * Record an agent's presence. Called on every MCP tool call that carries an
+   * agent_role, so the collaboration console can show who is live right now.
+   * Presence is a heartbeat: last_seen_at is the signal, no expiry is enforced
+   * here (the UI applies its own "online" window).
+   */
+  touchAgentHeartbeat(agentRole, action) {
+    if (!agentRole) return;
+    const now = new Date().toISOString();
+    try {
+      this.db
+        .prepare(
+          `INSERT INTO agent_heartbeats (agent_role, first_seen_at, last_seen_at, last_action, total_actions)
+           VALUES (?, ?, ?, ?, 1)
+           ON CONFLICT(agent_role) DO UPDATE SET
+             last_seen_at = excluded.last_seen_at,
+             last_action = excluded.last_action,
+             total_actions = agent_heartbeats.total_actions + 1`
+        )
+        .run(String(agentRole), now, now, action || null);
+    } catch { /* non-fatal — presence is best-effort */ }
+  }
+
+  /**
+   * Set an agent's operating state: 'active' | 'paused' | 'frozen'.
+   *   - paused = cut routing (dispatch refuses to hand it new work)
+   *   - frozen = freeze memory (remember/update_task refuse writes)
+   * State lives in agent_heartbeats so it rides the same presence row — no
+   * separate agent table, and the console reads it from GET /agents.
+   */
+  setAgentState(agentRole, state) {
+    const valid = ['active', 'paused', 'frozen'];
+    if (!valid.includes(state) || !agentRole) return false;
+    const now = new Date().toISOString();
+    try {
+      // Defensive migration: rows created before the state column existed.
+      try { this.db.exec("ALTER TABLE agent_heartbeats ADD COLUMN state TEXT DEFAULT 'active'"); } catch { /* column exists */ }
+      this.db
+        .prepare(
+          `INSERT INTO agent_heartbeats (agent_role, first_seen_at, last_seen_at, state)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(agent_role) DO UPDATE SET state = excluded.state, last_seen_at = excluded.last_seen_at`
+        )
+        .run(String(agentRole), now, now, state);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  getAgentState(agentRole) {
+    if (!agentRole) return 'active';
+    try {
+      const row = this.db.prepare('SELECT state FROM agent_heartbeats WHERE agent_role = ?').get(agentRole);
+      return row?.state || 'active';
+    } catch {
+      return 'active';
+    }
+  }
+
+  /**
+   * Return every agent ever seen, plus per-agent task + card aggregates.
+   * Online state is derived by the caller (UI) from last_seen_at.
+   */
+  getAgents() {
+    try {
+      const beats = this.db
+        .prepare('SELECT * FROM agent_heartbeats ORDER BY last_seen_at DESC')
+        .all();
+      const taskAgg = this.db
+        .prepare(
+          `SELECT COALESCE(agent_role, 'unassigned') AS agent_role,
+                  COUNT(*) AS task_count,
+                  SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) AS open_count,
+                  SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) AS done_count,
+                  SUM(CASE WHEN status IN ('claimed', 'in_progress') THEN 1 ELSE 0 END) AS active_task_count
+           FROM tasks GROUP BY COALESCE(agent_role, 'unassigned')`
+        )
+        .all();
+
+      // Merge two sources: agents that have ever heartbeated, and agents that
+      // only exist via tasks (e.g. 'unassigned' or a worker that wrote tasks
+      // before presence was tracked). Either way they must show in the console.
+      const merged = new Map();
+      for (const b of beats) {
+        merged.set(b.agent_role, {
+          agent_role: b.agent_role,
+          state: b.state || 'active',
+          first_seen_at: b.first_seen_at,
+          last_seen_at: b.last_seen_at,
+          last_action: b.last_action,
+          total_actions: b.total_actions,
+          task_count: 0, open_count: 0, done_count: 0, active_task_count: 0,
+        });
+      }
+      for (const a of taskAgg) {
+        const existing = merged.get(a.agent_role);
+        if (existing) {
+          existing.task_count = a.task_count;
+          existing.open_count = a.open_count;
+          existing.done_count = a.done_count;
+          existing.active_task_count = a.active_task_count;
+        } else {
+          merged.set(a.agent_role, {
+            agent_role: a.agent_role,
+            state: 'active',
+            first_seen_at: null,
+            last_seen_at: null,
+            last_action: null,
+            total_actions: 0,
+            task_count: a.task_count,
+            open_count: a.open_count,
+            done_count: a.done_count,
+            active_task_count: a.active_task_count,
+          });
+        }
+      }
+      return [...merged.values()].sort((a, b) => (b.last_seen_at || '').localeCompare(a.last_seen_at || ''));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Score every active agent for a task, mirroring the cloud auto-dispatch
+   * (F-104) but adapted to the local data model. Local agents carry no rich
+   * metadata (category/tags/install_count), so the signal is:
+   *
+   *   score = overlap*2 + idle_bonus + online_bonus − load_penalty
+   *
+   *   overlap      = token overlap between the task text and the agent_role
+   *   idle_bonus   = +1 when the agent has no claimed/in_progress task
+   *   online_bonus = +1 when the agent heartbeated within 5 minutes
+   *   load_penalty = active_task_count × 0.5
+   *
+   * paused / frozen agents are excluded. Returns candidates sorted desc.
+   */
+  scoreAgentsForTask(taskText) {
+    const agents = this.getAgents();
+    const ONLINE_WINDOW = 5 * 60 * 1000;
+    const text = (taskText || '').toLowerCase();
+    const tokens = new Set(text.split(/[^a-z0-9\u4e00-\u9fff]+/).filter((w) => w.length >= 2));
+    const roleTokens = (role) => new Set((role || '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 2));
+    const scored = agents
+      .filter((a) => (a.state || 'active') === 'active' && a.agent_role !== 'unassigned')
+      .map((a) => {
+        let overlap = 0;
+        const rt = roleTokens(a.agent_role);
+        for (const t of tokens) if (rt.has(t)) overlap++;
+        const online = a.last_seen_at && (Date.now() - new Date(a.last_seen_at).getTime()) < ONLINE_WINDOW ? 1 : 0;
+        const idle = (a.active_task_count || 0) === 0 ? 1 : 0;
+        const load = a.active_task_count || 0;
+        const score = overlap * 2 + idle + online - load * 0.5;
+        return { agent_role: a.agent_role, score, overlap, idle, online, load, state: a.state || 'active' };
+      })
+      .sort((a, b) => b.score - a.score);
+    return scored;
   }
 
   /**

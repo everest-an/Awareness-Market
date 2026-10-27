@@ -78,6 +78,23 @@ export async function handleApiRoute(daemon, req, res, url) {
     return apiUpdateTask(daemon, req, res, taskId);
   }
 
+  if (route === '/agents' && req.method === 'GET') {
+    return apiListAgents(daemon, req, res);
+  }
+
+  if (route === '/tasks/dispatch' && req.method === 'POST') {
+    return apiDispatchTask(daemon, req, res);
+  }
+
+  if (route === '/tasks/auto-dispatch' && req.method === 'POST') {
+    return apiAutoDispatchTask(daemon, req, res);
+  }
+
+  if (route.startsWith('/agents/') && route.endsWith('/state') && req.method === 'POST') {
+    const role = decodeURIComponent(route.replace('/agents/', '').replace('/state', ''));
+    return apiSetAgentState(daemon, req, res, role);
+  }
+
   if (route === '/sync/status' && req.method === 'GET') {
     return apiSyncStatus(daemon, req, res);
   }
@@ -96,6 +113,10 @@ export async function handleApiRoute(daemon, req, res, url) {
 
   if (route === '/workspaces' && req.method === 'GET') {
     return apiWorkspaces(res, url);
+  }
+
+  if (route === '/projects/summary' && req.method === 'GET') {
+    return apiProjectSummaries(res);
   }
 
   // F-064 Phase 2 · Session CRUD (reuses the native sessions table — no new
@@ -151,6 +172,14 @@ export async function handleApiRoute(daemon, req, res, url) {
 
   if (route === '/cloud/auth/open-browser' && req.method === 'POST') {
     return apiCloudAuthOpenBrowser(daemon, req, res);
+  }
+
+  // F-040 Phase B "server half": the welcome-step email opt-in forwards to the
+  // cloud. Client half + privacy tests: web/onboarding/steps.js,
+  // test/onboarding-email-optin.test.mjs. Restores the L1 endpoint contract
+  // (scripts/verify-endpoints.mjs) that went red when the client call landed alone.
+  if (route === '/subscribe' && req.method === 'POST') {
+    return apiSubscribe(daemon, req, res);
   }
 
   if (route.startsWith('/cloud/memories') && req.method === 'GET') {
@@ -903,6 +932,125 @@ export async function apiUpdateTask(daemon, req, res, taskId) {
   });
 }
 
+/**
+ * List every agent the daemon has seen, with live presence + task aggregates.
+ * Presence is derived by the UI from `last_seen_at` (no expiry enforced here).
+ */
+export function apiListAgents(daemon, _req, res) {
+  if (!daemon.indexer) {
+    return jsonResponse(res, { items: [], total: 0 });
+  }
+  const items = daemon.indexer.getAgents();
+  return jsonResponse(res, { items, total: items.length });
+}
+
+/**
+ * Set an agent's operating state: active | paused (cut routing) | frozen (freeze memory).
+ */
+export async function apiSetAgentState(daemon, req, res, role) {
+  if (!role) return jsonResponse(res, { error: 'agent_role is required' }, 400);
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body); } catch { return jsonResponse(res, { error: 'Invalid JSON' }, 400); }
+  const state = payload.state;
+  if (!daemon.indexer) return jsonResponse(res, { error: 'Indexer not available' }, 503);
+  const ok = daemon.indexer.setAgentState(role, state);
+  if (!ok) return jsonResponse(res, { error: 'invalid state (active/paused/frozen)' }, 400);
+  return jsonResponse(res, { status: 'ok', agent_role: role, state });
+}
+
+/**
+ * Auto-dispatch: score every active agent for the task and hand it to the
+ * best candidate. Mirrors the cloud F-104 scoring, adapted to local data
+ * (online bonus + idle bonus − load penalty + token overlap).
+ */
+export async function apiAutoDispatchTask(daemon, req, res) {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body); } catch { return jsonResponse(res, { error: 'Invalid JSON' }, 400); }
+  const { task_id } = payload;
+  if (!task_id) return jsonResponse(res, { error: 'task_id is required' }, 400);
+  if (!daemon.indexer) return jsonResponse(res, { error: 'Indexer not available' }, 503);
+
+  const task = daemon.indexer.db.prepare('SELECT * FROM tasks WHERE id = ?').get(task_id);
+  if (!task) return jsonResponse(res, { error: 'Task not found' }, 404);
+
+  const candidates = daemon.indexer.scoreAgentsForTask(`${task.title || ''} ${task.description || ''}`);
+  if (candidates.length === 0) {
+    return jsonResponse(res, { status: 'no_candidate', task_id, reason: 'no_active_agent', hint: 'All agents are paused/frozen — no active agent to dispatch to.' }, 409);
+  }
+
+  for (const c of candidates) {
+    const r = daemon.indexer.db
+      .prepare(`UPDATE tasks SET status = 'claimed', agent_role = ?, updated_at = ? WHERE id = ? AND status = 'open'`)
+      .run(c.agent_role, nowISO(), task_id);
+    if (r.changes > 0) {
+      return jsonResponse(res, {
+        status: 'ok', task_id, agent_role: c.agent_role, new_status: 'claimed',
+        dispatch: { score: c.score, overlap: c.overlap, idle: c.idle, online: c.online, load: c.load, candidates: candidates.slice(0, 5) },
+      });
+    }
+  }
+  return jsonResponse(res, { status: 'conflict', task_id, reason: 'not_open' }, 409);
+}
+
+/**
+ * Dispatch an open task to a specific agent — the push half of multi-agent
+ * dispatching (the pull half is the agent claiming via awareness_update_task).
+ * Atomic: only succeeds if the task is still 'open', so two dispatchers can't
+ * hand the same task to two agents.
+ */
+export async function apiDispatchTask(daemon, req, res) {
+  const body = await readBody(req);
+  let payload;
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    return jsonResponse(res, { error: 'Invalid JSON' }, 400);
+  }
+
+  const { task_id, agent_role } = payload;
+  if (!task_id || !agent_role) {
+    return jsonResponse(res, { error: 'task_id and agent_role are required' }, 400);
+  }
+  if (!daemon.indexer) {
+    return jsonResponse(res, { error: 'Indexer not available' }, 503);
+  }
+
+  const agentState = daemon.indexer.getAgentState(agent_role);
+  if (agentState === 'paused' || agentState === 'frozen') {
+    return jsonResponse(res, { status: 'blocked', task_id, agent_role, reason: 'agent_' + agentState }, 409);
+  }
+
+  const now = nowISO();
+  const res2 = daemon.indexer.db
+    .prepare(
+      `UPDATE tasks SET status = 'claimed', agent_role = ?, updated_at = ?
+       WHERE id = ? AND status = 'open'`
+    )
+    .run(String(agent_role), now, task_id);
+
+  if (res2.changes === 0) {
+    const cur = daemon.indexer.db
+      .prepare('SELECT status, agent_role FROM tasks WHERE id = ?')
+      .get(task_id);
+    return jsonResponse(res, {
+      status: 'conflict',
+      task_id,
+      reason: 'not_open',
+      current_status: cur?.status ?? null,
+      current_agent_role: cur?.agent_role ?? null,
+    }, 409);
+  }
+
+  return jsonResponse(res, {
+    status: 'ok',
+    task_id,
+    agent_role: String(agent_role),
+    new_status: 'claimed',
+  });
+}
+
 export function apiSyncStatus(daemon, _req, res) {
   const config = daemon._loadConfig();
   const cloud = config.cloud || {};
@@ -999,6 +1147,8 @@ export async function apiSyncRetry(daemon, req, res) {
 export async function apiWorkspaces(res, url) {
   try {
     const { loadWorkspaces } = await import('../core/config.mjs');
+  const { readProjectStatus } = await import('./project-status.mjs');
+  const registry = readProjectStatus();
     const ws = loadWorkspaces() || {};
     const sanitizedEntries = Object.entries(ws).filter(([workspacePath]) => {
       const resolved = path.resolve(workspacePath);
@@ -1175,6 +1325,44 @@ export async function apiCloudAuthPoll(daemon, req, res) {
     await new Promise((resolve) => setTimeout(resolve, interval));
   }
   return jsonResponse(res, { error: 'Auth timeout', status: 'pending' }, 408);
+}
+
+/**
+ * POST /api/v1/subscribe — forward the welcome-step email opt-in to the cloud
+ * ("server half" of F-040 Phase B; client half: web/onboarding/steps.js).
+ *
+ * The cloud endpoint (backend/awareness/api/routes/subscribe.py) is public and
+ * rate-limited. We forward `{email, source}` only — never an installation_id —
+ * so a volunteer's address stays unlinked from their anonymous usage history
+ * (privacy contract pinned by test/onboarding-email-optin.test.mjs and the
+ * tests for this handler). Cloud failure returns a soft 502 and never throws:
+ * the onboarding UI already ignores errors from this call.
+ */
+export async function apiSubscribe(daemon, req, res) {
+  let body = {};
+  try {
+    const raw = await readBody(req);
+    if (raw) body = JSON.parse(raw);
+  } catch {
+    return jsonResponse(res, { error: 'invalid_json' }, 400);
+  }
+
+  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  if (!email) {
+    return jsonResponse(res, { error: 'email_required' }, 400);
+  }
+  const source = typeof body.source === 'string' && body.source.trim()
+    ? body.source.trim()
+    : 'daemon-onboarding';
+
+  const config = daemon._loadConfig();
+  const apiBase = config?.cloud?.api_base || 'https://awareness.market/api/v1';
+  try {
+    const data = await daemon._httpJson('POST', `${apiBase}/subscribe`, { email, source });
+    return jsonResponse(res, data ?? { status: 'ok' });
+  } catch (err) {
+    return jsonResponse(res, { error: 'subscribe_unreachable', detail: err.message }, 502);
+  }
 }
 
 export async function apiCloudListMemories(daemon, _req, res, url) {
@@ -1931,4 +2119,69 @@ function _safeJsonParse(val, fallback) {
     try { const p = JSON.parse(val); if (Array.isArray(p)) return p; } catch {}
   }
   return fallback;
+}
+
+/**
+ * Per-project progress across every workspace the daemon has seen.
+ *
+ * The registry holds only metadata (path, port, name, last used); the numbers
+ * live in each project's own .awareness/index.db. Open them read-only and close
+ * them again, so a project the daemon is not attached to is observed rather than
+ * touched.
+ */
+async function apiProjectSummaries(res) {
+  const path = await import('node:path');
+  const fs = await import('node:fs');
+  const { loadWorkspaces } = await import('../core/config.mjs');
+  const { readProjectStatus } = await import('./project-status.mjs');
+  const registry = readProjectStatus();
+
+  let Database = null;
+  try { ({ default: Database } = await import('better-sqlite3')); } catch { /* file-only mode */ }
+
+  const ws = loadWorkspaces() || {};
+  const items = [];
+
+  for (const [dir, meta] of Object.entries(ws)) {
+    const row = {
+      dir,
+      name: meta.name || path.basename(dir),
+      lastUsed: meta.lastUsed || null,
+      hasDb: false,
+      tasks: null,
+      memories: null,
+    };
+    const published = registry[dir];
+    if (published && published.tasks) {
+      row.tasks = published.tasks;
+      row.memories = published.memories ?? null;
+      row.hasDb = true;
+      row.source = 'registry';
+      items.push(row);
+      continue;
+    }
+
+    const dbPath = path.join(dir, '.awareness', 'index.db');
+    if (Database && fs.existsSync(dbPath)) {
+      try {
+        const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+        const one = (sql) => { try { return db.prepare(sql).get().c; } catch { return null; } };
+        row.tasks = {
+          open: one("SELECT COUNT(*) AS c FROM tasks WHERE status='open'"),
+          doing: one("SELECT COUNT(*) AS c FROM tasks WHERE status IN ('claimed','doing')"),
+          done: one("SELECT COUNT(*) AS c FROM tasks WHERE status='done'"),
+        };
+        row.memories = one("SELECT COUNT(*) AS c FROM memories WHERE status='active'");
+        row.hasDb = true;
+        row.source = 'db';
+        db.close();
+      } catch (err) {
+        row.error = err.message;
+      }
+    }
+    items.push(row);
+  }
+
+  items.sort((a, b) => new Date(b.lastUsed || 0) - new Date(a.lastUsed || 0));
+  return jsonResponse(res, { items, total: items.length });
 }
