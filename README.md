@@ -44,6 +44,12 @@ That's it. Your AI agent now remembers everything across sessions.
 
 ---
 
+## Guides
+
+- [Memory for Claude Code](https://awareness.market/en/memory-for-claude-code): persistent memory, CLAUDE.md, claude-mem, and Mem0.
+- [Memory for Cursor](https://awareness.market/en/memory-for-cursor): .cursor/rules + MCP setup.
+- [Awareness vs Mem0](https://awareness.market/en/vs/mem0): local-first vs managed cloud memory.
+
 ## Why Awareness Local
 
 AI coding agents lose context between sessions. Awareness Local provides cross-session memory recall so agents can continue work without re-explaining architecture, past decisions, pending tasks, and implementation constraints.
