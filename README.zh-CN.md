@@ -24,11 +24,15 @@
   <img src="assets/branding/local-20s.gif" alt="Awareness Local" style="width:min(1200px,100%);height:auto;" />
 </p>
 
-**给你的 AI 编程助手加上持久记忆。一个命令即可，本地优先，无需账号。**
+**会话一结束，AI 就把一切忘光。Awareness 解决这个问题。**
 
-Awareness Local 是一个面向 AI 编程代理的本地优先 MCP 记忆服务。它为 Cursor、Claude Code、Copilot、Cline 等 MCP IDE 提供跨会话持久记忆、语义+关键词混合检索，以及可复用的知识卡片能力。
+Awareness 是面向 AI 编程代理的记忆插件 —— 支持 Cursor、Claude Code、Copilot、Cline、OpenCode 以及任何 MCP 客户端。它把你做过的决定和学到的东西以纯 Markdown 存在本地，下个会话自动召回：关键词 + 语义混合检索，LongMemEval R@5 96%，检索侧零 LLM 调用。可离线使用，无需账号。
 
-它在你的机器上运行轻量守护进程，以 Markdown 方式存储记忆，使用 SQLite FTS5 + 向量混合检索，并通过 MCP 协议接入 IDE，让 AI 工作流更连贯、更可解释、可离线。
+一条命令安装：
+
+\`\`\`bash
+npx @awareness.market/setup
+\`\`\`
 
 ```bash
 npx @awareness.market/setup

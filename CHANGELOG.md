@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-23
+
+- docs: README（英/中）开头重写为「先讲痛点、再讲方案」
+- docs: 新增 `docs/ARCHITECTURE.md`（当前架构权威说明）与 `docs/DISTRIBUTION.md`（收录状态追踪）
+- chore: 全仓替换离职员工账号引用为 `everestan`（含 .mcp.json 路径与记忆文件）
+- feat: 新增 `openai-plugin/`（ChatGPT/Codex 插件包：plugin.json + mcp.json + 资产）
+- chore: 品牌 logo 更新并接入 README
+- listings: 官方 MCP Registry（2 条）、Glama、LobeHub、mcp.directory、mcpservers.org、MCP Market、EvoMap、yzfly 已收录；awesome-mcp-servers / awesome-remote-mcp-servers / llms-txt-hub / wundercorp / e2b 等 PR 已提交
+- legal: 对公主体统一为 EVEREST HOLDINGS GROUP CO., LIMITED（香港，BR 73839155-000-03-26-2）
+
 ## [0.21.1] - 2026-10-28
 
 ### Fixed - knowledge card provenance
