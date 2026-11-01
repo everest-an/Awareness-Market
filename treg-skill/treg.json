@@ -1,0 +1,21 @@
+{
+  "name": "awareness-memory",
+  "base_url": "https://awareness.market",
+  "secrets": [],
+  "bindings": [],
+  "examples": [
+    {
+      "method": "GET",
+      "path": "/api/v1/public/deals?limit=5",
+      "note": "Read the Open Deal Board (supply/demand listings)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/public/retrieve",
+      "note": "Search the public research knowledge graph (preview mode)"
+    }
+  ],
+  "health": {
+    "path": "/api/v1/public/deals?limit=1"
+  }
+}
